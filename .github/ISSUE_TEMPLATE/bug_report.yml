@@ -1,0 +1,52 @@
+name: Bug report
+description: Something does not work as described in the guide
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! **Security problems** must not be reported here — use [Report a vulnerability](https://github.com/Max-Zit/watchzit/security/advisories/new) instead.
+  - type: input
+    id: version
+    attributes:
+      label: WatchZit version
+      description: Console version (bottom of the sidebar) and, if relevant, the agent version.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Console / web interface
+        - Network map / discovery
+        - SNMP devices
+        - Agent (Windows / Linux)
+        - Checks (ping, TCP, HTTP, DNS, certificates)
+        - Databases
+        - MikroTik / FortiGate
+        - Graphs and dashboards
+        - Alerts and notifications
+        - Opening devices (web, SSH, RDP, custom tools)
+        - Installation / updates
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Server host (appliance, Debian/Ubuntu package, …), monitored device types and versions.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Remove passwords, community strings and host names you do not want to share.
+      render: text

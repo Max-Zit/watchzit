@@ -1,0 +1,9 @@
+/bin/
+*.exe
+*.msi
+*.test
+*.out
+.gotmp/
+.devdata/
+/dist/
+credentials.txt
