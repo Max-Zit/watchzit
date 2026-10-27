@@ -1,6 +1,6 @@
 # WatchZit — architecture proposal (draft, 2026-10-27)
 
-Status: **proposal, waiting for Stefan's ok.** Nothing here is built yet.
+Status: **approved by Stefan on 2026-10-27** (retention defaults, ports 8443/8444, agent before maps, launcher variant A+B). Version 0.1 is being built.
 
 WatchZit follows ControlZit's newer layout (Go server + PostgreSQL, html/template
 console, JSON i18n catalogs, numbered SQL migrations, separate console and agent
@@ -82,7 +82,9 @@ Linux server `.deb`/`.rpm` + `install.sh`; appliance ISO/OVA/qcow2/VHDX (Debian,
 
 ## 9. Dependencies (planned, all AGPLv3-compatible)
 
-pgx (MIT), coder/websocket (ISC), golang.org/x/{crypto,net,sys} (BSD-3), gosnmp (BSD-2), go-sql-driver/mysql (MPL-2.0), go-mssqldb (BSD-3), govmomi (Apache-2.0, vSphere, later), rsc.io/qr (BSD-3, TOTP QR), embedded-postgres (MIT, dev/tests only). No Zabbix/Prometheus/Grafana/Telegraf code or libraries.
+pgx (MIT), coder/websocket (ISC), golang.org/x/{crypto,net,sys} (BSD-3), rsc.io/qr (BSD-3, TOTP QR), embedded-postgres (MIT, dev/tests only). No Zabbix/Prometheus/Grafana/Telegraf code or libraries.
+
+Stefan wants an authentic product (2026-10-27), so the protocol code that defines the product is our own: **SNMP v1/v2c/v3 (BER, USM, AES/DES) is written in WatchZit** instead of using gosnmp; vSphere is read through its REST API without govmomi; the metric store, charts, ICMP and the map are our own too. Database monitoring reuses pgx for PostgreSQL; for MySQL/MariaDB and SQL Server we decide at 0.7 (own minimal wire protocol for the few monitoring queries, or a driver: go-sql-driver/mysql MPL-2.0, go-mssqldb BSD-3).
 
 ## 10. Proposed feature order
 
@@ -91,8 +93,8 @@ pgx (MIT), coder/websocket (ISC), golang.org/x/{crypto,net,sys} (BSD-3), gosnmp 
 | 0.1 | Server skeleton (login, 2FA, roles, audit, settings, 14-language scaffold, theme), devices + groups, ICMP/TCP checks, metric store with compaction/rollups, device page with graphs, CI |
 | 0.2 | SNMP v1/v2c/v3, built-in templates (generic, MikroTik, switch, printer, UPS), interface traffic graphs, encrypted credentials |
 | 0.3 | Triggers, alerts, dependencies, maintenance, email + webhook |
-| 0.4 | Maps (editor, status, links with traffic, click → graphs) and discovery |
-| 0.5 | Agent Windows + Linux (MSI, deb/rpm), enrollment, system metrics, services |
+| 0.4 | Agent Windows + Linux (MSI, deb/rpm), enrollment, system metrics, services (Stefan: agent before maps) |
+| 0.5 | Maps (editor, status, links with traffic, click → graphs) and discovery |
 | 0.6 | Opening devices: web UI, .rdp, launcher |
 | 0.7 | HTTP(S)/DNS/TLS, databases, RouterOS API, FortiGate REST, vSphere |
 | 0.8 | Dashboards, reports, REST API |

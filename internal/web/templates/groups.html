@@ -1,0 +1,37 @@
+{{template "app" .}}
+{{define "content"}}
+<h1>{{.T "Groups"}}</h1>
+<section class="panel">
+  {{if .Data.Groups}}
+  <div class="table-wrap"><table>
+    <thead><tr><th>{{.T "Name"}}</th><th class="num">{{.T "Devices"}}</th>{{if .User.CanWrite}}<th></th>{{end}}</tr></thead>
+    <tbody>{{range .Data.Groups}}<tr>
+      <td><a href="/devices?group={{.ID}}">{{.Name}}</a>{{with .Notes}}<br><small class="muted">{{.}}</small>{{end}}</td>
+      <td class="num">{{.Devices}}</td>
+      {{if $.User.CanWrite}}<td class="actions nowrap">
+        <details class="pop right"><summary class="btn ghost sm" title="{{$.T "Edit"}}">{{template "icon" "settings"}}</summary>
+          <div class="pop-body">
+            <form method="post" action="/groups/{{.ID}}" class="stack">
+              <label>{{$.T "Name"}}<input name="name" value="{{.Name}}" required maxlength="100"></label>
+              <label>{{$.T "Notes"}}<input name="notes" value="{{.Notes}}" maxlength="4000"></label>
+              <div><button class="primary sm">{{$.T "Save"}}</button></div>
+            </form>
+            <form method="post" action="/groups/{{.ID}}/delete" class="mt" data-confirm="{{$.T "Delete the group %s? Its devices stay, without a group." .Name}}"><button class="danger sm">{{template "icon" "trash"}}{{$.T "Delete group"}}</button></form>
+          </div>
+        </details>
+      </td>{{end}}
+    </tr>{{end}}</tbody>
+  </table></div>
+  {{else}}<p class="muted">{{.T "No groups yet. Groups keep devices of a site, a customer or a kind together."}}</p>{{end}}
+</section>
+{{if .User.CanWrite}}
+<section class="panel">
+  <h2>{{.T "Add a group"}}</h2>
+  <form method="post" action="/groups" class="row">
+    <input name="name" value="{{.Data.Name}}" required maxlength="100" placeholder="{{.T "Name, for example Head office"}}" aria-label="{{.T "Name"}}">
+    <input name="notes" maxlength="4000" placeholder="{{.T "Notes (optional)"}}" aria-label="{{.T "Notes"}}">
+    <button class="primary">{{template "icon" "plus"}}{{.T "Add group"}}</button>
+  </form>
+</section>
+{{end}}
+{{end}}

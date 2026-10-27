@@ -1,0 +1,35 @@
+{{template "app" .}}
+{{define "content"}}
+<p class="back"><a href="{{if .Data.ID}}/devices/{{.Data.ID}}{{else}}/devices{{end}}">{{if .Data.ID}}{{.Data.In.Name}}{{else}}{{.T "Devices"}}{{end}}</a></p>
+<h1>{{.T .Title}}</h1>
+<section class="panel">
+  <form method="post" action="{{if .Data.ID}}/devices/{{.Data.ID}}/edit{{else}}/devices/new{{end}}" class="stack">
+    <div class="cols">
+      <label>{{.T "Name"}}<input name="name" value="{{.Data.In.Name}}" required maxlength="100" placeholder="core-router"></label>
+      <label>{{.T "Address"}}<input name="address" value="{{.Data.In.Address}}" required maxlength="253" class="mono" spellcheck="false" autocapitalize="none" placeholder="192.168.1.1"><small>{{.T "IP address or host name."}}</small></label>
+    </div>
+    <div class="cols">
+      <label>{{.T "Type"}}<select name="kind">{{range .Kinds}}<option value="{{.}}" {{if eq . $.Data.In.Kind}}selected{{end}}>{{$.KindName .}}</option>{{end}}</select></label>
+      <label>{{.T "Group"}}<select name="group"><option value="0">{{.T "No group"}}</option>{{range .Data.Groups}}<option value="{{.ID}}" {{if eq .ID $.Data.In.GroupID}}selected{{end}}>{{.Name}}</option>{{end}}</select><small><a href="/groups">{{.T "Manage groups"}}</a></small></label>
+    </div>
+    <label>{{.T "Web interface"}} <small>{{.T "optional"}}</small><input name="web_url" value="{{.Data.In.WebURL}}" maxlength="500" class="mono" spellcheck="false" placeholder="https://192.168.1.1"><small>{{.T "Opened by the button on the device page."}}</small></label>
+    <label>{{.T "Notes"}} <small>{{.T "optional"}}</small><textarea name="notes" rows="3" maxlength="4000">{{.Data.In.Notes}}</textarea></label>
+    {{if not .Data.ID}}
+    <fieldset class="box">
+      <legend>{{.T "Checks"}}</legend>
+      <label class="check"><input type="checkbox" name="ping" value="1" {{if .Data.Ping}}checked{{end}}>{{.T "Ping (ICMP): response time and packet loss every minute"}}</label>
+      <label>{{.T "TCP ports"}} <small>{{.T "optional"}}</small><input name="ports" value="{{.Data.Ports}}" class="mono" placeholder="22, 80, 443, 8291"><small>{{.T "Each port becomes a check that connects every minute."}}</small></label>
+    </fieldset>
+    {{end}}
+    <label class="check"><input type="checkbox" name="paused" value="1" {{if .Data.In.Paused}}checked{{end}}>{{.T "Paused (no checks)"}}</label>
+    <div><button class="primary">{{if .Data.ID}}{{.T "Save"}}{{else}}{{template "icon" "plus"}}{{.T "Add device"}}{{end}}</button></div>
+  </form>
+</section>
+{{if .Data.ID}}
+<section class="panel">
+  <h2>{{.T "Delete device"}}</h2>
+  <p class="muted">{{.T "Deletes the device with all its checks and measured data."}}</p>
+  <form method="post" action="/devices/{{.Data.ID}}/delete" data-confirm="{{.T "Delete %s with all its data?" .Data.In.Name}}"><button class="danger">{{template "icon" "trash"}}{{.T "Delete"}}</button></form>
+</section>
+{{end}}
+{{end}}

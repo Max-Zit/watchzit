@@ -1,0 +1,411 @@
+package web_test
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"io"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"os"
+	"regexp"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/max-zit/watchzit/internal/auth"
+	"github.com/max-zit/watchzit/internal/poller"
+	"github.com/max-zit/watchzit/internal/store"
+	"github.com/max-zit/watchzit/internal/testdb"
+	"github.com/max-zit/watchzit/internal/tsdb"
+	"github.com/max-zit/watchzit/internal/web"
+)
+
+func TestMain(m *testing.M) { os.Exit(testdb.Main(m)) }
+
+type env struct {
+	t     *testing.T
+	st    *store.Store
+	db    *tsdb.DB
+	srv   *web.Server
+	h     http.Handler
+	now   time.Time
+	setup string
+}
+
+func newEnv(t *testing.T) *env {
+	t.Helper()
+	ctx := context.Background()
+	st, err := store.Open(ctx, testdb.URL(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(st.Close)
+	if err := st.UseSecretKey(bytes.Repeat([]byte{3}, 32)); err != nil {
+		t.Fatal(err)
+	}
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	db := tsdb.New(st.Pool(), log)
+	srv, err := web.New(ctx, st, db, poller.New(st, db, log), log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e := &env{t: t, st: st, db: db, srv: srv, now: time.Date(2026, 10, 27, 10, 0, 0, 0, time.UTC), setup: "setup-secret"}
+	srv.SetClock(func() time.Time { return e.now })
+	st.SetClock(func() time.Time { return e.now })
+	db.SetClock(func() time.Time { return e.now })
+	srv.SetSetupToken(e.setup)
+	e.h = srv.Handler()
+	return e
+}
+
+// client is a browser: cookies, a source address, same-origin posts.
+type client struct {
+	e       *env
+	ip      string
+	cookies map[string]string
+}
+
+func (e *env) client(ip string) *client { return &client{e: e, ip: ip, cookies: map[string]string{}} }
+
+type resp struct {
+	code int
+	loc  string
+	body string
+	hdr  http.Header
+}
+
+func (c *client) do(method, path string, form url.Values, hdr map[string]string) resp {
+	var body io.Reader
+	if form != nil {
+		body = strings.NewReader(form.Encode())
+	}
+	r := httptest.NewRequest(method, "http://wz.test"+path, body)
+	r.RemoteAddr = c.ip + ":50000"
+	if form != nil {
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	}
+	if method == http.MethodPost {
+		r.Header.Set("Origin", "http://wz.test")
+	}
+	for k, v := range hdr {
+		if v == "" {
+			r.Header.Del(k)
+		} else {
+			r.Header.Set(k, v)
+		}
+	}
+	for k, v := range c.cookies {
+		r.AddCookie(&http.Cookie{Name: k, Value: v})
+	}
+	w := httptest.NewRecorder()
+	c.e.h.ServeHTTP(w, r)
+	for _, ck := range w.Result().Cookies() {
+		if ck.MaxAge < 0 {
+			delete(c.cookies, ck.Name)
+		} else {
+			c.cookies[ck.Name] = ck.Value
+		}
+	}
+	return resp{code: w.Code, loc: w.Header().Get("Location"), body: w.Body.String(), hdr: w.Header()}
+}
+
+func (c *client) get(path string) resp { return c.do(http.MethodGet, path, nil, nil) }
+func (c *client) post(path string, kv ...string) resp {
+	f := url.Values{}
+	for i := 0; i+1 < len(kv); i += 2 {
+		f.Add(kv[i], kv[i+1])
+	}
+	return c.do(http.MethodPost, path, f, nil)
+}
+
+var secretRE = regexp.MustCompile(`<code class="secret"[^>]*>([A-Z2-7]+)</code>`)
+
+func (e *env) code(secret string) string {
+	c, _ := auth.TOTPCode(secret, e.now.Unix()/30)
+	return c
+}
+
+// enroll finishes the second-factor setup of a signed-in-by-password client.
+func (e *env) enroll(c *client) string {
+	e.t.Helper()
+	r := c.get("/login/enroll")
+	m := secretRE.FindStringSubmatch(r.body)
+	if m == nil {
+		e.t.Fatalf("no secret on the enrollment page: %d %s", r.code, r.body)
+	}
+	r = c.post("/login/enroll", "code", e.code(m[1]))
+	if r.code != http.StatusOK || !strings.Contains(r.body, `class="codes"`) {
+		e.t.Fatalf("enroll: %d %s", r.code, r.body)
+	}
+	e.now = e.now.Add(31 * time.Second)
+	return m[1]
+}
+
+// setupAdmin runs the first-run setup and the 2FA enrollment.
+func (e *env) setupAdmin(ip string) (*client, string) {
+	e.t.Helper()
+	c := e.client(ip)
+	r := c.post("/setup", "token", e.setup, "username", "admin", "password", "admin password 123", "password2", "admin password 123")
+	if r.code != http.StatusSeeOther || r.loc != "/login/enroll" {
+		e.t.Fatalf("setup: %d %s %s", r.code, r.loc, r.body)
+	}
+	return c, e.enroll(c)
+}
+
+func TestSetupRequiresTokenAnd2FA(t *testing.T) {
+	e := newEnv(t)
+	c := e.client("192.168.1.10")
+	if r := c.get("/"); r.loc != "/setup" {
+		t.Fatalf("fresh server should send to setup, got %d %s", r.code, r.loc)
+	}
+	r := c.post("/setup", "token", "wrong", "username", "admin", "password", "admin password 123", "password2", "admin password 123")
+	if r.code != http.StatusBadRequest {
+		t.Fatalf("wrong setup token accepted: %d", r.code)
+	}
+	c2 := e.client("192.168.1.11")
+	r = c2.post("/setup", "token", e.setup, "username", "admin", "password", "admin password 123", "password2", "admin password 123")
+	if r.loc != "/login/enroll" {
+		t.Fatalf("setup: %d %s", r.code, r.loc)
+	}
+	if r := c2.get("/devices"); r.code != http.StatusSeeOther || !strings.HasPrefix(r.loc, "/login") {
+		t.Fatalf("console open before 2FA: %d %s", r.code, r.loc)
+	}
+	if r := c.post("/setup", "token", e.setup, "username", "evil", "password", "evil password 123", "password2", "evil password 123"); r.loc != "/login" {
+		t.Fatalf("second setup: %d %s", r.code, r.loc)
+	}
+}
+
+func TestLoginWith2FA(t *testing.T) {
+	e := newEnv(t)
+	_, secret := e.setupAdmin("192.168.1.10")
+	c := e.client("192.168.1.20")
+	r := c.post("/login", "username", "admin", "password", "admin password 123")
+	if r.loc != "/login/2fa?next=%2F" {
+		t.Fatalf("login: %d %s", r.code, r.loc)
+	}
+	if r := c.get("/"); r.code != http.StatusSeeOther {
+		t.Fatal("password alone opened the console")
+	}
+	pre := c.cookies["wzsession"]
+	if r := c.post("/login/2fa", "code", "000000"); r.code != http.StatusUnauthorized {
+		t.Fatalf("wrong code: %d", r.code)
+	}
+	code := e.code(secret)
+	if r := c.post("/login/2fa", "code", code, "next", "/devices"); r.loc != "/devices" {
+		t.Fatalf("2fa: %d %s %s", r.code, r.loc, r.body)
+	}
+	if c.cookies["wzsession"] == pre {
+		t.Fatal("session token not rotated after the second factor")
+	}
+	if r := c.get("/devices"); r.code != http.StatusOK {
+		t.Fatalf("console after sign-in: %d", r.code)
+	}
+	c3 := e.client("192.168.1.21")
+	c3.post("/login", "username", "admin", "password", "admin password 123")
+	if r := c3.post("/login/2fa", "code", code); r.code != http.StatusUnauthorized {
+		t.Fatalf("replayed TOTP code accepted: %d", r.code)
+	}
+	c.post("/logout")
+	if r := c.get("/devices"); r.code != http.StatusSeeOther {
+		t.Fatalf("still signed in after sign-out: %d", r.code)
+	}
+}
+
+func TestBruteForceBlock(t *testing.T) {
+	e := newEnv(t)
+	e.setupAdmin("192.168.1.10")
+	c := e.client("10.9.9.9")
+	for i := 0; i < 5; i++ {
+		c.post("/login", "username", "admin", "password", "wrong password 1")
+	}
+	if r := c.post("/login", "username", "admin", "password", "admin password 123"); r.code != http.StatusTooManyRequests {
+		t.Fatalf("blocked address could sign in: %d", r.code)
+	}
+	if r := e.client("10.9.9.10").post("/login", "username", "admin", "password", "admin password 123"); r.code != http.StatusSeeOther {
+		t.Fatalf("other address blocked too: %d", r.code)
+	}
+}
+
+func TestSecurityHeadersAndCSRF(t *testing.T) {
+	e := newEnv(t)
+	c, _ := e.setupAdmin("192.168.1.10")
+	r := c.get("/")
+	if csp := r.hdr.Get("Content-Security-Policy"); !strings.Contains(csp, "script-src 'self'") || strings.Contains(csp, "unsafe-inline") {
+		t.Fatalf("CSP: %q", csp)
+	}
+	if strings.Contains(r.body, "<script>") || strings.Contains(r.body, " style=") {
+		t.Fatal("inline script or style in a page")
+	}
+	f := url.Values{"name": {"x"}, "address": {"10.0.0.1"}}
+	if r := c.do(http.MethodPost, "/devices/new", f, map[string]string{"Origin": "https://evil.example"}); r.code != http.StatusForbidden {
+		t.Fatalf("cross-site post: %d", r.code)
+	}
+	if r := c.do(http.MethodPost, "/devices/new", f, map[string]string{"Origin": "", "Referer": ""}); r.code != http.StatusForbidden {
+		t.Fatalf("post without origin: %d", r.code)
+	}
+	// Outside the allowed networks the console refuses.
+	if r := e.client("203.0.113.5").get("/login"); r.code != http.StatusForbidden {
+		t.Fatalf("public address: %d", r.code)
+	}
+}
+
+func TestDevicesChecksAndSeries(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	c, _ := e.setupAdmin("192.168.1.10")
+	if r := c.post("/groups", "name", "Head office"); r.code != http.StatusSeeOther {
+		t.Fatalf("group: %d %s", r.code, r.body)
+	}
+	gs, _ := e.st.Groups(ctx)
+	if len(gs) != 1 {
+		t.Fatalf("%d groups", len(gs))
+	}
+	// Invalid input is refused and shown.
+	r := c.post("/devices/new", "name", "bad", "address", "-oProxyCommand=x", "ping", "1")
+	if r.code != http.StatusBadRequest || !strings.Contains(r.body, "IP address or a host name") {
+		t.Fatalf("bad address: %d", r.code)
+	}
+	r = c.post("/devices/new", "name", "core", "address", "192.168.1.1", "kind", "router", "group", "1", "ping", "1", "ports", "22, 443", "web_url", "https://192.168.1.1")
+	if r.code != http.StatusSeeOther || !strings.HasPrefix(r.loc, "/devices/") {
+		t.Fatalf("create: %d %s %s", r.code, r.loc, r.body)
+	}
+	devURL := r.loc
+	r = c.get(devURL)
+	for _, want := range []string{"core", "Ping", "TCP 22", "TCP 443", `href="https://192.168.1.1"`, `data-series="`} {
+		if !strings.Contains(r.body, want) {
+			t.Fatalf("device page lacks %q", want)
+		}
+	}
+	if r := c.post("/devices/new", "name", "CORE", "address", "192.168.1.2"); r.code != http.StatusBadRequest {
+		t.Fatalf("duplicate name: %d", r.code)
+	}
+	cs, err := e.st.AllChecks(ctx)
+	if err != nil || len(cs) != 3 {
+		t.Fatalf("%v %d checks", err, len(cs))
+	}
+	// Results: one TCP port down makes the device partly down.
+	var res []store.CheckResult
+	for _, ch := range cs {
+		st := store.StatusUp
+		if ch.Params.Port == 443 {
+			st = store.StatusDown
+		}
+		res = append(res, store.CheckResult{CheckID: ch.ID, At: e.now, Status: st, Text: "test"})
+	}
+	changes, err := e.st.SaveResults(ctx, res)
+	if err != nil || len(changes) != 3 {
+		t.Fatalf("%v %d changes", err, len(changes))
+	}
+	d, _ := e.st.DeviceByID(ctx, cs[0].DeviceID)
+	if d.Status != store.StatusWarning || d.ChecksDown != 1 {
+		t.Fatalf("device %s, %d down", d.Status, d.ChecksDown)
+	}
+	if r := c.get("/"); !strings.Contains(r.body, "1 of 3 checks down") {
+		t.Fatal("overview does not list the problem")
+	}
+	// Samples of the ping series come back as JSON.
+	var rtt int32
+	for _, ch := range cs {
+		if ch.Type == store.CheckICMP {
+			rtt = ch.Series[0].ID
+		}
+	}
+	for i := 0; i < 30; i++ {
+		e.db.Add(tsdb.Sample{Series: rtt, T: e.now.Add(time.Duration(-i) * time.Minute), V: 1.25})
+	}
+	if err := e.db.Flush(ctx); err != nil {
+		t.Fatal(err)
+	}
+	r = c.get("/series/" + itoa(rtt) + "?range=1h&points=600")
+	var js struct {
+		Step int64      `json:"step"`
+		T    []int64    `json:"t"`
+		Avg  []*float64 `json:"avg"`
+		Unit string     `json:"unit"`
+	}
+	if err := json.Unmarshal([]byte(r.body), &js); err != nil || r.code != 200 {
+		t.Fatalf("series: %d %v %s", r.code, err, r.body)
+	}
+	if len(js.T) != 30 || js.Unit != "ms" || *js.Avg[0] != 1.25 {
+		t.Fatalf("series: %d points, unit %q", len(js.T), js.Unit)
+	}
+	if r := c.get("/series/99999"); r.code != http.StatusNotFound {
+		t.Fatalf("unknown series: %d", r.code)
+	}
+	// A viewer sees but cannot change.
+	if r := c.post("/users", "username", "watcher", "password", "watcher password 1", "role", "viewer"); r.code != http.StatusSeeOther {
+		t.Fatalf("user: %d %s", r.code, r.body)
+	}
+	v := e.client("192.168.1.30")
+	v.post("/login", "username", "watcher", "password", "watcher password 1")
+	e.enroll(v)
+	v.post("/account/password", "current", "watcher password 1", "password", "new watcher pass 1", "password2", "new watcher pass 1")
+	if r := v.get(devURL); r.code != http.StatusOK || strings.Contains(r.body, "Add a check") {
+		t.Fatalf("viewer device page: %d", r.code)
+	}
+	if r := v.post(devURL + "/delete"); r.code != http.StatusForbidden {
+		t.Fatalf("viewer deleted a device: %d", r.code)
+	}
+	if r := v.get("/users"); r.code != http.StatusForbidden {
+		t.Fatalf("viewer opened users: %d", r.code)
+	}
+	// Deleting the device removes checks, series and samples.
+	if r := c.post(devURL + "/delete"); r.code != http.StatusSeeOther {
+		t.Fatalf("delete: %d", r.code)
+	}
+	var n int
+	_ = e.st.Pool().QueryRow(ctx, `SELECT (SELECT count(*) FROM checks) + (SELECT count(*) FROM series) + (SELECT count(*) FROM samples_hot)`).Scan(&n)
+	if n != 0 {
+		t.Fatalf("%d rows left after delete", n)
+	}
+	// Everything was audited.
+	list, _ := e.st.AuditEntries(ctx, store.AuditFilter{Limit: 100})
+	acts := map[string]bool{}
+	for _, a := range list {
+		acts[a.Action] = true
+	}
+	for _, a := range []string{"setup", "group.create", "device.create", "device.delete", "user.create"} {
+		if !acts[a] {
+			t.Fatalf("no audit entry %s", a)
+		}
+	}
+	if chk, _ := e.st.VerifyAudit(ctx); !chk.OK {
+		t.Fatal("audit chain broken")
+	}
+}
+
+// TestPagesRender opens every page of the console in every language.
+func TestPagesRender(t *testing.T) {
+	e := newEnv(t)
+	c, _ := e.setupAdmin("192.168.1.10")
+	c.post("/groups", "name", "G")
+	c.post("/devices/new", "name", "d1", "address", "10.0.0.1", "group", "1", "ping", "1", "ports", "80", "web_url", "http://10.0.0.1")
+	pages := []string{"/", "/devices", "/devices?status=down", "/devices/new", "/devices/1", "/devices/1?range=7d", "/devices/1/edit", "/groups",
+		"/users", "/users/1", "/account", "/audit", "/settings/network", "/settings/security", "/settings/data", "/nothing"}
+	for _, l := range web.Languages {
+		c.post("/lang", "lang", l.Code)
+		for _, p := range pages {
+			r := c.get(p)
+			want := http.StatusOK
+			if p == "/nothing" {
+				want = http.StatusNotFound
+			}
+			if r.code != want {
+				t.Fatalf("%s %s: %d %s", l.Code, p, r.code, r.body)
+			}
+		}
+	}
+	for _, p := range []string{"/login", "/setup"} {
+		if r := e.client("192.168.1.99").get(p); r.code != http.StatusOK && r.code != http.StatusSeeOther {
+			t.Fatalf("%s: %d", p, r.code)
+		}
+	}
+}
+
+func itoa(n int32) string {
+	b, _ := json.Marshal(n)
+	return string(b)
+}

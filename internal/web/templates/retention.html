@@ -1,0 +1,30 @@
+{{template "app" .}}
+{{define "content"}}
+<h1>{{.T "Settings"}}</h1>
+<div class="settings">
+{{template "settingstabs" .}}
+<div class="settings-body">
+<section class="panel">
+  <h2>{{.T "How long measurements are kept"}}</h2>
+  <p class="muted">{{.T "Every sample is kept for the first period. Older data is kept as 5-minute and then hourly summaries (minimum, average, maximum), so graphs over months stay fast and small."}}</p>
+  <form method="post" action="/settings/data" class="stack">
+    <div class="cols">
+      <label>{{.T "Every sample (days)"}}<input type="number" name="raw_days" value="{{.Data.R.RawDays}}" min="2" max="400" required></label>
+      <label>{{.T "5-minute summaries (days)"}}<input type="number" name="five_min_days" value="{{.Data.R.FiveMinDays}}" min="35" max="1100" required></label>
+      <label>{{.T "Hourly summaries (days)"}}<input type="number" name="hour_days" value="{{.Data.R.HourDays}}" min="35" max="3700" required></label>
+    </div>
+    <p class="small muted">{{.T "For orientation: 500 devices with 50 metrics each, measured every minute, need about 15 GB with 30 / 90 / 730 days."}}</p>
+    <div><button class="primary">{{.T "Save"}}</button></div>
+  </form>
+</section>
+<section class="panel">
+  <h2>{{.T "Stored now"}}</h2>
+  <dl class="facts">
+    <dt>{{.T "Series"}}</dt><dd>{{.Data.Info.Series}}</dd>
+    <dt>{{.T "Samples in the last hour"}}</dt><dd>{{.Data.Info.Samples}}</dd>
+    <dt>{{.T "Size on disk"}}</dt><dd>{{bytes .Data.Info.Bytes}}</dd>
+  </dl>
+</section>
+</div>
+</div>
+{{end}}

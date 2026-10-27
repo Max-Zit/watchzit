@@ -1,0 +1,32 @@
+{{template "app" .}}
+{{define "content"}}
+<div class="titlebar"><h1>{{.T "Devices"}}</h1>{{if .User.CanWrite}}<a class="btn primary" href="/devices/new{{if gt .Data.GroupID 0}}?group={{.Data.GroupID}}{{end}}">{{template "icon" "plus"}}{{.T "Add a device"}}</a>{{end}}</div>
+<section class="panel">
+  <form method="get" action="/devices" class="row">
+    <input type="search" name="q" value="{{.Data.Q}}" placeholder="{{.T "Search name, address, notes"}}" aria-label="{{.T "Search"}}">
+    <select name="group" aria-label="{{.T "Group"}}" data-autosubmit>
+      <option value="0">{{.T "All groups"}}</option>
+      <option value="-1" {{if eq .Data.GroupID -1}}selected{{end}}>{{.T "Without a group"}}</option>
+      {{range .Data.Groups}}<option value="{{.ID}}" {{if eq .ID $.Data.GroupID}}selected{{end}}>{{.Name}}</option>{{end}}
+    </select>
+    <select name="status" aria-label="{{.T "Status"}}" data-autosubmit>
+      <option value="">{{.T "Any status"}}</option>
+      {{range $st := statuses}}<option value="{{$st}}" {{if eq $st $.Data.Status}}selected{{end}}>{{$.StatusName $st}}</option>{{end}}
+    </select>
+    <button class="secondary">{{.T "Search"}}</button>
+  </form>
+  {{if .Data.Devices}}
+  <div class="table-wrap mt"><table>
+    <thead><tr><th>{{.T "Device"}}</th><th>{{.T "Status"}}</th><th class="hide-sm">{{.T "Address"}}</th><th class="hide-sm">{{.T "Type"}}</th><th class="hide-sm">{{.T "Group"}}</th><th class="hide-sm num">{{.T "Checks"}}</th></tr></thead>
+    <tbody>{{range .Data.Devices}}<tr>
+      <td><a href="/devices/{{.ID}}">{{.Name}}</a></td>
+      <td>{{template "status" (statusOf $ .Status)}}</td>
+      <td class="hide-sm mono">{{.Address}}</td>
+      <td class="hide-sm">{{$.KindName .Kind}}</td>
+      <td class="hide-sm muted">{{.Group}}</td>
+      <td class="hide-sm num">{{if .ChecksDown}}<span class="bad-text">{{.ChecksDown}}</span> / {{end}}{{.Checks}}</td>
+    </tr>{{end}}</tbody>
+  </table></div>
+  {{else}}<div class="empty">{{template "icon" "devices"}}<p>{{if or .Data.Q .Data.Status .Data.GroupID}}{{.T "No device matches."}}{{else}}{{.T "No devices yet."}}{{end}}</p></div>{{end}}
+</section>
+{{end}}

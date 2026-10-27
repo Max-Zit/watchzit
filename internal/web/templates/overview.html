@@ -1,0 +1,29 @@
+{{template "app" .}}
+{{define "content"}}
+<h1>{{.T "Overview"}}</h1>
+<div class="grid">
+  <a class="stat" href="/devices"><span class="si">{{template "icon" "devices"}}</span><b>{{.Data.Total}}</b><span>{{.T "Devices"}}</span></a>
+  <a class="stat ok" href="/devices?status=up"><span class="si">{{template "icon" "online"}}</span><b>{{index .Data.Counts "up"}}</b><span>{{.T "Up"}}</span></a>
+  <a class="stat {{if index .Data.Counts "warning"}}warn{{end}}" href="/devices?status=warning"><span class="si">{{template "icon" "alert"}}</span><b>{{index .Data.Counts "warning"}}</b><span>{{.T "Partly down"}}</span></a>
+  <a class="stat {{if index .Data.Counts "down"}}bad{{else}}ok{{end}}" href="/devices?status=down"><span class="si">{{template "icon" "alert"}}</span><b>{{index .Data.Counts "down"}}</b><span>{{.T "Down"}}</span></a>
+  <a class="stat" href="/devices?status=unknown"><span class="si">{{template "icon" "clock"}}</span><b>{{index .Data.Counts "unknown"}}</b><span>{{.T "Unknown"}}</span></a>
+</div>
+<section class="panel">
+  <h2>{{.T "Problems"}}</h2>
+  {{if .Data.Problems}}
+  <div class="table-wrap"><table>
+    <thead><tr><th>{{.T "Device"}}</th><th>{{.T "Status"}}</th><th class="hide-sm">{{.T "Address"}}</th><th>{{.T "Since"}}</th></tr></thead>
+    <tbody>{{range .Data.Problems}}<tr>
+      <td><a href="/devices/{{.ID}}">{{.Name}}</a>{{with .Group}} <span class="muted small">· {{.}}</span>{{end}}</td>
+      <td>{{template "status" (statusOf $ .Status)}}{{if eq .Status "warning"}} <span class="small muted">{{$.T "%d of %d checks down" .ChecksDown .Checks}}</span>{{end}}</td>
+      <td class="hide-sm mono">{{.Address}}</td>
+      <td class="muted">{{$.Since .StatusSince}}</td>
+    </tr>{{end}}</tbody>
+  </table></div>
+  {{else if .Data.Total}}
+  <div class="empty">{{template "icon" "check"}}<p>{{.T "Everything is up."}}</p></div>
+  {{else}}
+  <div class="empty">{{template "icon" "devices"}}<p>{{.T "No devices yet."}}</p>{{if .User.CanWrite}}<a class="btn primary" href="/devices/new">{{template "icon" "plus"}}{{.T "Add a device"}}</a>{{end}}</div>
+  {{end}}
+</section>
+{{end}}

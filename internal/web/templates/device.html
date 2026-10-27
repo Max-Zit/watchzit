@@ -1,0 +1,89 @@
+{{template "app" .}}
+{{define "content"}}
+{{$d := .Data.D}}
+<p class="back"><a href="/devices">{{.T "Devices"}}</a>{{with $d.Group}} · <a href="/devices?group={{deref64 $d.GroupID}}">{{.}}</a>{{end}}</p>
+<div class="titlebar">
+  <h1>{{$d.Name}} {{template "status" (statusOf $ $d.Status)}}</h1>
+  <div class="row">
+    {{with $d.WebURL}}<a class="btn secondary" href="{{.}}" target="_blank" rel="noopener noreferrer">{{template "icon" "globe"}}{{$.T "Open web interface"}}</a>{{end}}
+    {{if .User.CanWrite}}<a class="btn secondary" href="/devices/{{$d.ID}}/edit">{{template "icon" "settings"}}{{.T "Edit"}}</a>{{end}}
+  </div>
+</div>
+<section class="panel">
+  <dl class="facts">
+    <dt>{{.T "Address"}}</dt><dd class="mono">{{$d.Address}}</dd>
+    <dt>{{.T "Type"}}</dt><dd>{{.KindName $d.Kind}}</dd>
+    <dt>{{.T "Status"}}</dt><dd>{{.StatusName $d.Status}} <span class="muted">· {{.T "for %s" (.Since $d.StatusSince)}}</span></dd>
+    {{with $d.Notes}}<dt>{{$.T "Notes"}}</dt><dd class="pre">{{.}}</dd>{{end}}
+  </dl>
+</section>
+
+{{if .Data.Checks}}
+<div class="titlebar"><h2>{{.T "Graphs"}}</h2>
+  <nav class="seg" aria-label="{{.T "Time range"}}">{{range .Data.Ranges}}<a href="?range={{.}}" class="{{if eq . $.Data.Range}}on{{end}}">{{.}}</a>{{end}}</nav>
+</div>
+<div class="graphs">
+{{range $c := .Data.Checks}}{{range .Series}}
+  <figure class="panel graph" data-series="{{.ID}}" data-range="{{$.Data.Range}}" data-unit="{{.Unit}}" data-nodata="{{$.T "No data in this time range yet."}}">
+    <figcaption><b>{{$c.Name}}</b> · {{$.T (metricName .Metric)}}</figcaption>
+    <canvas role="img" aria-label="{{$c.Name}}: {{$.T (metricName .Metric)}}"></canvas>
+    <div class="graph-tip" hidden></div>
+  </figure>
+{{end}}{{end}}
+</div>
+{{end}}
+
+<section class="panel">
+  <h2>{{.T "Checks"}}</h2>
+  {{if .Data.Checks}}
+  <div class="table-wrap"><table>
+    <thead><tr><th>{{.T "Check"}}</th><th>{{.T "Status"}}</th><th>{{.T "Last result"}}</th><th class="hide-sm">{{.T "Interval"}}</th><th class="hide-sm">{{.T "Last run"}}</th>{{if $.User.CanWrite}}<th></th>{{end}}</tr></thead>
+    <tbody>{{range .Data.Checks}}<tr id="check-{{.ID}}">
+      <td><b>{{.Name}}</b> {{if eq .Type "icmp"}}{{if ne .Name "Ping"}}<span class="muted small">ICMP</span>{{end}}{{else if ne .Name (printf "TCP %d" .Params.Port)}}<span class="muted small">TCP {{.Params.Port}}</span>{{end}}</td>
+      <td>{{if .Paused}}{{template "status" (statusOf $ "paused")}}{{else}}{{template "status" (statusOf $ .Status)}}{{end}}</td>
+      <td class="small">{{.LastText}}</td>
+      <td class="hide-sm nowrap">{{.IntervalS}} s</td>
+      <td class="hide-sm muted nowrap">{{$.Ago .LastRun}}</td>
+      {{if $.User.CanWrite}}<td class="actions nowrap">
+        <form method="post" action="/checks/{{.ID}}/run" class="inline"><button class="ghost sm" title="{{$.T "Run now"}}">{{template "icon" "refresh"}}<span class="hide-sm">{{$.T "Run now"}}</span></button></form>
+        <details class="pop right"><summary class="btn ghost sm" title="{{$.T "Settings"}}">{{template "icon" "settings"}}</summary>
+          <div class="pop-body">
+            <form method="post" action="/checks/{{.ID}}" class="stack">
+              <label>{{$.T "Name"}}<input name="name" value="{{.Name}}" maxlength="100" required></label>
+              {{if eq .Type "tcp"}}<label>{{$.T "Port"}}<input type="number" name="port" value="{{.Params.Port}}" min="1" max="65535" required></label>{{end}}
+              {{if eq .Type "icmp"}}<label>{{$.T "Pings per run"}}<input type="number" name="count" value="{{.Params.Count}}" min="1" max="20" required></label>{{end}}
+              <label>{{$.T "Interval (seconds)"}}<input type="number" name="interval" value="{{.IntervalS}}" min="10" max="3600" required></label>
+              <label>{{$.T "Timeout (ms)"}}<input type="number" name="timeout_ms" value="{{.Params.TimeoutMS}}" min="100" max="30000" required></label>
+              <label class="check"><input type="checkbox" name="paused" value="1" {{if .Paused}}checked{{end}}>{{$.T "Paused"}}</label>
+              <div><button class="primary sm">{{$.T "Save"}}</button></div>
+            </form>
+            <form method="post" action="/checks/{{.ID}}/delete" class="mt" data-confirm="{{$.T "Delete the check %s with its measured data?" .Name}}"><button class="danger sm">{{template "icon" "trash"}}{{$.T "Delete check"}}</button></form>
+          </div>
+        </details>
+      </td>{{end}}
+    </tr>{{end}}</tbody>
+  </table></div>
+  {{else}}<p class="muted">{{.T "No checks yet."}}</p>{{end}}
+  {{if .User.CanWrite}}
+  <details class="mt addcheck" {{if .Error}}open{{end}}>
+    <summary class="btn secondary">{{template "icon" "plus"}}{{.T "Add a check"}}</summary>
+    <form method="post" action="/devices/{{$d.ID}}/checks" class="stack mt">
+      <div class="cols">
+        <label>{{.T "Type"}}<select name="type"><option value="tcp" {{if eq .Data.New.Type "tcp"}}selected{{end}}>{{.T "TCP port"}}</option><option value="icmp" {{if eq .Data.New.Type "icmp"}}selected{{end}}>{{.T "Ping (ICMP)"}}</option></select></label>
+        <label>{{.T "Name"}} <small>{{.T "optional"}}</small><input name="name" value="{{.Data.New.Name}}" maxlength="100"></label>
+      </div>
+      <div class="cols">
+        <label>{{.T "Port"}} <small>{{.T "TCP only"}}</small><input type="number" name="port" min="1" max="65535" value="{{with .Data.New.Params.Port}}{{.}}{{end}}" placeholder="443"></label>
+        <label>{{.T "Pings per run"}} <small>{{.T "ICMP only"}}</small><input type="number" name="count" min="1" max="20" value="3"></label>
+      </div>
+      <div class="cols">
+        <label>{{.T "Interval (seconds)"}}<input type="number" name="interval" min="10" max="3600" value="60"></label>
+        <label>{{.T "Timeout (ms)"}}<input type="number" name="timeout_ms" min="100" max="30000" value="2000"></label>
+      </div>
+      <div><button class="primary">{{.T "Add check"}}</button></div>
+    </form>
+  </details>
+  {{end}}
+</section>
+<script src="/static/chart.js?v={{.Asset}}" defer></script>
+{{end}}
