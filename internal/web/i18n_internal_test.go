@@ -53,6 +53,9 @@ func uiTexts(t *testing.T) map[string]bool {
 	for _, n := range metricNames {
 		out[n] = true
 	}
+	for _, s := range mapText {
+		out[s] = true
+	}
 	for _, m := range []map[string]string{checkKinds, groupNames, unitTitles} {
 		for _, n := range m {
 			out[n] = true

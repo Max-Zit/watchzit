@@ -1,6 +1,6 @@
 # WatchZit — architecture proposal (draft, 2026-10-27)
 
-Status: **approved by Stefan on 2026-10-27** (retention defaults, ports 8443/8444, agent before maps, launcher variant A+B). Versions 0.1 and 0.2 are built on develop; a new order (map first) is proposed in section 10.
+Status: **approved by Stefan on 2026-10-27** (retention defaults, ports 8443/8444, agent before maps, launcher variant A+B). Versions 0.1–0.3 are built on develop; the order was changed to map first (section 10).
 
 WatchZit follows ControlZit's newer layout (Go server + PostgreSQL, html/template
 console, JSON i18n catalogs, numbered SQL migrations, separate console and agent
@@ -88,7 +88,7 @@ Stefan wants an authentic product (2026-10-27), so the protocol code that define
 
 ## 10. Proposed feature order
 
-**2026-10-27 evening — proposed change, waiting for Stefan:** Stefan wants WatchZit to feel like The Dude (a network diagram that is live monitoring, devices linked port to port, smooth zoom) with Zabbix and Grafana parts; the agent with token enrollment is optional, SNMP must work without it. Proposed new order after 0.2: **0.3 map**, **0.4 agent**, **0.5 alerts**; the rest unchanged. 0.2 (SNMP) is built.
+**2026-10-27 evening — changed, confirmed by Stefan the same evening:** Stefan wants WatchZit to feel like The Dude (a network diagram that is live monitoring, devices linked port to port, smooth zoom) with Zabbix and Grafana parts; the agent with token enrollment is optional, SNMP must work without it. New order after 0.2: **0.3 map** (built), **0.4 agent**, **0.5 alerts**; the rest unchanged.
 
 | Version | Content |
 |---|---|

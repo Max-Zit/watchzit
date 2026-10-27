@@ -1,0 +1,47 @@
+{{template "app" .}}
+{{define "content"}}
+<h1>{{.T "Maps"}}</h1>
+<section class="panel">
+  {{if .Data.Maps}}
+  <div class="mapcards">{{range .Data.Maps}}
+    <a class="mapcard" href="/maps/{{.ID}}">
+      <span class="mapcard-icon s-{{if .Status}}{{.Status}}{{else}}unknown{{end}}">{{template "icon" "map"}}</span>
+      <span><b>{{.Name}}</b><small>{{$.T "%d devices" .Devices}}{{with .Notes}} · {{.}}{{end}}</small></span>
+      {{with .Status}}{{template "status" (statusOf $ .)}}{{end}}
+    </a>{{end}}
+  </div>
+  {{else}}<p class="muted">{{.T "No maps yet. A map is a drawing of your network: place devices, connect them port to port and watch their state and traffic live."}}</p>{{end}}
+</section>
+{{if .User.CanWrite}}
+<section class="panel">
+  <h2>{{.T "Add a map"}}</h2>
+  <form method="post" action="/maps" class="row">
+    <input name="name" value="{{.Data.Name}}" required maxlength="100" placeholder="{{.T "Name, for example Head office"}}" aria-label="{{.T "Name"}}">
+    <input name="notes" maxlength="4000" placeholder="{{.T "Notes (optional)"}}" aria-label="{{.T "Notes"}}">
+    <button class="primary">{{template "icon" "plus"}}{{.T "Add map"}}</button>
+  </form>
+</section>
+{{if .Data.Maps}}
+<section class="panel">
+  <h2>{{.T "Rename or delete"}}</h2>
+  <div class="table-wrap"><table>
+    <tbody>{{range .Data.Maps}}<tr>
+      <td><b>{{.Name}}</b></td>
+      <td class="actions nowrap">
+        <details class="pop right"><summary class="btn ghost sm" title="{{$.T "Edit"}}">{{template "icon" "settings"}}</summary>
+          <div class="pop-body">
+            <form method="post" action="/maps/{{.ID}}" class="stack">
+              <label>{{$.T "Name"}}<input name="name" value="{{.Name}}" required maxlength="100"></label>
+              <label>{{$.T "Notes"}}<input name="notes" value="{{.Notes}}" maxlength="4000"></label>
+              <div><button class="primary sm">{{$.T "Save"}}</button></div>
+            </form>
+            <form method="post" action="/maps/{{.ID}}/delete" class="mt" data-confirm="{{$.T "Delete the map %s? The devices stay." .Name}}"><button class="danger sm">{{template "icon" "trash"}}{{$.T "Delete map"}}</button></form>
+          </div>
+        </details>
+      </td>
+    </tr>{{end}}</tbody>
+  </table></div>
+</section>
+{{end}}
+{{end}}
+{{end}}

@@ -197,3 +197,34 @@ func TestRate(t *testing.T) {
 		t.Fatal("too short interval counted")
 	}
 }
+
+// A first counter poll (no rate yet) keeps the values stored before.
+func TestFirstPollKeepsValues(t *testing.T) {
+	ctx := context.Background()
+	st, err := store.Open(ctx, testdb.URL(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	dev, _ := st.CreateDevice(ctx, store.DeviceInput{Name: "x", Address: "127.0.0.1"})
+	id, _ := st.CreateCheck(ctx, dev, store.CheckInput{Type: store.CheckTCP, Params: store.CheckParams{Port: 1}})
+	now := time.Now()
+	if _, err := st.SaveResults(ctx, []store.CheckResult{{CheckID: id, At: now, Status: store.StatusUp, Values: map[string]float64{"in_bps": 5}}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.SaveResults(ctx, []store.CheckResult{{CheckID: id, At: now, Status: store.StatusUp}}); err != nil {
+		t.Fatal(err)
+	}
+	var raw string
+	_ = st.Pool().QueryRow(ctx, `SELECT last_values::text FROM checks WHERE id=$1`, id).Scan(&raw)
+	if raw != `{"in_bps": 5}` {
+		t.Fatal(raw)
+	}
+	if _, err := st.SaveResults(ctx, []store.CheckResult{{CheckID: id, At: now, Status: store.StatusDown, Values: map[string]float64{}}}); err != nil {
+		t.Fatal(err)
+	}
+	_ = st.Pool().QueryRow(ctx, `SELECT last_values::text FROM checks WHERE id=$1`, id).Scan(&raw)
+	if raw != `{}` {
+		t.Fatal(raw)
+	}
+}

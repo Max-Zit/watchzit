@@ -640,8 +640,9 @@ func (s *Store) DeleteCheck(ctx context.Context, id int64) ([]int32, error) {
 type CheckResult struct {
 	CheckID int64
 	At      time.Time
-	Status  string // up or down
-	Text    string // short human summary ("1.2 ms, 0% loss", "connection refused")
+	Status  string             // up or down
+	Text    string             // short human summary ("1.2 ms, 0% loss", "connection refused")
+	Values  map[string]float64 // latest value per metric
 }
 
 // SaveResults stores the outcome of runs and refreshes the affected
@@ -660,9 +661,14 @@ func (s *Store) SaveResults(ctx context.Context, rs []CheckResult) ([]StatusChan
 	for _, r := range rs {
 		var dev int64
 		var old string
-		err := tx.QueryRow(ctx, `UPDATE checks c SET status=$2, last_run=$3, last_text=$4,
+		// nil Values keep the stored ones (a first counter poll has no rate yet)
+		var vals []byte
+		if r.Values != nil {
+			vals, _ = json.Marshal(r.Values)
+		}
+		err := tx.QueryRow(ctx, `UPDATE checks c SET status=$2, last_run=$3, last_text=$4, last_values=COALESCE($5, c.last_values),
 			status_since=CASE WHEN c.status=$2 THEN c.status_since ELSE $3 END
-			FROM checks o WHERE c.id=$1 AND o.id=c.id RETURNING c.device_id, o.status`, r.CheckID, r.Status, r.At, truncate(r.Text, 300)).Scan(&dev, &old)
+			FROM checks o WHERE c.id=$1 AND o.id=c.id RETURNING c.device_id, o.status`, r.CheckID, r.Status, r.At, truncate(r.Text, 300), vals).Scan(&dev, &old)
 		if errors.Is(err, pgx.ErrNoRows) {
 			continue // deleted meanwhile
 		}

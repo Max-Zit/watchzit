@@ -267,8 +267,9 @@ func (p *Poller) runCheck(ctx context.Context, c *store.Check) outcome {
 	ctx, cancel := context.WithTimeout(ctx, limit)
 	defer cancel()
 	now := p.now()
-	o := outcome{res: store.CheckResult{CheckID: c.ID, At: now, Status: store.StatusDown}}
+	o := outcome{res: store.CheckResult{CheckID: c.ID, At: now, Status: store.StatusDown, Values: map[string]float64{}}}
 	sample := func(metric string, v float64) {
+		o.res.Values[metric] = v
 		if id := seriesID(c, metric); id != 0 {
 			o.samples = append(o.samples, tsdb.Sample{Series: id, T: now, V: v})
 		}
@@ -312,6 +313,9 @@ func (p *Poller) runCheck(ctx context.Context, c *store.Check) outcome {
 			break
 		}
 		p.runSNMP(ctx, c, addr, timeout, now, &o, sample)
+	}
+	if o.res.Status == store.StatusUp && len(o.res.Values) == 0 {
+		o.res.Values = nil // keep the last values (first counter poll after a start)
 	}
 	return o
 }
