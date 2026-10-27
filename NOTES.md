@@ -38,14 +38,13 @@ A self-hosted web application for monitoring networks and devices: a mix of **Mi
   - Tests: tsdb (round trip incl. fuzz, compactness, 3-day lifecycle, retention, late samples), probe (loopback ping, TEST-NET no answer, TCP open/refused), poller (real TCP + ping into the DB), web e2e (setup token, TOTP + replay, brute force, CSP/CSRF/allow-list, devices/checks/series JSON, viewer forbidden, delete removes data, audit chain, every page in every language). go vet, staticcheck, gosec, govulncheck clean (Windows and Linux).
   - CI: .github/workflows/ci.yml (gofmt, vet, tests on Linux; Windows build) and security.yml (build, vet, staticcheck, gosec, govulncheck, gitleaks) on main and develop. THIRD_PARTY_LICENSES.md via tools/licenses (13 modules, MIT/BSD/public domain).
   - Real test: dev server on Stefan's PC (`watchzit-dev` in C:\Users\Mili\Ai\.claude\launch.json: --dev-http 127.0.0.1:8098, console 127.0.0.1:8463, embedded PG port 54339, data in watchzit/.devdata, dev admin password in .devdata/dev-admin.txt, --dev-no-2fa) polling lab hosts pve .106, bz-storage .102, db-test .130 (5432 up, 3306 closed from outside → partly down), esxi .100, gateway .254, and 192.0.2.10 (down). Graphs checked in the preview at 1400 px / 800 px / 375 px, light and dark.
-  - Known: stopping the dev server leaves the embedded PostgreSQL running (stop it with .devdata/pgbin/bin/pg_ctl stop -D .devdata/pgdata); hourly packing on real data verified only in tests so far (check the dev server's samples_raw after a full hour).
+  - Known: stopping the dev server leaves the embedded PostgreSQL running (stop it with .devdata/pgbin/bin/pg_ctl stop -D .devdata/pgdata). Hourly packing verified on real data at 19:02: the hour 17–18 UTC (22 min, 18 series) became 18 blocks of 52 B on average (max 77 B), its partition was dropped. GitHub CI and security workflows green for d6b8c38.
 
 ## Next steps
 
-1. Check on the dev server that the hourly packing ran on real data (samples_raw rows, samples_hot partitions dropped) and that graphs over 24 h look right.
-2. **0.2: SNMP** — own BER/SNMP v1/v2c/v3 (USM: MD5/SHA/SHA-2 auth, DES/AES priv), GET/GETNEXT/GETBULK/walk; encrypted credentials (sealed, write-only); built-in templates (generic IF-MIB/HOST-RESOURCES, MikroTik, switch, printer, UPS) with low-level discovery of interfaces/disks; counter → rate handling (wrap, reset); interface traffic graphs. Lab target: **MikroTik CHR VM on Proxmox (VMID 9800)** from mikrotik.com, SNMP v3 read-only; also ESXi/pve SNMP if enabled.
-3. 0.3 alerts (triggers, dependencies, maintenance, email via Mailpit, webhook), 0.4 agent, 0.5 maps + discovery, 0.6 launcher, 0.7 HTTP/DNS/TLS/DB/RouterOS/FortiGate/vSphere, 0.8 dashboards/API, 0.9 packages/appliance/user guide → 1.0.
-4. User guide pages (/docs, 14 languages) — start with 0.2 so docs grow with the features.
+1. **0.2: SNMP** — own BER/SNMP v1/v2c/v3 (USM: MD5/SHA/SHA-2 auth, DES/AES priv), GET/GETNEXT/GETBULK/walk; encrypted credentials (sealed, write-only); built-in templates (generic IF-MIB/HOST-RESOURCES, MikroTik, switch, printer, UPS) with low-level discovery of interfaces/disks; counter → rate handling (wrap, reset); interface traffic graphs. Lab target: **MikroTik CHR VM on Proxmox (VMID 9800)** from mikrotik.com, SNMP v3 read-only; also ESXi/pve SNMP if enabled.
+2. 0.3 alerts (triggers, dependencies, maintenance, email via Mailpit, webhook), 0.4 agent, 0.5 maps + discovery, 0.6 launcher, 0.7 HTTP/DNS/TLS/DB/RouterOS/FortiGate/vSphere, 0.8 dashboards/API, 0.9 packages/appliance/user guide → 1.0.
+3. User guide pages (/docs, 14 languages) — start with 0.2 so docs grow with the features.
 
 ## Open questions
 
