@@ -23,13 +23,18 @@ A self-hosted web application for monitoring networks and devices: a mix of **Mi
 ## Status
 
 - 2026-10-27: repository created (license, README, security policy, contributing, code of conduct, issue/PR templates, Dependabot, Scorecard workflow, logo). No code yet.
+- 2026-10-27 (first routine run): read BackupZit and ControlZit (ControlZit is the newer, cleaner base: pgx, coder/websocket, html/template, JSON i18n, numbered SQL migrations, separate console/agent listeners, mTLS agent channel, update/helper/netacl/tlsutil packages, appliance scripts). Wrote **docs/ARCHITECTURE.md** (proposal: components, collectors, PostgreSQL metric store with own compressed hourly blocks + 5 min/1 h rollups, ~15 GB for 500 devices x 50 metrics x 1 min with default retention, maps/discovery, triggers/dependencies, launcher with signed watchzit:// links, packaging, dependencies, feature order 0.1-0.9). Sent to Stefan; **waiting for his ok** before writing code.
 
 ## Next steps
 
-1. Read BackupZit (`C:\Users\Mili\Ai\backupzit`) and ControlZit (`C:\Users\Mili\Ai\rmm`) and write the architecture proposal here (server, agent, collectors, time-series storage, map, launching local tools); confirm with Stefan.
-2. Add CI (`ci.yml`: go vet + tests, Windows build) and `security.yml` (govulncheck, staticcheck) like BackupZit once there is Go code; enable CodeQL default setup then.
+1. Wait for Stefan's answers (below). Do not write much code before.
+2. After the ok: version 0.1 per docs/ARCHITECTURE.md section 10 (module github.com/max-zit/watchzit, cmd/watchzit-server, internal/{store,web,metrics,poll,...}); add ci.yml + security.yml with the first Go code.
 
-## Open questions
+## Open questions (asked 2026-10-27)
 
-- Time-series storage: PostgreSQL only (partitioned tables, rollups) vs. an embedded TSDB — propose with numbers (devices × metrics × interval).
-- How to open local programs from the browser (helper app / URL handler).
+- Architecture and the PostgreSQL block store ok? Default retention raw 30 d / 5 min 90 d / 1 h 2 years ok?
+- Launcher (variant B, per-user MSI, signed watchzit:// links, local confirmation per program path) ok, plus variant A without install?
+- Feature order 0.1-0.9 ok, or agent earlier?
+- Ports 8443 console / 8444 agent (same as ControlZit) ok?
+- Real devices: his MikroTik router (read-only SNMP v3 / API user)? FortiGate-VM needs a Fortinet account/licence.
+- Libraries gosnmp (BSD-2), go-sql-driver/mysql (MPL-2.0), go-mssqldb (BSD-3), govmomi (Apache-2.0) ok?
