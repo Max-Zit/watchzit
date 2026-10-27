@@ -1,0 +1,64 @@
+{{template "app" .}}
+{{define "content"}}
+<h1>{{.T "Settings"}}</h1>
+<div class="settings">
+{{template "settingstabs" .}}
+<div class="settings-body">
+<section class="panel">
+  <h2>{{.T "SNMP profiles"}}</h2>
+  <p class="muted">{{.T "A profile holds the SNMP version and credentials. Devices that use the same community or SNMPv3 user share one profile. Communities and passwords are stored encrypted and are never shown again."}}</p>
+  {{if .Data.Profiles}}
+  <div class="table-wrap"><table>
+    <thead><tr><th>{{.T "Name"}}</th><th>{{.T "Version"}}</th><th class="hide-sm">{{.T "Security"}}</th><th class="num">{{.T "Devices"}}</th><th></th></tr></thead>
+    <tbody>{{range .Data.Profiles}}<tr>
+      <td><b>{{.Name}}</b>{{if ne .Port 161}} <span class="muted small">{{$.T "port"}} {{.Port}}</span>{{end}}</td>
+      <td>{{.VersionName}}</td>
+      <td class="hide-sm small">{{if eq .Version 3}}<span class="mono">{{.User}}</span> · {{.Security}}{{else}}{{$.T "community"}}{{end}}</td>
+      <td class="num">{{.Devices}}</td>
+      <td class="actions nowrap"><a class="btn ghost sm" href="/settings/snmp/{{.ID}}" title="{{$.T "Edit"}}">{{template "icon" "settings"}}</a></td>
+    </tr>{{end}}</tbody>
+  </table></div>
+  {{else}}<p class="muted">{{.T "No SNMP profiles yet."}}</p>{{end}}
+</section>
+{{$e := .Data.Edit}}
+<section class="panel" id="profile">
+  <h2>{{if $e}}{{.T "Edit %s" $e.Name}}{{else}}{{.T "Add an SNMP profile"}}{{end}}</h2>
+  <form method="post" action="{{if $e}}/settings/snmp/{{$e.ID}}{{else}}/settings/snmp{{end}}" class="stack" autocomplete="off">
+    <div class="cols">
+      <label>{{.T "Name"}}<input name="name" value="{{.Data.In.Name}}" required maxlength="100" placeholder="{{.T "Name, for example Switches"}}"></label>
+      <label>{{.T "Version"}}<select name="version" data-switch="snmpver">
+        <option value="2" {{if eq .Data.In.Version 2}}selected{{end}}>SNMP v2c</option>
+        <option value="3" {{if eq .Data.In.Version 3}}selected{{end}}>SNMP v3</option>
+        <option value="1" {{if eq .Data.In.Version 1}}selected{{end}}>SNMP v1</option>
+      </select></label>
+      <label>{{.T "Port"}}<input type="number" name="port" value="{{.Data.In.Port}}" min="1" max="65535" required></label>
+    </div>
+    <fieldset class="box" data-show="snmpver" data-when="1 2">
+      <legend>SNMP v1 / v2c</legend>
+      <label>{{.T "Community"}}<input type="password" name="community" maxlength="128" autocomplete="new-password" spellcheck="false" {{if $e}}placeholder="{{.T "Unchanged when empty"}}"{{end}}><small>{{.T "Read-only community configured on the devices."}}</small></label>
+    </fieldset>
+    <fieldset class="box" data-show="snmpver" data-when="3">
+      <legend>SNMP v3</legend>
+      <div class="cols">
+        <label>{{.T "User name"}}<input name="user" value="{{.Data.In.User}}" maxlength="32" spellcheck="false" autocapitalize="none"></label>
+        <label>{{.T "Context"}} <small>{{.T "optional"}}</small><input name="context" value="{{.Data.In.Context}}" maxlength="128" spellcheck="false"></label>
+      </div>
+      <div class="cols">
+        <label>{{.T "Authentication"}}<select name="auth_proto"><option value="">{{.T "None"}}</option>{{range .Data.AuthProts}}<option {{if eq . $.Data.In.AuthProto}}selected{{end}}>{{.}}</option>{{end}}</select></label>
+        <label>{{.T "Authentication password"}}<input type="password" name="auth_pass" maxlength="128" autocomplete="new-password" {{if $e}}placeholder="{{.T "Unchanged when empty"}}"{{end}}></label>
+      </div>
+      <div class="cols">
+        <label>{{.T "Privacy (encryption)"}}<select name="priv_proto"><option value="">{{.T "None"}}</option>{{range .Data.PrivProts}}<option {{if eq . $.Data.In.PrivProto}}selected{{end}}>{{.}}</option>{{end}}</select></label>
+        <label>{{.T "Privacy password"}}<input type="password" name="priv_pass" maxlength="128" autocomplete="new-password" {{if $e}}placeholder="{{.T "Unchanged when empty"}}"{{end}}></label>
+      </div>
+      <small class="muted">{{.T "Use SHA-256 or better with AES where devices support it. Passwords need at least 8 characters."}}</small>
+    </fieldset>
+    <div class="row"><button class="primary">{{if $e}}{{.T "Save"}}{{else}}{{template "icon" "plus"}}{{.T "Add profile"}}{{end}}</button>{{if $e}}<a class="btn secondary" href="/settings/snmp">{{.T "Cancel"}}</a>{{end}}</div>
+  </form>
+  {{if $e}}
+  <form method="post" action="/settings/snmp/{{$e.ID}}/delete" class="mt" data-confirm="{{.T "Delete the SNMP profile %s? Its devices stop SNMP polling." $e.Name}}"><button class="danger sm">{{template "icon" "trash"}}{{.T "Delete profile"}}</button></form>
+  {{end}}
+</section>
+</div>
+</div>
+{{end}}

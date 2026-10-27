@@ -40,6 +40,22 @@
     }
   });
 
+  // A select with data-switch=NAME shows the parts marked data-show=NAME
+  // whose data-when lists its value (and disables the hidden inputs).
+  Array.prototype.forEach.call(document.querySelectorAll("select[data-switch]"), function (sel) {
+    var name = sel.getAttribute("data-switch");
+    var parts = document.querySelectorAll("[data-show=\"" + name + "\"]");
+    function sync() {
+      Array.prototype.forEach.call(parts, function (p) {
+        var on = (" " + p.getAttribute("data-when") + " ").indexOf(" " + sel.value + " ") >= 0;
+        p.hidden = !on;
+        Array.prototype.forEach.call(p.querySelectorAll("input,select,textarea"), function (el) { el.disabled = !on; });
+      });
+    }
+    sel.addEventListener("change", sync);
+    sync();
+  });
+
   // A checkbox with data-part shows the part of a form it switches on.
   Array.prototype.forEach.call(document.querySelectorAll("input[data-part]"), function (cb) {
     var part = document.getElementById(cb.getAttribute("data-part"));

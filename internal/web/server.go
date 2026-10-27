@@ -244,6 +244,8 @@ func (s *Server) Handler() http.Handler {
 	write("POST /devices/{id}/edit", s.handleDeviceUpdate)
 	write("POST /devices/{id}/delete", s.handleDeviceDelete)
 	write("POST /devices/{id}/checks", s.handleCheckCreate)
+	write("GET /devices/{id}/discover", s.handleDiscover)
+	write("POST /devices/{id}/discover", s.handleDiscoverSave)
 	write("POST /checks/{id}", s.handleCheckUpdate)
 	write("POST /checks/{id}/delete", s.handleCheckDelete)
 	write("POST /checks/{id}/run", s.handleCheckRun)
@@ -273,6 +275,11 @@ func (s *Server) Handler() http.Handler {
 	admin("POST /settings/security/unblock", s.handleUnblock)
 	admin("GET /settings/data", s.handleRetention)
 	admin("POST /settings/data", s.handleRetentionSave)
+	admin("GET /settings/snmp", s.handleSNMPProfiles)
+	admin("POST /settings/snmp", s.handleSNMPCreate)
+	admin("GET /settings/snmp/{id}", s.handleSNMPProfile)
+	admin("POST /settings/snmp/{id}", s.handleSNMPUpdate)
+	admin("POST /settings/snmp/{id}/delete", s.handleSNMPDelete)
 
 	return s.secure(s.aclCheck(s.MgmtACL, s.csrf(s.loadSession(mux))))
 }

@@ -14,22 +14,40 @@
     <dt>{{.T "Address"}}</dt><dd class="mono">{{$d.Address}}</dd>
     <dt>{{.T "Type"}}</dt><dd>{{.KindName $d.Kind}}</dd>
     <dt>{{.T "Status"}}</dt><dd>{{.StatusName $d.Status}} <span class="muted">· {{.T "for %s" (.Since $d.StatusSince)}}</span></dd>
+    {{with .Data.Facts.Vendor}}<dt>{{$.T "Vendor"}}</dt><dd>{{.}}</dd>{{end}}
+    {{with .Data.Facts.SysDescr}}<dt>{{$.T "Description"}}</dt><dd class="small">{{.}}</dd>{{end}}
+    {{with .Data.Facts.SysLocation}}<dt>{{$.T "Location"}}</dt><dd>{{.}}</dd>{{end}}
+    {{with .Data.Profile}}<dt>SNMP</dt><dd>{{.Name}} <span class="muted">· {{.VersionName}}{{with .Security}}, {{.}}{{end}}</span></dd>{{end}}
     {{with $d.Notes}}<dt>{{$.T "Notes"}}</dt><dd class="pre">{{.}}</dd>{{end}}
   </dl>
+  {{if and .User.CanWrite .Data.Profile}}<div class="row mt"><a class="btn secondary" href="/devices/{{$d.ID}}/discover">{{template "icon" "refresh"}}{{.T "SNMP discovery"}}</a></div>{{end}}
 </section>
 
-{{if .Data.Checks}}
+{{if .Data.Interfaces}}
+<section class="panel">
+  <div class="titlebar"><h2>{{.T "Ports"}}</h2><span class="muted small">{{.T "Updated %s" (.Ago (index .Data.Interfaces 0).Updated)}}</span></div>
+  <div class="ports">{{range .Data.Interfaces}}{{$c := index $.Data.Traffic .Index}}
+    {{if $c}}<a class="port {{if not .AdminUp}}off{{else if .OperUp}}up{{else}}down{{end}}" href="#graph-{{$c.ID}}">{{else}}<div class="port {{if not .AdminUp}}off{{else if .OperUp}}up{{else}}down{{end}}">{{end}}
+      <b title="{{.Descr}}">{{.Label}}</b>
+      <small>{{if not .AdminUp}}{{$.T "Disabled"}}{{else if .OperUp}}{{with speed .Speed}}{{.}}{{else}}{{$.T "Up"}}{{end}}{{else}}{{$.T "No link"}}{{end}}{{with .Alias}} · {{.}}{{end}}</small>
+      {{if $c}}{{with portTraffic $c.LastText}}<span class="traffic">{{.}}</span>{{end}}{{end}}
+    {{if $c}}</a>{{else}}</div>{{end}}
+  {{end}}</div>
+</section>
+{{end}}
+
+{{if .Data.Graphs}}
 <div class="titlebar"><h2>{{.T "Graphs"}}</h2>
   <nav class="seg" aria-label="{{.T "Time range"}}">{{range .Data.Ranges}}<a href="?range={{.}}" class="{{if eq . $.Data.Range}}on{{end}}">{{.}}</a>{{end}}</nav>
 </div>
 <div class="graphs">
-{{range $c := .Data.Checks}}{{range .Series}}
-  <figure class="panel graph" data-series="{{.ID}}" data-range="{{$.Data.Range}}" data-unit="{{.Unit}}" data-nodata="{{$.T "No data in this time range yet."}}">
-    <figcaption><b>{{$c.Name}}</b> · {{$.T (metricName .Metric)}}</figcaption>
-    <canvas role="img" aria-label="{{$c.Name}}: {{$.T (metricName .Metric)}}"></canvas>
+{{range $g := .Data.Graphs}}
+  <figure class="panel graph" id="graph-{{$g.Check.ID}}" data-series="{{range $i, $s := $g.Series}}{{if $i}},{{end}}{{$s.ID}}{{end}}" data-labels="{{range $i, $s := $g.Series}}{{if $i}}|{{end}}{{$.T (metricName $s.Metric)}}{{end}}" data-range="{{$.Data.Range}}" data-unit="{{$g.Unit}}" data-nodata="{{$.T "No data in this time range yet."}}" data-legend="{{$.T "Last"}}|{{$.T "Min"}}|{{$.T "Avg"}}|{{$.T "Max"}}">
+    <figcaption><b>{{$g.Check.Name}}</b> · {{$.T $g.Title}}</figcaption>
+    <canvas role="img" aria-label="{{$g.Check.Name}}: {{$.T $g.Title}}"></canvas>
     <div class="graph-tip" hidden></div>
   </figure>
-{{end}}{{end}}
+{{end}}
 </div>
 {{end}}
 
@@ -39,7 +57,7 @@
   <div class="table-wrap"><table>
     <thead><tr><th>{{.T "Check"}}</th><th>{{.T "Status"}}</th><th>{{.T "Last result"}}</th><th class="hide-sm">{{.T "Interval"}}</th><th class="hide-sm">{{.T "Last run"}}</th>{{if $.User.CanWrite}}<th></th>{{end}}</tr></thead>
     <tbody>{{range .Data.Checks}}<tr id="check-{{.ID}}">
-      <td><b>{{.Name}}</b> {{if eq .Type "icmp"}}{{if ne .Name "Ping"}}<span class="muted small">ICMP</span>{{end}}{{else if ne .Name (printf "TCP %d" .Params.Port)}}<span class="muted small">TCP {{.Params.Port}}</span>{{end}}</td>
+      <td><b>{{.Name}}</b> {{if eq .Type "icmp"}}{{if ne .Name "Ping"}}<span class="muted small">ICMP</span>{{end}}{{else if eq .Type "tcp"}}{{if ne .Name (printf "TCP %d" .Params.Port)}}<span class="muted small">TCP {{.Params.Port}}</span>{{end}}{{else if eq .Type "snmp_oid"}}<span class="muted small mono">{{.Params.OID}}</span>{{else}}<span class="muted small">{{$.T (checkKind .Type)}}</span>{{end}}</td>
       <td>{{if .Paused}}{{template "status" (statusOf $ "paused")}}{{else}}{{template "status" (statusOf $ .Status)}}{{end}}</td>
       <td class="small">{{.LastText}}</td>
       <td class="hide-sm nowrap">{{.IntervalS}} s</td>
@@ -52,6 +70,9 @@
               <label>{{$.T "Name"}}<input name="name" value="{{.Name}}" maxlength="100" required></label>
               {{if eq .Type "tcp"}}<label>{{$.T "Port"}}<input type="number" name="port" value="{{.Params.Port}}" min="1" max="65535" required></label>{{end}}
               {{if eq .Type "icmp"}}<label>{{$.T "Pings per run"}}<input type="number" name="count" value="{{.Params.Count}}" min="1" max="20" required></label>{{end}}
+              {{if eq .Type "snmp_oid"}}<label>OID<input name="oid" value="{{.Params.OID}}" class="mono" required></label>
+              <div class="cols"><label>{{$.T "Unit"}}<input name="unit" value="{{.Params.Unit}}" maxlength="16"></label><label>{{$.T "Multiplier"}}<input name="scale" value="{{if .Params.Scale}}{{.Params.Scale}}{{else}}1{{end}}" inputmode="decimal"></label></div>
+              <label class="check"><input type="checkbox" name="rate" value="1" {{if .Params.Rate}}checked{{end}}>{{$.T "Counter: store the change per second"}}</label>{{end}}
               <label>{{$.T "Interval (seconds)"}}<input type="number" name="interval" value="{{.IntervalS}}" min="10" max="3600" required></label>
               <label>{{$.T "Timeout (ms)"}}<input type="number" name="timeout_ms" value="{{.Params.TimeoutMS}}" min="100" max="30000" required></label>
               <label class="check"><input type="checkbox" name="paused" value="1" {{if .Paused}}checked{{end}}>{{$.T "Paused"}}</label>
@@ -69,12 +90,23 @@
     <summary class="btn secondary">{{template "icon" "plus"}}{{.T "Add a check"}}</summary>
     <form method="post" action="/devices/{{$d.ID}}/checks" class="stack mt">
       <div class="cols">
-        <label>{{.T "Type"}}<select name="type"><option value="tcp" {{if eq .Data.New.Type "tcp"}}selected{{end}}>{{.T "TCP port"}}</option><option value="icmp" {{if eq .Data.New.Type "icmp"}}selected{{end}}>{{.T "Ping (ICMP)"}}</option></select></label>
+        <label>{{.T "Type"}}<select name="type" data-switch="checktype">{{range .Data.CheckTypes}}<option value="{{.}}" {{if eq . $.Data.New.Type}}selected{{end}}>{{$.T (checkKind .)}}</option>{{end}}</select></label>
         <label>{{.T "Name"}} <small>{{.T "optional"}}</small><input name="name" value="{{.Data.New.Name}}" maxlength="100"></label>
       </div>
-      <div class="cols">
-        <label>{{.T "Port"}} <small>{{.T "TCP only"}}</small><input type="number" name="port" min="1" max="65535" value="{{with .Data.New.Params.Port}}{{.}}{{end}}" placeholder="443"></label>
-        <label>{{.T "Pings per run"}} <small>{{.T "ICMP only"}}</small><input type="number" name="count" min="1" max="20" value="3"></label>
+      <div class="cols" data-show="checktype" data-when="tcp">
+        <label>{{.T "Port"}}<input type="number" name="port" min="1" max="65535" value="{{with .Data.New.Params.Port}}{{.}}{{end}}" placeholder="443"></label>
+      </div>
+      <div class="cols" data-show="checktype" data-when="icmp">
+        <label>{{.T "Pings per run"}}<input type="number" name="count" min="1" max="20" value="3"></label>
+      </div>
+      {{if not $d.SNMPProfile}}<p class="small muted" data-show="checktype" data-when="snmp snmp_oid">{{.T "SNMP checks need an SNMP profile on the device (Edit)."}}</p>{{end}}
+      <div class="stack" data-show="checktype" data-when="snmp_oid">
+        <label>OID<input name="oid" value="{{.Data.New.Params.OID}}" class="mono" placeholder="1.3.6.1.4.1.14988.1.1.3.10.0" spellcheck="false"></label>
+        <div class="cols">
+          <label>{{.T "Unit"}} <small>{{.T "optional"}}</small><input name="unit" value="{{.Data.New.Params.Unit}}" maxlength="16" placeholder="°C"></label>
+          <label>{{.T "Multiplier"}} <small>{{.T "optional"}}</small><input name="scale" value="1" inputmode="decimal" placeholder="0.1"></label>
+        </div>
+        <label class="check"><input type="checkbox" name="rate" value="1">{{.T "Counter: store the change per second"}}</label>
       </div>
       <div class="cols">
         <label>{{.T "Interval (seconds)"}}<input type="number" name="interval" min="10" max="3600" value="60"></label>

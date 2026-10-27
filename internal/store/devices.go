@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/max-zit/watchzit/internal/snmp"
 )
 
 // Device and check states, from best to worst (Worst picks the last).
@@ -114,6 +116,7 @@ type Device struct {
 	WebURL      string
 	Notes       string
 	Paused      bool
+	SNMPProfile int64 // 0 = none
 	Status      string
 	StatusSince time.Time
 	CreatedAt   time.Time
@@ -121,20 +124,21 @@ type Device struct {
 	ChecksDown  int
 }
 
-const deviceCols = `d.id, d.group_id, COALESCE(g.name,''), d.name, d.address, d.kind, d.web_url, d.notes, d.paused, d.status, d.status_since, d.created_at,
+const deviceCols = `d.id, d.group_id, COALESCE(g.name,''), d.name, d.address, d.kind, d.web_url, d.notes, d.paused, COALESCE(d.snmp_profile_id,0), d.status, d.status_since, d.created_at,
 	(SELECT count(*) FROM checks c WHERE c.device_id=d.id), (SELECT count(*) FROM checks c WHERE c.device_id=d.id AND c.status='down' AND NOT c.paused)`
 
 func scanDevice(row interface{ Scan(...any) error }) (*Device, error) {
 	d := &Device{}
-	err := row.Scan(&d.ID, &d.GroupID, &d.Group, &d.Name, &d.Address, &d.Kind, &d.WebURL, &d.Notes, &d.Paused, &d.Status, &d.StatusSince, &d.CreatedAt, &d.Checks, &d.ChecksDown)
+	err := row.Scan(&d.ID, &d.GroupID, &d.Group, &d.Name, &d.Address, &d.Kind, &d.WebURL, &d.Notes, &d.Paused, &d.SNMPProfile, &d.Status, &d.StatusSince, &d.CreatedAt, &d.Checks, &d.ChecksDown)
 	return d, err
 }
 
 // DeviceFilter narrows the device list.
 type DeviceFilter struct {
-	Query   string
-	GroupID int64 // 0 = all, -1 = without a group
-	Status  string
+	Query    string
+	GroupID  int64 // 0 = all, -1 = without a group
+	Status   string
+	SNMPOnly bool
 }
 
 // Devices lists devices, worst status first.
@@ -143,8 +147,8 @@ func (s *Store) Devices(ctx context.Context, f DeviceFilter) ([]*Device, error) 
 	rows, err := s.db.Query(ctx, `SELECT `+deviceCols+` FROM devices d LEFT JOIN device_groups g ON g.id=d.group_id
 		WHERE ($1 = '%%' OR d.name ILIKE $1 OR d.address ILIKE $1 OR d.notes ILIKE $1)
 		AND ($2 = 0 OR ($2 = -1 AND d.group_id IS NULL) OR d.group_id = $2)
-		AND ($3 = '' OR d.status = $3)
-		ORDER BY array_position(ARRAY['down','warning','unknown','up','paused'], d.status), lower(d.name)`, q, f.GroupID, f.Status)
+		AND ($3 = '' OR d.status = $3) AND (NOT $4 OR d.snmp_profile_id IS NOT NULL)
+		ORDER BY array_position(ARRAY['down','warning','unknown','up','paused'], d.status), lower(d.name)`, q, f.GroupID, f.Status, f.SNMPOnly)
 	if err != nil {
 		return nil, err
 	}
@@ -208,6 +212,7 @@ type DeviceInput struct {
 	WebURL  string
 	Notes   string
 	Paused  bool
+	SNMP    int64 // profile, 0 = none
 }
 
 func (in *DeviceInput) clean() error {
@@ -257,13 +262,13 @@ func (s *Store) CreateDevice(ctx context.Context, in DeviceInput) (int64, error)
 		status = StatusPaused
 	}
 	var id int64
-	err := s.db.QueryRow(ctx, `INSERT INTO devices(group_id, name, address, kind, web_url, notes, paused, status, status_since) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
-		nullID(in.GroupID), in.Name, in.Address, in.Kind, in.WebURL, in.Notes, in.Paused, status, s.now()).Scan(&id)
+	err := s.db.QueryRow(ctx, `INSERT INTO devices(group_id, name, address, kind, web_url, notes, paused, status, status_since, snmp_profile_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+		nullID(in.GroupID), in.Name, in.Address, in.Kind, in.WebURL, in.Notes, in.Paused, status, s.now(), nullID(in.SNMP)).Scan(&id)
 	if isUnique(err) {
 		return 0, ErrConflict
 	}
 	if isFK(err) {
-		return 0, errors.New("the group does not exist")
+		return 0, errors.New("the group or SNMP profile does not exist")
 	}
 	return id, err
 }
@@ -273,13 +278,13 @@ func (s *Store) UpdateDevice(ctx context.Context, id int64, in DeviceInput) erro
 	if err := in.clean(); err != nil {
 		return err
 	}
-	tag, err := s.db.Exec(ctx, `UPDATE devices SET group_id=$2, name=$3, address=$4, kind=$5, web_url=$6, notes=$7, paused=$8 WHERE id=$1`,
-		id, nullID(in.GroupID), in.Name, in.Address, in.Kind, in.WebURL, in.Notes, in.Paused)
+	tag, err := s.db.Exec(ctx, `UPDATE devices SET group_id=$2, name=$3, address=$4, kind=$5, web_url=$6, notes=$7, paused=$8, snmp_profile_id=$9 WHERE id=$1`,
+		id, nullID(in.GroupID), in.Name, in.Address, in.Kind, in.WebURL, in.Notes, in.Paused, nullID(in.SNMP))
 	if isUnique(err) {
 		return ErrConflict
 	}
 	if isFK(err) {
-		return errors.New("the group does not exist")
+		return errors.New("the group or SNMP profile does not exist")
 	}
 	if err == nil && tag.RowsAffected() == 0 {
 		return ErrNotFound
@@ -333,9 +338,20 @@ func (s *Store) RefreshDeviceStatus(ctx context.Context, id int64) error {
 
 // Check types.
 const (
-	CheckICMP = "icmp"
-	CheckTCP  = "tcp"
+	CheckICMP     = "icmp"
+	CheckTCP      = "tcp"
+	CheckSNMP     = "snmp"         // the agent answers; uptime
+	CheckSNMPIf   = "snmp_if"      // one interface: traffic, errors, link state
+	CheckSNMPCPU  = "snmp_cpu"     // processor load (HOST-RESOURCES)
+	CheckSNMPStor = "snmp_storage" // memory or a disk (HOST-RESOURCES)
+	CheckSNMPOID  = "snmp_oid"     // any numeric OID
 )
+
+// CheckTypes are the types a user can add by hand.
+var CheckTypes = []string{CheckICMP, CheckTCP, CheckSNMP, CheckSNMPOID}
+
+// IsSNMP tells whether a check type polls SNMP.
+func IsSNMP(typ string) bool { return strings.HasPrefix(typ, "snmp") }
 
 // CheckParams are the settings of a check (by type).
 type CheckParams struct {
@@ -344,6 +360,15 @@ type CheckParams struct {
 	TimeoutMS int `json:"timeout_ms,omitempty"` // per request / connection
 	// TCP
 	Port int `json:"port,omitempty"`
+	// SNMP
+	IfIndex int     `json:"if_index,omitempty"` // interface
+	IfName  string  `json:"if_name,omitempty"`
+	Index   int     `json:"index,omitempty"` // hrStorage row
+	Descr   string  `json:"descr,omitempty"` // its description (rows move after reboots)
+	OID     string  `json:"oid,omitempty"`
+	Rate    bool    `json:"rate,omitempty"` // the OID is a counter: store the change per second
+	Unit    string  `json:"unit,omitempty"`
+	Scale   float64 `json:"scale,omitempty"` // value × scale (0 = 1)
 }
 
 // Check is one thing polled on a device.
@@ -363,6 +388,7 @@ type Check struct {
 	LastRun     *time.Time
 	LastText    string
 	CreatedAt   time.Time
+	SNMPProfile int64 // of the device
 	Series      []Series
 }
 
@@ -373,12 +399,12 @@ type Series struct {
 	Unit   string
 }
 
-const checkCols = `c.id, c.device_id, d.name, d.address, c.type, c.name, c.params, c.interval_s, c.paused, d.paused, c.status, c.status_since, c.last_run, c.last_text, c.created_at`
+const checkCols = `c.id, c.device_id, d.name, d.address, c.type, c.name, c.params, c.interval_s, c.paused, d.paused, c.status, c.status_since, c.last_run, c.last_text, c.created_at, COALESCE(d.snmp_profile_id,0)`
 
 func scanCheck(row interface{ Scan(...any) error }) (*Check, error) {
 	c := &Check{}
 	var raw []byte
-	err := row.Scan(&c.ID, &c.DeviceID, &c.Device, &c.Address, &c.Type, &c.Name, &raw, &c.IntervalS, &c.Paused, &c.DevPaused, &c.Status, &c.StatusSince, &c.LastRun, &c.LastText, &c.CreatedAt)
+	err := row.Scan(&c.ID, &c.DeviceID, &c.Device, &c.Address, &c.Type, &c.Name, &raw, &c.IntervalS, &c.Paused, &c.DevPaused, &c.Status, &c.StatusSince, &c.LastRun, &c.LastText, &c.CreatedAt, &c.SNMPProfile)
 	if err == nil {
 		err = json.Unmarshal(raw, &c.Params)
 	}
@@ -455,18 +481,30 @@ type CheckInput struct {
 }
 
 // metricsOf are the series a check type writes.
-func metricsOf(typ string) []Series {
+func metricsOf(typ string, p CheckParams) []Series {
 	switch typ {
 	case CheckICMP:
 		return []Series{{Metric: "rtt_ms", Unit: "ms"}, {Metric: "loss_pct", Unit: "%"}}
 	case CheckTCP:
 		return []Series{{Metric: "connect_ms", Unit: "ms"}}
+	case CheckSNMP:
+		return []Series{{Metric: "response_ms", Unit: "ms"}, {Metric: "uptime_s", Unit: "s"}}
+	case CheckSNMPIf:
+		return []Series{{Metric: "in_bps", Unit: "bit/s"}, {Metric: "out_bps", Unit: "bit/s"}, {Metric: "in_err", Unit: "/s"}, {Metric: "out_err", Unit: "/s"}}
+	case CheckSNMPCPU:
+		return []Series{{Metric: "cpu_pct", Unit: "%"}}
+	case CheckSNMPStor:
+		return []Series{{Metric: "used_pct", Unit: "%"}, {Metric: "used_b", Unit: "B"}}
+	case CheckSNMPOID:
+		return []Series{{Metric: "value", Unit: p.Unit}}
 	}
 	return nil
 }
 
+var unitRE = regexp.MustCompile(`^[\p{L}\p{N}%/°. ]{0,16}$`)
+
 func (in *CheckInput) clean() error {
-	if metricsOf(in.Type) == nil {
+	if metricsOf(in.Type, in.Params) == nil {
 		return errors.New("unknown check type")
 	}
 	if in.IntervalS == 0 {
@@ -502,6 +540,26 @@ func (in *CheckInput) clean() error {
 		if strings.TrimSpace(in.Name) == "" {
 			in.Name = "TCP " + strconv.Itoa(p.Port)
 		}
+	default: // SNMP
+		p.Count, p.Port = 0, 0
+		if err := p.cleanSNMP(in.Type); err != nil {
+			return err
+		}
+		if strings.TrimSpace(in.Name) == "" {
+			switch in.Type {
+			case CheckSNMP:
+				in.Name = "SNMP"
+			case CheckSNMPIf:
+				in.Name = p.IfName
+			case CheckSNMPCPU:
+				in.Name = "CPU"
+			case CheckSNMPStor:
+				in.Name = p.Descr
+			case CheckSNMPOID:
+				in.Name = "OID " + p.OID
+			}
+		}
+		in.Name = truncate(strings.Join(strings.Fields(in.Name), " "), 95)
 	}
 	var err error
 	in.Name, err = cleanName(in.Name)
@@ -528,7 +586,7 @@ func (s *Store) CreateCheck(ctx context.Context, deviceID int64, in CheckInput) 
 	if err != nil {
 		return 0, err
 	}
-	for _, m := range metricsOf(in.Type) {
+	for _, m := range metricsOf(in.Type, in.Params) {
 		if _, err := tx.Exec(ctx, `INSERT INTO series(check_id, metric, unit) VALUES($1,$2,$3)`, id, m.Metric, m.Unit); err != nil {
 			return 0, err
 		}
@@ -546,6 +604,12 @@ func (s *Store) UpdateCheck(ctx context.Context, id int64, in CheckInput) error 
 		return err
 	}
 	in.Type = c.Type
+	if IsSNMP(c.Type) && c.Type != CheckSNMPOID {
+		// what discovery set (interface, storage) is not in the settings form
+		p := c.Params
+		p.TimeoutMS = in.Params.TimeoutMS
+		in.Params = p
+	}
 	if err := in.clean(); err != nil {
 		return err
 	}
@@ -642,3 +706,61 @@ func (s *Store) SeriesUnit(ctx context.Context, id int32) (string, error) {
 	err := s.db.QueryRow(ctx, `SELECT unit FROM series WHERE id=$1`, id).Scan(&u)
 	return u, notFound(err)
 }
+
+func (p *CheckParams) cleanSNMP(typ string) error {
+	keep := CheckParams{TimeoutMS: p.TimeoutMS}
+	switch typ {
+	case CheckSNMP, CheckSNMPCPU:
+	case CheckSNMPIf:
+		if p.IfIndex < 1 {
+			return errors.New("choose an interface")
+		}
+		keep.IfIndex, keep.IfName = p.IfIndex, truncate(strings.TrimSpace(p.IfName), 95)
+		if keep.IfName == "" {
+			keep.IfName = "if" + strconv.Itoa(p.IfIndex)
+		}
+	case CheckSNMPStor:
+		if p.Index < 1 {
+			return errors.New("choose a storage")
+		}
+		keep.Index, keep.Descr = p.Index, truncate(strings.TrimSpace(p.Descr), 95)
+	case CheckSNMPOID:
+		o, err := snmp.ParseOID(p.OID)
+		if err != nil {
+			return errors.New("enter a numeric OID such as 1.3.6.1.2.1.1.3.0")
+		}
+		keep.OID, keep.Rate = o.String(), p.Rate
+		keep.Unit = strings.TrimSpace(p.Unit)
+		if !unitRE.MatchString(keep.Unit) {
+			return errors.New("the unit may have up to 16 letters, digits, % / ° or spaces")
+		}
+		keep.Scale = p.Scale
+		if keep.Scale == 1 {
+			keep.Scale = 0
+		}
+		if keep.Scale < 0 || keep.Scale > 1e12 || (keep.Scale != 0 && keep.Scale < 1e-12) {
+			return errors.New("the multiplier must be a positive number")
+		}
+	default:
+		return errors.New("unknown check type")
+	}
+	*p = keep
+	return nil
+}
+
+// UpdateCheckParams lets the poller fix the row of a storage check after
+// the device renumbered it (the description stays the key).
+func (s *Store) UpdateCheckParams(ctx context.Context, id int64, p CheckParams) error {
+	raw, _ := json.Marshal(p)
+	_, err := s.db.Exec(ctx, `UPDATE checks SET params=$2 WHERE id=$1`, id, raw)
+	return err
+}
+
+// DevicesWithSNMP lists the devices that have an SNMP profile (the poller
+// refreshes their facts and interfaces).
+func (s *Store) DevicesWithSNMP(ctx context.Context) ([]*Device, error) {
+	return s.Devices(ctx, DeviceFilter{SNMPOnly: true})
+}
+
+// Clean validates a check and fills in defaults (the name), as saving would.
+func (in *CheckInput) Clean() error { return in.clean() }

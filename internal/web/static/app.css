@@ -502,3 +502,28 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line-2)
 /* Popovers inside a scrolling table would be cut off: show them as a small dialog. */
 .table-wrap details.pop[open] > .pop-body { position: fixed; top: 12vh; left: 50%; right: auto; transform: translateX(-50%); width: min(420px, calc(100vw - 24px)); min-width: 0; max-height: 80vh; overflow: auto; z-index: 40; }
 .table-wrap details.pop[open] > summary::before { content: ""; position: fixed; inset: 0; background: rgba(15, 23, 42, .35); z-index: 39; cursor: default; }
+
+/* ---- WatchZit 0.2: SNMP, ports, multi-series graphs */
+.err-text { display: flex; gap: 8px; align-items: center; color: var(--bad); font-weight: 600; margin: 0 0 8px; }
+.inline-field { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.inline-field input { width: 90px; }
+th.cb, td.cb { width: 34px; text-align: center; }
+td.cb .ic { width: 18px; height: 18px; color: var(--ok); }
+tr.muted td { color: var(--muted); }
+.ports { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.port { display: grid; gap: 2px; padding: 9px 11px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel-2); border-left: 4px solid var(--line-2); min-width: 0; }
+.port b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.port small { color: var(--muted); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.port.up { border-left-color: var(--ok); }
+.port.down { border-left-color: var(--bad); }
+.port.off { opacity: .6; }
+a.port:hover { text-decoration: none; border-color: var(--accent); }
+.port .traffic { font-variant-numeric: tabular-nums; font-size: 12px; color: var(--text); }
+.graph-legend { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.graph-legend th, .graph-legend td { padding: 2px 6px; text-align: right; border: 0; font-weight: 400; white-space: nowrap; }
+.graph-legend th { color: var(--muted); }
+.graph-legend td:first-child, .graph-legend th:first-child { text-align: left; width: 100%; }
+.graph-legend i { display: inline-block; width: 10px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+:root { --series-1: var(--accent); --series-2: #0d9488; --series-3: #d97706; --series-4: #db2777; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --series-2: #2dd4bf; --series-3: #fbbf24; --series-4: #f472b6; } }
+:root[data-theme="dark"] { --series-2: #2dd4bf; --series-3: #fbbf24; --series-4: #f472b6; }

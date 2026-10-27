@@ -1,0 +1,41 @@
+{{template "app" .}}
+{{define "content"}}
+{{$d := .Data.D}}
+<p class="back"><a href="/devices/{{$d.ID}}">{{$d.Name}}</a></p>
+<h1>{{.T "SNMP discovery"}}</h1>
+{{if .Data.Err}}
+<section class="panel">
+  <p class="err-text">{{template "icon" "alert"}} {{.Data.Err}}</p>
+  {{with .Data.Profile}}<p class="muted small">{{$.T "Profile"}}: {{.Name}} ({{.VersionName}}{{with .Security}}, {{.}}{{end}}) · {{$d.Address}}:{{.Port}}</p>{{end}}
+  <div class="row"><a class="btn secondary" href="/devices/{{$d.ID}}/discover">{{template "icon" "refresh"}}{{.T "Try again"}}</a><a class="btn ghost" href="/devices/{{$d.ID}}/edit">{{.T "Edit device"}}</a></div>
+</section>
+{{else}}
+<section class="panel">
+  <dl class="facts">
+    {{with .Data.Facts.SysName}}<dt>{{$.T "System name"}}</dt><dd>{{.}}</dd>{{end}}
+    {{with .Data.Facts.Vendor}}<dt>{{$.T "Vendor"}}</dt><dd>{{.}}</dd>{{end}}
+    {{with .Data.Facts.SysDescr}}<dt>{{$.T "Description"}}</dt><dd class="small">{{.}}</dd>{{end}}
+    {{with .Data.Facts.SysLocation}}<dt>{{$.T "Location"}}</dt><dd>{{.}}</dd>{{end}}
+    <dt>{{.T "Answered in"}}</dt><dd>{{.Data.Took}}</dd>
+  </dl>
+</section>
+<form method="post" action="/devices/{{$d.ID}}/discover">
+<section class="panel">
+  <div class="titlebar"><h2>{{.T "What to monitor"}}</h2>
+    <label class="inline-field">{{.T "Interval (seconds)"}}<input type="number" name="interval" min="10" max="3600" value="60"></label>
+  </div>
+  <p class="muted small">{{.T "Selected items become checks. Interfaces that are up are selected; add others any time by opening this page again."}}</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th class="cb"></th><th>{{.T "Item"}}</th><th>{{.T "Kind"}}</th><th>{{.T "Details"}}</th></tr></thead>
+    <tbody>{{range .Data.Proposals}}<tr class="{{if .Exists}}muted{{end}}">
+      <td class="cb">{{if .Exists}}<span title="{{$.T "Already monitored"}}">{{template "icon" "check"}}</span>{{else}}<input type="checkbox" name="add" value="{{.Key}}" aria-label="{{.Name}}" {{if .Default}}checked{{end}}>{{end}}</td>
+      <td><b>{{.Name}}</b>{{if .Exists}} <span class="small">· {{$.T "Already monitored"}}</span>{{end}}</td>
+      <td>{{$.T (groupName .Group)}}</td>
+      <td class="small">{{.Detail}}</td>
+    </tr>{{end}}</tbody>
+  </table></div>
+  <div class="row mt"><button class="primary">{{template "icon" "plus"}}{{.T "Add selected checks"}}</button><a class="btn ghost" href="/devices/{{$d.ID}}">{{.T "Cancel"}}</a></div>
+</section>
+</form>
+{{end}}
+{{end}}

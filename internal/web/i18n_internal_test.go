@@ -53,6 +53,23 @@ func uiTexts(t *testing.T) map[string]bool {
 	for _, n := range metricNames {
 		out[n] = true
 	}
+	for _, m := range []map[string]string{checkKinds, groupNames, unitTitles} {
+		for _, n := range m {
+			out[n] = true
+		}
+	}
+	// Redirects with a computed address and SNMPv3 checks (internal/snmp).
+	for _, s := range []string{
+		"Device added. Choose what to monitor over SNMP.",
+		"SNMP checks added. Traffic is shown after the second poll.",
+		"The form could not be read.",
+		"the SNMPv3 user name must be 1–32 characters",
+		"privacy needs authentication",
+		"the authentication password must have at least 8 characters",
+		"the privacy password must have at least 8 characters",
+	} {
+		out[s] = true
+	}
 	return out
 }
 

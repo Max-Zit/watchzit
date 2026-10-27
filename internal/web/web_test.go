@@ -11,12 +11,15 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/max-zit/watchzit/internal/auth"
 	"github.com/max-zit/watchzit/internal/poller"
+	"github.com/max-zit/watchzit/internal/snmp"
+	"github.com/max-zit/watchzit/internal/snmpmon"
 	"github.com/max-zit/watchzit/internal/store"
 	"github.com/max-zit/watchzit/internal/testdb"
 	"github.com/max-zit/watchzit/internal/tsdb"
@@ -383,8 +386,17 @@ func TestPagesRender(t *testing.T) {
 	c, _ := e.setupAdmin("192.168.1.10")
 	c.post("/groups", "name", "G")
 	c.post("/devices/new", "name", "d1", "address", "10.0.0.1", "group", "1", "ping", "1", "ports", "80", "web_url", "http://10.0.0.1")
+	agent, err := snmp.NewTestAgent("pub")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer agent.Close()
+	snmpmon.LoadTestDevice(agent)
+	c.post("/settings/snmp", "name", "P", "version", "2", "port", strconv.Itoa(int(agent.Addr().Port())), "community", "pub")
+	c.post("/devices/new", "name", "d2", "address", "127.0.0.1", "snmp", "1")
+	c.post("/devices/2/discover", "add", "snmp_if:1:ZXRoZXIx", "add", "snmp:0:")
 	pages := []string{"/", "/devices", "/devices?status=down", "/devices/new", "/devices/1", "/devices/1?range=7d", "/devices/1/edit", "/groups",
-		"/users", "/users/1", "/account", "/audit", "/settings/network", "/settings/security", "/settings/data", "/nothing"}
+		"/users", "/users/1", "/account", "/audit", "/settings/network", "/settings/security", "/settings/data", "/settings/snmp", "/settings/snmp/1", "/devices/2", "/devices/2/discover", "/nothing"}
 	for _, l := range web.Languages {
 		c.post("/lang", "lang", l.Code)
 		for _, p := range pages {
@@ -408,4 +420,103 @@ func TestPagesRender(t *testing.T) {
 func itoa(n int32) string {
 	b, _ := json.Marshal(n)
 	return string(b)
+}
+
+// TestSNMPProfilesAndDiscovery: secrets are write-only, discovery lists
+// what a device offers and adds the chosen checks once.
+func TestSNMPProfilesAndDiscovery(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	c, _ := e.setupAdmin("192.168.1.10")
+	agent, err := snmp.NewTestAgent("community-s3cret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer agent.Close()
+	snmpmon.LoadTestDevice(agent)
+	port := strconv.Itoa(int(agent.Addr().Port()))
+
+	if r := c.post("/settings/snmp", "name", "v3 bad", "version", "3", "user", "u", "auth_proto", "SHA", "auth_pass", "short"); r.code != http.StatusBadRequest || !strings.Contains(r.body, "at least 8 characters") {
+		t.Fatalf("short v3 password: %d", r.code)
+	}
+	if r := c.post("/settings/snmp", "name", "Lab", "version", "2", "port", port, "community", "community-s3cret"); r.code != http.StatusSeeOther {
+		t.Fatalf("profile: %d %s", r.code, r.body)
+	}
+	r := c.get("/settings/snmp/1")
+	if r.code != http.StatusOK || strings.Contains(r.body, "community-s3cret") {
+		t.Fatalf("profile page shows the community (%d)", r.code)
+	}
+	// saving without a new community keeps the stored one
+	if r := c.post("/settings/snmp/1", "name", "Lab", "version", "2", "port", port, "community", ""); r.code != http.StatusSeeOther {
+		t.Fatalf("update: %d %s", r.code, r.body)
+	}
+	p, _ := e.st.SNMPProfileByID(ctx, 1)
+	if cfg, err := e.st.SNMPConfig(p); err != nil || cfg.Community != "community-s3cret" {
+		t.Fatalf("community lost: %v", err)
+	}
+	var raw string
+	_ = e.st.Pool().QueryRow(ctx, `SELECT community FROM snmp_profiles WHERE id=1`).Scan(&raw)
+	if strings.Contains(raw, "s3cret") {
+		t.Fatal("community stored in plain text")
+	}
+
+	r = c.post("/devices/new", "name", "router", "address", "127.0.0.1", "kind", "router", "snmp", "1")
+	if r.code != http.StatusSeeOther || !strings.HasSuffix(r.loc, "/discover") {
+		t.Fatalf("create: %d %s", r.code, r.loc)
+	}
+	r = c.get(r.loc)
+	for _, want := range []string{"test-router", "MikroTik", "ether1", "ether2", "main memory", "system disk"} {
+		if !strings.Contains(r.body, want) {
+			t.Fatalf("discovery lacks %q: %s", want, r.body)
+		}
+	}
+	keys := regexp.MustCompile(`name="add" value="([^"]+)"[^>]*checked`).FindAllStringSubmatch(r.body, -1)
+	if len(keys) != 5 { // SNMP, CPU, memory, disk, ether1 (ether2 has no link)
+		t.Fatalf("%d proposals selected", len(keys))
+	}
+	form := []string{"interval", "30"}
+	for _, k := range keys {
+		form = append(form, "add", k[1])
+	}
+	if r := c.post("/devices/1/discover", form...); r.code != http.StatusSeeOther {
+		t.Fatalf("add: %d %s", r.code, r.body)
+	}
+	c.post("/devices/1/discover", form...) // twice: no duplicates
+	cs, _ := e.st.DeviceChecks(ctx, 1)
+	if len(cs) != 5 || cs[0].IntervalS != 30 {
+		t.Fatalf("%d checks", len(cs))
+	}
+	r = c.get("/devices/1")
+	for _, want := range []string{"Ports", "ether1", "uplink", "1 Gbit/s", `data-labels="Traffic in|Traffic out"`} {
+		if !strings.Contains(r.body, want) {
+			t.Fatalf("device page lacks %q", want)
+		}
+	}
+	// the settings dialog of an interface check keeps the interface
+	var ifc *store.Check
+	for _, x := range cs {
+		if x.Type == store.CheckSNMPIf {
+			ifc = x
+		}
+	}
+	if r := c.post("/checks/"+strconv.FormatInt(ifc.ID, 10), "name", "uplink", "interval", "60", "timeout_ms", "3000"); r.code != http.StatusSeeOther {
+		t.Fatalf("check update: %d %s", r.code, r.body)
+	}
+	if x, _ := e.st.CheckByID(ctx, ifc.ID); x.Params.IfIndex != 1 || x.Params.TimeoutMS != 3000 {
+		t.Fatalf("%+v", x.Params)
+	}
+	// custom OID check
+	if r := c.post("/devices/1/checks", "type", "snmp_oid", "oid", "1.3.6.1.4.1.14988.1.1.3.10.0", "unit", "°C", "scale", "0,1"); r.code != http.StatusSeeOther {
+		t.Fatalf("oid check: %d %s", r.code, r.body)
+	}
+	if r := c.post("/devices/1/checks", "type", "snmp_oid", "oid", "1.3.x"); r.code != http.StatusBadRequest {
+		t.Fatalf("bad oid: %d", r.code)
+	}
+	// deleting a profile takes SNMP off its devices
+	if r := c.post("/settings/snmp/1/delete"); r.code != http.StatusSeeOther {
+		t.Fatalf("delete: %d", r.code)
+	}
+	if d, _ := e.st.DeviceByID(ctx, 1); d.SNMPProfile != 0 {
+		t.Fatal("device keeps a deleted profile")
+	}
 }

@@ -381,6 +381,35 @@ func init() {
 	funcs["statuses"] = func() []string {
 		return []string{store.StatusDown, store.StatusWarning, store.StatusUnknown, store.StatusUp, store.StatusPaused}
 	}
+	funcs["checkKind"] = func(t string) string {
+		if n, ok := checkKinds[t]; ok {
+			return n
+		}
+		return t
+	}
+	funcs["portTraffic"] = func(s string) string {
+		if _, after, ok := strings.Cut(s, " · "); ok {
+			return after
+		}
+		return ""
+	}
+	funcs["groupName"] = func(g string) string {
+		if n, ok := groupNames[g]; ok {
+			return n
+		}
+		return g
+	}
+	funcs["speed"] = func(bps int64) string {
+		switch {
+		case bps <= 0:
+			return ""
+		case bps >= 1e9 && bps%1e9 == 0:
+			return fmt.Sprintf("%d Gbit/s", bps/1e9)
+		case bps >= 1e6:
+			return fmt.Sprintf("%d Mbit/s", bps/1e6)
+		}
+		return fmt.Sprintf("%d kbit/s", bps/1e3)
+	}
 	funcs["metricName"] = func(m string) string {
 		if n, ok := metricNames[m]; ok {
 			return n
@@ -402,7 +431,16 @@ func init() {
 }
 
 // metricNames are the display names of metrics (translated in templates).
-var metricNames = map[string]string{"rtt_ms": "Response time", "loss_pct": "Packet loss", "connect_ms": "Connect time"}
+var metricNames = map[string]string{"rtt_ms": "Response time", "loss_pct": "Packet loss", "connect_ms": "Connect time",
+	"response_ms": "Response time", "uptime_s": "Uptime", "in_bps": "Traffic in", "out_bps": "Traffic out", "in_err": "Errors in", "out_err": "Errors out",
+	"cpu_pct": "CPU load", "used_pct": "Used", "used_b": "Used space", "value": "Value"}
+
+// checkKinds name the check types.
+var checkKinds = map[string]string{"icmp": "Ping (ICMP)", "tcp": "TCP port", "snmp": "SNMP availability", "snmp_if": "Interface traffic",
+	"snmp_cpu": "CPU load", "snmp_storage": "Memory or disk", "snmp_oid": "SNMP value (OID)"}
+
+// groupNames name the kinds of items discovery finds.
+var groupNames = map[string]string{"system": "System", "interface": "Interface", "memory": "Memory", "disk": "Disk"}
 
 // rowCtx is a value of a shared template together with its page.
 type rowCtx struct {

@@ -4,14 +4,18 @@ package poller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
 	"math/rand/v2"
+	"net/netip"
 	"sync"
 	"time"
 
 	"github.com/max-zit/watchzit/internal/probe"
+	"github.com/max-zit/watchzit/internal/snmp"
+	"github.com/max-zit/watchzit/internal/snmpmon"
 	"github.com/max-zit/watchzit/internal/store"
 	"github.com/max-zit/watchzit/internal/tsdb"
 )
@@ -28,9 +32,16 @@ type Poller struct {
 	// OnChange is told about checks that went up or down.
 	OnChange func([]store.StatusChange)
 
-	mu      sync.Mutex
-	entries map[int64]*entry
-	reload  chan struct{}
+	mu       sync.Mutex
+	entries  map[int64]*entry
+	reload   chan struct{}
+	profiles map[int64]*store.SNMPProfile
+	counters map[int64]*counterState // last raw counters per check
+}
+
+type counterState struct {
+	at   time.Time
+	vals map[string]snmpmon.Counter
 }
 
 type entry struct {
@@ -41,7 +52,7 @@ type entry struct {
 
 // New creates a poller.
 func New(st *store.Store, db *tsdb.DB, log *slog.Logger) *Poller {
-	return &Poller{store: st, db: db, log: log, now: time.Now, Workers: 64, entries: map[int64]*entry{}, reload: make(chan struct{}, 1)}
+	return &Poller{store: st, db: db, log: log, now: time.Now, Workers: 64, entries: map[int64]*entry{}, reload: make(chan struct{}, 1), profiles: map[int64]*store.SNMPProfile{}, counters: map[int64]*counterState{}}
 }
 
 // Reload makes the poller read the checks again (after a change).
@@ -66,9 +77,17 @@ func (p *Poller) load(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	profs, err := p.store.SNMPProfiles(ctx)
+	if err != nil {
+		return err
+	}
 	now := p.now()
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	p.profiles = map[int64]*store.SNMPProfile{}
+	for _, pr := range profs {
+		p.profiles[pr.ID] = pr
+	}
 	seen := map[int64]bool{}
 	for _, c := range cs {
 		seen[c.ID] = true
@@ -90,6 +109,7 @@ func (p *Poller) load(ctx context.Context) error {
 	for id := range p.entries {
 		if !seen[id] {
 			delete(p.entries, id)
+			delete(p.counters, id)
 		}
 	}
 	return nil
@@ -121,6 +141,11 @@ func (p *Poller) Run(ctx context.Context) {
 	defer tick.Stop()
 	reload := time.NewTicker(time.Minute)
 	defer reload.Stop()
+	// facts and interfaces of SNMP devices: soon after start, then hourly
+	refresh := time.NewTimer(20 * time.Second)
+	defer refresh.Stop()
+	var refreshing sync.WaitGroup
+	defer refreshing.Wait()
 	for {
 		select {
 		case <-ctx.Done():
@@ -139,6 +164,10 @@ func (p *Poller) Run(ctx context.Context) {
 			}
 		case <-tick.C:
 			p.dispatch(ctx, jobs)
+		case <-refresh.C:
+			refresh.Reset(time.Hour)
+			refreshing.Add(1)
+			go func() { defer refreshing.Done(); p.Refresh(ctx, 0) }()
 		}
 	}
 }
@@ -278,7 +307,161 @@ func (p *Poller) runCheck(ctx context.Context, c *store.Check) outcome {
 		o.res.Status = store.StatusUp
 		o.res.Text = fmt.Sprintf("open, %.2f ms", ms(rtt))
 	default:
-		o.res.Text = "unknown check type"
+		if !store.IsSNMP(c.Type) {
+			o.res.Text = "unknown check type"
+			break
+		}
+		p.runSNMP(ctx, c, addr, timeout, now, &o, sample)
 	}
 	return o
+}
+
+// snmpClient opens a client with the device's profile.
+func (p *Poller) snmpClient(profileID int64, addr netip.Addr, timeout time.Duration) (*snmp.Client, error) {
+	p.mu.Lock()
+	pr := p.profiles[profileID]
+	p.mu.Unlock()
+	if pr == nil {
+		return nil, errors.New("the device has no SNMP profile")
+	}
+	cfg, err := p.store.SNMPConfig(pr)
+	if err != nil {
+		return nil, err
+	}
+	cfg.Timeout = timeout
+	return snmp.Dial(netip.AddrPortFrom(addr, uint16(pr.Port)), cfg) // #nosec G115 -- port is 1–65535
+}
+
+func (p *Poller) runSNMP(ctx context.Context, c *store.Check, addr netip.Addr, timeout time.Duration, now time.Time, o *outcome, sample func(string, float64)) {
+	cl, err := p.snmpClient(c.SNMPProfile, addr, timeout)
+	if err != nil {
+		o.res.Text = err.Error()
+		return
+	}
+	defer cl.Close()
+	start := time.Now()
+	r, err := snmpmon.Poll(ctx, cl, c)
+	if err != nil {
+		o.res.Text = err.Error()
+		return
+	}
+	if c.Type == store.CheckSNMP {
+		sample("response_ms", ms(time.Since(start)))
+	}
+	if r.Params != nil {
+		if err := p.store.UpdateCheckParams(ctx, c.ID, *r.Params); err != nil {
+			p.log.Warn("poller: cannot save check parameters", "check", c.ID, "err", err)
+		}
+	}
+	for m, v := range r.Gauges {
+		sample(m, round2(v))
+	}
+	if len(r.Counters) > 0 {
+		p.mu.Lock()
+		prev := p.counters[c.ID]
+		p.counters[c.ID] = &counterState{at: now, vals: r.Counters}
+		p.mu.Unlock()
+		if prev != nil {
+			dt := now.Sub(prev.at).Seconds()
+			rates := map[string]float64{}
+			for m, cur := range r.Counters {
+				if old, ok := prev.vals[m]; ok {
+					if v, ok := rate(old, cur, dt); ok {
+						sample(m, round2(v))
+						rates[m] = v
+					}
+				}
+			}
+			in, okIn := rates["in_bps"]
+			out, okOut := rates["out_bps"]
+			if okIn && okOut {
+				// the part after " · " is what the port tiles show
+				r.Text += " · ↓ " + bitsText(in) + "  ↑ " + bitsText(out)
+			}
+		}
+	}
+	o.res.Text = r.Text
+	if r.Up {
+		o.res.Status = store.StatusUp
+	}
+}
+
+// rate turns two counter readings into a change per second. A 32-bit
+// counter that went backwards wrapped; a 64-bit one was reset (reboot).
+func rate(prev, cur snmpmon.Counter, dt float64) (float64, bool) {
+	if dt < 1 {
+		return 0, false
+	}
+	var d uint64
+	switch {
+	case cur.V >= prev.V:
+		d = cur.V - prev.V
+	case cur.Bits == 32 && prev.V <= math.MaxUint32:
+		d = cur.V + (1 << 32) - prev.V
+	default:
+		return 0, false
+	}
+	return float64(d) / dt * cur.Mul, true
+}
+
+func bitsText(bps float64) string {
+	u := []string{"bit/s", "kbit/s", "Mbit/s", "Gbit/s", "Tbit/s"}
+	i := 0
+	for bps >= 1000 && i < len(u)-1 {
+		bps /= 1000
+		i++
+	}
+	return fmt.Sprintf("%.3g %s", bps, u[i])
+}
+
+// Refresh reads facts and interfaces of SNMP devices (all when id is 0).
+func (p *Poller) Refresh(ctx context.Context, id int64) {
+	devs, err := p.store.DevicesWithSNMP(ctx)
+	if err != nil {
+		p.log.Error("poller: cannot list SNMP devices", "err", err)
+		return
+	}
+	sem := make(chan struct{}, 4)
+	var wg sync.WaitGroup
+	for _, d := range devs {
+		if (id != 0 && d.ID != id) || d.Paused {
+			continue
+		}
+		wg.Add(1)
+		sem <- struct{}{}
+		go func() {
+			defer func() { <-sem; wg.Done() }()
+			if err := p.refreshDevice(ctx, d); err != nil {
+				p.log.Debug("poller: SNMP refresh failed", "device", d.Name, "err", err)
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+func (p *Poller) refreshDevice(ctx context.Context, d *store.Device) error {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+	addr, err := probe.Resolve(ctx, d.Address)
+	if err != nil {
+		return err
+	}
+	cl, err := p.snmpClient(d.SNMPProfile, addr, 3*time.Second)
+	if err != nil {
+		return err
+	}
+	defer cl.Close()
+	f, err := snmpmon.Facts(ctx, cl)
+	if err != nil {
+		return err
+	}
+	f.Updated = p.now()
+	if err := p.store.SetFacts(ctx, d.ID, f); err != nil {
+		return err
+	}
+	ifs, err := snmpmon.Interfaces(ctx, cl)
+	if err != nil {
+		return err
+	}
+	return p.store.SetInterfaces(ctx, d.ID, ifs)
 }

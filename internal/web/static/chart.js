@@ -1,8 +1,10 @@
 // WatchZit graphs: time series drawn on a canvas (no chart library; the
 // CSP allows only scripts of this console). Each <figure class="graph"
-// data-series=ID data-range=24h data-unit=ms> gets the average as a line
-// and, for summarised data, the minimum–maximum as a band. Drag across a
-// graph to zoom in, double-click to go back; hover shows the values.
+// data-series="ID,ID" data-labels="In|Out" data-range=24h data-unit=ms>
+// draws its series as lines in one graph; a single series also gets the
+// minimum–maximum band of summarised data. A legend lists last, minimum,
+// average and maximum. Drag across a graph to zoom in, double-click to go
+// back; hover shows the values.
 (function () {
   "use strict";
   var figs = Array.prototype.slice.call(document.querySelectorAll("figure.graph[data-series]"));
@@ -27,18 +29,32 @@
     var d = zdate(t);
     return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate()) + " " + pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes());
   }
+  function num(v) {
+    var a = Math.abs(v);
+    if (a >= 100) return v.toFixed(0);
+    if (a >= 10) return v.toFixed(1);
+    return v.toFixed(2);
+  }
+  // Units that grow by prefixes: bit/s in thousands, bytes in 1024s.
+  var scaled = { "bit/s": [1000, ["bit/s", "kbit/s", "Mbit/s", "Gbit/s", "Tbit/s"]], "B": [1024, ["B", "KiB", "MiB", "GiB", "TiB", "PiB"]] };
   function fmtVal(v, unit) {
     if (v === null || v === undefined) return "—";
-    var a = Math.abs(v), s;
-    if (a >= 100) s = v.toFixed(0);
-    else if (a >= 10) s = v.toFixed(1);
-    else s = v.toFixed(2);
-    return s + (unit ? " " + unit : "");
+    var sc = scaled[unit];
+    if (sc) {
+      if (v === 0) return "0 " + sc[1][0];
+      var i = 0;
+      while (Math.abs(v) >= sc[0] && i < sc[1].length - 1) { v /= sc[0]; i++; }
+      return num(v) + " " + sc[1][i];
+    }
+    return num(v) + (unit ? " " + unit : "");
   }
-  // niceStep returns a round step (1, 2, 5 × 10^n) for about n ticks.
-  function niceStep(range, n) {
-    var raw = range / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / mag;
-    return (r <= 1 ? 1 : r <= 2 ? 2 : r <= 5 ? 5 : 10) * mag;
+  // niceStep returns a round step (1, 2, 5 × 10^n) for about n ticks; for
+  // prefixed units the step is round in the prefix (e.g. 2 Mbit/s).
+  function niceStep(range, n, unit) {
+    var base = 1, sc = scaled[unit];
+    if (sc) { while (range / base >= sc[0] * n && base < Math.pow(sc[0], 5)) base *= sc[0]; }
+    var raw = range / base / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / mag;
+    return (r <= 1 ? 1 : r <= 2 ? 2 : r <= 5 ? 5 : 10) * mag * base;
   }
   var timeSteps = [60, 300, 600, 900, 1800, 3600, 7200, 10800, 21600, 43200, 86400, 172800, 604800, 1209600, 2592000];
 
@@ -46,29 +62,69 @@
     this.fig = fig;
     this.canvas = fig.querySelector("canvas");
     this.tip = fig.querySelector(".graph-tip");
-    this.id = fig.getAttribute("data-series");
+    this.ids = fig.getAttribute("data-series").split(",");
+    this.labels = (fig.getAttribute("data-labels") || "").split("|");
     this.range = fig.getAttribute("data-range") || "24h";
     this.unit = fig.getAttribute("data-unit") || "";
     this.zoom = null; // {from, to} in Unix seconds
-    this.data = null;
+    this.data = null; // one result per series
     this.drag = null;
-    this.hover = null;
+    this.hover = null; // time under the mouse
+    this.legend = this.makeLegend();
     this.bind();
   }
 
-  Graph.prototype.url = function () {
+  Graph.prototype.makeLegend = function () {
+    var heads = (this.fig.getAttribute("data-legend") || "Last|Min|Avg|Max").split("|");
+    var t = document.createElement("table");
+    t.className = "graph-legend";
+    var tr = document.createElement("tr");
+    ["", heads[0], heads[1], heads[2], heads[3]].forEach(function (h) { var th = document.createElement("th"); th.textContent = h; tr.appendChild(th); });
+    t.appendChild(tr);
+    this.fig.appendChild(t);
+    return t;
+  };
+
+  Graph.prototype.color = function (i) { return css("--series-" + (i % 4 + 1)) || css("--accent") || "#4f46e5"; };
+
+  Graph.prototype.url = function (id) {
     var w = Math.max(100, Math.round(this.canvas.clientWidth || 600));
-    var u = "/series/" + encodeURIComponent(this.id) + "?points=" + Math.min(3000, w);
+    var u = "/series/" + encodeURIComponent(id) + "?points=" + Math.min(3000, w);
     if (this.zoom) return u + "&from=" + Math.floor(this.zoom.from) + "&to=" + Math.ceil(this.zoom.to);
     return u + "&range=" + encodeURIComponent(this.range);
   };
 
   Graph.prototype.load = function () {
     var g = this;
-    fetch(this.url(), { credentials: "same-origin", headers: { "Accept": "application/json" } })
-      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function (d) { g.data = d; g.draw(); })
-      .catch(function () { g.data = null; g.draw(); });
+    Promise.all(this.ids.map(function (id) {
+      return fetch(g.url(id), { credentials: "same-origin", headers: { "Accept": "application/json" } })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+    }))
+      .then(function (ds) { g.data = ds; g.draw(); g.fillLegend(); })
+      .catch(function () { g.data = null; g.draw(); g.fillLegend(); });
+  };
+
+  Graph.prototype.fillLegend = function () {
+    var g = this, t = this.legend;
+    while (t.rows.length > 1) t.deleteRow(1);
+    (this.data || []).forEach(function (d, i) {
+      var last = null, lo = null, hi = null, sum = 0, n = 0;
+      var band = d.min && d.min.length === d.t.length && d.step > 0;
+      for (var k = 0; k < d.t.length; k++) {
+        var v = d.avg[k];
+        if (v === null) continue;
+        last = v; sum += v; n++;
+        var a = band && d.min[k] !== null ? d.min[k] : v, b = band && d.max[k] !== null ? d.max[k] : v;
+        if (lo === null || a < lo) lo = a;
+        if (hi === null || b > hi) hi = b;
+      }
+      var tr = t.insertRow(-1);
+      var name = tr.insertCell(-1), sw = document.createElement("i");
+      sw.style.background = g.color(i);
+      name.appendChild(sw);
+      name.appendChild(document.createTextNode(g.labels[i] || ""));
+      [last, lo, n ? sum / n : null, hi].forEach(function (v) { tr.insertCell(-1).textContent = fmtVal(v, g.unit); });
+    });
   };
 
   Graph.prototype.layout = function () {
@@ -78,43 +134,77 @@
       c.width = Math.round(w * dpr);
       c.height = Math.round(h * dpr);
     }
-    return { w: w, h: h, dpr: dpr, l: 52, r: 10, t: 10, b: 24 };
+    return { w: w, h: h, dpr: dpr, l: 64, r: 10, t: 10, b: 24 };
   };
 
+  // segments splits a series where samples are missing for longer than
+  // 2.5 intervals, so outages show as gaps.
+  function segments(d) {
+    var gap = d.step > 0 ? d.step * 2.5 : 0;
+    if (!gap && d.t.length > 2) {
+      var ds = [];
+      for (var j = 1; j < d.t.length; j++) ds.push(d.t[j] - d.t[j - 1]);
+      ds.sort(function (p, q) { return p - q; });
+      gap = ds[Math.floor(ds.length / 2)] * 2.5;
+    }
+    var segs = [], cur = [];
+    for (var m = 0; m < d.t.length; m++) {
+      if (d.avg[m] === null || (cur.length && gap && d.t[m] - d.t[cur[cur.length - 1]] > gap)) {
+        if (cur.length) segs.push(cur);
+        cur = [];
+        if (d.avg[m] === null) continue;
+      }
+      cur.push(m);
+    }
+    if (cur.length) segs.push(cur);
+    return segs;
+  }
+
+  function nearest(d, t) {
+    if (!d.t.length) return null;
+    var lo = 0, hi = d.t.length - 1;
+    while (hi - lo > 1) { var mid = (lo + hi) >> 1; if (d.t[mid] < t) lo = mid; else hi = mid; }
+    return Math.abs(d.t[lo] - t) <= Math.abs(d.t[hi] - t) ? lo : hi;
+  }
+
   Graph.prototype.draw = function () {
-    var L = this.layout(), ctx = this.canvas.getContext("2d");
+    var L = this.layout(), ctx = this.canvas.getContext("2d"), g = this;
     ctx.setTransform(L.dpr, 0, 0, L.dpr, 0, 0);
     ctx.clearRect(0, 0, L.w, L.h);
-    var font = "12px " + (css("--font") || "system-ui, sans-serif");
-    ctx.font = font;
-    var muted = css("--muted") || "#64748b", line = css("--line") || "#e2e8f0", accent = css("--accent") || "#4f46e5";
-    var d = this.data;
+    ctx.font = "12px " + (css("--font") || "system-ui, sans-serif");
+    var muted = css("--muted") || "#64748b", line = css("--line") || "#e2e8f0";
+    var ds = this.data;
     var pw = L.w - L.l - L.r, ph = L.h - L.t - L.b;
     this.L = L;
-    if (!d || !d.t || !d.t.length) {
+    var any = ds && ds.some(function (d) { return d.t && d.t.length; });
+    if (!any) {
       ctx.fillStyle = muted;
       ctx.textAlign = "center";
-      ctx.fillText(d ? this.fig.getAttribute("data-nodata") || "No data" : "…", L.l + pw / 2, L.t + ph / 2);
+      ctx.fillText(ds ? this.fig.getAttribute("data-nodata") || "No data" : "…", L.l + pw / 2, L.t + ph / 2);
       return;
     }
-    var from = d.from, to = d.to, span = Math.max(1, to - from);
-    var hasBand = d.min && d.min.length === d.t.length && d.step > 0;
+    var from = ds[0].from, to = ds[0].to, span = Math.max(1, to - from);
+    var single = ds.length === 1;
     var lo = Infinity, hi = -Infinity;
-    for (var i = 0; i < d.t.length; i++) {
-      var a = hasBand ? d.min[i] : d.avg[i], b = hasBand ? d.max[i] : d.avg[i];
-      if (a !== null && a < lo) lo = a;
-      if (b !== null && b > hi) hi = b;
-    }
+    ds.forEach(function (d) {
+      var band = single && d.min && d.min.length === d.t.length && d.step > 0;
+      for (var i = 0; i < d.t.length; i++) {
+        var a = band ? d.min[i] : d.avg[i], b = band ? d.max[i] : d.avg[i];
+        if (a !== null && a < lo) lo = a;
+        if (b !== null && b > hi) hi = b;
+      }
+    });
     if (!isFinite(lo)) { lo = 0; hi = 1; }
     if (lo > 0 && lo < hi * 0.5) lo = 0; // start at zero when it is near
     if (this.unit === "%") { lo = Math.min(lo, 0); hi = Math.max(hi, lo + 1); }
+    if (scaled[this.unit] && lo > 0) lo = 0;
     if (hi === lo) { hi = lo + 1; }
-    var step = niceStep(hi - lo, Math.max(2, Math.floor(ph / 40)));
+    var step = niceStep(hi - lo, Math.max(2, Math.floor(ph / 40)), this.unit);
     lo = Math.floor(lo / step) * step;
     hi = Math.ceil(hi / step) * step;
     var X = function (t) { return L.l + (t - from) / span * pw; };
     var Y = function (v) { return L.t + ph - (v - lo) / (hi - lo) * ph; };
-    this.X = X; this.from = from; this.to = to;
+    this.from = from; this.to = to;
 
     // grid and axes
     ctx.strokeStyle = line;
@@ -138,92 +228,94 @@
       ctx.fillText(fmtTime(t, span), x, L.t + ph + 6);
     }
 
-    // a gap where samples are missing for longer than 2.5 intervals
-    var gap = d.step > 0 ? d.step * 2.5 : 0;
-    if (!gap && d.t.length > 2) {
-      var ds = [];
-      for (var j = 1; j < d.t.length; j++) ds.push(d.t[j] - d.t[j - 1]);
-      ds.sort(function (p, q) { return p - q; });
-      gap = ds[Math.floor(ds.length / 2)] * 2.5;
-    }
-    var segs = [], cur = [];
-    for (var m = 0; m < d.t.length; m++) {
-      if (d.avg[m] === null || (cur.length && gap && d.t[m] - d.t[cur[cur.length - 1]] > gap)) {
-        if (cur.length) segs.push(cur);
-        cur = [];
-        if (d.avg[m] === null) continue;
-      }
-      cur.push(m);
-    }
-    if (cur.length) segs.push(cur);
-
     ctx.save();
     ctx.beginPath();
     ctx.rect(L.l, L.t, pw, ph);
     ctx.clip();
-    var half = d.step > 0 ? d.step / 2 : 0;
-    if (hasBand) {
-      ctx.fillStyle = accent;
-      ctx.globalAlpha = 0.16;
+    ds.forEach(function (d, si) {
+      var col = g.color(si), segs = segments(d), half = d.step > 0 ? d.step / 2 : 0;
+      var band = single && d.min && d.min.length === d.t.length && d.step > 0;
+      if (band) {
+        ctx.fillStyle = col;
+        ctx.globalAlpha = 0.16;
+        segs.forEach(function (s) {
+          ctx.beginPath();
+          s.forEach(function (n, q) { var px = X(d.t[n] + half), py = Y(d.max[n]); if (q) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
+          for (var q = s.length - 1; q >= 0; q--) ctx.lineTo(X(d.t[s[q]] + half), Y(d.min[s[q]]));
+          ctx.closePath();
+          ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+      } else if (!single) {
+        // a light fill under each line, like a stacked look without stacking
+        ctx.fillStyle = col;
+        ctx.globalAlpha = 0.08;
+        segs.forEach(function (s) {
+          ctx.beginPath();
+          ctx.moveTo(X(d.t[s[0]] + half), Y(lo));
+          s.forEach(function (n) { ctx.lineTo(X(d.t[n] + half), Y(d.avg[n])); });
+          ctx.lineTo(X(d.t[s[s.length - 1]] + half), Y(lo));
+          ctx.closePath();
+          ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+      }
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 1.6;
+      ctx.lineJoin = "round";
       segs.forEach(function (s) {
         ctx.beginPath();
-        s.forEach(function (n, q) { var px = X(d.t[n] + half), py = Y(d.max[n]); if (q) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
-        for (var q = s.length - 1; q >= 0; q--) ctx.lineTo(X(d.t[s[q]] + half), Y(d.min[s[q]]));
-        ctx.closePath();
-        ctx.fill();
+        s.forEach(function (n, q) { var px = X(d.t[n] + half), py = Y(d.avg[n]); if (q) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
+        if (s.length === 1) { ctx.arc(X(d.t[s[0]] + half), Y(d.avg[s[0]]), 1.5, 0, 7); }
+        ctx.stroke();
       });
-      ctx.globalAlpha = 1;
-    }
-    ctx.strokeStyle = accent;
-    ctx.lineWidth = 1.6;
-    ctx.lineJoin = "round";
-    segs.forEach(function (s) {
-      ctx.beginPath();
-      s.forEach(function (n, q) { var px = X(d.t[n] + half), py = Y(d.avg[n]); if (q) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
-      if (s.length === 1) { ctx.arc(X(d.t[s[0]] + half), Y(d.avg[s[0]]), 1.5, 0, 7); }
-      ctx.stroke();
     });
     // drag selection
     if (this.drag && this.drag.x1 !== undefined) {
-      ctx.fillStyle = accent;
+      ctx.fillStyle = this.color(0);
       ctx.globalAlpha = 0.12;
       ctx.fillRect(Math.min(this.drag.x0, this.drag.x1), L.t, Math.abs(this.drag.x1 - this.drag.x0), ph);
       ctx.globalAlpha = 1;
     }
     // hover
-    if (this.hover !== null && d.t[this.hover] !== undefined) {
-      var hx = Math.round(X(d.t[this.hover] + half)) + 0.5;
+    if (this.hover !== null) {
+      var hx = Math.round(X(this.hover)) + 0.5;
       ctx.strokeStyle = muted;
       ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(hx, L.t); ctx.lineTo(hx, L.t + ph); ctx.stroke();
-      if (d.avg[this.hover] !== null) {
-        ctx.fillStyle = accent;
-        ctx.beginPath(); ctx.arc(hx, Y(d.avg[this.hover]), 3, 0, 7); ctx.fill();
-      }
+      ds.forEach(function (d, si) {
+        var i = nearest(d, g.hover - (d.step > 0 ? d.step / 2 : 0));
+        if (i === null || d.avg[i] === null) return;
+        ctx.fillStyle = g.color(si);
+        ctx.beginPath(); ctx.arc(X(d.t[i] + (d.step > 0 ? d.step / 2 : 0)), Y(d.avg[i]), 3, 0, 7); ctx.fill();
+      });
     }
     ctx.restore();
   };
 
-  Graph.prototype.indexAt = function (px) {
-    var d = this.data;
-    if (!d || !d.t || !d.t.length || !this.L) return null;
-    var span = Math.max(1, d.to - d.from), pw = this.L.w - this.L.l - this.L.r;
-    var t = d.from + (px - this.L.l) / pw * span - (d.step > 0 ? d.step / 2 : 0);
-    var lo = 0, hi = d.t.length - 1;
-    while (hi - lo > 1) { var mid = (lo + hi) >> 1; if (d.t[mid] < t) lo = mid; else hi = mid; }
-    return Math.abs(d.t[lo] - t) <= Math.abs(d.t[hi] - t) ? lo : hi;
+  Graph.prototype.timeAt = function (px) {
+    if (!this.L || this.from === undefined) return null;
+    var pw = this.L.w - this.L.l - this.L.r;
+    return this.from + (px - this.L.l) / pw * (this.to - this.from);
   };
 
   Graph.prototype.showTip = function (px) {
-    var i = this.indexAt(px), d = this.data;
-    if (i === null) { this.tip.hidden = true; return; }
-    this.hover = i;
-    var parts = [fmtFull(d.t[i])];
-    if (d.step > 0 && d.min.length) {
-      parts.push("avg " + fmtVal(d.avg[i], this.unit), "min " + fmtVal(d.min[i], this.unit), "max " + fmtVal(d.max[i], this.unit));
-    } else {
-      parts.push(fmtVal(d.avg[i], this.unit));
-    }
+    var t = this.timeAt(px), g = this;
+    if (t === null || !this.data) { this.tip.hidden = true; return; }
+    var d0 = this.data[0], i0 = nearest(d0, t - (d0.step > 0 ? d0.step / 2 : 0));
+    if (i0 === null) { this.tip.hidden = true; return; }
+    this.hover = d0.t[i0] + (d0.step > 0 ? d0.step / 2 : 0);
+    var parts = [fmtFull(d0.t[i0])];
+    this.data.forEach(function (d, si) {
+      var i = nearest(d, t - (d.step > 0 ? d.step / 2 : 0));
+      if (i === null) return;
+      var label = g.data.length > 1 ? (g.labels[si] || "") + " " : "";
+      if (g.data.length === 1 && d.step > 0 && d.min.length) {
+        parts.push("avg " + fmtVal(d.avg[i], g.unit), "min " + fmtVal(d.min[i], g.unit), "max " + fmtVal(d.max[i], g.unit));
+      } else {
+        parts.push(label + fmtVal(d.avg[i], g.unit));
+      }
+    });
     this.tip.textContent = parts.join(" · ");
     this.tip.hidden = false;
     this.draw();
@@ -243,9 +335,7 @@
       var dr = g.drag;
       g.drag = null;
       if (!dr || dr.x1 === undefined || Math.abs(dr.x1 - dr.x0) < 8 || !g.data || !g.L) { g.draw(); return; }
-      var span = g.data.to - g.data.from, pw = g.L.w - g.L.l - g.L.r;
-      var a = g.data.from + (Math.min(dr.x0, dr.x1) - g.L.l) / pw * span;
-      var b = g.data.from + (Math.max(dr.x0, dr.x1) - g.L.l) / pw * span;
+      var a = g.timeAt(Math.min(dr.x0, dr.x1)), b = g.timeAt(Math.max(dr.x0, dr.x1));
       if (b - a < 120) b = a + 120;
       g.zoom = { from: a, to: b };
       g.fig.classList.add("zoomed");
@@ -266,11 +356,11 @@
     resizeTimer = setTimeout(function () { graphs.forEach(function (g) { g.draw(); }); }, 150);
   });
   // Light/dark switch: redraw with the new colours.
-  new MutationObserver(function () { graphs.forEach(function (g) { g.draw(); }); })
-    .observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  function redrawAll() { graphs.forEach(function (g) { g.draw(); g.fillLegend(); }); }
+  new MutationObserver(redrawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   if (window.matchMedia) {
     var mq = window.matchMedia("(prefers-color-scheme: dark)");
-    if (mq.addEventListener) mq.addEventListener("change", function () { graphs.forEach(function (g) { g.draw(); }); });
+    if (mq.addEventListener) mq.addEventListener("change", redrawAll);
   }
   // New samples every minute (not while zoomed into the past).
   setInterval(function () {

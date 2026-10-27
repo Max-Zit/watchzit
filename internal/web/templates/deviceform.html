@@ -12,6 +12,7 @@
       <label>{{.T "Type"}}<select name="kind">{{range .Kinds}}<option value="{{.}}" {{if eq . $.Data.In.Kind}}selected{{end}}>{{$.KindName .}}</option>{{end}}</select></label>
       <label>{{.T "Group"}}<select name="group"><option value="0">{{.T "No group"}}</option>{{range .Data.Groups}}<option value="{{.ID}}" {{if eq .ID $.Data.In.GroupID}}selected{{end}}>{{.Name}}</option>{{end}}</select><small><a href="/groups">{{.T "Manage groups"}}</a></small></label>
     </div>
+    <label>SNMP <small>{{.T "optional"}}</small><select name="snmp"><option value="0">{{.T "No SNMP"}}</option>{{range .Data.Profiles}}<option value="{{.ID}}" {{if eq .ID $.Data.In.SNMP}}selected{{end}}>{{.Name}} ({{.VersionName}})</option>{{end}}</select><small>{{.T "Interfaces, traffic, CPU, memory and disks are read over SNMP with this profile."}}{{if .User.IsAdmin}} <a href="/settings/snmp">{{.T "Manage SNMP profiles"}}</a>{{end}}</small></label>
     <label>{{.T "Web interface"}} <small>{{.T "optional"}}</small><input name="web_url" value="{{.Data.In.WebURL}}" maxlength="500" class="mono" spellcheck="false" placeholder="https://192.168.1.1"><small>{{.T "Opened by the button on the device page."}}</small></label>
     <label>{{.T "Notes"}} <small>{{.T "optional"}}</small><textarea name="notes" rows="3" maxlength="4000">{{.Data.In.Notes}}</textarea></label>
     {{if not .Data.ID}}

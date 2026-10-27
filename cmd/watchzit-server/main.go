@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"runtime"
@@ -251,6 +252,15 @@ func startEmbeddedDB(dir string) (*embeddedpostgres.EmbeddedPostgres, string, er
 	pg := embeddedpostgres.NewDatabase(embeddedpostgres.DefaultConfig().Port(port).
 		DataPath(filepath.Join(dir, "pgdata")).RuntimePath(filepath.Join(dir, "pgrt")).
 		BinariesPath(filepath.Join(dir, "pgbin")).Database("watchzit").Logger(io.Discard))
+	// A server that was killed (not stopped) leaves its PostgreSQL running;
+	// stop that one first so a restart works.
+	if _, err := os.Stat(filepath.Join(dir, "pgdata", "postmaster.pid")); err == nil {
+		ctl := filepath.Join(dir, "pgbin", "bin", "pg_ctl")
+		if runtime.GOOS == "windows" {
+			ctl += ".exe"
+		}
+		_ = exec.Command(ctl, "stop", "-D", filepath.Join(dir, "pgdata"), "-m", "fast").Run() // #nosec G204 -- our own binary in the data directory
+	}
 	if err := pg.Start(); err != nil {
 		return nil, "", err
 	}

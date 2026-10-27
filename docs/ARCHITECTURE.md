@@ -1,6 +1,6 @@
 # WatchZit — architecture proposal (draft, 2026-10-27)
 
-Status: **approved by Stefan on 2026-10-27** (retention defaults, ports 8443/8444, agent before maps, launcher variant A+B). Version 0.1 is being built.
+Status: **approved by Stefan on 2026-10-27** (retention defaults, ports 8443/8444, agent before maps, launcher variant A+B). Versions 0.1 and 0.2 are built on develop; a new order (map first) is proposed in section 10.
 
 WatchZit follows ControlZit's newer layout (Go server + PostgreSQL, html/template
 console, JSON i18n catalogs, numbered SQL migrations, separate console and agent
@@ -87,6 +87,8 @@ pgx (MIT), coder/websocket (ISC), golang.org/x/{crypto,net,sys} (BSD-3), rsc.io/
 Stefan wants an authentic product (2026-10-27), so the protocol code that defines the product is our own: **SNMP v1/v2c/v3 (BER, USM, AES/DES) is written in WatchZit** instead of using gosnmp; vSphere is read through its REST API without govmomi; the metric store, charts, ICMP and the map are our own too. Database monitoring reuses pgx for PostgreSQL; for MySQL/MariaDB and SQL Server we decide at 0.7 (own minimal wire protocol for the few monitoring queries, or a driver: go-sql-driver/mysql MPL-2.0, go-mssqldb BSD-3).
 
 ## 10. Proposed feature order
+
+**2026-10-27 evening — proposed change, waiting for Stefan:** Stefan wants WatchZit to feel like The Dude (a network diagram that is live monitoring, devices linked port to port, smooth zoom) with Zabbix and Grafana parts; the agent with token enrollment is optional, SNMP must work without it. Proposed new order after 0.2: **0.3 map**, **0.4 agent**, **0.5 alerts**; the rest unchanged. 0.2 (SNMP) is built.
 
 | Version | Content |
 |---|---|

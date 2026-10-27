@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/max-zit/watchzit/internal/snmp"
+	"github.com/max-zit/watchzit/internal/snmpmon"
 	"github.com/max-zit/watchzit/internal/store"
 	"github.com/max-zit/watchzit/internal/testdb"
 	"github.com/max-zit/watchzit/internal/tsdb"
@@ -108,5 +110,90 @@ func TestPollerRunsChecks(t *testing.T) {
 	}
 	if n < want {
 		t.Fatalf("%d samples, want at least %d", n, want)
+	}
+}
+
+// TestSNMPRates polls an interface twice and checks the traffic rates.
+func TestSNMPRates(t *testing.T) {
+	ctx := context.Background()
+	st, err := store.Open(ctx, testdb.URL(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	if err := st.UseSecretKey(make([]byte, 32)); err != nil {
+		t.Fatal(err)
+	}
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	agent, err := snmp.NewTestAgent("pub")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer agent.Close()
+	snmpmon.LoadTestDevice(agent)
+
+	prof, err := st.CreateSNMPProfile(ctx, store.SNMPProfileInput{Name: "test", Version: 2, Port: int(agent.Addr().Port()), Community: "pub"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dev, err := st.CreateDevice(ctx, store.DeviceInput{Name: "router", Address: "127.0.0.1", SNMP: prof})
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, err := st.CreateCheck(ctx, dev, store.CheckInput{Type: store.CheckSNMPIf, Params: store.CheckParams{IfIndex: 1, IfName: "ether1"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := New(st, tsdb.New(st.Pool(), log), log)
+	if err := p.load(ctx); err != nil {
+		t.Fatal(err)
+	}
+	c, _ := st.CheckByID(ctx, id)
+	t0 := time.Now()
+	p.now = func() time.Time { return t0 }
+	snmpmon.SetTestTraffic(agent, 1, 1<<40, 1000)
+	if o := p.runCheck(ctx, c); o.res.Status != store.StatusUp || len(o.samples) != 0 {
+		t.Fatalf("first poll: %+v", o)
+	}
+	p.now = func() time.Time { return t0.Add(10 * time.Second) }
+	snmpmon.SetTestTraffic(agent, 1, 1<<40+12500, 26000)
+	o := p.runCheck(ctx, c)
+	got := map[string]float64{}
+	for _, s := range o.samples {
+		for _, x := range c.Series {
+			if x.ID == s.Series {
+				got[x.Metric] = s.V
+			}
+		}
+	}
+	if got["in_bps"] != 10000 || got["out_bps"] != 20000 || got["in_err"] != 0 {
+		t.Fatalf("%v", got)
+	}
+	if !strings.Contains(o.res.Text, "↓ 10 kbit/s") {
+		t.Fatal(o.res.Text)
+	}
+
+	// Refresh stores facts and interfaces for the map and the port tiles.
+	p.Refresh(ctx, dev)
+	ifs, _ := st.Interfaces(ctx, dev)
+	f, _ := st.DeviceFacts(ctx, dev)
+	if len(ifs) != 2 || ifs[0].Name != "ether1" || f.Vendor != "MikroTik" {
+		t.Fatalf("%+v %+v", ifs, f)
+	}
+}
+
+func TestRate(t *testing.T) {
+	c := func(v uint64, bits int) snmpmon.Counter { return snmpmon.Counter{V: v, Bits: bits, Mul: 1} }
+	if r, ok := rate(c(100, 32), c(300, 32), 10); !ok || r != 20 {
+		t.Fatal(r, ok)
+	}
+	if r, ok := rate(c(1<<32-100, 32), c(100, 32), 10); !ok || r != 20 { // wrapped
+		t.Fatal(r, ok)
+	}
+	if _, ok := rate(c(500, 64), c(100, 64), 10); ok { // reset
+		t.Fatal("reset counted")
+	}
+	if _, ok := rate(c(1, 32), c(2, 32), 0.5); ok {
+		t.Fatal("too short interval counted")
 	}
 }

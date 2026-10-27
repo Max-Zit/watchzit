@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"math"
@@ -81,11 +82,52 @@ func (s *Server) handleDevices(w http.ResponseWriter, r *http.Request) {
 // ---- device page
 
 type deviceData struct {
-	D      *store.Device
-	Checks []*store.Check
-	Range  string
-	Ranges []string
-	New    store.CheckInput // the add-check form after an error
+	D          *store.Device
+	Checks     []*store.Check
+	Graphs     []graphDef
+	Range      string
+	Ranges     []string
+	New        store.CheckInput // the add-check form after an error
+	Facts      store.Facts
+	Profile    *store.SNMPProfile
+	Interfaces []store.Interface
+	Traffic    map[int]*store.Check // interface checks by ifIndex
+	CheckTypes []string
+}
+
+// graphDef is one graph of the device page: the series of a check that
+// share a unit are drawn together (traffic in and out).
+type graphDef struct {
+	Check  *store.Check
+	Title  string // metric name, translated in the template
+	Unit   string
+	Series []store.Series
+}
+
+// hiddenMetrics are kept but not drawn (they say little as a line).
+var hiddenMetrics = map[string]bool{"uptime_s": true, "used_b": true, "in_err": true, "out_err": true}
+
+// unitTitles name graphs that hold several metrics.
+var unitTitles = map[string]string{"bit/s": "Traffic", "/s": "Errors"}
+
+func graphsOf(cs []*store.Check) []graphDef {
+	var out []graphDef
+	for _, c := range cs {
+		byUnit := map[string]int{}
+		for _, s := range c.Series {
+			if hiddenMetrics[s.Metric] {
+				continue
+			}
+			if i, ok := byUnit[s.Unit]; ok && unitTitles[s.Unit] != "" {
+				out[i].Series = append(out[i].Series, s)
+				out[i].Title = unitTitles[s.Unit]
+				continue
+			}
+			byUnit[s.Unit] = len(out)
+			out = append(out, graphDef{Check: c, Title: metricNames[s.Metric], Unit: s.Unit, Series: []store.Series{s}})
+		}
+	}
+	return out
 }
 
 // graphRanges are the time ranges of the device graphs.
@@ -147,7 +189,27 @@ func (s *Server) showDevice(w http.ResponseWriter, r *http.Request, status int, 
 	if !ok {
 		rg = "24h"
 	}
-	p := &Page{Title: d.Name, Nav: "devices", Data: &deviceData{D: d, Checks: cs, Range: rg, Ranges: graphRanges, New: in}}
+	data := &deviceData{D: d, Checks: cs, Graphs: graphsOf(cs), Range: rg, Ranges: graphRanges, New: in, CheckTypes: store.CheckTypes, Traffic: map[int]*store.Check{}}
+	if d.SNMPProfile != 0 {
+		if data.Profile, err = s.store.DeviceSNMP(r.Context(), d.ID); err != nil && !errors.Is(err, store.ErrNotFound) {
+			s.serverError(w, r, err)
+			return
+		}
+	}
+	if data.Facts, err = s.store.DeviceFacts(r.Context(), d.ID); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	if data.Interfaces, err = s.store.Interfaces(r.Context(), d.ID); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	for _, c := range cs {
+		if c.Type == store.CheckSNMPIf {
+			data.Traffic[c.Params.IfIndex] = c
+		}
+	}
+	p := &Page{Title: d.Name, Nav: "devices", Data: data}
 	if errMsg != "" {
 		p.Error = translate(s.lang(r, userFrom(r)), errMsg)
 	}
@@ -157,9 +219,10 @@ func (s *Server) showDevice(w http.ResponseWriter, r *http.Request, status int, 
 // ---- device form
 
 type deviceFormData struct {
-	ID     int64
-	In     store.DeviceInput
-	Groups []store.Group
+	ID       int64
+	In       store.DeviceInput
+	Groups   []store.Group
+	Profiles []*store.SNMPProfile
 	// New devices get a ping check and optional TCP ports.
 	Ping  bool
 	Ports string
@@ -176,7 +239,7 @@ func (s *Server) handleDeviceForm(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		d.ID = dev.ID
-		d.In = store.DeviceInput{GroupID: deref(dev.GroupID), Name: dev.Name, Address: dev.Address, Kind: dev.Kind, WebURL: dev.WebURL, Notes: dev.Notes, Paused: dev.Paused}
+		d.In = store.DeviceInput{GroupID: deref(dev.GroupID), Name: dev.Name, Address: dev.Address, Kind: dev.Kind, WebURL: dev.WebURL, Notes: dev.Notes, Paused: dev.Paused, SNMP: dev.SNMPProfile}
 	}
 	s.showDeviceForm(w, r, http.StatusOK, d, "")
 }
@@ -194,6 +257,10 @@ func (s *Server) showDeviceForm(w http.ResponseWriter, r *http.Request, status i
 		s.serverError(w, r, err)
 		return
 	}
+	if d.Profiles, err = s.store.SNMPProfiles(r.Context()); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
 	title := "Add a device"
 	if d.ID != 0 {
 		title = "Edit device"
@@ -207,7 +274,8 @@ func (s *Server) showDeviceForm(w http.ResponseWriter, r *http.Request, status i
 
 func deviceInput(r *http.Request) store.DeviceInput {
 	g, _ := strconv.ParseInt(r.FormValue("group"), 10, 64)
-	return store.DeviceInput{GroupID: g, Name: r.FormValue("name"), Address: r.FormValue("address"), Kind: r.FormValue("kind"),
+	sp, _ := strconv.ParseInt(r.FormValue("snmp"), 10, 64)
+	return store.DeviceInput{GroupID: g, SNMP: sp, Name: r.FormValue("name"), Address: r.FormValue("address"), Kind: r.FormValue("kind"),
 		WebURL: r.FormValue("web_url"), Notes: r.FormValue("notes"), Paused: r.FormValue("paused") == "1"}
 }
 
@@ -257,6 +325,10 @@ func (s *Server) handleDeviceCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	s.poller.Reload()
 	s.audit(r, "device.create", "device:"+strconv.FormatInt(id, 10), "added %s (%s), checks: %s", d.In.Name, d.In.Address, strings.Join(checks, ", "))
+	if d.In.SNMP != 0 {
+		s.redirect(w, r, "/devices/"+strconv.FormatInt(id, 10)+"/discover", "Device added. Choose what to monitor over SNMP.")
+		return
+	}
 	s.redirect(w, r, "/devices/"+strconv.FormatInt(id, 10), "Device added. The first results come within a minute.")
 }
 
@@ -269,6 +341,9 @@ func (s *Server) handleDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 	if err := s.store.UpdateDevice(r.Context(), dev.ID, d.In); err != nil {
 		s.showDeviceForm(w, r, http.StatusBadRequest, d, storeErr(err))
 		return
+	}
+	if d.In.SNMP != 0 && d.In.SNMP != dev.SNMPProfile {
+		go s.poller.Refresh(context.WithoutCancel(r.Context()), dev.ID)
 	}
 	s.poller.Reload()
 	s.audit(r, "device.update", "device:"+strconv.FormatInt(dev.ID, 10), "%s: address %s, kind %s, paused %v", d.In.Name, d.In.Address, d.In.Kind, d.In.Paused)
@@ -297,7 +372,16 @@ func (s *Server) handleDeviceDelete(w http.ResponseWriter, r *http.Request) {
 
 func checkInput(r *http.Request) store.CheckInput {
 	return store.CheckInput{Type: r.FormValue("type"), Name: r.FormValue("name"), IntervalS: formInt(r, "interval"), Paused: r.FormValue("paused") == "1",
-		Params: store.CheckParams{Count: formInt(r, "count"), TimeoutMS: formInt(r, "timeout_ms"), Port: formInt(r, "port")}}
+		Params: store.CheckParams{Count: formInt(r, "count"), TimeoutMS: formInt(r, "timeout_ms"), Port: formInt(r, "port"),
+			OID: r.FormValue("oid"), Rate: r.FormValue("rate") == "1", Unit: r.FormValue("unit"), Scale: formFloat(r, "scale")}}
+}
+
+func formFloat(r *http.Request, k string) float64 {
+	f, err := strconv.ParseFloat(strings.ReplaceAll(strings.TrimSpace(r.FormValue(k)), ",", "."), 64)
+	if err != nil {
+		return 0
+	}
+	return f
 }
 
 func (s *Server) handleCheckCreate(w http.ResponseWriter, r *http.Request) {
