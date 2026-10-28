@@ -335,6 +335,15 @@ func (s *Server) Handler() http.Handler {
 	app("GET /devices/{id}/open/{tool}", s.handleOpen)
 	app("GET /devices/{id}/rdp", s.handleRDP)
 	app("GET /launcher", s.handleLauncher)
+	app("GET /dashboards", s.handleDashboards)
+	write("POST /dashboards", s.handleDashboardCreate)
+	app("GET /dashboards/{id}", s.handleDashboard)
+	write("POST /dashboards/{id}", s.handleDashboardUpdate)
+	write("POST /dashboards/{id}/delete", s.handleDashboardDelete)
+	write("POST /dashboards/{id}/widgets", s.handleWidgetAdd)
+	write("POST /dashboards/{id}/widgets/{n}", s.handleWidgetChange)
+	app("GET /reports", s.handleReports)
+	app("GET /reports.csv", s.handleReportCSV)
 	app("GET /problems", s.handleProblems)
 	write("POST /problems/{id}/ack", s.handleProblemAck)
 	app("GET /alerts/triggers", s.handleTriggers)
@@ -353,6 +362,8 @@ func (s *Server) Handler() http.Handler {
 	app("POST /account/password", s.handleAccountPassword)
 	app("POST /account/recovery", s.handleAccountRecovery)
 	app("POST /account/sessions/signout", s.handleAccountSignout)
+	app("POST /account/tokens", s.handleAPITokenCreate)
+	app("POST /account/tokens/{id}/delete", s.handleAPITokenDelete)
 	admin("GET /users", s.handleUsers)
 	admin("POST /users", s.handleUserCreate)
 	admin("GET /users/{id}", s.handleUser)
@@ -388,7 +399,11 @@ func (s *Server) Handler() http.Handler {
 	admin("POST /settings/snmp/{id}", s.handleSNMPUpdate)
 	admin("POST /settings/snmp/{id}/delete", s.handleSNMPDelete)
 
-	return s.secure(s.aclCheck(s.MgmtACL, s.csrf(s.loadSession(mux))))
+	// the REST API signs in with tokens only: no session, no CSRF check
+	top := http.NewServeMux()
+	top.Handle("/api/", s.apiHandler())
+	top.Handle("/", s.csrf(s.loadSession(mux)))
+	return s.secure(s.aclCheck(s.MgmtACL, top))
 }
 
 func cacheStatic(next http.Handler) http.Handler {

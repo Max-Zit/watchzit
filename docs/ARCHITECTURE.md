@@ -83,6 +83,8 @@ Layout, sidebar, cards, light/dark with the moon button, 14 languages, user guid
 
 Linux server `.deb`/`.rpm` + `install.sh`; appliance ISO/OVA/qcow2/VHDX (Debian, PostgreSQL inside, console on 8443); agent MSI (WiX 5.0.2) and Linux `.deb`/`.rpm`; launcher MSI; signed self-update with the WatchZit release key and `stable`/`testing` channels; candidate flow like BackupZit; embedded PostgreSQL for development and tests; CI (`ci.yml`, `security.yml`) on `main` and `develop`.
 
+- **As built in 0.8:** REST API /api/v1 with personal bearer tokens (wzat_, hashed, role of the user, outside the cookie/CSRF chain, failed tokens block like sign-ins); availability reports from device-down problems (maintenance apart) with CSV and print; dashboards of widgets (graph, value, device states, problems, map) in a grid with a one-minute reload. Not yet: scheduled report emails, dashboards on kiosk displays, API for creating devices/checks, OpenAPI file.
+
 ## 9. Dependencies (planned, all AGPLv3-compatible)
 
 pgx (MIT), coder/websocket (ISC), golang.org/x/{crypto,net,sys} (BSD-3), rsc.io/qr (BSD-3, TOTP QR), embedded-postgres (MIT, dev/tests only). No Zabbix/Prometheus/Grafana/Telegraf code or libraries.

@@ -95,13 +95,7 @@
   <nav class="seg" aria-label="{{.T "Time range"}}">{{range .Data.Ranges}}<a href="?range={{.}}" class="{{if eq . $.Data.Range}}on{{end}}">{{.}}</a>{{end}}</nav>
 </div>
 <div class="graphs">
-{{range $g := .Data.Graphs}}
-  <figure class="panel graph" id="graph-{{$g.Check.ID}}" data-series="{{range $i, $s := $g.Series}}{{if $i}},{{end}}{{$s.ID}}{{end}}" data-labels="{{range $i, $s := $g.Series}}{{if $i}}|{{end}}{{$.T (metricName $s.Metric)}}{{end}}" data-range="{{$.Data.Range}}" data-unit="{{$g.Unit}}" data-nodata="{{$.T "No data in this time range yet."}}" data-legend="{{$.T "Last"}}|{{$.T "Min"}}|{{$.T "Avg"}}|{{$.T "Max"}}">
-    <figcaption><b>{{$g.Check.Name}}</b> · {{$.T $g.Title}}</figcaption>
-    <canvas role="img" aria-label="{{$g.Check.Name}}: {{$.T $g.Title}}"></canvas>
-    <div class="graph-tip" hidden></div>
-  </figure>
-{{end}}
+{{range $g := .Data.Graphs}}{{template "graphfig" (graphOf $ $g $.Data.Range)}}{{end}}
 </div>
 {{end}}
 

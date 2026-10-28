@@ -265,7 +265,7 @@ func (s *Store) CreateDevice(ctx context.Context, in DeviceInput) (int64, error)
 		status = StatusPaused
 	}
 	var id int64
-	err := s.db.QueryRow(ctx, `INSERT INTO devices(group_id, name, address, kind, web_url, notes, paused, status, status_since, snmp_profile_id, parent_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
+	err := s.db.QueryRow(ctx, `INSERT INTO devices(group_id, name, address, kind, web_url, notes, paused, status, status_since, snmp_profile_id, parent_id, created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$9) RETURNING id`,
 		nullID(in.GroupID), in.Name, in.Address, in.Kind, in.WebURL, in.Notes, in.Paused, status, s.now(), nullID(in.SNMP), nullID(in.Parent)).Scan(&id)
 	if isUnique(err) {
 		return 0, ErrConflict

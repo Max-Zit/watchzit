@@ -1,0 +1,69 @@
+{{template "app" .}}
+{{define "content"}}
+{{$d := .Data.D}}
+<p class="back"><a href="/dashboards">{{.T "Dashboards"}}</a></p>
+<div class="titlebar">
+  <h1>{{$d.Name}}</h1>
+  <div class="row">
+    <nav class="seg" aria-label="{{.T "Time range"}}">{{range .Data.Ranges}}<a href="?range={{.}}{{if $.Data.Edit}}&amp;edit=1{{end}}" class="{{if eq . $.Data.Range}}on{{end}}">{{.}}</a>{{end}}</nav>
+    {{if .User.CanWrite}}{{if .Data.Edit}}<a class="btn primary sm" href="/dashboards/{{$d.ID}}">{{.T "Done"}}</a>{{else}}<a class="btn secondary sm" href="/dashboards/{{$d.ID}}?edit=1">{{template "icon" "edit"}}{{.T "Edit"}}</a>{{end}}{{end}}
+  </div>
+</div>
+{{if not .Data.Views}}<div class="empty">{{template "icon" "overview"}}<p>{{.T "This dashboard has no widgets yet."}}</p>{{if and .User.CanWrite (not .Data.Edit)}}<a class="btn primary" href="/dashboards/{{$d.ID}}?edit=1">{{template "icon" "plus"}}{{.T "Add widgets"}}</a>{{end}}</div>{{end}}
+<div class="dash">
+{{range .Data.Views}}
+  <div class="widget w-{{.W.Size}} wk-{{.W.Kind}}">
+    {{if .Missing}}<section class="panel"><p class="muted">{{$.T "What this widget showed was deleted."}}</p></section>
+    {{else if .Graph}}{{template "graphfig" (graphOf $ .Graph.G .Graph.Range | withTitle .W.Title)}}
+    {{else if eq .W.Kind "value"}}<section class="panel bigvalue st-{{.ValueOK}}">
+      <h3>{{with .W.Title}}{{.}}{{else}}{{$.T (metricName .W.Metric)}}{{end}}</h3>
+      <b>{{.Value}}</b>
+      <a class="small muted" href="/devices/{{.Check.DeviceID}}">{{.Check.Device}} · {{.Check.Name}}</a>
+    </section>
+    {{else if eq .W.Kind "status"}}<section class="panel">
+      <h3>{{with .W.Title}}{{.}}{{else}}{{$.T "Devices"}}{{end}}</h3>
+      <div class="devgrid">{{range .Devices}}<a class="devtile st-{{.Status}}" href="/devices/{{.ID}}" title="{{$.StatusName .Status}}"><i></i>{{.Name}}</a>{{else}}<p class="muted">{{$.T "No devices yet."}}</p>{{end}}</div>
+    </section>
+    {{else if eq .W.Kind "problems"}}<section class="panel">
+      <h3>{{with .W.Title}}{{.}}{{else}}{{$.T "Problems"}}{{end}}</h3>
+      {{range .Problems}}<p class="probline p-{{.Severity}}">{{template "sev" (sevOf $ .Severity)}} <a href="/devices/{{.DeviceID}}">{{.Device}}</a> · {{$.T .Title}} <span class="muted small">{{dur $ (.Duration $.Data.Now)}}</span></p>{{else}}<p class="muted">{{template "icon" "check"}} {{$.T "No problems."}}</p>{{end}}
+    </section>
+    {{else if eq .W.Kind "map"}}<a class="panel maptile st-{{.Map.Status}}" href="/maps/{{.Map.ID}}">
+      {{template "icon" "map"}}<b>{{with .W.Title}}{{.}}{{else}}{{.Map.Name}}{{end}}</b><span>{{$.StatusName .Map.Status}} · {{$.T "%d devices" .Map.Devices}}</span>
+    </a>{{end}}
+    {{if $.Data.Edit}}<div class="wedit row">
+      <form method="post" action="/dashboards/{{$d.ID}}/widgets/{{.Index}}" class="inline"><input type="hidden" name="do" value="up"><button class="ghost sm" title="{{$.T "Move up"}}">↑</button></form>
+      <form method="post" action="/dashboards/{{$d.ID}}/widgets/{{.Index}}" class="inline"><input type="hidden" name="do" value="down"><button class="ghost sm" title="{{$.T "Move down"}}">↓</button></form>
+      <form method="post" action="/dashboards/{{$d.ID}}/widgets/{{.Index}}" class="inline"><input type="hidden" name="do" value="size"><select name="size" data-autosubmit aria-label="{{$.T "Size"}}"><option value="s" {{if eq .W.Size "s"}}selected{{end}}>{{$.T "Small"}}</option><option value="m" {{if eq .W.Size "m"}}selected{{end}}>{{$.T "Medium"}}</option><option value="l" {{if eq .W.Size "l"}}selected{{end}}>{{$.T "Large"}}</option></select></form>
+      <form method="post" action="/dashboards/{{$d.ID}}/widgets/{{.Index}}" class="inline"><input type="hidden" name="do" value="delete"><button class="ghost sm" title="{{$.T "Delete"}}">{{template "icon" "trash"}}</button></form>
+    </div>{{end}}
+  </div>
+{{end}}
+</div>
+
+{{if .Data.Edit}}
+<section class="panel mt">
+  <h2>{{template "icon" "plus"}}{{.T "Add a widget"}}</h2>
+  <form method="post" action="/dashboards/{{$d.ID}}/widgets" class="stack">
+    <div class="cols">
+      <label>{{.T "Widget"}}<select name="kind" data-switch="wkind">{{range .Data.Kinds}}<option value="{{.}}">{{$.T (widgetName .)}}</option>{{end}}</select></label>
+      <label>{{.T "Title"}} <small>{{.T "optional"}}</small><input name="title" maxlength="100"></label>
+      <label>{{.T "Size"}}<select name="size"><option value="s">{{.T "Small"}}</option><option value="m" selected>{{.T "Medium"}}</option><option value="l">{{.T "Large"}}</option></select></label>
+    </div>
+    <label data-show="wkind" data-when="graph">{{.T "Check"}}<select name="check">{{range .Data.Checks}}<option value="{{.ID}}">{{.Label}}</option>{{end}}</select></label>
+    <label data-show="wkind" data-when="value">{{.T "Value"}}<select name="series">{{range $c := .Data.Checks}}{{range .Series}}<option value="{{$c.ID}}|{{.Metric}}">{{$c.Label}} · {{$.T (metricName .Metric)}}</option>{{end}}{{end}}</select></label>
+    <label data-show="wkind" data-when="status problems">{{.T "Group"}}<select name="group"><option value="0">{{.T "All devices"}}</option>{{range .Data.Groups}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></label>
+    <label data-show="wkind" data-when="map">{{.T "Map"}}<select name="map">{{range .Data.Maps}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></label>
+    <div><button class="primary">{{template "icon" "plus"}}{{.T "Add widget"}}</button></div>
+  </form>
+</section>
+<section class="panel">
+  <form method="post" action="/dashboards/{{$d.ID}}" class="row">
+    <label class="inline">{{.T "Name"}} <input name="name" value="{{$d.Name}}" required maxlength="100"></label>
+    <button class="secondary sm">{{.T "Rename"}}</button>
+  </form>
+  <form method="post" action="/dashboards/{{$d.ID}}/delete" class="mt" data-confirm="{{.T "Delete the dashboard %s?" $d.Name}}"><button class="danger sm">{{template "icon" "trash"}}{{.T "Delete dashboard"}}</button></form>
+</section>
+{{end}}
+<script src="/static/chart.js?v={{.Asset}}" defer></script>
+{{end}}

@@ -87,6 +87,8 @@ type Page struct {
 	DevNo2FA bool
 	Asset    string
 	Path     string
+	Host     string // the console host as the browser sees it
+	Refresh  int    // seconds until the page reloads itself (0 = never)
 	// Problems counts open problems that were sent (sidebar badge);
 	// ProblemsCritical is set when one of them is critical.
 	Problems         int
@@ -278,6 +280,7 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, status int, name
 	p.DevNo2FA = s.DevNo2FA
 	p.Asset = assetVersion
 	p.Path = r.URL.RequestURI()
+	p.Host = r.Host
 	if p.User != nil {
 		if c, err := s.store.ProblemCounts(r.Context()); err == nil {
 			for _, n := range c {
@@ -400,6 +403,10 @@ func init() {
 		return ""
 	}
 	funcs["isAgent"] = store.IsAgent
+	funcs["withTitle"] = func(title string, g graphCtx) graphCtx { g.Title = title; return g }
+	funcs["widgetName"] = func(k string) string { return widgetNames[k] }
+	funcs["graphOf"] = func(p *Page, g graphDef, rng string) graphCtx { return graphCtx{P: p, G: g, Range: rng} }
+	funcs["periodName"] = func(p string) string { return periodNames[p] }
 	funcs["dnsTypes"] = func() []string { return store.DNSTypes }
 	funcs["toolIcon"] = func(builtin string) string {
 		switch builtin {
@@ -503,3 +510,19 @@ type sevCtx struct {
 	P   *Page
 	Sev string
 }
+
+// periodNames name the report periods.
+var periodNames = map[string]string{"7d": "Last 7 days", "30d": "Last 30 days", "90d": "Last 90 days", "month": "This month", "lastmonth": "Last month"}
+
+// graphCtx is the argument of the graphfig template; Title replaces the
+// check name (dashboards).
+type graphCtx struct {
+	P     *Page
+	G     graphDef
+	Range string
+	Title string
+}
+
+// widgetNames name the dashboard widget kinds.
+var widgetNames = map[string]string{store.WidgetGraph: "Graph", store.WidgetValue: "Current value", store.WidgetStatus: "Device states",
+	store.WidgetProblems: "Open problems", store.WidgetMap: "Map"}

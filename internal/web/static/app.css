@@ -716,3 +716,31 @@ tr.p-supp { opacity: .65; }
 .steps { counter-reset: st; list-style: none; padding: 0; display: grid; gap: 14px; }
 .steps > li { counter-increment: st; position: relative; padding-left: 40px; }
 .steps > li::before { content: counter(st); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+
+/* ---- reports and dashboards (0.8) */
+.avail { font-weight: 700; font-variant-numeric: tabular-nums; }
+.avail.ok { color: var(--ok); } .avail.warn { color: var(--warn); } .avail.bad { color: var(--bad); }
+@media print { .noprint, .side, .topbar, .flash { display: none !important; } }
+.dash { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; }
+.dash .widget { grid-column: span 6; display: flex; flex-direction: column; min-width: 0; }
+.dash .widget.w-s { grid-column: span 3; }
+.dash .widget.w-l { grid-column: span 12; }
+.dash .widget > .panel, .dash .widget > figure { flex: 1; margin: 0; }
+.dash .widget h3 { margin: 0 0 8px; font-size: 14px; }
+.bigvalue { display: flex; flex-direction: column; gap: 4px; }
+.bigvalue b { font-size: 34px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.bigvalue.st-up b { color: var(--ok); } .bigvalue.st-down b { color: var(--bad); } .bigvalue.st-warning b { color: var(--warn); }
+.devgrid { display: flex; flex-wrap: wrap; gap: 6px; }
+.devtile { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px; border: 1px solid var(--line); font-size: 13px; color: var(--text); }
+.devtile i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.devtile.st-up i { background: var(--ok); } .devtile.st-down i { background: var(--bad); } .devtile.st-warning i { background: var(--warn); }
+.devtile.st-down { border-color: var(--bad); }
+.probline { margin: 0 0 6px; font-size: 13px; }
+.maptile { display: flex; flex-direction: column; gap: 6px; color: var(--text); }
+.maptile b { font-size: 18px; }
+.maptile.st-down { border-color: var(--bad); } .maptile.st-warning { border-color: var(--warn); }
+.wedit { margin-top: 6px; gap: 4px; }
+.wedit select { padding: 3px 6px; font-size: 12px; }
+@media (max-width: 900px) { .dash .widget, .dash .widget.w-s { grid-column: span 12; } }
+@media (min-width: 901px) and (max-width: 1200px) { .dash .widget.w-s { grid-column: span 6; } }
+form.row > select, form.row > input:not([type=checkbox]) { width: auto; max-width: 100%; }

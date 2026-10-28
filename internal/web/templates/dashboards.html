@@ -1,0 +1,23 @@
+{{template "app" .}}
+{{define "content"}}
+<h1>{{.T "Dashboards"}}</h1>
+<p class="muted">{{.T "A dashboard puts graphs, current values, device states, problems and maps on one page, like a wall of instruments. It reloads every minute."}}</p>
+<section class="panel">
+  {{if .Data.List}}
+  <div class="table-wrap"><table>
+    <thead><tr><th>{{.T "Name"}}</th><th class="num">{{.T "Widgets"}}</th><th class="hide-sm">{{.T "Created"}}</th></tr></thead>
+    <tbody>{{range .Data.List}}<tr>
+      <td><a href="/dashboards/{{.ID}}"><b>{{.Name}}</b></a></td>
+      <td class="num">{{len .Widgets}}</td>
+      <td class="hide-sm muted small">{{.CreatedBy}} · {{$.Time .CreatedAt}}</td>
+    </tr>{{end}}</tbody>
+  </table></div>
+  {{else}}<p class="muted">{{.T "No dashboards yet."}}</p>{{end}}
+  {{if .User.CanWrite}}
+  <form method="post" action="/dashboards" class="row mt">
+    <input name="name" required maxlength="100" placeholder="{{.T "Name, for example Core network"}}" aria-label="{{.T "Name"}}">
+    <button class="primary">{{template "icon" "plus"}}{{.T "Add dashboard"}}</button>
+  </form>
+  {{end}}
+</section>
+{{end}}

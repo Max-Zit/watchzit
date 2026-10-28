@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
+{{if .Refresh}}<meta http-equiv="refresh" content="{{.Refresh}}">{{end}}
 <title>{{.T .Title}} · WatchZit</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/static/app.css?v={{.Asset}}">
@@ -18,6 +19,8 @@
     <a href="/" class="{{if eq .Nav "overview"}}on{{end}}">{{template "icon" "overview"}}{{.T "Overview"}}</a>
     <a href="/problems" class="{{if eq .Nav "problems"}}on{{end}}">{{template "icon" "bell"}}{{.T "Problems"}}{{if .Problems}} <span class="navcount{{if not .ProblemsCritical}} warn{{end}}">{{.Problems}}</span>{{end}}</a>
     <a href="/maps" class="{{if eq .Nav "maps"}}on{{end}}">{{template "icon" "map"}}{{.T "Maps"}}</a>
+    <a href="/dashboards" class="{{if eq .Nav "dashboards"}}on{{end}}">{{template "icon" "overview"}}{{.T "Dashboards"}}</a>
+    <a href="/reports" class="{{if eq .Nav "reports"}}on{{end}}">{{template "icon" "file"}}{{.T "Reports"}}</a>
     <a href="/devices" class="{{if eq .Nav "devices"}}on{{end}}">{{template "icon" "devices"}}{{.T "Devices"}}</a>
     <a href="/agents" class="{{if eq .Nav "agents"}}on{{end}}">{{template "icon" "cpu"}}{{.T "Agents"}}</a>
     <a href="/groups" class="{{if eq .Nav "groups"}}on{{end}}">{{template "icon" "folder"}}{{.T "Groups"}}</a>
@@ -99,3 +102,8 @@
   <a href="/alerts/maintenance" class="{{if eq .Title "Maintenance"}}on{{end}}">{{template "icon" "wrench"}}{{.T "Maintenance"}}</a>
   {{if .User.IsAdmin}}<a href="/settings/notifications">{{template "icon" "mail"}}{{.T "Notifications"}}</a>{{end}}
 </nav>{{end}}
+{{define "graphfig"}}{{$p := .P}}{{$g := .G}}<figure class="panel graph" id="graph-{{$g.Check.ID}}" data-series="{{range $i, $s := $g.Series}}{{if $i}},{{end}}{{$s.ID}}{{end}}" data-labels="{{range $i, $s := $g.Series}}{{if $i}}|{{end}}{{$p.T (metricName $s.Metric)}}{{end}}" data-range="{{.Range}}" data-unit="{{$g.Unit}}" data-nodata="{{$p.T "No data in this time range yet."}}" data-legend="{{$p.T "Last"}}|{{$p.T "Min"}}|{{$p.T "Avg"}}|{{$p.T "Max"}}">
+    <figcaption><b>{{with .Title}}{{.}}{{else}}{{$g.Check.Name}}{{end}}</b>{{if not .Title}} · {{$p.T $g.Title}}{{else}} <span class="muted small">· {{$g.Check.Device}}</span>{{end}}</figcaption>
+    <canvas role="img" aria-label="{{$g.Check.Name}}: {{$p.T $g.Title}}"></canvas>
+    <div class="graph-tip" hidden></div>
+  </figure>{{end}}

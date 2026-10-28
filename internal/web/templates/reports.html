@@ -1,0 +1,38 @@
+{{template "app" .}}
+{{define "content"}}
+<div class="titlebar">
+  <h1>{{.T "Availability report"}}</h1>
+  <div class="row noprint">
+    <a class="btn secondary" href="/reports.csv?{{.Data.Query}}">{{template "icon" "download"}}CSV</a>
+    <button type="button" class="btn secondary" data-print>{{template "icon" "file"}}{{.T "Print or save as PDF"}}</button>
+  </div>
+</div>
+<form method="get" action="/reports" class="row noprint">
+  <select name="period" aria-label="{{.T "Period"}}" data-autosubmit>{{range .Data.Periods}}<option value="{{.}}" {{if eq . $.Data.Period}}selected{{end}}>{{$.T (periodName .)}}</option>{{end}}</select>
+  <select name="group" aria-label="{{.T "Group"}}" data-autosubmit><option value="0">{{.T "All devices"}}</option>{{range .Data.Groups}}<option value="{{.ID}}" {{if eq .ID $.Data.GroupID}}selected{{end}}>{{.Name}}</option>{{end}}</select>
+  <noscript><button class="secondary sm">{{.T "Show"}}</button></noscript>
+</form>
+<p class="muted">{{$.Time .Data.From}} – {{$.Time .Data.To}}</p>
+<div class="grid">
+  <div class="stat {{if lt .Data.Avg 99.0}}warn{{else}}ok{{end}}"><b>{{printf "%.2f" .Data.Avg}}%</b><span>{{.T "Average availability"}}</span></div>
+  <div class="stat"><b>{{dur $ .Data.Down}}</b><span>{{.T "Downtime"}}</span></div>
+  <div class="stat"><b>{{.Data.Problems}}</b><span>{{.T "Problems"}}</span></div>
+  <div class="stat"><b>{{len .Data.Rows}}</b><span>{{.T "Devices"}}</span></div>
+</div>
+<section class="panel">
+  {{if .Data.Rows}}
+  <div class="table-wrap"><table>
+    <thead><tr><th>{{.T "Device"}}</th><th class="num">{{.T "Availability"}}</th><th class="num">{{.T "Downtime"}}</th><th class="num hide-sm">{{.T "In maintenance"}}</th><th class="num">{{.T "Problems"}}</th><th class="num hide-sm">{{.T "Ping"}}</th></tr></thead>
+    <tbody>{{range .Data.Rows}}<tr>
+      <td><a href="/devices/{{.DeviceID}}"><b>{{.Name}}</b></a>{{with .Group}} <span class="small muted">· {{.}}</span>{{end}}<br><span class="small muted mono">{{.Address}}</span></td>
+      <td class="num"><span class="avail {{if lt .Pct 99.0}}bad{{else if lt .Pct 99.9}}warn{{else}}ok{{end}}">{{printf "%.3f" .Pct}}%</span></td>
+      <td class="num">{{if .Down}}{{dur $ .Down}}{{else}}<span class="muted">—</span>{{end}}</td>
+      <td class="num hide-sm">{{if .Planned}}{{dur $ .Planned}}{{else}}<span class="muted">—</span>{{end}}</td>
+      <td class="num">{{.Problems}}</td>
+      <td class="num hide-sm">{{if ge .PingAvg 0.0}}{{printf "%.2f" .PingAvg}} ms{{else}}<span class="muted">—</span>{{end}}</td>
+    </tr>{{end}}</tbody>
+  </table></div>
+  {{else}}<p class="muted">{{.T "No devices yet."}}</p>{{end}}
+</section>
+<p class="small muted">{{.T "Availability counts the time a device was down (also when it was unreachable behind a down device). Time in maintenance is shown apart and does not count against availability."}}</p>
+{{end}}

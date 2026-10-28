@@ -146,6 +146,8 @@ type accountData struct {
 	Sessions []store.Session
 	Current  string
 	Codes    []string
+	Tokens   []store.APIToken
+	NewToken string // shown once after it is created
 }
 
 func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
@@ -160,6 +162,10 @@ func (s *Server) showAccount(w http.ResponseWriter, r *http.Request, status int,
 		return
 	}
 	d.Sessions, d.Current = list, sessionFrom(r).Hash
+	if d.Tokens, err = s.store.APITokens(r.Context(), u.ID); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
 	p := &Page{Title: "My account", Nav: "account", Data: d}
 	if errMsg != "" {
 		p.Error = translate(s.lang(r, u), errMsg)
