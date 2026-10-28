@@ -576,7 +576,7 @@
   "Revoke this enrollment code? Computers that joined with it keep working.": "Opozvati ovaj kod za prijavu? Računari koji su se pridružili sa njim nastavljaju da rade.",
   "Revoked": "Opozvan",
   "Role": "Uloga",
-  "Route": "Putanja",
+  "Route": "Trasa",
   "Router": "Ruter",
   "RouterOS 7 with the www (or www-ssl) service; a user in a read-only group is enough. The password is stored encrypted.": "RouterOS 7 sa servisom www (ili www-ssl); dovoljan je korisnik u grupi samo za čitanje. Lozinka se čuva šifrovana.",
   "Run now": "Pokreni sada",

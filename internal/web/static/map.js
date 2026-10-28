@@ -1,9 +1,4 @@
-      if (kioskBase) return false;
-      var n = nodeByID(+nodeEl.getAttribute("data-node"));
-      var to = n && n.kind === "device" ? "/devices/" + n.device : n && n.kind === "submap" ? "/maps/" + n.submap : "";
-      if (!to || (editing && n.kind === "submap")) return false;
-      // while editing: in a new tab, so the unsaved drawing stays
-      if (editing) window.open(to, "_blank", "noopener"); else location.href = to;// WatchZit network map: a drawing of the network that is live monitoring.
+// WatchZit network map: a drawing of the network that is live monitoring.
 // Devices are pictures (built-in drawings or uploaded ones) placed by drag
 // and drop, mounted in racks, and linked port to port by cables of
 // different kinds that can bend at 90° or 45°. Colours show their state,
