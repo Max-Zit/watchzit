@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/max-zit/watchzit/internal/checks"
 	"github.com/max-zit/watchzit/internal/probe"
 	"github.com/max-zit/watchzit/internal/snmp"
 	"github.com/max-zit/watchzit/internal/snmpmon"
@@ -277,6 +278,10 @@ func (p *Poller) runCheck(ctx context.Context, c *store.Check) outcome {
 			o.samples = append(o.samples, tsdb.Sample{Series: id, T: now, V: v})
 		}
 	}
+	if store.IsService(c.Type) {
+		p.runService(ctx, c, &o, sample)
+		return o
+	}
 	addr, err := probe.Resolve(ctx, c.Address)
 	if err != nil {
 		o.res.Text = err.Error()
@@ -471,4 +476,32 @@ func (p *Poller) refreshDevice(ctx context.Context, d *store.Device) error {
 		return err
 	}
 	return p.store.SetInterfaces(ctx, d.ID, ifs)
+}
+
+// runService runs a check of a service (web page, certificate, DNS,
+// database, RouterOS, JSON API).
+func (p *Poller) runService(ctx context.Context, c *store.Check, o *outcome, sample func(string, float64)) {
+	t := checks.Target{Host: c.Address}
+	if c.Type != store.CheckHTTP && c.Type != store.CheckJSON && c.Type != store.CheckRouterOS {
+		addr, err := probe.Resolve(ctx, c.Address)
+		if err != nil {
+			o.res.Text = err.Error()
+			return
+		}
+		t.Addr = addr
+	}
+	secret, err := p.store.CheckSecret(c)
+	if err != nil {
+		o.res.Text = "the saved password cannot be read; enter it again"
+		return
+	}
+	t.Secret = secret
+	r := checks.Run(ctx, c.Type, c.Params, t, time.Duration(c.Params.TimeoutMS)*time.Millisecond)
+	for k, v := range r.Values {
+		sample(k, round2(v))
+	}
+	o.res.Text = r.Text
+	if r.Up {
+		o.res.Status = store.StatusUp
+	}
 }

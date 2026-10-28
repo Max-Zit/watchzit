@@ -357,10 +357,17 @@ const (
 	CheckAgentDisk    = "agent_disk"    // one file system / drive
 	CheckAgentNet     = "agent_net"     // one network interface
 	CheckAgentService = "agent_service" // one watched service
+	CheckHTTP         = "http"          // a web page: status, time, text, certificate
+	CheckTLS          = "tls"           // a TLS certificate: days until it expires
+	CheckDNS          = "dns"           // a DNS server answers a name
+	CheckPostgres     = "pgsql"         // PostgreSQL: sign-in, response, connections
+	CheckMySQL        = "mysql"         // MySQL or MariaDB
+	CheckRouterOS     = "routeros"      // MikroTik RouterOS REST API: CPU, memory, uptime
+	CheckJSON         = "jsonapi"       // a number from any JSON API
 )
 
 // CheckTypes are the types a user can add by hand.
-var CheckTypes = []string{CheckICMP, CheckTCP, CheckSNMP, CheckSNMPOID}
+var CheckTypes = []string{CheckICMP, CheckTCP, CheckHTTP, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON, CheckSNMP, CheckSNMPOID}
 
 // IsSNMP tells whether a check type polls SNMP.
 func IsSNMP(typ string) bool { return strings.HasPrefix(typ, "snmp") }
@@ -384,6 +391,19 @@ type CheckParams struct {
 	Rate    bool    `json:"rate,omitempty"` // the OID is a counter: store the change per second
 	Unit    string  `json:"unit,omitempty"`
 	Scale   float64 `json:"scale,omitempty"` // value × scale (0 = 1)
+	// HTTP, TLS, DNS, databases, APIs
+	URL      string `json:"url,omitempty"`      // HTTP, JSON API (empty: https://<address>/)
+	Expect   int    `json:"expect,omitempty"`   // HTTP status code (0: any below 400)
+	Contains string `json:"contains,omitempty"` // HTTP body / DNS answer must contain it
+	Insecure bool   `json:"insecure,omitempty"` // accept certificates that are not trusted
+	Query    string `json:"query,omitempty"`    // DNS name; TLS server name (SNI)
+	RType    string `json:"rtype,omitempty"`    // DNS record type
+	User     string `json:"user,omitempty"`     // databases, RouterOS, JSON API (basic)
+	Secret   string `json:"secret,omitempty"`   // password or token, sealed (never shown)
+	Database string `json:"database,omitempty"`
+	Path     string `json:"path,omitempty"` // JSON API: where the number is (a.b.0.c)
+	Auth     string `json:"auth,omitempty"` // JSON API: "", "basic" or "bearer"
+	TLS      bool   `json:"tls,omitempty"`  // RouterOS: HTTPS (else HTTP)
 }
 
 // Check is one thing polled on a device.
@@ -524,6 +544,18 @@ func metricsOf(typ string, p CheckParams) []Series {
 		return []Series{{Metric: "in_bps", Unit: "bit/s"}, {Metric: "out_bps", Unit: "bit/s"}, {Metric: "in_err", Unit: "/s"}, {Metric: "out_err", Unit: "/s"}}
 	case CheckAgentService:
 		return []Series{{Metric: "running", Unit: ""}}
+	case CheckHTTP:
+		return []Series{{Metric: "response_ms", Unit: "ms"}, {Metric: "status_code", Unit: ""}, {Metric: "cert_days", Unit: "d"}}
+	case CheckTLS:
+		return []Series{{Metric: "cert_days", Unit: "d"}, {Metric: "handshake_ms", Unit: "ms"}}
+	case CheckDNS:
+		return []Series{{Metric: "response_ms", Unit: "ms"}}
+	case CheckPostgres, CheckMySQL:
+		return []Series{{Metric: "response_ms", Unit: "ms"}, {Metric: "connections", Unit: ""}}
+	case CheckRouterOS:
+		return []Series{{Metric: "cpu_pct", Unit: "%"}, {Metric: "mem_pct", Unit: "%"}, {Metric: "uptime_s", Unit: "s"}, {Metric: "temperature", Unit: "°C"}}
+	case CheckJSON:
+		return []Series{{Metric: "value", Unit: p.Unit}, {Metric: "response_ms", Unit: "ms"}}
 	}
 	return nil
 }
@@ -567,6 +599,14 @@ func (in *CheckInput) clean() error {
 		if strings.TrimSpace(in.Name) == "" {
 			in.Name = "TCP " + strconv.Itoa(p.Port)
 		}
+	case CheckHTTP, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON:
+		if err := p.cleanService(in.Type); err != nil {
+			return err
+		}
+		if strings.TrimSpace(in.Name) == "" {
+			in.Name = p.defaultName(in.Type)
+		}
+		in.Name = truncate(strings.Join(strings.Fields(in.Name), " "), 95)
 	case CheckAgent, CheckAgentCPU, CheckAgentMem, CheckAgentDisk, CheckAgentNet, CheckAgentService:
 		keep := CheckParams{TimeoutMS: p.TimeoutMS, IfIndex: p.IfIndex, IfName: truncate(p.IfName, 95), Descr: truncate(strings.TrimSpace(p.Descr), 95)}
 		switch {
@@ -612,7 +652,10 @@ func (s *Store) CreateCheck(ctx context.Context, deviceID int64, in CheckInput) 
 	if err := in.clean(); err != nil {
 		return 0, err
 	}
-	raw, _ := json.Marshal(in.Params)
+	if HasSecret(in.Type) {
+		s.sealCheckSecret(&in.Params, "")
+	}
+	raw, _ := json.Marshal(in.Params) // #nosec G117 -- Secret is sealed above
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return 0, err
@@ -654,7 +697,10 @@ func (s *Store) UpdateCheck(ctx context.Context, id int64, in CheckInput) error 
 	if err := in.clean(); err != nil {
 		return err
 	}
-	raw, _ := json.Marshal(in.Params)
+	if HasSecret(in.Type) {
+		s.sealCheckSecret(&in.Params, c.Params.Secret)
+	}
+	raw, _ := json.Marshal(in.Params) // #nosec G117 -- Secret is sealed above
 	if _, err := s.db.Exec(ctx, `UPDATE checks SET name=$2, params=$3, interval_s=$4, paused=$5 WHERE id=$1`, id, in.Name, raw, in.IntervalS, in.Paused); err != nil {
 		return err
 	}
@@ -798,7 +844,7 @@ func (p *CheckParams) cleanSNMP(typ string) error {
 // UpdateCheckParams lets the poller fix the row of a storage check after
 // the device renumbered it (the description stays the key).
 func (s *Store) UpdateCheckParams(ctx context.Context, id int64, p CheckParams) error {
-	raw, _ := json.Marshal(p)
+	raw, _ := json.Marshal(p) // #nosec G117 -- params as loaded: Secret stays sealed
 	_, err := s.db.Exec(ctx, `UPDATE checks SET params=$2 WHERE id=$1`, id, raw)
 	return err
 }

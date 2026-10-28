@@ -109,7 +109,7 @@ type graphDef struct {
 }
 
 // hiddenMetrics are kept but not drawn (they say little as a line).
-var hiddenMetrics = map[string]bool{"uptime_s": true, "used_b": true, "in_err": true, "out_err": true, "mem_used_b": true, "running": true}
+var hiddenMetrics = map[string]bool{"uptime_s": true, "used_b": true, "in_err": true, "out_err": true, "mem_used_b": true, "running": true, "status_code": true}
 
 // unitTitles name graphs that hold several metrics.
 var unitTitles = map[string]string{"bit/s": "Traffic", "/s": "Errors"}
@@ -439,7 +439,10 @@ func (s *Server) handleDeviceDelete(w http.ResponseWriter, r *http.Request) {
 func checkInput(r *http.Request) store.CheckInput {
 	return store.CheckInput{Type: r.FormValue("type"), Name: r.FormValue("name"), IntervalS: formInt(r, "interval"), Paused: r.FormValue("paused") == "1",
 		Params: store.CheckParams{Count: formInt(r, "count"), TimeoutMS: formInt(r, "timeout_ms"), Port: formInt(r, "port"),
-			OID: r.FormValue("oid"), Rate: r.FormValue("rate") == "1", Unit: r.FormValue("unit"), Scale: formFloat(r, "scale")}}
+			OID: r.FormValue("oid"), Rate: r.FormValue("rate") == "1", Unit: r.FormValue("unit"), Scale: formFloat(r, "scale"),
+			URL: r.FormValue("url"), Expect: formInt(r, "expect"), Contains: r.FormValue("contains"), Insecure: r.FormValue("insecure") == "1",
+			Query: r.FormValue("query"), RType: r.FormValue("rtype"), User: r.FormValue("user"), Secret: r.FormValue("secret"),
+			Database: r.FormValue("database"), Path: r.FormValue("path"), Auth: r.FormValue("auth"), TLS: r.FormValue("tls") == "1"}}
 }
 
 func formFloat(r *http.Request, k string) float64 {

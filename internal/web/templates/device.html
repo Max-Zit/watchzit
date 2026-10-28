@@ -127,6 +127,19 @@
               {{if eq .Type "snmp_oid"}}<label>OID<input name="oid" value="{{.Params.OID}}" class="mono" required></label>
               <div class="cols"><label>{{$.T "Unit"}}<input name="unit" value="{{.Params.Unit}}" maxlength="16"></label><label>{{$.T "Multiplier"}}<input name="scale" value="{{if .Params.Scale}}{{.Params.Scale}}{{else}}1{{end}}" inputmode="decimal"></label></div>
               <label class="check"><input type="checkbox" name="rate" value="1" {{if .Params.Rate}}checked{{end}}>{{$.T "Counter: store the change per second"}}</label>{{end}}
+              {{if eq .Type "http"}}<label>{{$.T "Address (URL)"}}<input name="url" value="{{.Params.URL}}" type="url" class="mono" placeholder="https://{{.Address}}/"></label>
+              <div class="cols"><label>{{$.T "Expected status"}}<input type="number" name="expect" min="100" max="599" value="{{with .Params.Expect}}{{.}}{{end}}"></label><label>{{$.T "Text on the page"}}<input name="contains" value="{{.Params.Contains}}" maxlength="200"></label></div>{{end}}
+              {{if eq .Type "tls"}}<div class="cols"><label>{{$.T "Port"}}<input type="number" name="port" value="{{.Params.Port}}" min="1" max="65535"></label><label>{{$.T "Server name"}}<input name="query" value="{{.Params.Query}}" class="mono"></label></div>{{end}}
+              {{if eq .Type "dns"}}<div class="cols"><label>{{$.T "Name to look up"}}<input name="query" value="{{.Params.Query}}" class="mono" required></label><label>{{$.T "Record type"}}<select name="rtype">{{$rt := .Params.RType}}{{range dnsTypes}}<option {{if eq . $rt}}selected{{end}}>{{.}}</option>{{end}}</select></label></div>
+              <div class="cols"><label>{{$.T "Expected answer"}}<input name="contains" value="{{.Params.Contains}}" maxlength="200"></label><label>{{$.T "Port"}}<input type="number" name="port" value="{{.Params.Port}}" min="1" max="65535"></label></div>{{end}}
+              {{if or (eq .Type "pgsql") (eq .Type "mysql") (eq .Type "routeros")}}<div class="cols"><label>{{$.T "User name"}}<input name="user" value="{{.Params.User}}" maxlength="64" autocomplete="off"></label><label>{{$.T "Password"}} <small>{{$.T "saved; empty keeps it"}}</small><input name="secret" type="password" autocomplete="new-password"></label></div>
+              <div class="cols"><label>{{$.T "Port"}}<input type="number" name="port" value="{{.Params.Port}}" min="1" max="65535"></label>{{if ne .Type "routeros"}}<label>{{$.T "Database"}}<input name="database" value="{{.Params.Database}}" maxlength="63"></label>{{end}}</div>
+              {{if eq .Type "routeros"}}<label class="check"><input type="checkbox" name="tls" value="1" {{if .Params.TLS}}checked{{end}}>{{$.T "HTTPS (www-ssl service, port 443)"}}</label>{{end}}{{end}}
+              {{if eq .Type "jsonapi"}}<label>{{$.T "Address (URL)"}}<input name="url" value="{{.Params.URL}}" type="url" class="mono" required></label>
+              <div class="cols"><label>{{$.T "Where the number is"}}<input name="path" value="{{.Params.Path}}" class="mono" required></label><label>{{$.T "Sign-in"}}<select name="auth">{{$a := .Params.Auth}}<option value="" {{if eq $a ""}}selected{{end}}>{{$.T "None"}}</option><option value="bearer" {{if eq $a "bearer"}}selected{{end}}>{{$.T "Token (Bearer)"}}</option><option value="basic" {{if eq $a "basic"}}selected{{end}}>{{$.T "User and password"}}</option></select></label></div>
+              <div class="cols"><label>{{$.T "User name"}}<input name="user" value="{{.Params.User}}" maxlength="64" autocomplete="off"></label><label>{{$.T "Password or token"}} <small>{{$.T "saved; empty keeps it"}}</small><input name="secret" type="password" autocomplete="new-password"></label></div>
+              <div class="cols"><label>{{$.T "Unit"}}<input name="unit" value="{{.Params.Unit}}" maxlength="16"></label><label>{{$.T "Multiplier"}}<input name="scale" value="{{if .Params.Scale}}{{.Params.Scale}}{{else}}1{{end}}" inputmode="decimal"></label></div>{{end}}
+              {{if or (eq .Type "http") (eq .Type "tls") (eq .Type "routeros") (eq .Type "jsonapi")}}<label class="check"><input type="checkbox" name="insecure" value="1" {{if .Params.Insecure}}checked{{end}}>{{$.T "Accept certificates that are not trusted (self-signed)"}}</label>{{end}}
               <label>{{$.T "Interval (seconds)"}}<input type="number" name="interval" value="{{.IntervalS}}" min="10" max="3600" required></label>
               <label>{{$.T "Timeout (ms)"}}<input type="number" name="timeout_ms" value="{{.Params.TimeoutMS}}" min="100" max="30000" required></label>
               <label class="check"><input type="checkbox" name="paused" value="1" {{if .Paused}}checked{{end}}>{{$.T "Paused"}}</label>
@@ -152,6 +165,64 @@
       </div>
       <div class="cols" data-show="checktype" data-when="icmp">
         <label>{{.T "Pings per run"}}<input type="number" name="count" min="1" max="20" value="3"></label>
+      </div>
+      <div class="stack" data-show="checktype" data-when="http">
+        <label>{{.T "Address (URL)"}} <small>{{.T "optional"}}</small><input name="url" type="url" maxlength="2000" class="mono" spellcheck="false" placeholder="https://{{$d.Address}}/"><small>{{.T "Empty: the device's address over HTTPS."}}</small></label>
+        <div class="cols">
+          <label>{{.T "Expected status"}} <small>{{.T "optional"}}</small><input type="number" name="expect" min="100" max="599" placeholder="200"><small>{{.T "Empty: any status below 400."}}</small></label>
+          <label>{{.T "Text on the page"}} <small>{{.T "optional"}}</small><input name="contains" maxlength="200"></label>
+        </div>
+        <label class="check"><input type="checkbox" name="insecure" value="1">{{.T "Accept certificates that are not trusted (self-signed)"}}</label>
+      </div>
+      <div class="stack" data-show="checktype" data-when="tls">
+        <div class="cols">
+          <label>{{.T "Port"}}<input type="number" name="port" min="1" max="65535" placeholder="443"></label>
+          <label>{{.T "Server name"}} <small>{{.T "optional"}}</small><input name="query" maxlength="253" class="mono" spellcheck="false" placeholder="www.example.com"><small>{{.T "The name the certificate is for, when the device address is an IP."}}</small></label>
+        </div>
+        <label class="check"><input type="checkbox" name="insecure" value="1">{{.T "Only count the days (the certificate may be self-signed)"}}</label>
+      </div>
+      <div class="stack" data-show="checktype" data-when="dns">
+        <p class="small muted">{{.T "The device is the DNS server that is asked."}}</p>
+        <div class="cols">
+          <label>{{.T "Name to look up"}}<input name="query" maxlength="253" class="mono" spellcheck="false" placeholder="example.com"></label>
+          <label>{{.T "Record type"}}<select name="rtype">{{range dnsTypes}}<option>{{.}}</option>{{end}}</select></label>
+        </div>
+        <div class="cols">
+          <label>{{.T "Expected answer"}} <small>{{.T "optional"}}</small><input name="contains" maxlength="200" placeholder="192.0.2.10"></label>
+          <label>{{.T "Port"}}<input type="number" name="port" min="1" max="65535" placeholder="53"></label>
+        </div>
+      </div>
+      <div class="stack" data-show="checktype" data-when="pgsql mysql routeros">
+        <p class="small muted" data-show="checktype" data-when="pgsql mysql">{{.T "A user that may only read is enough. The password is stored encrypted and never shown again."}}</p>
+        <p class="small muted" data-show="checktype" data-when="routeros">{{.T "RouterOS 7 with the www (or www-ssl) service; a user in a read-only group is enough. The password is stored encrypted."}}</p>
+        <div class="cols">
+          <label>{{.T "User name"}}<input name="user" maxlength="64" autocomplete="off" spellcheck="false"></label>
+          <label>{{.T "Password"}}<input name="secret" type="password" maxlength="1000" autocomplete="new-password"></label>
+        </div>
+        <div class="cols">
+          <label>{{.T "Port"}} <small>{{.T "optional"}}</small><input type="number" name="port" min="1" max="65535" placeholder="5432 / 3306 / 80"></label>
+          <label data-show="checktype" data-when="pgsql mysql">{{.T "Database"}} <small>{{.T "optional"}}</small><input name="database" maxlength="63" spellcheck="false"></label>
+        </div>
+        <div data-show="checktype" data-when="routeros">
+          <label class="check"><input type="checkbox" name="tls" value="1">{{.T "HTTPS (www-ssl service, port 443)"}}</label>
+          <label class="check"><input type="checkbox" name="insecure" value="1">{{.T "Accept certificates that are not trusted (self-signed)"}}</label>
+        </div>
+      </div>
+      <div class="stack" data-show="checktype" data-when="jsonapi">
+        <label>{{.T "Address (URL)"}}<input name="url" type="url" maxlength="2000" class="mono" spellcheck="false" placeholder="https://{{$d.Address}}/api/v2/monitor/system/resource/usage"></label>
+        <div class="cols">
+          <label>{{.T "Where the number is"}}<input name="path" maxlength="200" class="mono" spellcheck="false" placeholder="results.cpu.0.current"><small>{{.T "Names and list positions separated by dots."}}</small></label>
+          <label>{{.T "Sign-in"}}<select name="auth" data-switch="jauth"><option value="">{{.T "None"}}</option><option value="bearer">{{.T "Token (Bearer)"}}</option><option value="basic">{{.T "User and password"}}</option></select></label>
+        </div>
+        <div class="cols">
+          <label data-show="jauth" data-when="basic">{{.T "User name"}}<input name="user" maxlength="64" autocomplete="off"></label>
+          <label data-show="jauth" data-when="bearer basic">{{.T "Password or token"}}<input name="secret" type="password" maxlength="1000" autocomplete="new-password"></label>
+        </div>
+        <div class="cols">
+          <label>{{.T "Unit"}} <small>{{.T "optional"}}</small><input name="unit" maxlength="16" placeholder="%"></label>
+          <label>{{.T "Multiplier"}} <small>{{.T "optional"}}</small><input name="scale" value="1" inputmode="decimal"></label>
+        </div>
+        <label class="check"><input type="checkbox" name="insecure" value="1">{{.T "Accept certificates that are not trusted (self-signed)"}}</label>
       </div>
       {{if not $d.SNMPProfile}}<p class="small muted" data-show="checktype" data-when="snmp snmp_oid">{{.T "SNMP checks need an SNMP profile on the device (Edit)."}}</p>{{end}}
       <div class="stack" data-show="checktype" data-when="snmp_oid">

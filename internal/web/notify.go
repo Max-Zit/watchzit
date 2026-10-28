@@ -260,7 +260,8 @@ type notifyEvent struct {
 
 // builtinTriggers are the names of the triggers a new server starts with
 // (migration 006); shown translated, while names people type stay as typed.
-var builtinTriggers = []string{"Device down", "Check down", "High CPU load", "Memory almost full", "Disk almost full", "Disk full", "Packet loss"}
+var builtinTriggers = []string{"Device down", "Check down", "High CPU load", "Memory almost full", "Disk almost full", "Disk full", "Packet loss",
+	"Certificate expires soon", "Certificate expires", "High temperature"}
 
 func toNotifyEvent(ev alert.Event, base string) notifyEvent {
 	p := ev.Problem

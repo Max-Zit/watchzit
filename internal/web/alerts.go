@@ -151,7 +151,8 @@ func (s *Server) showTriggers(w http.ResponseWriter, r *http.Request, status int
 	sort.Slice(d.Devices, func(i, j int) bool { return strings.ToLower(d.Devices[i].Name) < strings.ToLower(d.Devices[j].Name) })
 	d.Metrics = metricChoices()
 	d.Types = []string{store.CheckICMP, store.CheckTCP, store.CheckSNMP, store.CheckSNMPIf, store.CheckSNMPCPU, store.CheckSNMPStor, store.CheckSNMPOID,
-		store.CheckAgent, store.CheckAgentCPU, store.CheckAgentMem, store.CheckAgentDisk, store.CheckAgentNet, store.CheckAgentService}
+		store.CheckAgent, store.CheckAgentCPU, store.CheckAgentMem, store.CheckAgentDisk, store.CheckAgentNet, store.CheckAgentService,
+		store.CheckHTTP, store.CheckTLS, store.CheckDNS, store.CheckPostgres, store.CheckMySQL, store.CheckRouterOS, store.CheckJSON}
 	p := &Page{Title: "Triggers", Nav: "problems", Data: d}
 	if errMsg != "" {
 		p.Error = translate(s.lang(r, userFrom(r)), errMsg)
