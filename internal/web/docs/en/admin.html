@@ -1,0 +1,36 @@
+<h1>Users, settings and updates</h1>
+<p class="lead">Who may do what, how the console is protected, and how WatchZit stays up to date.</p>
+
+<h2 id="roles">Users and roles</h2>
+<table>
+  <tr><th>Role</th><th>May</th></tr>
+  <tr><td>Administrator</td><td>everything, including users and settings</td></tr>
+  <tr><td>Operator</td><td>manage devices, checks, maps, triggers, maintenance, dashboards</td></tr>
+  <tr><td>Viewer</td><td>look only</td></tr>
+</table>
+<p>Every user signs in with a password and two-factor sign-in (an authenticator app); recovery codes help when the phone is lost. Administrators add users under <a href="/users">Users</a>, reset passwords and two-factor sign-in. <a href="/audit">Audit log</a> records every change; its entries are chained so changes to the log show.</p>
+
+<h2 id="settings">Settings</h2>
+<ul>
+  <li><b>Network and access</b> — the console and agent ports, the networks allowed to reach each, the public agent address.</li>
+  <li><b>Sign-in and security</b> — session length, how many failed sign-ins block an address, and lifting a block.</li>
+  <li><b>Metric data</b> — how long raw values, 5-minute and hourly values are kept, and how much space they take.</li>
+  <li><b>SNMP</b>, <b>Notifications</b>, <b>Tools</b>, <b>Kiosk displays</b> — see their chapters.</li>
+</ul>
+
+<h2 id="updates">Updates</h2>
+<p><a href="/settings/version">Settings → Updates and server</a> shows the running version and the newest release. Installed with the Linux packages, WatchZit updates itself:</p>
+<ol>
+  <li>Only releases <b>signed</b> with the WatchZit release key are accepted.</li>
+  <li>The root helper backs up the database and the program, installs the new package and checks that the console starts.</li>
+  <li>If it does not, it goes back to the old version by itself.</li>
+</ol>
+<p>Updates can be installed by a click or automatically in a chosen hour. A mirror or a local folder can be the source (<code>WATCHZIT_UPDATE_SOURCE</code> in <code>/etc/watchzit/server.env</code>). The same page sets the server's time zone and restarts the service.</p>
+
+<h2 id="security">Security</h2>
+<ul>
+  <li>The console uses HTTPS only, a strict Content Security Policy and protection against cross-site requests; it answers only the allowed networks.</li>
+  <li>Passwords are hashed with Argon2id; stored secrets (SNMP, database and API passwords, channels) are encrypted with the server's secret key.</li>
+  <li>Agents are identified by their own key; they trust the server by the pinned fingerprint of its agent certificate.</li>
+  <li>Report vulnerabilities privately: see SECURITY.md in the repository.</li>
+</ul>

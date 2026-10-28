@@ -1,0 +1,38 @@
+<h1>Instalacija servera</h1>
+<p class="lead">WatchZit radi na 64-bitnom Linux serveru (dovoljna je mala virtuelna mašina) sa PostgreSQL-om. Instalaciona skripta sve podesi; postoje i paketi i gotova slika (appliance).</p>
+
+<h2 id="requirements">Zahtevi</h2>
+<ul>
+  <li>Debian 12+, Ubuntu 22.04+, AlmaLinux ili Rocky Linux 9+, x86-64.</li>
+  <li>2 jezgra i 2 GB memorije za nekoliko stotina uređaja; 10 GB diska (merenja se čuvaju sažeto: sat vremena ping vrednosti zauzima oko 100 bajtova).</li>
+  <li>Portovi: <b>8443</b> za konzolu (vaše administratorske mreže), <b>8444</b> za agente (samo tamo gde su agenti).</li>
+</ul>
+
+<h2 id="script">Instalaciona skripta</h2>
+<p>Kao root na serveru:</p>
+<pre>curl -fsSL https://github.com/Max-Zit/watchzit/releases/latest/download/install.sh | sudo sh</pre>
+<p>Skripta instalira PostgreSQL, preuzima najnovije izdanje, <b>proverava njegov potpis</b> WatchZit ključem za izdanja, instalira paket, pravi bazu sa nasumičnom lozinkom, otvara portove u firewalld-u ili ufw-u i pokreće servis. Na kraju ispiše adresu konzole i <b>token za podešavanje</b>.</p>
+<p>Opcije: <code>--version X</code> (određeno izdanje), <code>--db postgres://…</code> (postojeća baza umesto lokalnog PostgreSQL-a), <code>--no-auto-updates</code> (bez automatskih bezbednosnih ažuriranja sistema), <code>--source URL</code> (mirror ili lokalni folder sa fajlovima izdanja). Ponovno pokretanje skripte ažurira WatchZit i zadržava podatke.</p>
+
+<h2 id="packages">Paketi</h2>
+<p>Svako izdanje ima <code>.deb</code> i <code>.rpm</code> paket servera. Instaliraju program, systemd servise i instalere agenata; upišite <code>WATCHZIT_DB</code> u <code>/etc/watchzit/server.env</code> i pokrenite <code>watchzit-server</code>.</p>
+
+<h2 id="appliance">Appliance</h2>
+<p>Appliance je gotova slika (Debian sa WatchZit-om, PostgreSQL-om i automatskim bezbednosnim ažuriranjima). Uvezite je u VMware, Proxmox ili Hyper-V, pokrenite i pratite meni na ekranu: prikazuje adresu konzole i token za podešavanje i podešava mrežu.</p>
+
+<h2 id="first-sign-in">Prva prijava</h2>
+<ol>
+  <li>Otvorite <code>https://&lt;server&gt;:8443</code>. Pregledač jednom upozori na samopotpisani sertifikat; prihvatite ga.</li>
+  <li>Unesite token za podešavanje i napravite prvog administratora.</li>
+  <li>Skenirajte QR kod aplikacijom za autentifikaciju (prijava u dva koraka je obavezna) i sačuvajte kodove za oporavak.</li>
+</ol>
+
+<h2 id="files">Fajlovi i servisi</h2>
+<table>
+  <tr><th>Putanja</th><th>Šta</th></tr>
+  <tr><td><code>/etc/watchzit/server.env</code></td><td>Adresa baze i izvor ažuriranja.</td></tr>
+  <tr><td><code>/var/lib/watchzit</code></td><td>Sertifikati, tajni ključ (čuvajte ga u bekapu zajedno sa bazom), preuzimanja, logovi.</td></tr>
+  <tr><td><code>watchzit-server.service</code></td><td>Server. <code>journalctl -u watchzit-server</code> prikazuje njegov log.</td></tr>
+  <tr><td><code>watchzit-helper.path</code></td><td>Root pomoćnik za ažuriranja, vremensku zonu i restart iz konzole.</td></tr>
+</table>
+<div class="callout warn"><p>Pravite bekap baze <b>i</b> fajla <code>/var/lib/watchzit/secret.key</code>: sačuvane lozinke (SNMP, baze, kanali) su šifrovane njime.</p></div>

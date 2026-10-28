@@ -1,0 +1,30 @@
+<h1>Network maps</h1>
+<p class="lead">A map is a drawing of your network that is also live monitoring: devices coloured by their state, cables that show traffic, ports you can zoom into.</p>
+
+<h2 id="edit">Drawing a map</h2>
+<ol>
+  <li>Under <a href="/maps">Maps</a> add a map and click <b>Edit</b>.</li>
+  <li><b>Add device</b> puts devices on the map; drag them into place. <b>Add item</b> adds things that are not monitored (patch panels, PDUs).</li>
+  <li><b>Connect</b>: click two devices and choose the ports at both ends (from SNMP or agent interfaces). The cable shows the traffic of that port.</li>
+  <li><b>Suggested links</b> finds neighbours over LLDP and MikroTik discovery and offers the cables with the right ports.</li>
+  <li>Click <b>Save</b> (or Ctrl+S). Changes are kept only in the page until you save; <b>Cancel</b> goes back to the saved map.</li>
+</ol>
+
+<h2 id="design">Pictures, racks and cables</h2>
+<ul>
+  <li>Every device has a picture from the built-in library (switches with their ports, routers, servers, firewalls, access points, phones, cameras …) or one you upload.</li>
+  <li><b>Racks</b> of 4 to 48 units: drop devices into them; they snap to free units.</li>
+  <li>Cables have a <b>kind</b> (copper, fibre, DAC, wireless, VPN, WAN, serial, power) and a <b>route</b>: straight, 90° or 45° bends, curved; drag the points to bend them.</li>
+  <li>A <b>background picture</b> (a floor plan, a site) with size, transparency and position.</li>
+  <li><b>Submaps</b> link to other maps and show their worst state.</li>
+</ul>
+
+<h2 id="reading">Reading a map</h2>
+<ul>
+  <li>Green is up, amber partly down, red down (blinking); grey means unknown or paused.</li>
+  <li>Cables get wider and change colour with utilisation (above 50 % amber, above 80 % red); a cable whose port has no link is red and dashed.</li>
+  <li>Zoom with the wheel or two fingers; names and port labels appear when you are close enough. Click a device for its panel with checks, ports and tools; double-click to open it.</li>
+</ul>
+
+<h2 id="kiosk">Kiosk displays</h2>
+<p>Under <a href="/settings/kiosks">Settings → Kiosk displays</a> create a display with the maps it shows and how often it changes between them. It gets a secret link that opens the maps full screen without signing in — for a monitoring TV. Delete the display to make the link stop working.</p>

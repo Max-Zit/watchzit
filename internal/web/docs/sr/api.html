@@ -1,0 +1,21 @@
+<h1>REST API</h1>
+<p class="lead">Skripte i drugi sistemi čitaju uređaje, provere, grafike i probleme, potvrđuju probleme i zakazuju održavanje preko JSON API-ja.</p>
+
+<h2 id="tokens">Tokeni</h2>
+<p>Napravite token u <a href="/account#api">Moj nalog → API tokeni</a>: naziv i koliko dana važi. Prikazuje se samo jednom. Token radi kao vi, sa vašom ulogom (token korisnika koji samo gleda može samo da čita); opozovite ga kada više nije potreban. Neispravni tokeni se računaju kao neuspele prijave i na neko vreme blokiraju adresu.</p>
+<p>Šaljite ga u zaglavlju; API nikad ne prihvata kolačić sesije konzole:</p>
+<pre>curl -H "Authorization: Bearer wzat_…" https://monitor.example.com:8443/api/v1/status</pre>
+
+<h2 id="endpoints">Pozivi</h2>
+<table>
+  <tr><th>Zahtev</th><th>Odgovor</th></tr>
+  <tr><td><code>GET /api/v1/status</code></td><td>verzija, uređaji po stanju, otvoreni problemi po ozbiljnosti</td></tr>
+  <tr><td><code>GET /api/v1/devices</code></td><td>uređaji; filteri <code>q</code>, <code>status</code>, <code>group</code></td></tr>
+  <tr><td><code>GET /api/v1/devices/{id}</code></td><td>uređaj sa proverama i id-jevima njihovih serija</td></tr>
+  <tr><td><code>GET /api/v1/series/{id}?range=24h</code></td><td>tačke serije: vreme, minimum, prosek, maksimum</td></tr>
+  <tr><td><code>GET /api/v1/problems</code></td><td>otvoreni problemi; <code>view=history</code>, <code>severity</code>, <code>device</code></td></tr>
+  <tr><td><code>POST /api/v1/problems/{id}/ack</code></td><td>potvrda: <code>{"note": "…"}</code></td></tr>
+  <tr><td><code>GET /api/v1/maintenance</code></td><td>periodi održavanja</td></tr>
+  <tr><td><code>POST /api/v1/maintenance</code></td><td>zakazivanje: <code>{"name", "starts_at", "ends_at", "device_ids", "group_ids"}</code></td></tr>
+</table>
+<p>Vremena su u RFC 3339 formatu (<code>2026-11-01T22:00:00+01:00</code>). Greške su <code>{"error": "…"}</code> sa odgovarajućim HTTP statusom. Izmene se upisuju u dnevnik aktivnosti sa imenom tokena.</p>

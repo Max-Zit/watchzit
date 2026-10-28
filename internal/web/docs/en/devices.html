@@ -1,0 +1,38 @@
+<h1>Devices, checks and SNMP</h1>
+<p class="lead">A device is anything with an address: a router, switch, server, printer, camera or a web site. Checks measure it; their results colour the device, the map and the graphs.</p>
+
+<h2 id="add">Adding a device</h2>
+<p>Under <a href="/devices">Devices → Add a device</a> enter a name and an IP address or host name, choose its type and group, and leave <b>Ping</b> on. Optional:</p>
+<ul>
+  <li><b>SNMP</b> — a profile with the community or the SNMPv3 user; WatchZit then reads the interfaces, traffic, CPU, memory and disks.</li>
+  <li><b>Depends on</b> — the router or switch the device is reached through. While it is down, this device's problems are only "unreachable" and are not sent.</li>
+  <li><b>Remote access</b> — the user name and ports that <a href="/docs/tools">tools</a> use.</li>
+  <li><b>TCP ports</b> — each becomes a check that connects every minute.</li>
+</ul>
+<p>The device's state comes from its checks: <b>up</b> when all are up, <b>partly down</b> when some are down, <b>down</b> when all are.</p>
+
+<h2 id="checks">Check types</h2>
+<table>
+  <tr><th>Check</th><th>Measures</th></tr>
+  <tr><td>Ping (ICMP)</td><td>Response time and packet loss.</td></tr>
+  <tr><td>TCP port</td><td>Whether the port accepts connections, and how fast.</td></tr>
+  <tr><td>Web page (HTTP)</td><td>Status code, response time, a text that must be on the page, days until the certificate expires.</td></tr>
+  <tr><td>TLS certificate</td><td>Days until it expires and whether it is trusted (any TLS port, with a server name for SNI).</td></tr>
+  <tr><td>DNS</td><td>The device is a DNS server: it must answer a name with a record type (A, AAAA, MX …) and, optionally, an expected value.</td></tr>
+  <tr><td>PostgreSQL, MySQL / MariaDB</td><td>Sign-in with a monitoring user, version, number of connections, response time.</td></tr>
+  <tr><td>MikroTik RouterOS (API)</td><td>CPU, memory, uptime and temperature over the REST API of RouterOS 7.</td></tr>
+  <tr><td>JSON API value</td><td>One number from any JSON API (FortiGate, vCenter, your own services): an address, a path like <code>results.cpu.0.current</code>, and optional Bearer or basic sign-in.</td></tr>
+  <tr><td>SNMP</td><td>Availability and uptime; interfaces, CPU and storage found by discovery; any numeric OID.</td></tr>
+</table>
+<p>Passwords and tokens of checks are stored encrypted and never shown again; leave the field empty when you edit a check to keep the stored one.</p>
+
+<h2 id="snmp">SNMP</h2>
+<ol>
+  <li>Create a profile under <a href="/settings/snmp">Settings → SNMP</a>: v2c with a community, or v3 with a user (SHA-2 and AES are supported).</li>
+  <li>Choose the profile on the device. WatchZit opens <b>SNMP discovery</b>: tick the interfaces, CPU, memory and disks to watch (loopbacks and interfaces without link are left out).</li>
+  <li>The device page then shows <b>ports</b> with link state and live traffic, and graphs of every value.</li>
+</ol>
+<div class="callout tip"><p>MikroTik, Cisco, HP, Ubiquiti, printers and UPS devices speak SNMP. On Linux install <code>snmpd</code>; on Windows the SNMP service.</p></div>
+
+<h2 id="graphs">Graphs</h2>
+<p>Every value is kept: raw for days, then as 5-minute and hourly minimum, average and maximum (Settings → Metric data). On a graph drag to zoom in, double-click to go back; the time range buttons go from one hour to a year.</p>

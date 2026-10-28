@@ -1,0 +1,21 @@
+<h1>REST API</h1>
+<p class="lead">Scripts and other systems read devices, checks, graphs and problems, acknowledge problems and plan maintenance over a JSON API.</p>
+
+<h2 id="tokens">Tokens</h2>
+<p>Create a token under <a href="/account#api">My account → API tokens</a>: a name and how many days it is valid. It is shown once. A token acts as you, with your role (a viewer's token can only read); revoke it when it is no longer needed. Failed tokens count like failed sign-ins and block the address for a while.</p>
+<p>Send it in a header; the API never accepts the console's session cookie:</p>
+<pre>curl -H "Authorization: Bearer wzat_…" https://monitor.example.com:8443/api/v1/status</pre>
+
+<h2 id="endpoints">Endpoints</h2>
+<table>
+  <tr><th>Request</th><th>Answer</th></tr>
+  <tr><td><code>GET /api/v1/status</code></td><td>version, devices by state, open problems by severity</td></tr>
+  <tr><td><code>GET /api/v1/devices</code></td><td>devices; filters <code>q</code>, <code>status</code>, <code>group</code></td></tr>
+  <tr><td><code>GET /api/v1/devices/{id}</code></td><td>a device with its checks and the ids of their series</td></tr>
+  <tr><td><code>GET /api/v1/series/{id}?range=24h</code></td><td>the points of a series: time, minimum, average, maximum</td></tr>
+  <tr><td><code>GET /api/v1/problems</code></td><td>open problems; <code>view=history</code>, <code>severity</code>, <code>device</code></td></tr>
+  <tr><td><code>POST /api/v1/problems/{id}/ack</code></td><td>acknowledge: <code>{"note": "…"}</code></td></tr>
+  <tr><td><code>GET /api/v1/maintenance</code></td><td>maintenance windows</td></tr>
+  <tr><td><code>POST /api/v1/maintenance</code></td><td>plan one: <code>{"name", "starts_at", "ends_at", "device_ids", "group_ids"}</code></td></tr>
+</table>
+<p>Times are RFC 3339 (<code>2026-11-01T22:00:00+01:00</code>). Errors are <code>{"error": "…"}</code> with a matching HTTP status. Changes are written to the audit log with the token's name.</p>

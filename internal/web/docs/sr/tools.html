@@ -1,0 +1,28 @@
+<h1>Otvaranje uređaja</h1>
+<p class="lead">Sa stranice uređaja ili iz bočnog panela mape otvarate uređaj pravim programom: njegov web interfejs, SSH, Remote Desktop, WinBox, VNC ili vaše alate.</p>
+
+<h2 id="launcher">WatchZit Launcher</h2>
+<p>Pregledač ne može da pokreće programe, pa to radi mali Windows program: <b>WatchZit Launcher</b>. Instalirajte ga jednom po računaru sa stranice <a href="/launcher">Launcher</a> — instalira se za vašeg Windows korisnika, bez administratorskih prava — i kliknite <b>Upari ovaj računar</b>. Launcher prikazuje otisak servera; mora biti isti kao na stranici.</p>
+<p>Posle toga rade dugmad <b>Otvori sa</b>. Prvi put pregledač pita da li sme da otvori launcher; dozvolite.</p>
+
+<h2 id="safety">Kako ostaje bezbedno</h2>
+<ul>
+  <li>Svaki klik daje link koji je <b>potpisao</b> vaš server, važi minut i radi jednom; launcher prihvata linkove samo sa servera koje ste uparili.</li>
+  <li>Adrese i korisnička imena se proveravaju strogim skupovima znakova; programi se pokreću sa listom argumenata, nikad preko shell-a.</li>
+  <li>Lozinke se nikad ne čuvaju niti šalju: program ih traži.</li>
+  <li>Pre nego što se prvi put pokrene program koji je dodao administrator, launcher vas pita.</li>
+</ul>
+
+<h2 id="tools">Ugrađeni alati</h2>
+<table>
+  <tr><th>Alat</th><th>Program na vašem računaru</th></tr>
+  <tr><td>SSH</td><td>PuTTY ako je instaliran, inače SSH klijent Windows-a</td></tr>
+  <tr><td>Remote Desktop</td><td>Windows Remote Desktop klijent</td></tr>
+  <tr><td>WinBox</td><td>winbox64.exe iz Program Files, Downloads ili sa radne površine</td></tr>
+  <tr><td>VNC</td><td>TightVNC, TigerVNC ili RealVNC viewer</td></tr>
+  <tr><td>Telnet</td><td>PuTTY</td></tr>
+</table>
+<p>Programi na drugim mestima: upišite njihove putanje u <code>%APPDATA%\WatchZit Launcher\launcher.json</code>. Bez launcher-a Remote Desktop i dalje radi: dugme <b>.rdp</b> preuzima fajl koji Windows otvara.</p>
+
+<h2 id="own-tools">Vaši alati</h2>
+<p>U <a href="/settings/tools">Podešavanja → Alati</a> administratori isključuju ugrađene alate, ograničavaju ih na vrste uređaja i dodaju svoje: putanju programa (na primer <code>%ProgramFiles%\Mozilla Firefox\firefox.exe</code>) i argumente sa <code>{host}</code>, <code>{port}</code>, <code>{user}</code> i <code>{name}</code>. Korisničko ime i portovi po uređaju se podešavaju u <b>Udaljeni pristup</b> na uređaju.</p>

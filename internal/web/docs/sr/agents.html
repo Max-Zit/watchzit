@@ -1,0 +1,26 @@
+<h1>Instalacija agenata</h1>
+<p class="lead">WatchZit agent nije obavezan. Javlja ono što mreža spolja ne vidi: procesor, memoriju, diskove, interfejse i servise Windows i Linux računara, svakog minuta, preko jedne odlazne veze.</p>
+
+<h2 id="code">Kodovi za prijavu</h2>
+<p>U <a href="/agents">Agenti</a> napravite <b>kod za prijavu</b>: naziv, koliko dana važi, koliko računara sme da ga iskoristi i grupu u koju idu novi uređaji. Kod se prikazuje samo jednom; sadrži adresu servera i otisak sertifikata za agente, pa agent veruje samo vašem serveru.</p>
+
+<h2 id="windows">Windows</h2>
+<p>Preuzmite MSI sa stranice Agenti i instalirajte ga; traži kod. Za mnogo računara instalirajte ga tiho (GPO, Intune, skripta):</p>
+<pre>msiexec /i watchzit-agent-x64.msi ENROLLCODE="WZ1-…" /qn</pre>
+<p>Agent radi kao servis <b>WatchZitAgent</b>.</p>
+
+<h2 id="linux">Linux</h2>
+<p>Stranica Agenti prikazuje komandu koja preuzima agenta sa porta za agente, proverava njegov SHA-256 i instalira ga sa kodom (systemd servis <code>watchzit-agent</code>):</p>
+<pre>curl -fsSk https://&lt;server&gt;:8444/agent/download/watchzit-agent-linux-amd64 -o /tmp/watchzit-agent &amp;&amp; … sudo /tmp/watchzit-agent install --code "WZ1-…"</pre>
+
+<h2 id="what">Šta agent javlja</h2>
+<ul>
+  <li>Opterećenje <b>procesora</b> (i prosečno opterećenje na Linux-u), <b>memoriju</b> i swap, svaki <b>disk</b>, svaki <b>mrežni interfejs</b> sa saobraćajem — sami postaju provere sa graficima.</li>
+  <li><b>Inventar</b>: operativni sistem, model procesora, memorija, proizvođač, model, serijski broj, adrese, servisi.</li>
+  <li><b>Praćeni servisi</b>: izaberite ih na stranici uređaja u <b>Prati servise</b>; servis koji stane otvara problem.</li>
+</ul>
+<p>Ako uređaj sa istom adresom ili imenom već postoji, agent mu se pridružuje; inače se pravi novi uređaj.</p>
+
+<h2 id="network">Mreža</h2>
+<p>Agenti se povezuju na <b>port za agente 8444</b>. U <a href="/settings/network">Podešavanja → Mreža i pristup</a> podesite <b>javnu adresu za agente</b> kada agenti dolaze do servera pod drugim imenom (na primer kroz firewall) i ograničite mreže iz kojih agenti smeju da dolaze.</p>
+<div class="callout"><p>Uklanjanje agenta na stranici uređaja čini njegov ključ nepoznatim; da biste ponovo koristili agenta, prijavite računar novim kodom.</p></div>

@@ -1,0 +1,30 @@
+<h1>Mape mreže</h1>
+<p class="lead">Mapa je crtež vaše mreže koji je ujedno i praćenje uživo: uređaji obojeni po stanju, kablovi koji pokazuju saobraćaj, portovi koje možete da uvećate.</p>
+
+<h2 id="edit">Crtanje mape</h2>
+<ol>
+  <li>U <a href="/maps">Mape</a> dodajte mapu i kliknite <b>Izmeni</b>.</li>
+  <li><b>Dodaj uređaj</b> stavlja uređaje na mapu; prevucite ih na mesto. <b>Dodaj predmet</b> dodaje stvari koje se ne prate (patch paneli, PDU).</li>
+  <li><b>Poveži</b>: kliknite dva uređaja i izaberite portove na oba kraja (iz SNMP-a ili interfejsa agenta). Kabl pokazuje saobraćaj tog porta.</li>
+  <li><b>Predložene veze</b> pronalaze susede preko LLDP-a i MikroTik otkrivanja i nude kablove sa pravim portovima.</li>
+  <li>Kliknite <b>Sačuvaj</b> (ili Ctrl+S). Izmene ostaju samo na stranici dok ih ne sačuvate; <b>Otkaži</b> vraća sačuvanu mapu.</li>
+</ol>
+
+<h2 id="design">Slike, rekovi i kablovi</h2>
+<ul>
+  <li>Svaki uređaj ima sliku iz ugrađene biblioteke (svičevi sa svojim portovima, ruteri, serveri, firewall-ovi, pristupne tačke, telefoni, kamere …) ili onu koju otpremite.</li>
+  <li><b>Rekovi</b> od 4 do 48 jedinica: ubacite uređaje u njih; sami se poređaju po slobodnim jedinicama.</li>
+  <li>Kablovi imaju <b>vrstu</b> (bakar, optika, DAC, bežično, VPN, WAN, serijski, napajanje) i <b>putanju</b>: pravu, sa savijanjem pod 90° ili 45°, zakrivljenu; prevucite tačke da ih savijete.</li>
+  <li><b>Slika u pozadini</b> (plan sprata, lokacija) sa veličinom, providnošću i položajem.</li>
+  <li><b>Podmape</b> vode na druge mape i pokazuju njihovo najgore stanje.</li>
+</ul>
+
+<h2 id="reading">Čitanje mape</h2>
+<ul>
+  <li>Zeleno radi, žuto delimično ne radi, crveno ne radi (trepće); sivo je nepoznato ili pauzirano.</li>
+  <li>Kablovi se šire i menjaju boju sa iskorišćenošću (preko 50 % žuto, preko 80 % crveno); kabl čiji port nema link je crven i isprekidan.</li>
+  <li>Uvećavajte točkićem ili sa dva prsta; imena i oznake portova se pojavljuju kada ste dovoljno blizu. Klik na uređaj otvara panel sa proverama, portovima i alatima; dvoklik otvara uređaj.</li>
+</ul>
+
+<h2 id="kiosk">Kiosk ekrani</h2>
+<p>U <a href="/settings/kiosks">Podešavanja → Kiosk ekrani</a> napravite ekran sa mapama koje prikazuje i koliko često se smenjuju. Dobija tajni link koji otvara mape preko celog ekrana bez prijave — za TV za nadzor. Obrišite ekran da link prestane da radi.</p>

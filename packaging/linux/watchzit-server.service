@@ -1,0 +1,33 @@
+[Unit]
+Description=WatchZit server (monitoring console and agent endpoint)
+Documentation=https://github.com/Max-Zit/watchzit
+Wants=network-online.target
+After=network-online.target postgresql.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/watchzit/server.env
+ExecStart=/usr/bin/watchzit-server --data-dir /var/lib/watchzit
+User=watchzit
+Group=watchzit
+StateDirectory=watchzit
+StateDirectoryMode=0700
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/var/lib/watchzit
+# Ports below 1024 and ping (raw ICMP sockets), nothing else.
+AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_NET_RAW
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_NET_RAW
+
+[Install]
+WantedBy=multi-user.target

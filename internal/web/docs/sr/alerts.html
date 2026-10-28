@@ -1,0 +1,33 @@
+<h1>Problemi, alarmi i obaveštenja</h1>
+<p class="lead">Okidači prate rezultate provera i otvaraju <b>probleme</b>. Problem se sam zatvara kada uslov prestane; dok je otvoren može se potvrditi i šalje se na vaše kanale za obaveštenja.</p>
+
+<h2 id="triggers">Okidači</h2>
+<p>U <a href="/alerts/triggers">Problemi → Okidači</a>. WatchZit počinje sa ovima:</p>
+<table>
+  <tr><th>Okidač</th><th>Kada</th><th>Ozbiljnost</th></tr>
+  <tr><td>Uređaj ne radi</td><td>sve provere uređaja ne rade 1 minut</td><td>kritično</td></tr>
+  <tr><td>Provera ne radi</td><td>jedna provera ne radi 1 minut</td><td>upozorenje</td></tr>
+  <tr><td>Visoko opterećenje procesora, Memorija skoro puna</td><td>preko 90 % 5 minuta</td><td>upozorenje</td></tr>
+  <tr><td>Disk skoro pun / Disk pun</td><td>preko 90 % / 97 %</td><td>upozorenje / kritično</td></tr>
+  <tr><td>Gubitak paketa</td><td>preko 20 % 5 minuta</td><td>upozorenje</td></tr>
+  <tr><td>Sertifikat uskoro ističe / ističe</td><td>manje od 21 / 7 dana</td><td>upozorenje / kritično</td></tr>
+  <tr><td>Visoka temperatura</td><td>RouterOS preko 70 °C 5 minuta</td><td>upozorenje</td></tr>
+</table>
+<p>Dodajte svoje: <b>vrednost</b> (opterećenje procesora, vreme odziva, saobraćaj, konekcije …), <b>iznad</b> ili <b>ispod</b> praga, <b>najmanje</b> nekoliko minuta (kratak pad ne otvara problem), ozbiljnost i da li važi za sve uređaje, grupu ili jedan uređaj.</p>
+
+<h2 id="problems">Problemi</h2>
+<p><a href="/problems">Problemi</a> prikazuje šta je otvoreno, najgore prvo; broj u meniju broji poslate probleme (crven kada je neki kritičan). <b>Potvrdite</b> problem uz napomenu da drugi znaju da neko radi na njemu. Rešeni problemi ostaju u istoriji godinu dana.</p>
+
+<h2 id="dependencies">Zavisnosti</h2>
+<p>Podesite <b>Zavisi od</b> na uređaju (na primer ruter filijale). Kada taj ruter ne radi, uređaji iza njega su samo <b>nedostupni</b>: njihovi problemi se beleže ali ne šalju — dobijate jednu poruku za ruter, a ne pedeset.</p>
+
+<h2 id="maintenance">Održavanje</h2>
+<p>U <a href="/alerts/maintenance">Problemi → Održavanje</a> zakažite period za uređaje ili grupe. Tokom njega se uređaji i dalje prate i problemi beleže, ali se ništa ne šalje; problemi koji su još otvoreni kada održavanje završi šalju se tada. Izveštaji o dostupnosti prikazuju vreme održavanja posebno.</p>
+
+<h2 id="notifications">Obaveštenja</h2>
+<p>U <a href="/settings/notifications">Podešavanja → Obaveštenja</a> (administratori):</p>
+<ul>
+  <li><b>Email server</b> — SMTP sa STARTTLS-om, TLS-om ili bez; lozinka se čuva šifrovana. Pošaljite probni email.</li>
+  <li><b>Kanali</b> — email primaoci, <b>webhook</b> (JSON, potpisan HMAC-SHA256 u <code>X-WatchZit-Signature</code> kada podesite ključ), <b>Slack</b> ili <b>Microsoft Teams</b>. Svaki kanal ima najnižu ozbiljnost i može da javlja i kada se problemi reše.</li>
+  <li><b>Jezik</b> obaveštenja i <b>adresa konzole</b> za linkove u njima.</li>
+</ul>

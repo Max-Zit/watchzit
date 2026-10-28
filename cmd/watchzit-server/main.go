@@ -24,6 +24,7 @@ import (
 
 	"github.com/max-zit/watchzit/internal/alert"
 	"github.com/max-zit/watchzit/internal/auth"
+	"github.com/max-zit/watchzit/internal/helper"
 	"github.com/max-zit/watchzit/internal/launch"
 	"github.com/max-zit/watchzit/internal/logfile"
 	"github.com/max-zit/watchzit/internal/netacl"
@@ -63,6 +64,7 @@ func run() error {
 	resetACL := flag.Bool("reset-allowlist", false, "allow the console again from the private networks (10/8, 172.16/12, 192.168/16, fc00::/7) and exit")
 	unblock := flag.String("unblock-ip", "", "lift the sign-in block of an address (or \"all\") and exit")
 	showVersion := flag.Bool("version", false, "print the version and exit")
+	runHelper := flag.Bool("helper", false, "root helper: handle a request of the console (updates, time zone, network) and exit; started by watchzit-helper.service")
 	flag.Parse()
 
 	if *showVersion {
@@ -74,6 +76,19 @@ func run() error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	if *runHelper {
+		// Its own log in a directory only root can write.
+		out := io.Writer(os.Stdout)
+		if lw, err := logfile.Open("/var/log/watchzit-helper/helper.log", 0o644); err == nil {
+			_ = os.Chmod("/var/log/watchzit-helper", 0o755) // #nosec G302 -- the console reads it, only root writes
+			defer lw.Close()
+			out = io.MultiWriter(os.Stdout, lw)
+		}
+		hlog := slog.New(slog.NewTextHandler(out, nil))
+		h := &helper.Helper{DataDir: *dataDir, CacheDir: "/var/cache/watchzit", EnvFile: "/etc/watchzit/server.env", Binary: "/usr/bin/watchzit-server",
+			Run: helper.RunCommand, Log: func(format string, args ...any) { hlog.Info(fmt.Sprintf(format, args...)) }}
+		return h.Handle(ctx)
+	}
 
 	if err := os.MkdirAll(*dataDir, 0o700); err != nil {
 		return err
@@ -148,6 +163,7 @@ func run() error {
 	srv.Alerts = alerts
 	alerts.Notify = srv.Notify
 	srv.DownloadsDir = filepath.Join(*dataDir, "downloads")
+	srv.DataDir = *dataDir
 	if srv.LauncherKey, err = launch.LoadOrCreateKey(filepath.Join(*dataDir, launch.KeyFile)); err != nil {
 		return fmt.Errorf("launcher key: %w", err)
 	}
@@ -239,6 +255,11 @@ func run() error {
 	go func() { db.Run(ctx); done <- struct{}{} }()
 	go func() { pl.Run(ctx); done <- struct{}{} }()
 	go func() { alerts.Run(ctx); done <- struct{}{} }()
+	go srv.RunUpdates(ctx)
+	// For the root helper: which version runs and where (it checks this after an update).
+	if err := helper.WriteServerInfo(*dataDir, helper.ServerInfo{Version: version, MgmtListen: net0.MgmtListen}); err != nil {
+		log.Warn("cannot write the helper information", "err", err)
+	}
 	go func() {
 		t := time.NewTicker(time.Hour)
 		defer t.Stop()

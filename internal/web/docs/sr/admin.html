@@ -1,0 +1,36 @@
+<h1>Korisnici, podešavanja i ažuriranja</h1>
+<p class="lead">Ko sme šta da radi, kako je konzola zaštićena i kako WatchZit ostaje ažuran.</p>
+
+<h2 id="roles">Korisnici i uloge</h2>
+<table>
+  <tr><th>Uloga</th><th>Sme</th></tr>
+  <tr><td>Administrator</td><td>sve, uključujući korisnike i podešavanja</td></tr>
+  <tr><td>Operater</td><td>upravlja uređajima, proverama, mapama, okidačima, održavanjem, dashboard-ima</td></tr>
+  <tr><td>Posmatrač</td><td>samo gleda</td></tr>
+</table>
+<p>Svaki korisnik se prijavljuje lozinkom i u dva koraka (aplikacijom za autentifikaciju); kodovi za oporavak pomažu kada se telefon izgubi. Administratori dodaju korisnike u <a href="/users">Korisnici</a>, resetuju lozinke i prijavu u dva koraka. <a href="/audit">Dnevnik aktivnosti</a> beleži svaku promenu; njegovi unosi su povezani u lanac pa se izmene dnevnika vide.</p>
+
+<h2 id="settings">Podešavanja</h2>
+<ul>
+  <li><b>Mreža i pristup</b> — portovi konzole i agenata, mreže koje smeju do njih, javna adresa za agente.</li>
+  <li><b>Prijava i bezbednost</b> — trajanje sesije, koliko neuspelih prijava blokira adresu i uklanjanje blokade.</li>
+  <li><b>Podaci merenja</b> — koliko se čuvaju sirove vrednosti, vrednosti po 5 minuta i po satu, i koliko prostora zauzimaju.</li>
+  <li><b>SNMP</b>, <b>Obaveštenja</b>, <b>Alati</b>, <b>Kiosk ekrani</b> — vidi njihova poglavlja.</li>
+</ul>
+
+<h2 id="updates">Ažuriranja</h2>
+<p><a href="/settings/version">Podešavanja → Ažuriranja i server</a> prikazuje verziju koja radi i najnovije izdanje. Kada je instaliran Linux paketima, WatchZit se sam ažurira:</p>
+<ol>
+  <li>Prihvataju se samo izdanja <b>potpisana</b> WatchZit ključem za izdanja.</li>
+  <li>Root pomoćnik pravi bekap baze i programa, instalira novi paket i proverava da li se konzola pokreće.</li>
+  <li>Ako se ne pokrene, sam se vraća na staru verziju.</li>
+</ol>
+<p>Ažuriranja se instaliraju klikom ili automatski u izabranom satu. Izvor može biti mirror ili lokalni folder (<code>WATCHZIT_UPDATE_SOURCE</code> u <code>/etc/watchzit/server.env</code>). Na istoj stranici se podešava vremenska zona servera i restartuje servis.</p>
+
+<h2 id="security">Bezbednost</h2>
+<ul>
+  <li>Konzola koristi samo HTTPS, strogu Content Security Policy i zaštitu od zahteva sa drugih sajtova; odgovara samo dozvoljenim mrežama.</li>
+  <li>Lozinke se heširaju Argon2id-om; sačuvane tajne (SNMP, lozinke baza i API-ja, kanali) su šifrovane tajnim ključem servera.</li>
+  <li>Agenti se prepoznaju po sopstvenom ključu; serveru veruju po zapamćenom otisku njegovog sertifikata za agente.</li>
+  <li>Ranjivosti prijavite privatno: vidi SECURITY.md u repozitorijumu.</li>
+</ul>

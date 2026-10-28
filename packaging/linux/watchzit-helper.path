@@ -1,0 +1,9 @@
+[Unit]
+Description=Hand requests of the WatchZit console (updates, time zone, network) to the root helper
+
+[Path]
+PathExists=/var/lib/watchzit/helper/request.json
+Unit=watchzit-helper.service
+
+[Install]
+WantedBy=multi-user.target

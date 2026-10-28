@@ -56,6 +56,11 @@ type Server struct {
 	// DevNo2FA skips the second factor (development server only).
 	DevNo2FA   bool
 	setupToken string
+	// DataDir is the server's data directory (the root helper's requests).
+	DataDir string
+	// HelperAvailable replaces the check for the root helper (tests).
+	HelperAvailable func() bool
+	upd             updateState
 	// LauncherKey signs the links that open devices with local tools.
 	LauncherKey ed25519.PrivateKey
 	// Alerts is the alert engine (kicked after changes; may be nil).
@@ -342,6 +347,9 @@ func (s *Server) Handler() http.Handler {
 	write("POST /dashboards/{id}/delete", s.handleDashboardDelete)
 	write("POST /dashboards/{id}/widgets", s.handleWidgetAdd)
 	write("POST /dashboards/{id}/widgets/{n}", s.handleWidgetChange)
+	app("GET /docs", s.handleDocs)
+	app("GET /docs/search", s.handleDocsSearch)
+	app("GET /docs/{page}", s.handleDocs)
 	app("GET /reports", s.handleReports)
 	app("GET /reports.csv", s.handleReportCSV)
 	app("GET /problems", s.handleProblems)
@@ -381,6 +389,13 @@ func (s *Server) Handler() http.Handler {
 	admin("POST /settings/security/unblock", s.handleUnblock)
 	admin("GET /settings/data", s.handleRetention)
 	admin("POST /settings/data", s.handleRetentionSave)
+	admin("GET /settings/version", s.handleVersion)
+	admin("POST /settings/version/check", s.handleVersionCheck)
+	admin("POST /settings/version/install", s.handleVersionInstall)
+	admin("POST /settings/version/settings", s.handleVersionSettings)
+	admin("POST /settings/timezone", s.handleTimeZone)
+	admin("POST /settings/restart", s.handleRestart)
+	admin("POST /settings/server-network", s.handleServerNetwork)
 	admin("GET /settings/tools", s.handleTools)
 	admin("POST /settings/tools", s.handleToolCreate)
 	admin("GET /settings/tools/{id}", s.handleTools)

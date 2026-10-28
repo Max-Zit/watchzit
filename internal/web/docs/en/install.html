@@ -1,0 +1,38 @@
+<h1>Installing the server</h1>
+<p class="lead">WatchZit runs on a 64-bit Linux server (a small virtual machine is enough) with PostgreSQL. The install script sets up everything; packages and a ready-made appliance image are available too.</p>
+
+<h2 id="requirements">Requirements</h2>
+<ul>
+  <li>Debian 12+, Ubuntu 22.04+, AlmaLinux or Rocky Linux 9+, x86-64.</li>
+  <li>2 CPU cores and 2 GB of memory for a few hundred devices; 10 GB of disk (measurements are stored compactly: an hour of ping times takes about 100 bytes).</li>
+  <li>Ports: <b>8443</b> for the console (your admin networks), <b>8444</b> for agents (only where agents are).</li>
+</ul>
+
+<h2 id="script">Install script</h2>
+<p>As root on the server:</p>
+<pre>curl -fsSL https://github.com/Max-Zit/watchzit/releases/latest/download/install.sh | sudo sh</pre>
+<p>The script installs PostgreSQL, downloads the newest release, <b>checks its signature</b> with the WatchZit release key, installs the package, creates the database with a random password, opens the ports in firewalld or ufw and starts the service. At the end it prints the console address and the <b>setup token</b>.</p>
+<p>Options: <code>--version X</code> (a given release), <code>--db postgres://…</code> (an existing database instead of a local PostgreSQL), <code>--no-auto-updates</code> (do not switch on the OS security updates), <code>--source URL</code> (a mirror or a local folder with the release files). Running the script again updates WatchZit and keeps the data.</p>
+
+<h2 id="packages">Packages</h2>
+<p>Each release has a <code>.deb</code> and an <code>.rpm</code> of the server. They install the program, the systemd services and the agent installers; set <code>WATCHZIT_DB</code> in <code>/etc/watchzit/server.env</code> and start <code>watchzit-server</code>.</p>
+
+<h2 id="appliance">Appliance</h2>
+<p>The appliance is a ready-made image (Debian with WatchZit, PostgreSQL and automatic security updates). Import it into VMware, Proxmox or Hyper-V, start it and follow the menu on its screen: it shows the console address and the setup token, and sets the network.</p>
+
+<h2 id="first-sign-in">First sign-in</h2>
+<ol>
+  <li>Open <code>https://&lt;server&gt;:8443</code>. The browser warns once about the self-signed certificate; accept it.</li>
+  <li>Enter the setup token and create the first administrator.</li>
+  <li>Scan the QR code with an authenticator app (two-factor sign-in is required) and keep the recovery codes.</li>
+</ol>
+
+<h2 id="files">Files and services</h2>
+<table>
+  <tr><th>Path</th><th>What</th></tr>
+  <tr><td><code>/etc/watchzit/server.env</code></td><td>Database address and update source.</td></tr>
+  <tr><td><code>/var/lib/watchzit</code></td><td>Certificates, the secret key (back it up with the database), downloads, logs.</td></tr>
+  <tr><td><code>watchzit-server.service</code></td><td>The server. <code>journalctl -u watchzit-server</code> shows its log.</td></tr>
+  <tr><td><code>watchzit-helper.path</code></td><td>The root helper for updates, time zone and restarts from the console.</td></tr>
+</table>
+<div class="callout warn"><p>Back up the database <b>and</b> <code>/var/lib/watchzit/secret.key</code>: stored passwords (SNMP, databases, channels) are encrypted with it.</p></div>

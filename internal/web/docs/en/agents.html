@@ -1,0 +1,26 @@
+<h1>Installing agents</h1>
+<p class="lead">The WatchZit agent is optional. It reports what the network cannot see from outside: CPU, memory, disks, interfaces and services of Windows and Linux computers, every minute, over one outbound connection.</p>
+
+<h2 id="code">Enrollment codes</h2>
+<p>Under <a href="/agents">Agents</a> create an <b>enrollment code</b>: a name, how many days it is valid, how many computers may use it and the group new devices go to. The code is shown once; it contains the server address and the fingerprint of the agent certificate, so the agent trusts only your server.</p>
+
+<h2 id="windows">Windows</h2>
+<p>Download the MSI from the Agents page and install it; it asks for the code. For many computers install it silently (GPO, Intune, a script):</p>
+<pre>msiexec /i watchzit-agent-x64.msi ENROLLCODE="WZ1-…" /qn</pre>
+<p>The agent runs as the service <b>WatchZitAgent</b>.</p>
+
+<h2 id="linux">Linux</h2>
+<p>The Agents page shows a command that downloads the agent from the agent port, checks its SHA-256 and installs it with the code (systemd service <code>watchzit-agent</code>):</p>
+<pre>curl -fsSk https://&lt;server&gt;:8444/agent/download/watchzit-agent-linux-amd64 -o /tmp/watchzit-agent &amp;&amp; … sudo /tmp/watchzit-agent install --code "WZ1-…"</pre>
+
+<h2 id="what">What the agent reports</h2>
+<ul>
+  <li><b>CPU</b> load (and load average on Linux), <b>memory</b> and swap, every <b>disk</b>, every <b>network interface</b> with traffic — they become checks with graphs by themselves.</li>
+  <li><b>Inventory</b>: operating system, CPU model, memory, vendor, model, serial number, addresses, services.</li>
+  <li><b>Watched services</b>: choose them on the device page under <b>Watch services</b>; a service that stops opens a problem.</li>
+</ul>
+<p>If a device with the same address or name exists, the agent joins it; otherwise a new device is created.</p>
+
+<h2 id="network">Network</h2>
+<p>Agents connect to the <b>agent port 8444</b>. Under <a href="/settings/network">Settings → Network and access</a> set the <b>public agent address</b> when agents reach the server by another name (for example through a firewall), and limit the networks agents may come from.</p>
+<div class="callout"><p>Removing the agent on the device page makes its key unknown; to use the agent again, enroll the computer with a new code.</p></div>

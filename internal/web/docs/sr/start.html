@@ -1,0 +1,31 @@
+<h1>Prvi koraci</h1>
+<p class="lead">WatchZit je sistem za praćenje mreže i uređaja koji radi na vašem serveru. Živa mapa mreže pokazuje šta je sa čim povezano i kako radi; iza nje su provere, grafici, alarmi, dashboard-i i izveštaji — pod licencom AGPL-3.0.</p>
+
+<h2 id="what">Šta WatchZit radi</h2>
+<table>
+  <tr><th>Oblast</th><th>Šta dobijate</th></tr>
+  <tr><td>Mape mreže</td><td>Nacrtajte mrežu sa pravim slikama uređaja, rekovima i kablovima od porta do porta; mapa prikazuje stanje i saobraćaj uživo. <a href="/docs/maps">Mape mreže</a></td></tr>
+  <tr><td>Provere</td><td>Ping, TCP portovi, web stranice, TLS sertifikati, DNS, PostgreSQL i MySQL, SNMP (v1/v2c/v3: interfejsi, procesor, memorija, diskovi, bilo koji OID), MikroTik RouterOS API i vrednosti iz bilo kog JSON API-ja. <a href="/docs/devices">Uređaji i provere</a></td></tr>
+  <tr><td>Agent</td><td>Mali, neobavezni agent za Windows i Linux javlja procesor, memoriju, diskove, interfejse i izabrane servise. <a href="/docs/agents">Agenti</a></td></tr>
+  <tr><td>Alarmi</td><td>Okidači otvaraju probleme; zavisnosti, održavanje i potvrđivanje smanjuju buku; obaveštenja emailom, webhook-om, na Slack i Teams. <a href="/docs/alerts">Problemi i alarmi</a></td></tr>
+  <tr><td>Grafici, dashboard-i, izveštaji</td><td>Grafici svake vrednosti od jednog sata do godinu dana, dashboard-i za ekran na zidu, izveštaji o dostupnosti. <a href="/docs/dashboards">Dashboard-i i izveštaji</a></td></tr>
+  <tr><td>Otvaranje uređaja</td><td>Web stranica uređaja, SSH, Remote Desktop, WinBox ili vaši alati jednim klikom. <a href="/docs/tools">Otvaranje uređaja</a></td></tr>
+</table>
+
+<h2 id="how">Kako radi</h2>
+<ul>
+  <li><b>Server</b> radi na Linux-u sa PostgreSQL-om. Ima dva porta: <b>konzolu</b> (web interfejs i REST API, TCP 8443) i <b>pristupnu tačku za agente</b> (TCP 8444).</li>
+  <li>Server sam <b>proverava</b> uređaje (ping, TCP, SNMP, HTTP, baze, API-ji). Za to na uređajima ne treba ništa instalirati.</li>
+  <li><b>Agenti</b> nisu obavezni. Povezuju se <i>odlazno</i> na port za agente i javljaju se svakog minuta; računarima ne treba nijedan otvoren port.</li>
+  <li>Svaka promena u konzoli se upisuje u <a href="/audit">dnevnik aktivnosti</a> koji se ne može neprimetno menjati.</li>
+</ul>
+
+<h2 id="first-steps">Prvi koraci</h2>
+<ol>
+  <li><b>Instalirajte server</b> — vidi <a href="/docs/install">Instalacija servera</a>.</li>
+  <li><b>Napravite prvog administratora</b> pomoću tokena koji prikaže instalacija i podesite prijavu u dva koraka aplikacijom za autentifikaciju.</li>
+  <li><b>Dodajte uređaje</b> u <a href="/devices">Uređaji</a>: dovoljni su ime i adresa; ping se dodaje sam. Dodajte SNMP profil da biste čitali interfejse i saobraćaj.</li>
+  <li><b>Nacrtajte mapu</b> u <a href="/maps">Mape</a> i povežite uređaje od porta do porta.</li>
+  <li><b>Podesite obaveštenja</b> u <a href="/settings/notifications">Podešavanja → Obaveštenja</a>; ugrađeni okidači već prate uređaje koji ne rade, pune diskove i sertifikate koji ističu.</li>
+</ol>
+<div class="callout tip"><p>Konzola je podrazumevano dostupna samo iz privatnih mreža. Ostavite tako i otvorite samo port za agente (8444) tamo gde su agenti.</p></div>

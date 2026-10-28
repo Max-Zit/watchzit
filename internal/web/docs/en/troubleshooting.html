@@ -1,0 +1,35 @@
+<h1>Troubleshooting and FAQ</h1>
+
+<h2 id="ping">Ping says "ICMP is not allowed"</h2>
+<p>The server needs the right to send ICMP. The packaged service has it (<code>CAP_NET_RAW</code>). Elsewhere, give it with <code>setcap cap_net_raw+ep /usr/bin/watchzit-server</code> or allow unprivileged ping: <code>sysctl net.ipv4.ping_group_range="0 2147483647"</code>.</p>
+
+<h2 id="snmp">SNMP shows "no answer"</h2>
+<ul>
+  <li>Check the community or the SNMPv3 user, protocols and passwords in the profile.</li>
+  <li>Allow the WatchZit server's address on the device (many devices answer only listed managers) and UDP 161 on firewalls.</li>
+  <li>The message says it when a v3 user is unknown or the password is wrong.</li>
+</ul>
+
+<h2 id="agent">An agent does not connect</h2>
+<ul>
+  <li>The computer must reach the agent port 8444 of the server; check <a href="/settings/network">Settings → Network and access</a> (allowed networks, public agent address).</li>
+  <li>Windows: <code>Get-Service WatchZitAgent</code> and the log in <code>C:\ProgramData\WatchZit Agent</code>. Linux: <code>journalctl -u watchzit-agent</code>.</li>
+  <li>"the server does not know this agent": the device was removed; enroll it again with a new code.</li>
+</ul>
+
+<h2 id="notify">Notifications do not arrive</h2>
+<ul>
+  <li>Send a test from <a href="/settings/notifications">Settings → Notifications</a>; the channel list shows the last error.</li>
+  <li>Problems in maintenance or behind a down device are not sent; check the channel's lowest severity.</li>
+</ul>
+
+<h2 id="blocked">I locked myself out</h2>
+<p>After too many failed sign-ins the address is blocked for a while. On the server: <code>watchzit-server --unblock-ip all</code>. If the allowed networks exclude you: <code>watchzit-server --reset-allowlist</code>.</p>
+
+<h2 id="logs">Where are the logs?</h2>
+<p><code>journalctl -u watchzit-server</code> and <code>/var/lib/watchzit/logs/server.log</code>; the update helper writes <code>/var/log/watchzit-helper/helper.log</code>.</p>
+
+<h2 id="faq">FAQ</h2>
+<p><b>Do devices need an agent?</b> No. Ping, ports, SNMP, web, DNS, database and API checks run from the server; the agent adds what only the computer itself knows.</p>
+<p><b>How many devices?</b> One server polls thousands of checks per minute; measurements are compressed, so a year of data stays small.</p>
+<p><b>Is it free?</b> Yes, under the AGPL-3.0. MaxZit offers paid support.</p>

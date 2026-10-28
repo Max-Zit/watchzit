@@ -1,0 +1,33 @@
+<h1>Problems, alerts and notifications</h1>
+<p class="lead">Triggers watch the results of checks and open <b>problems</b>. A problem closes by itself when the condition ends; while it is open it can be acknowledged, and it is sent to your notification channels.</p>
+
+<h2 id="triggers">Triggers</h2>
+<p>Under <a href="/alerts/triggers">Problems → Triggers</a>. WatchZit starts with these:</p>
+<table>
+  <tr><th>Trigger</th><th>When</th><th>Severity</th></tr>
+  <tr><td>Device down</td><td>all checks of a device are down for 1 minute</td><td>critical</td></tr>
+  <tr><td>Check down</td><td>one check is down for 1 minute</td><td>warning</td></tr>
+  <tr><td>High CPU load, Memory almost full</td><td>above 90 % for 5 minutes</td><td>warning</td></tr>
+  <tr><td>Disk almost full / Disk full</td><td>above 90 % / 97 %</td><td>warning / critical</td></tr>
+  <tr><td>Packet loss</td><td>above 20 % for 5 minutes</td><td>warning</td></tr>
+  <tr><td>Certificate expires soon / expires</td><td>fewer than 21 / 7 days</td><td>warning / critical</td></tr>
+  <tr><td>High temperature</td><td>RouterOS above 70 °C for 5 minutes</td><td>warning</td></tr>
+</table>
+<p>Add your own: a <b>value</b> (CPU load, response time, traffic, connections …), <b>above</b> or <b>below</b> a threshold, <b>for at least</b> some minutes (a short dip does not open a problem), a severity, and whether it applies to all devices, a group or one device.</p>
+
+<h2 id="problems">Problems</h2>
+<p><a href="/problems">Problems</a> lists what is open, worst first; the number in the menu counts the problems that were sent (red when one is critical). <b>Acknowledge</b> a problem with a note so others know someone is on it. Resolved problems stay in the history for a year.</p>
+
+<h2 id="dependencies">Dependencies</h2>
+<p>Set <b>Depends on</b> on a device (for example the router of a branch office). When that router is down, the devices behind it are only <b>unreachable</b>: their problems are recorded but not sent — you get one message for the router, not fifty.</p>
+
+<h2 id="maintenance">Maintenance</h2>
+<p>Under <a href="/alerts/maintenance">Problems → Maintenance</a> plan a window for devices or groups. During it the devices are still monitored and problems recorded, but nothing is sent; problems still open when it ends are sent then. Availability reports show maintenance time apart.</p>
+
+<h2 id="notifications">Notifications</h2>
+<p>Under <a href="/settings/notifications">Settings → Notifications</a> (administrators):</p>
+<ul>
+  <li><b>Email server</b> — SMTP with STARTTLS, TLS or none; the password is stored encrypted. Send a test email.</li>
+  <li><b>Channels</b> — email recipients, a <b>webhook</b> (JSON, signed with HMAC-SHA256 in <code>X-WatchZit-Signature</code> when you set a key), <b>Slack</b> or <b>Microsoft Teams</b>. Each channel has a lowest severity and can also report when problems are resolved.</li>
+  <li><b>Language</b> of notifications and the <b>console address</b> used for links in them.</li>
+</ul>

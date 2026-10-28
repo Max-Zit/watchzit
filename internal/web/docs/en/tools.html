@@ -1,0 +1,28 @@
+<h1>Opening devices</h1>
+<p class="lead">From a device page or the map's side panel you open a device with the right program: its web interface, SSH, Remote Desktop, WinBox, VNC or your own tools.</p>
+
+<h2 id="launcher">The WatchZit Launcher</h2>
+<p>A browser cannot start programs, so a small Windows program does it: the <b>WatchZit Launcher</b>. Install it once per computer from the <a href="/launcher">Launcher</a> page — it installs for your Windows user, without administrator rights — and click <b>Pair this computer</b>. The launcher shows the server's fingerprint; it must match the one on the page.</p>
+<p>Then the <b>Open with</b> buttons work. The first time, the browser asks whether it may open the launcher; allow it.</p>
+
+<h2 id="safety">How it stays safe</h2>
+<ul>
+  <li>Every click gives a link <b>signed</b> by your server that is valid for a minute and works once; the launcher accepts links only from servers you paired.</li>
+  <li>Addresses and user names are checked against strict character sets; programs start with an argument list, never through a shell.</li>
+  <li>Passwords are never stored or sent: the program asks for them.</li>
+  <li>Before a program added by your administrator runs for the first time, the launcher asks you.</li>
+</ul>
+
+<h2 id="tools">Built-in tools</h2>
+<table>
+  <tr><th>Tool</th><th>Program on your computer</th></tr>
+  <tr><td>SSH</td><td>PuTTY when installed, otherwise the SSH client of Windows</td></tr>
+  <tr><td>Remote Desktop</td><td>the Windows Remote Desktop client</td></tr>
+  <tr><td>WinBox</td><td>winbox64.exe from Program Files, Downloads or the Desktop</td></tr>
+  <tr><td>VNC</td><td>TightVNC, TigerVNC or RealVNC viewer</td></tr>
+  <tr><td>Telnet</td><td>PuTTY</td></tr>
+</table>
+<p>Programs in other places: write their paths into <code>%APPDATA%\WatchZit Launcher\launcher.json</code>. Without the launcher, Remote Desktop still works: the <b>.rdp</b> button downloads a file Windows opens.</p>
+
+<h2 id="own-tools">Your own tools</h2>
+<p>Under <a href="/settings/tools">Settings → Tools</a> administrators switch built-in tools off, limit them to device types and add their own: a program path (for example <code>%ProgramFiles%\Mozilla Firefox\firefox.exe</code>) and arguments with <code>{host}</code>, <code>{port}</code>, <code>{user}</code> and <code>{name}</code>. The user name and ports per device are set in the device's <b>Remote access</b>.</p>

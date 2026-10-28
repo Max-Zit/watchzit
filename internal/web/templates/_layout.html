@@ -29,6 +29,7 @@
     <a href="/users" class="{{if eq .Nav "users"}}on{{end}}">{{template "icon" "users"}}{{.T "Users"}}</a>
     <a href="/audit" class="{{if eq .Nav "audit"}}on{{end}}">{{template "icon" "audit"}}{{.T "Audit log"}}</a>
     <a href="/settings/network" class="{{if eq .Nav "settings"}}on{{end}}">{{template "icon" "settings"}}{{.T "Settings"}}</a>
+    <a href="/docs" class="{{if eq .Nav "docs"}}on{{end}}">{{template "icon" "book"}}{{.T "User guide"}}</a>
     {{end}}
   </nav>
   <div class="side-foot"><a class="support-link" href="https://portal.maxzit.com/tickets/new?product=watchzit&amp;version=server%20{{.Version}}" target="_blank" rel="noopener" title="{{.T "Paid support by MaxZit: open a ticket in the customer portal"}}">{{template "icon" "support"}} {{.T "Contact support"}}</a><a class="bug-link" href="https://github.com/Max-Zit/watchzit/issues/new?template=bug_report.yml&amp;version=server%20{{.Version}}" target="_blank" rel="noopener">{{template "icon" "bug"}} {{.T "Report a bug"}}</a>WatchZit {{.Version}}<br>{{.T "AGPLv3 · self-hosted"}}<br><span title="{{.T "Times in the console are in this time zone"}}">{{template "icon" "clock"}} {{.Zone}}</span>{{with .Clock}}<br><span id="clock" title="{{$.T "Current time of the server"}}" data-ms="{{.MS}}" data-off="{{.Off}}">{{.Text}}</span>{{end}}</div>
@@ -80,6 +81,7 @@
   <a href="/settings/security" class="{{if eq .Title "Sign-in and security"}}on{{end}}">{{template "icon" "lock"}}<span>{{.T "Sign-in and security"}}<small>{{.T "Session length, blocked addresses"}}</small></span></a>
   <a href="/settings/data" class="{{if eq .Title "Metric data"}}on{{end}}">{{template "icon" "disk"}}<span>{{.T "Metric data"}}<small>{{.T "How long measurements are kept"}}</small></span></a>
   <a href="/settings/snmp" class="{{if eq .Title "SNMP"}}on{{end}}">{{template "icon" "key"}}<span>SNMP<small>{{.T "Communities and SNMPv3 users"}}</small></span></a>
+  <a href="/settings/version" class="{{if eq .Title "Updates and server"}}on{{end}}">{{template "icon" "download"}}<span>{{.T "Updates and server"}}<small>{{.T "New versions, time zone, restart"}}</small></span></a>
   <a href="/settings/tools" class="{{if eq .Title "Tools"}}on{{end}}">{{template "icon" "terminal"}}<span>{{.T "Tools"}}<small>{{.T "Programs that open devices"}}</small></span></a>
   <a href="/settings/notifications" class="{{if eq .Title "Notifications"}}on{{end}}">{{template "icon" "bell"}}<span>{{.T "Notifications"}}<small>{{.T "Email, webhooks, Slack, Teams"}}</small></span></a>
   <a href="/settings/kiosks" class="{{if eq .Title "Kiosk displays"}}on{{end}}">{{template "icon" "screen"}}<span>{{.T "Kiosk displays"}}<small>{{.T "Maps on a monitoring TV"}}</small></span></a>
@@ -107,3 +109,4 @@
     <canvas role="img" aria-label="{{$g.Check.Name}}: {{$p.T $g.Title}}"></canvas>
     <div class="graph-tip" hidden></div>
   </figure>{{end}}
+{{define "docnav"}}<nav class="docnav" aria-label="{{.T "User guide"}}"><div class="docnav-title">{{template "icon" "book"}} {{.T "User guide"}}</div><form method="get" action="/docs/search" class="docnav-search"><input type="search" name="q" placeholder="{{.T "Search the guide"}}" aria-label="{{.T "Search the guide"}}" value="{{.Data.Q}}"></form>{{range .Data.Pages}}<a href="/docs/{{.Slug}}" class="{{if eq .Slug $.Data.Page}}on{{end}}">{{$.T .Title}}</a>{{end}}</nav>{{end}}

@@ -1,0 +1,35 @@
+<h1>Rešavanje problema i česta pitanja</h1>
+
+<h2 id="ping">Ping kaže „ICMP is not allowed"</h2>
+<p>Serveru treba pravo da šalje ICMP. Servis iz paketa ga ima (<code>CAP_NET_RAW</code>). Drugde ga dajte sa <code>setcap cap_net_raw+ep /usr/bin/watchzit-server</code> ili dozvolite ping bez privilegija: <code>sysctl net.ipv4.ping_group_range="0 2147483647"</code>.</p>
+
+<h2 id="snmp">SNMP kaže „no answer"</h2>
+<ul>
+  <li>Proverite community ili SNMPv3 korisnika, protokole i lozinke u profilu.</li>
+  <li>Dozvolite adresu WatchZit servera na uređaju (mnogi uređaji odgovaraju samo navedenim menadžerima) i UDP 161 na firewall-ima.</li>
+  <li>Poruka to i kaže kada je v3 korisnik nepoznat ili je lozinka pogrešna.</li>
+</ul>
+
+<h2 id="agent">Agent se ne povezuje</h2>
+<ul>
+  <li>Računar mora da dođe do porta za agente 8444 na serveru; proverite <a href="/settings/network">Podešavanja → Mreža i pristup</a> (dozvoljene mreže, javna adresa za agente).</li>
+  <li>Windows: <code>Get-Service WatchZitAgent</code> i log u <code>C:\ProgramData\WatchZit Agent</code>. Linux: <code>journalctl -u watchzit-agent</code>.</li>
+  <li>„the server does not know this agent": uređaj je uklonjen; prijavite ga ponovo novim kodom.</li>
+</ul>
+
+<h2 id="notify">Obaveštenja ne stižu</h2>
+<ul>
+  <li>Pošaljite probu iz <a href="/settings/notifications">Podešavanja → Obaveštenja</a>; lista kanala prikazuje poslednju grešku.</li>
+  <li>Problemi u održavanju ili iza uređaja koji ne radi se ne šalju; proverite najnižu ozbiljnost kanala.</li>
+</ul>
+
+<h2 id="blocked">Zaključao sam se</h2>
+<p>Posle previše neuspelih prijava adresa se blokira na neko vreme. Na serveru: <code>watchzit-server --unblock-ip all</code>. Ako vas dozvoljene mreže isključuju: <code>watchzit-server --reset-allowlist</code>.</p>
+
+<h2 id="logs">Gde su logovi?</h2>
+<p><code>journalctl -u watchzit-server</code> i <code>/var/lib/watchzit/logs/server.log</code>; pomoćnik za ažuriranja piše <code>/var/log/watchzit-helper/helper.log</code>.</p>
+
+<h2 id="faq">Česta pitanja</h2>
+<p><b>Da li uređajima treba agent?</b> Ne. Ping, portovi, SNMP, web, DNS, baze i API provere rade sa servera; agent dodaje ono što zna samo sam računar.</p>
+<p><b>Koliko uređaja?</b> Jedan server proverava hiljade provera u minuti; merenja su sažeta, pa i godina podataka ostaje mala.</p>
+<p><b>Da li je besplatan?</b> Da, pod licencom AGPL-3.0. MaxZit nudi plaćenu podršku.</p>

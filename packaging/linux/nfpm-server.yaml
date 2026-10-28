@@ -1,0 +1,49 @@
+name: watchzit-server
+arch: ${ARCH}
+platform: linux
+version: ${VERSION}
+section: admin
+priority: optional
+maintainer: MaxZit <office@maxzit.com>
+description: |
+  WatchZit server: network and device monitoring with live network maps,
+  alerts, graphs and dashboards, and the endpoint WatchZit agents connect to.
+vendor: MaxZit
+homepage: https://github.com/Max-Zit/watchzit
+license: AGPL-3.0-only
+overrides:
+  deb:
+    depends:
+      - postgresql-client
+    recommends:
+      - postgresql
+  rpm:
+    depends:
+      - postgresql
+    recommends:
+      - postgresql-server
+contents:
+  - src: ./LICENSE
+    dst: /usr/share/doc/watchzit-server/copyright
+  - src: ./THIRD_PARTY_LICENSES.md
+    dst: /usr/share/doc/watchzit-server/THIRD_PARTY_LICENSES.md
+  - src: ./bin/pkg/watchzit-server
+    dst: /usr/bin/watchzit-server
+    file_info:
+      mode: 0755
+  - src: ./bin/pkg/downloads/*
+    dst: /usr/share/watchzit/downloads/
+  - src: ./packaging/linux/watchzit-server.service
+    dst: /usr/lib/systemd/system/watchzit-server.service
+  - src: ./packaging/linux/watchzit-helper.path
+    dst: /usr/lib/systemd/system/watchzit-helper.path
+  - src: ./packaging/linux/watchzit-helper.service
+    dst: /usr/lib/systemd/system/watchzit-helper.service
+  - src: ./packaging/linux/server.env
+    dst: /etc/watchzit/server.env
+    type: config|noreplace
+    file_info:
+      mode: 0640
+scripts:
+  postinstall: ./packaging/linux/server-postinstall.sh
+  preremove: ./packaging/linux/server-preremove.sh

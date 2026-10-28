@@ -1,0 +1,38 @@
+<h1>Uređaji, provere i SNMP</h1>
+<p class="lead">Uređaj je sve što ima adresu: ruter, svič, server, štampač, kamera ili web sajt. Provere ga mere; njihovi rezultati boje uređaj, mapu i grafike.</p>
+
+<h2 id="add">Dodavanje uređaja</h2>
+<p>U <a href="/devices">Uređaji → Dodaj uređaj</a> unesite ime i IP adresu ili ime hosta, izaberite vrstu i grupu i ostavite uključen <b>Ping</b>. Neobavezno:</p>
+<ul>
+  <li><b>SNMP</b> — profil sa community-jem ili SNMPv3 korisnikom; WatchZit tada čita interfejse, saobraćaj, procesor, memoriju i diskove.</li>
+  <li><b>Zavisi od</b> — ruter ili svič preko kog se dolazi do uređaja. Dok on ne radi, problemi ovog uređaja su samo „nedostupan" i ne šalju se.</li>
+  <li><b>Udaljeni pristup</b> — korisničko ime i portovi koje koriste <a href="/docs/tools">alati</a>.</li>
+  <li><b>TCP portovi</b> — svaki postaje provera koja se povezuje svakog minuta.</li>
+</ul>
+<p>Stanje uređaja dolazi od njegovih provera: <b>radi</b> kada sve rade, <b>delimično ne radi</b> kada neke ne rade, <b>ne radi</b> kada nijedna ne radi.</p>
+
+<h2 id="checks">Vrste provera</h2>
+<table>
+  <tr><th>Provera</th><th>Meri</th></tr>
+  <tr><td>Ping (ICMP)</td><td>Vreme odziva i gubitak paketa.</td></tr>
+  <tr><td>TCP port</td><td>Da li port prima veze i koliko brzo.</td></tr>
+  <tr><td>Web stranica (HTTP)</td><td>Statusni kod, vreme odziva, tekst koji mora biti na stranici, dani do isteka sertifikata.</td></tr>
+  <tr><td>TLS sertifikat</td><td>Dani do isteka i da li mu se veruje (bilo koji TLS port, sa imenom servera za SNI).</td></tr>
+  <tr><td>DNS</td><td>Uređaj je DNS server: mora da odgovori na ime sa vrstom zapisa (A, AAAA, MX …) i, po želji, očekivanom vrednošću.</td></tr>
+  <tr><td>PostgreSQL, MySQL / MariaDB</td><td>Prijava korisnikom za praćenje, verzija, broj konekcija, vreme odziva.</td></tr>
+  <tr><td>MikroTik RouterOS (API)</td><td>Procesor, memorija, vreme rada i temperatura preko REST API-ja RouterOS-a 7.</td></tr>
+  <tr><td>Vrednost iz JSON API-ja</td><td>Jedan broj iz bilo kog JSON API-ja (FortiGate, vCenter, vaši servisi): adresa, putanja kao <code>results.cpu.0.current</code> i, po želji, Bearer ili basic prijava.</td></tr>
+  <tr><td>SNMP</td><td>Dostupnost i vreme rada; interfejsi, procesor i skladišta koje pronađe otkrivanje; bilo koji numerički OID.</td></tr>
+</table>
+<p>Lozinke i tokeni provera se čuvaju šifrovani i više se ne prikazuju; kada menjate proveru, ostavite polje prazno da zadržite sačuvanu.</p>
+
+<h2 id="snmp">SNMP</h2>
+<ol>
+  <li>Napravite profil u <a href="/settings/snmp">Podešavanja → SNMP</a>: v2c sa community-jem ili v3 sa korisnikom (podržani su SHA-2 i AES).</li>
+  <li>Izaberite profil na uređaju. WatchZit otvara <b>SNMP otkrivanje</b>: označite interfejse, procesor, memoriju i diskove koje pratite (loopback-ovi i interfejsi bez linka su isključeni).</li>
+  <li>Stranica uređaja tada prikazuje <b>portove</b> sa stanjem linka i saobraćajem uživo, i grafike svake vrednosti.</li>
+</ol>
+<div class="callout tip"><p>MikroTik, Cisco, HP, Ubiquiti, štampači i UPS uređaji govore SNMP. Na Linux-u instalirajte <code>snmpd</code>; na Windows-u SNMP servis.</p></div>
+
+<h2 id="graphs">Grafici</h2>
+<p>Svaka vrednost se čuva: sirova nekoliko dana, zatim kao minimum, prosek i maksimum po 5 minuta i po satu (Podešavanja → Podaci merenja). Na grafiku prevucite mišem da uvećate, dvoklik vraća nazad; dugmad za period idu od jednog sata do godinu dana.</p>
