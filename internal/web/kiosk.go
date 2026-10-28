@@ -190,7 +190,7 @@ func (s *Server) handleKioskLive(w http.ResponseWriter, r *http.Request) {
 	if m == nil {
 		return
 	}
-	s.writeMapLive(w, r, m)
+	s.writeMapLive(w, r, m, false)
 }
 
 // handleKioskAsset serves the pictures used on the display's maps.

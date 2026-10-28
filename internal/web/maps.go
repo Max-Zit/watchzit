@@ -232,10 +232,12 @@ func (s *Server) handleMapLive(w http.ResponseWriter, r *http.Request) {
 	if m == nil {
 		return
 	}
-	s.writeMapLive(w, r, m)
+	s.writeMapLive(w, r, m, true)
 }
 
-func (s *Server) writeMapLive(w http.ResponseWriter, r *http.Request, m *store.Map) {
+// writeMapLive sends the live state of a map; withTools adds the tools that
+// open each device (the console, not kiosk displays).
+func (s *Server) writeMapLive(w http.ResponseWriter, r *http.Request, m *store.Map, withTools bool) {
 	l, err := s.store.MapLayout(r.Context(), m.ID)
 	if err != nil {
 		s.serverError(w, r, err)
@@ -245,6 +247,21 @@ func (s *Server) writeMapLive(w http.ResponseWriter, r *http.Request, m *store.M
 	if err != nil {
 		s.serverError(w, r, err)
 		return
+	}
+	if withTools {
+		if ts, err := s.store.Tools(r.Context()); err == nil {
+			for _, d := range live.Devices {
+				for _, t := range ts {
+					if t.For(d.Kind) {
+						k := t.Builtin
+						if k == "" {
+							k = "custom"
+						}
+						d.Tools = append(d.Tools, store.LiveTool{ID: t.ID, Name: t.Name, Kind: k})
+					}
+				}
+			}
+		}
 	}
 	writeJSON(w, http.StatusOK, live)
 }

@@ -1,0 +1,40 @@
+{{template "app" .}}
+{{define "content"}}
+<h1>{{.T "WatchZit Launcher"}}</h1>
+<p class="muted">{{.T "A browser cannot start programs on your computer. The WatchZit Launcher is a small Windows program that opens devices with your tools when you click Open with: SSH, Remote Desktop, WinBox, VNC and programs your administrator adds. It installs for your Windows user, without administrator rights."}}</p>
+<section class="panel">
+  <ol class="steps">
+    <li>
+      <h3>{{.T "Install it on your computer"}}</h3>
+      {{if .Data.Download}}<p><a class="btn primary" href="/downloads/watchzit-launcher.exe">{{template "icon" "download"}}{{.T "Download the launcher"}}</a></p>
+      <p class="small muted">{{.T "Run the downloaded file once: it copies itself to your user's programs and registers watchzit:// links. Windows may warn that the publisher is unknown; choose More info → Run anyway."}}</p>
+      {{else}}<p class="small muted">{{.T "The launcher is not on this server yet: copy watchzit-launcher.exe into the downloads folder of the data directory."}}</p>{{end}}
+    </li>
+    <li>
+      <h3>{{.T "Pair it with this server"}}</h3>
+      {{with .Data.PairURL}}<p><a class="btn secondary" href="{{.}}">{{template "icon" "link"}}{{$.T "Pair this computer"}}</a></p>{{end}}
+      <p class="small muted">{{.T "The launcher shows the server's fingerprint; it must be the same as here. It then accepts links only from this server."}}</p>
+      <p class="fp small">{{.Data.Fingerprint}}</p>
+    </li>
+    <li>
+      <h3>{{.T "Open devices"}}</h3>
+      <p class="small muted">{{.T "Use the Open with buttons on a device page or in the map's side panel. The first time, the browser asks whether it may open the WatchZit Launcher: allow it (and tick Always allow)."}}</p>
+    </li>
+  </ol>
+</section>
+<section class="panel">
+  <h2>{{.T "Programs it starts"}}</h2>
+  <ul class="small">
+    <li><b>SSH</b> — {{.T "PuTTY when it is installed, otherwise the SSH client built into Windows."}}</li>
+    <li><b>Remote Desktop</b> — {{.T "the Windows Remote Desktop client; it asks for the password."}}</li>
+    <li><b>WinBox</b> — {{.T "winbox64.exe from Program Files, Downloads or the Desktop."}}</li>
+    <li><b>VNC</b> — {{.T "TightVNC, TigerVNC or RealVNC viewer."}}</li>
+    <li><b>Telnet</b> — {{.T "PuTTY."}}</li>
+    <li>{{.T "Programs added by your administrator: the launcher asks once before it starts each of them."}}</li>
+  </ul>
+  <p class="small muted">{{.T "Programs in other places: write their paths into launcher.json in the folder %APPDATA%\\WatchZit Launcher, for example:"}}</p>
+  <pre class="small">{"paths": {"winbox": "D:\\Tools\\winbox64.exe", "putty": "D:\\Tools\\putty.exe"}}</pre>
+  <p class="small muted">{{.T "Without the launcher, Remote Desktop still works: the .rdp button on a device page downloads a file that Windows opens."}}</p>
+  {{if .User.IsAdmin}}<p><a href="/settings/tools">{{.T "Manage tools"}}</a></p>{{end}}
+</section>
+{{end}}

@@ -1,0 +1,42 @@
+{{template "app" .}}
+{{define "content"}}
+<h1>{{.T "Settings"}}</h1>
+<div class="settings">
+{{template "settingstabs" .}}
+<div class="settings-body">
+<section class="panel">
+  <h2>{{.T "Tools"}}</h2>
+  <p class="muted">{{.T "Tools open devices with programs on the user's computer through the WatchZit Launcher. Built-in tools can be switched off or limited to device types; your own tools name a program and its arguments."}} <a href="/launcher">{{.T "Launcher"}}</a></p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>{{.T "Name"}}</th><th>{{.T "Port"}}</th><th class="hide-sm">{{.T "Device types"}}</th><th></th></tr></thead>
+    <tbody>{{range .Data.Tools}}<tr class="{{if not .Enabled}}trig-off{{end}}">
+      <td>{{template "icon" (toolIcon .Builtin)}} <b>{{.Name}}</b>{{if not .Enabled}} <span class="badge muted">{{$.T "Off"}}</span>{{end}}{{if .Builtin}} <span class="small muted">{{$.T "built in"}}</span>{{else}}<br><span class="small muted mono">{{.Program}}</span>{{end}}</td>
+      <td class="num">{{.Port}}</td>
+      <td class="hide-sm small">{{if .Kinds}}{{range $i, $k := .Kinds}}{{if $i}}, {{end}}{{$.KindName $k}}{{end}}{{else}}<span class="muted">{{$.T "All"}}</span>{{end}}</td>
+      <td class="actions"><a class="btn ghost sm" href="/settings/tools/{{.ID}}#form" title="{{$.T "Edit"}}">{{template "icon" "settings"}}</a></td>
+    </tr>{{end}}</tbody>
+  </table></div>
+</section>
+{{$e := .Data.Edit}}{{$in := .Data.In}}
+<section class="panel" id="form">
+  <h2>{{if $e}}{{.T "Edit %s" $e.Name}}{{else}}{{.T "Add your own tool"}}{{end}}</h2>
+  <form method="post" action="{{if $e}}/settings/tools/{{$e.ID}}{{else}}/settings/tools{{end}}" class="stack">
+    <div class="cols">
+      <label>{{.T "Name"}}<input name="name" value="{{$in.Name}}" required maxlength="100" placeholder="{{.T "Name, for example Web browser"}}"></label>
+      <label>{{.T "Default port"}}<input type="number" name="port" value="{{$in.Port}}" min="1" max="65535" required></label>
+    </div>
+    {{if not (and $e $e.Builtin)}}
+    <label>{{.T "Program"}}<input name="program" value="{{$in.Program}}" required maxlength="260" class="mono" spellcheck="false" placeholder="C:\Program Files\App\app.exe"><small>{{.T "Full path on the users' computers; %ProgramFiles% and similar are allowed."}}</small></label>
+    <label>{{.T "Arguments"}}<input name="args" value="{{.Data.Args}}" maxlength="1000" class="mono" spellcheck="false" placeholder="--host {host} --port {port}"><small>{{.T "Separated by spaces; use double quotes for an argument with spaces. Placeholders: {host}, {port}, {user}, {name}. An argument with {user} is left out when the device has no user."}}</small></label>
+    {{end}}
+    <fieldset class="box"><legend>{{.T "Offer for device types"}} <small class="muted">{{.T "none ticked = all"}}</small></legend>
+      <div class="pickers">{{range .Data.Kinds}}<label class="check"><input type="checkbox" name="kind" value="{{.}}" {{if inStrings $in.Kinds .}}checked{{end}}>{{$.KindName .}}</label>{{end}}</div>
+    </fieldset>
+    <label class="check"><input type="checkbox" name="enabled" value="1" {{if $in.Enabled}}checked{{end}}>{{.T "Enabled"}}</label>
+    <div class="row"><button class="primary">{{if $e}}{{.T "Save"}}{{else}}{{template "icon" "plus"}}{{.T "Add tool"}}{{end}}</button>{{if $e}}<a class="btn secondary" href="/settings/tools">{{.T "Cancel"}}</a>{{end}}</div>
+  </form>
+  {{if and $e (not $e.Builtin)}}<form method="post" action="/settings/tools/{{$e.ID}}/delete" class="mt" data-confirm="{{.T "Delete the tool %s?" $e.Name}}"><button class="danger sm">{{template "icon" "trash"}}{{.T "Delete"}}</button></form>{{end}}
+</section>
+</div>
+</div>
+{{end}}

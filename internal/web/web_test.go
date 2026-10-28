@@ -400,7 +400,7 @@ func TestPagesRender(t *testing.T) {
 	c.post("/settings/notifications/channels", "name", "Mail", "kind", "email", "target", "a@example.com", "min_severity", "warning")
 	c.post("/alerts/maintenance", "name", "MW", "from", "2026-10-27T09:00", "to", "2026-10-27T23:00", "device", "1")
 	pages := []string{"/", "/devices", "/devices?status=down", "/devices/new", "/devices/1", "/devices/1?range=7d", "/devices/1/edit", "/groups",
-		"/users", "/users/1", "/account", "/audit", "/settings/network", "/settings/security", "/settings/data", "/settings/snmp", "/settings/snmp/1", "/devices/2", "/devices/2/discover", "/maps", "/maps/1", "/maps/1?edit=1", "/settings/kiosks", "/agents", "/problems", "/problems?view=history", "/alerts/triggers", "/alerts/triggers/1", "/alerts/maintenance", "/settings/notifications", "/nothing"}
+		"/users", "/users/1", "/account", "/audit", "/settings/network", "/settings/security", "/settings/data", "/settings/snmp", "/settings/snmp/1", "/devices/2", "/devices/2/discover", "/maps", "/maps/1", "/maps/1?edit=1", "/settings/kiosks", "/agents", "/problems", "/problems?view=history", "/alerts/triggers", "/alerts/triggers/1", "/alerts/maintenance", "/settings/notifications", "/launcher", "/settings/tools", "/settings/tools/1", "/nothing"}
 	for _, l := range web.Languages {
 		c.post("/lang", "lang", l.Code)
 		for _, p := range pages {

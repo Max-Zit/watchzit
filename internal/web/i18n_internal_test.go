@@ -31,7 +31,7 @@ func uiTexts(t *testing.T) map[string]bool {
 	}
 	// Go: messages passed to translate/T/redirect/show*/fail and errors.
 	goMsg := regexp.MustCompile(`(?:translate\([^,\n]+, |uiErrf?\(|\.T\(|fail\(|redirect\(w, r, [^\n]*?, |redirectErr\(w, r, [^,\n]+, |show\w+\(w, r, http\.Status\w+, [^"\n]*?|errors\.New\()"((?:[^"\\]|\\.)+)"`)
-	for _, dir := range []string{".", "../store"} {
+	for _, dir := range []string{".", "../store", "../launch"} {
 		gofiles, _ := filepath.Glob(filepath.Join(dir, "*.go"))
 		for _, f := range gofiles {
 			if strings.HasSuffix(f, "_test.go") {

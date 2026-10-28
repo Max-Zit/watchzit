@@ -4,6 +4,7 @@ package web
 
 import (
 	"context"
+	"crypto/ed25519"
 	"errors"
 	"fmt"
 	"html/template"
@@ -55,6 +56,8 @@ type Server struct {
 	// DevNo2FA skips the second factor (development server only).
 	DevNo2FA   bool
 	setupToken string
+	// LauncherKey signs the links that open devices with local tools.
+	LauncherKey ed25519.PrivateKey
 	// Alerts is the alert engine (kicked after changes; may be nil).
 	Alerts *alert.Engine
 	wg     sync.WaitGroup // notifications in flight
@@ -329,6 +332,9 @@ func (s *Server) Handler() http.Handler {
 	write("POST /devices/{id}/services", s.handleAgentServices)
 	write("POST /devices/{id}/agent/remove", s.handleAgentRemove)
 	write("POST /devices/{id}/agent/refresh", s.handleAgentRefresh)
+	app("GET /devices/{id}/open/{tool}", s.handleOpen)
+	app("GET /devices/{id}/rdp", s.handleRDP)
+	app("GET /launcher", s.handleLauncher)
 	app("GET /problems", s.handleProblems)
 	write("POST /problems/{id}/ack", s.handleProblemAck)
 	app("GET /alerts/triggers", s.handleTriggers)
@@ -364,6 +370,11 @@ func (s *Server) Handler() http.Handler {
 	admin("POST /settings/security/unblock", s.handleUnblock)
 	admin("GET /settings/data", s.handleRetention)
 	admin("POST /settings/data", s.handleRetentionSave)
+	admin("GET /settings/tools", s.handleTools)
+	admin("POST /settings/tools", s.handleToolCreate)
+	admin("GET /settings/tools/{id}", s.handleTools)
+	admin("POST /settings/tools/{id}", s.handleToolUpdate)
+	admin("POST /settings/tools/{id}/delete", s.handleToolDelete)
 	admin("GET /settings/notifications", s.handleNotifications)
 	admin("POST /settings/notifications", s.handleNotificationsSave)
 	admin("POST /settings/notifications/test", s.handleNotificationsTestMail)

@@ -707,3 +707,12 @@ tr.p-supp { opacity: .65; }
 .pickers { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px 14px; max-height: 260px; overflow: auto; }
 .trig-off { opacity: .55; }
 @media (max-width: 640px) { .ack-form input { width: 110px; } }
+
+/* ---- opening devices (0.6) */
+.openwith { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -6px 0 16px; }
+.openwith > .muted { margin-right: 4px; }
+.openwith > a.small { margin-left: 6px; }
+.fp { font-family: var(--mono, ui-monospace, monospace); letter-spacing: .04em; word-break: break-all; }
+.steps { counter-reset: st; list-style: none; padding: 0; display: grid; gap: 14px; }
+.steps > li { counter-increment: st; position: relative; padding-left: 40px; }
+.steps > li::before { content: counter(st); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font-weight: 700; }

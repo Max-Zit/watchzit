@@ -25,6 +25,7 @@ var agentFiles = []struct{ Name, Platform string }{
 	{"watchzit-agent-windows-amd64.exe", "windows-exe"},
 	{"watchzit-agent-linux-amd64", "linux-amd64"},
 	{"watchzit-agent-linux-arm64", "linux-arm64"},
+	{"watchzit-launcher.exe", "launcher"},
 }
 
 // agentFile is an installer that is present, with its checksum.

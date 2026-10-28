@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/max-zit/watchzit/internal/launch"
 	"github.com/max-zit/watchzit/internal/store"
 )
 
@@ -93,6 +94,8 @@ type deviceData struct {
 	Watched    map[string]bool // services the agent reports
 	Problems   []*store.Problem
 	Now        time.Time
+	Tools      []deviceTool
+	AccessUser string
 	CheckTypes []string
 }
 
@@ -193,6 +196,9 @@ func (s *Server) showDevice(w http.ResponseWriter, r *http.Request, status int, 
 	data := &deviceData{D: d, Checks: cs, Graphs: graphsOf(cs), Range: rg, Ranges: graphRanges, New: in, CheckTypes: store.CheckTypes, Traffic: map[int]*store.Check{}}
 	data.Problems = s.deviceProblems(r.Context(), d.ID)
 	data.Now = s.now()
+	if a, err := s.store.DeviceAccess(r.Context(), d.ID); err == nil {
+		data.Tools, data.AccessUser = s.toolsFor(r.Context(), d.Kind, a), a.User
+	}
 	if d.SNMPProfile != 0 {
 		if data.Profile, err = s.store.DeviceSNMP(r.Context(), d.ID); err != nil && !errors.Is(err, store.ErrNotFound) {
 			s.serverError(w, r, err)
@@ -238,6 +244,8 @@ type deviceFormData struct {
 	Groups   []store.Group
 	Profiles []*store.SNMPProfile
 	Devices  []*store.Device // possible parents
+	Access   store.DeviceAccess
+	Tools    []*store.Tool // enabled tools, for port overrides
 	// New devices get a ping check and optional TCP ports.
 	Ping  bool
 	Ports string
@@ -255,6 +263,11 @@ func (s *Server) handleDeviceForm(w http.ResponseWriter, r *http.Request) {
 		}
 		d.ID = dev.ID
 		d.In = store.DeviceInput{GroupID: deref(dev.GroupID), Name: dev.Name, Address: dev.Address, Kind: dev.Kind, WebURL: dev.WebURL, Notes: dev.Notes, Paused: dev.Paused, SNMP: dev.SNMPProfile, Parent: dev.Parent}
+		var err error
+		if d.Access, err = s.store.DeviceAccess(r.Context(), dev.ID); err != nil {
+			s.serverError(w, r, err)
+			return
+		}
 	}
 	s.showDeviceForm(w, r, http.StatusOK, d, "")
 }
@@ -275,6 +288,13 @@ func (s *Server) showDeviceForm(w http.ResponseWriter, r *http.Request, status i
 	if d.Profiles, err = s.store.SNMPProfiles(r.Context()); err != nil {
 		s.serverError(w, r, err)
 		return
+	}
+	if ts, err := s.store.Tools(r.Context()); err == nil {
+		for _, t := range ts {
+			if t.Enabled {
+				d.Tools = append(d.Tools, t)
+			}
+		}
 	}
 	all, err := s.store.Devices(r.Context(), store.DeviceFilter{})
 	if err != nil {
@@ -325,6 +345,11 @@ func parsePorts(s string) ([]int, error) {
 func (s *Server) handleDeviceCreate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	d := &deviceFormData{In: deviceInput(r), Ping: r.FormValue("ping") == "1", Ports: r.FormValue("ports")}
+	d.Access = accessFromForm(r)
+	if !launch.ValidUser(d.Access.User) {
+		s.showDeviceForm(w, r, http.StatusBadRequest, d, "the user name may contain letters, digits and . _ @ \\ - only")
+		return
+	}
 	ports, err := parsePorts(d.Ports)
 	if err != nil {
 		s.showDeviceForm(w, r, http.StatusBadRequest, d, err.Error())
@@ -333,6 +358,10 @@ func (s *Server) handleDeviceCreate(w http.ResponseWriter, r *http.Request) {
 	id, err := s.store.CreateDevice(ctx, d.In)
 	if err != nil {
 		s.showDeviceForm(w, r, http.StatusBadRequest, d, storeErr(err))
+		return
+	}
+	if err := s.store.SetDeviceAccess(ctx, id, d.Access); err != nil {
+		s.serverError(w, r, err)
 		return
 	}
 	var checks []string
@@ -365,8 +394,17 @@ func (s *Server) handleDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	d := &deviceFormData{ID: dev.ID, In: deviceInput(r)}
+	d.Access = accessFromForm(r)
+	if !launch.ValidUser(d.Access.User) {
+		s.showDeviceForm(w, r, http.StatusBadRequest, d, "the user name may contain letters, digits and . _ @ \\ - only")
+		return
+	}
 	if err := s.store.UpdateDevice(r.Context(), dev.ID, d.In); err != nil {
 		s.showDeviceForm(w, r, http.StatusBadRequest, d, storeErr(err))
+		return
+	}
+	if err := s.store.SetDeviceAccess(r.Context(), dev.ID, d.Access); err != nil {
+		s.serverError(w, r, err)
 		return
 	}
 	if d.In.SNMP != 0 && d.In.SNMP != dev.SNMPProfile {

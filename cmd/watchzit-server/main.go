@@ -24,6 +24,7 @@ import (
 
 	"github.com/max-zit/watchzit/internal/alert"
 	"github.com/max-zit/watchzit/internal/auth"
+	"github.com/max-zit/watchzit/internal/launch"
 	"github.com/max-zit/watchzit/internal/logfile"
 	"github.com/max-zit/watchzit/internal/netacl"
 	"github.com/max-zit/watchzit/internal/poller"
@@ -147,6 +148,9 @@ func run() error {
 	srv.Alerts = alerts
 	alerts.Notify = srv.Notify
 	srv.DownloadsDir = filepath.Join(*dataDir, "downloads")
+	if srv.LauncherKey, err = launch.LoadOrCreateKey(filepath.Join(*dataDir, launch.KeyFile)); err != nil {
+		return fmt.Errorf("launcher key: %w", err)
+	}
 	if *devNo2FA {
 		srv.DevNo2FA = true
 		log.Warn("TEST MODE: two-factor sign-in is switched off (--dev-no-2fa); never use this on a production server")

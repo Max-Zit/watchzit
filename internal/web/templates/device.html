@@ -9,6 +9,13 @@
     {{if .User.CanWrite}}<a class="btn secondary" href="/devices/{{$d.ID}}/edit">{{template "icon" "settings"}}{{.T "Edit"}}</a>{{end}}
   </div>
 </div>
+{{if .Data.Tools}}
+<div class="openwith">
+  <span class="muted small">{{.T "Open with"}}</span>
+  {{range .Data.Tools}}<a class="btn secondary sm" href="/devices/{{$d.ID}}/open/{{.ID}}" title="{{if not .Builtin}}{{.Program}}{{else}}{{$d.Address}}:{{.DevPort}}{{end}}">{{template "icon" (toolIcon .Builtin)}}{{.Name}}</a>{{if eq .Builtin "rdp"}}<a class="btn ghost sm" href="/devices/{{$d.ID}}/rdp" title="{{$.T "Download a Remote Desktop file (works without the launcher)"}}">{{template "icon" "download"}}.rdp</a>{{end}}{{end}}
+  <a class="small" href="/launcher">{{.T "Launcher"}}</a>
+</div>
+{{end}}
 <section class="panel">
   <dl class="facts">
     <dt>{{.T "Address"}}</dt><dd class="mono">{{$d.Address}}</dd>

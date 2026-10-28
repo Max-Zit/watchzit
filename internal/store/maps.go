@@ -496,15 +496,23 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 
 // LiveDevice is what the map shows about a device.
 type LiveDevice struct {
-	ID         int64  `json:"id"`
-	Name       string `json:"name"`
-	Address    string `json:"address"`
-	Kind       string `json:"kind"`
-	Status     string `json:"status"`
-	WebURL     string `json:"web,omitempty"`
-	ChecksDown int    `json:"down"`
-	Checks     int    `json:"checks"`
-	Vendor     string `json:"vendor,omitempty"`
+	ID         int64      `json:"id"`
+	Name       string     `json:"name"`
+	Address    string     `json:"address"`
+	Kind       string     `json:"kind"`
+	Status     string     `json:"status"`
+	WebURL     string     `json:"web,omitempty"`
+	ChecksDown int        `json:"down"`
+	Checks     int        `json:"checks"`
+	Vendor     string     `json:"vendor,omitempty"`
+	Tools      []LiveTool `json:"tools,omitempty"` // filled by the console, not for kiosks
+}
+
+// LiveTool is a tool that opens a device from the map.
+type LiveTool struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+	Kind string `json:"kind"` // built-in tool or "custom"
 }
 
 // LivePort is an interface with its latest traffic.

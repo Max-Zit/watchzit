@@ -507,6 +507,7 @@
         var acts = h("div", { "class": "row mt" });
         acts.appendChild(btn(T("Open device"), "/devices/" + n.device, "primary"));
         if (d.web) { var wa = btn(T("Open web interface"), d.web); wa.target = "_blank"; wa.rel = "noopener noreferrer"; acts.appendChild(wa); }
+        (d.tools || []).forEach(function (t) { acts.appendChild(btn(t.name, "/devices/" + n.device + "/open/" + t.id)); });
         p.appendChild(acts);
       }
     } else if (n.kind === "submap" && !kioskBase) {

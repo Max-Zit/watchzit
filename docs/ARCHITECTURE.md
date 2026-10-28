@@ -72,6 +72,7 @@ Browsers cannot start local programs. Proposal:
 - Safety: the first time a program path is used on a PC the launcher asks "Allow WatchZit to start C:\…\winbox.exe?" and remembers the answer locally — a compromised server cannot run arbitrary programs silently.
 - Without a code signing certificate SmartScreen will warn on download (same as the other products today).
 - Linux/macOS launcher later (xdg-open handler / app bundle).
+- **As built in 0.6:** as above, with these choices: pairing by clicking a watchzit://pair link (user confirms the fingerprint) instead of a code; the launcher is a self-installing per-user exe (MSI later); built-in tools are switchable and limited by device kind; per-device user and port overrides; .rdp download as the no-launcher fallback; links refused when the request is cross-site.
 
 ## 7. Console, security, operations (reuse from BackupZit/ControlZit)
 

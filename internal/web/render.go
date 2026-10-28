@@ -400,6 +400,17 @@ func init() {
 		return ""
 	}
 	funcs["isAgent"] = store.IsAgent
+	funcs["toolIcon"] = func(builtin string) string {
+		switch builtin {
+		case "ssh", "telnet":
+			return "terminal"
+		case "rdp", "vnc":
+			return "screen"
+		case "winbox":
+			return "network"
+		}
+		return "link"
+	}
 	funcs["severityName"] = severityName
 	funcs["list"] = func(xs ...string) []string { return xs }
 	funcs["minutes"] = minutesText
