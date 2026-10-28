@@ -521,6 +521,12 @@
         (d.links || []).forEach(function (l) { var la = btn(l.name, l.url); la.target = "_blank"; la.rel = "noopener noreferrer"; acts.appendChild(la); });
         (d.tools || []).forEach(function (t) { acts.appendChild(btn(t.name, "/devices/" + n.device + "/open/" + t.id)); });
         p.appendChild(acts);
+        if (d.tools && d.tools.length) {
+          // the tools need the Launcher paired with this console
+          var lp = h("p", { "class": "muted small" }, T("SSH, Remote Desktop and the other tools open through the WatchZit Launcher.") + " ");
+          lp.appendChild(h("a", { href: "/launcher" }, T("Set it up")));
+          p.appendChild(lp);
+        }
       }
     } else if (n.kind === "submap" && !kioskBase) {
       var acts2 = h("div", { "class": "row mt" });

@@ -37,6 +37,12 @@
   <form method="post" action="/account/sessions/signout" class="mt"><button class="secondary">{{.T "Sign out all other sessions"}}</button></form>
 </section>
 
+<section class="panel" id="launcher">
+  <h2>{{template "icon" "terminal"}}WatchZit Launcher</h2>
+  <p class="muted">{{.T "SSH, Remote Desktop, WinBox and the other tools open devices through the WatchZit Launcher on your Windows computer. Install it once and pair it with this console."}}</p>
+  <p><a class="btn secondary" href="/launcher">{{.T "Set up the Launcher"}}</a></p>
+</section>
+
 <section class="panel" id="api">
   <h2>{{template "icon" "key"}}{{.T "API tokens"}}</h2>
   <p class="muted">{{.T "Scripts and other systems use the REST API with a token. A token acts as you, with your role; keep it secret and revoke it when it is no longer needed."}}</p>
