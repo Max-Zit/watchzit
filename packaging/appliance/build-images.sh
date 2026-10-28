@@ -54,8 +54,12 @@ qemu-img convert -O vmdk -o subformat=streamOptimized,adapter_type=lsilogic "$di
 # 3. The OVA: an OVF descriptor (first), its manifest and the disk.
 vmdk_size=$(stat -c %s "$base-disk1.vmdk")
 capacity=$((gb * 1073741824))
-item() { # id type name quantity-or-extra
-    printf '      <Item>\n        <rasd:ElementName>%s</rasd:ElementName>\n        <rasd:InstanceID>%s</rasd:InstanceID>\n        <rasd:ResourceType>%s</rasd:ResourceType>\n%s      </Item>\n' "$3" "$1" "$2" "$4"
+# item writes one virtual hardware item. The rasd elements must come in the
+# schema's (alphabetical) order, or ESXi refuses the OVF.
+item() { # id type name extra-lines
+    printf '      <Item>\n'
+    printf '        <rasd:ElementName>%s</rasd:ElementName>\n        <rasd:InstanceID>%s</rasd:InstanceID>\n        <rasd:ResourceType>%s</rasd:ResourceType>\n%s' "$3" "$1" "$2" "$4" | LC_ALL=C sort
+    printf '      </Item>\n'
 }
 {
     cat <<EOF

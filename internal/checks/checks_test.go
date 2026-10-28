@@ -2,8 +2,8 @@ package checks
 
 import (
 	"context"
-	"fmt"
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
