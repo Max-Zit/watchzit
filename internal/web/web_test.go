@@ -727,7 +727,7 @@ func TestWebLinks(t *testing.T) {
 			t.Fatalf("device page lacks %s", want)
 		}
 	}
-	if r := c.get("/devices/1/edit"); strings.Count(r.body, `name="link_url"`) != 4 {
+	if r := c.get("/devices/1/edit"); strings.Count(r.body, `name="link_url"`) != 3 { // two links and the template row
 		t.Fatalf("form rows: %d", strings.Count(r.body, `name="link_url"`))
 	}
 	c.post("/maps", "name", "M")

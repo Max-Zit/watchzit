@@ -229,14 +229,6 @@ var funcs = template.FuncMap{
 		return "?"
 	},
 	"join": strings.Join,
-	// linkRows: the web links of a device and two empty rows to add more (at most 8)
-	"linkRows": func(l []store.WebLink) []store.WebLink {
-		out := append([]store.WebLink{}, l...)
-		for i := 0; i < 2 && len(out) < 8; i++ {
-			out = append(out, store.WebLink{})
-		}
-		return out
-	},
 	"deref64": func(p *int64) int64 {
 		if p == nil {
 			return 0

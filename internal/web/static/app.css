@@ -792,3 +792,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line-2)
 .mapsvg.vlanmode .link:not(.invlan) { display: none; }
 .mapsvg.vlanmode .node.n-device:not(.invlan) { opacity: .25; }
 .mapsvg.vlanmode .link.invlan .wire { stroke: var(--accent); }
+/* repeated form rows (web links): two fields and a remove button */
+.linkrow { grid-template-columns: 1fr 2fr auto; align-items: end; }
+.linkrow .iconbtn { margin-bottom: 6px; }
+[data-add-row] { justify-self: start; }
+@media (max-width: 560px) { .linkrow { grid-template-columns: 1fr auto; } .linkrow label:nth-child(2) { grid-column: 1; } .linkrow .iconbtn { grid-row: 1; grid-column: 2; } }
+/* buttons of the map's side panel (Metrics, web links, tools): some air */
+.mappanel .row { display: flex; flex-wrap: wrap; gap: 8px; }

@@ -103,6 +103,29 @@
     }
   });
 
+  // Repeated form rows (web links): + adds a row from the <template> next to
+  // the rows, × removes one; data-max limits the number of rows.
+  document.addEventListener("click", function (ev) {
+    var add = ev.target.closest("[data-add-row]");
+    if (add) {
+      var box = add.parentElement, rows = box.querySelector("[data-rows]"), tpl = box.querySelector("template[data-row-template]");
+      if (!rows || !tpl) return;
+      if (rows.children.length < (+add.getAttribute("data-max") || 20)) {
+        rows.appendChild(tpl.content.cloneNode(true));
+        var inputs = rows.lastElementChild.querySelectorAll("input");
+        if (inputs.length) inputs[0].focus();
+      }
+      add.hidden = rows.children.length >= (+add.getAttribute("data-max") || 20);
+      return;
+    }
+    var rm = ev.target.closest("[data-remove-row]");
+    if (rm) {
+      var box2 = rm.closest("fieldset"), b = box2 && box2.querySelector("[data-add-row]");
+      rm.parentElement.remove();
+      if (b) b.hidden = false;
+    }
+  });
+
   document.addEventListener("change", function (ev) {
     if (ev.target.matches("select[data-autosubmit],input[data-autosubmit]")) ev.target.form.submit();
   });

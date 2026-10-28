@@ -20,11 +20,18 @@
         <label>{{.T "Button name"}}<input name="web_name" value="{{.Data.In.WebName}}" maxlength="60" placeholder="{{.T "Open web interface"}}"></label>
         <label>{{.T "Web interface"}}<input name="web_url" value="{{.Data.In.WebURL}}" maxlength="500" class="mono" spellcheck="false" placeholder="https://192.168.1.1"></label>
       </div>
-      {{range linkRows .Data.In.WebLinks}}<div class="cols">
+      <div data-rows>{{range .Data.In.WebLinks}}<div class="cols linkrow">
         <label>{{$.T "Name"}}<input name="link_name" value="{{.Name}}" maxlength="60" placeholder="iDRAC"></label>
         <label>{{$.T "Address"}}<input name="link_url" value="{{.URL}}" maxlength="500" class="mono" spellcheck="false" placeholder="https://192.168.2.10"></label>
-      </div>{{end}}
-      <small class="muted">{{.T "Buttons on the device page and on maps: a second address, iDRAC or iLO, the page of a service. Save to get more empty rows."}}</small>
+        <button type="button" class="iconbtn" data-remove-row title="{{$.T "Remove"}}" aria-label="{{$.T "Remove"}}">×</button>
+      </div>{{end}}</div>
+      <template data-row-template><div class="cols linkrow">
+        <label>{{.T "Name"}}<input name="link_name" value="" maxlength="60" placeholder="iDRAC"></label>
+        <label>{{.T "Address"}}<input name="link_url" value="" maxlength="500" class="mono" spellcheck="false" placeholder="https://192.168.2.10"></label>
+        <button type="button" class="iconbtn" data-remove-row title="{{.T "Remove"}}" aria-label="{{.T "Remove"}}">×</button>
+      </div></template>
+      <button type="button" class="btn secondary sm" data-add-row data-max="8">{{template "icon" "plus"}}<span>{{.T "Add link"}}</span></button>
+      <small class="muted">{{.T "Buttons on the device page and on maps: a second address, iDRAC or iLO, the page of a service."}}</small>
     </fieldset>
     <fieldset class="box">
       <legend>{{.T "Remote access"}} <small class="muted">{{.T "optional"}}</small></legend>
