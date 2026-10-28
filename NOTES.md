@@ -87,6 +87,8 @@ A self-hosted web application for monitoring networks and devices: a mix of **Mi
 
 - **2026-10-28: map editor saves only on Save** (Stefan): edits are kept in the page until Save (or Ctrl+S); Cancel discards them (reloads the saved layout, keeps the view); Done is hidden while there are unsaved changes; the browser warns before leaving with unsaved changes. Picture uploads still go up at once (they are files), using them on the map needs Save. Checked in the dev console (cancel leaves the server layout untouched, save and Ctrl+S store it).
 
+- **2026-10-28: Stefan's test console wz-test** (Stefan asked: a VM on VMware he can test on, updated with every new version): ESXi 192.168.101.100 VM 8 "wz-test", Debian 12 (disk copied from esx-deb, 20 GB, 2 vCPU, 4 GB), static **192.168.101.195** via cloud-init seed (datastore1/wz-test), auto-start with the host. WatchZit server as systemd `watchzit-server` (embedded DB, --dev-no-2fa, CAP_NET_RAW), console https://192.168.101.195:8443, agents :8444; admin password in credentials.txt. **After every push to develop: `bash qa-lab/watchzit/deploy.sh`** (builds server + agents, copies the newest MSI from dist/, installs, restarts; version label develop-<commit>). ESXi was driven over its SOAP API (vCenter VM was off): helper qa-lab/watchzit/esx.sh — copy disk, extend, upload vmx/iso, RegisterVM, PowerOn, autostart. Lab guests CT 9801/9803 and CHR VMs 9800/9802 now start with Proxmox (onboot=1).
+
 ## Next steps
 
 1. Show Stefan 0.4 (agent); agent follow-ups when useful: processes, event logs, deb/rpm packages, signed agent self-update, MSI/exe code signing (needs Stefan's certificate).
