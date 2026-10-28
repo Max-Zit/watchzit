@@ -267,7 +267,7 @@ func (s *Server) handleDeviceForm(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		d.ID = dev.ID
-		d.In = store.DeviceInput{GroupID: deref(dev.GroupID), Name: dev.Name, Address: dev.Address, Kind: dev.Kind, WebURL: dev.WebURL, Notes: dev.Notes, Paused: dev.Paused, SNMP: dev.SNMPProfile, Parent: dev.Parent}
+		d.In = store.DeviceInput{GroupID: deref(dev.GroupID), Name: dev.Name, Address: dev.Address, Kind: dev.Kind, WebURL: dev.WebURL, WebName: dev.WebName, WebLinks: dev.WebLinks, Notes: dev.Notes, Paused: dev.Paused, SNMP: dev.SNMPProfile, Parent: dev.Parent}
 		var err error
 		if d.Access, err = s.store.DeviceAccess(r.Context(), dev.ID); err != nil {
 			s.serverError(w, r, err)
@@ -324,11 +324,21 @@ func (s *Server) showDeviceForm(w http.ResponseWriter, r *http.Request, status i
 }
 
 func deviceInput(r *http.Request) store.DeviceInput {
+	_ = r.ParseForm() // for the repeated link fields
 	g, _ := strconv.ParseInt(r.FormValue("group"), 10, 64)
 	sp, _ := strconv.ParseInt(r.FormValue("snmp"), 10, 64)
 	pa, _ := strconv.ParseInt(r.FormValue("parent"), 10, 64)
+	var links []store.WebLink
+	names, urls := r.Form["link_name"], r.Form["link_url"]
+	for i := 0; i < len(urls) && i < 20; i++ {
+		l := store.WebLink{URL: urls[i]}
+		if i < len(names) {
+			l.Name = names[i]
+		}
+		links = append(links, l)
+	}
 	return store.DeviceInput{GroupID: g, SNMP: sp, Parent: pa, Name: r.FormValue("name"), Address: r.FormValue("address"), Kind: r.FormValue("kind"),
-		WebURL: r.FormValue("web_url"), Notes: r.FormValue("notes"), Paused: r.FormValue("paused") == "1"}
+		WebURL: r.FormValue("web_url"), Notes: r.FormValue("notes"), Paused: r.FormValue("paused") == "1", WebName: r.FormValue("web_name"), WebLinks: links}
 }
 
 // parsePorts reads "22, 80 443" into ports.

@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"errors"
 	"sort"
 	"strconv"
 )
@@ -10,6 +11,7 @@ import (
 const (
 	VLANFromSNMP     = "snmp"
 	VLANFromRouterOS = "routeros"
+	VLANFromAgent    = "agent"
 )
 
 // VLANPort is one VLAN on one port of a device (IfIndex 0: the device knows
@@ -152,4 +154,31 @@ func appendNew(list []string, s string) []string {
 		}
 	}
 	return append(list, s)
+}
+
+// cleanLinkVLANs checks the VLANs set by hand on a map cable: numbers
+// 1–4094, each once, at most one untagged, at most 64.
+func cleanLinkVLANs(in []PortVLAN) ([]PortVLAN, error) {
+	if len(in) > 64 {
+		return nil, errors.New("a cable can have at most 64 VLANs")
+	}
+	out, seen, untagged := []PortVLAN{}, map[int]bool{}, 0
+	for _, v := range in {
+		if v.ID < 1 || v.ID > 4094 {
+			return nil, errors.New("a VLAN is a number from 1 to 4094")
+		}
+		if seen[v.ID] {
+			continue
+		}
+		seen[v.ID] = true
+		if !v.Tagged {
+			untagged++
+		}
+		out = append(out, v)
+	}
+	if untagged > 1 {
+		return nil, errors.New("a cable carries at most one untagged VLAN")
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
+	return out, nil
 }

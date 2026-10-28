@@ -118,6 +118,7 @@ type Net struct {
 	OutBps *float64 `json:"out_bps,omitempty"`
 	InErr  *float64 `json:"in_err,omitempty"`
 	OutErr *float64 `json:"out_err,omitempty"`
+	VLANs  []int    `json:"vlans,omitempty"` // VLANs the port carries tagged (VLAN interfaces on it)
 }
 
 // Service is the state of a watched service.

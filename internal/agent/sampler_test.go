@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"runtime"
 	"testing"
 	"time"
@@ -54,5 +55,13 @@ func TestEnrollCode(t *testing.T) {
 	}
 	if _, err := ParseEnrollCode("CZ1-xyz"); err == nil {
 		t.Fatal("foreign code accepted")
+	}
+}
+
+func TestParseProcVLAN(t *testing.T) {
+	in := "VLAN Dev name    | VLAN ID\nName-Type: VLAN_NAME_TYPE_RAW_PLUS_VID_NO_PAD\neth0.20        | 20  | eth0\neth0.10        | 10  | eth0\nbond0.300      | 300  | bond0\nbad | x | eth1\n"
+	got := parseProcVLAN(in)
+	if fmt.Sprint(got) != "map[bond0:[300] eth0:[10 20]]" {
+		t.Fatal(got)
 	}
 }

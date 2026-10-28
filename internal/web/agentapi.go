@@ -35,6 +35,7 @@ type agentConn struct {
 	ws       *websocket.Conn
 	cancel   context.CancelFunc
 	ifsHash  string // the interfaces last stored for the map
+	vlanHash string // the VLANs last stored
 }
 
 func newHub() *hub { return &hub{conns: map[int64]*agentConn{}} }
@@ -378,11 +379,17 @@ func (s *Server) agentReport(ctx context.Context, c *agentConn, r *proto.Report)
 			map[string]float64{"used_pct": pct(d.Used, d.Total), "used_b": float64(d.Used)})
 	}
 	var ifs []store.Interface
+	var vlans []store.VLANPort
 	for i, n := range r.Nets {
 		if i >= 64 {
 			break
 		}
 		ifs = append(ifs, store.Interface{Index: n.Index, Name: n.Name, Descr: n.Alias, MAC: n.MAC, Speed: n.Speed, AdminUp: true, OperUp: n.Up})
+		for j, id := range n.VLANs {
+			if j < 64 {
+				vlans = append(vlans, store.VLANPort{VLAN: id, IfIndex: n.Index, Tagged: true})
+			}
+		}
 		x := byKey[key(store.CheckAgentNet, store.CheckParams{IfIndex: n.Index})]
 		if x == nil && (n.Up || (n.InBps != nil && *n.InBps > 0)) && n.MAC != "" {
 			x = ensure(store.CheckAgentNet, store.CheckParams{IfIndex: n.Index, IfName: n.Name}, n.Name)
@@ -428,6 +435,12 @@ func (s *Server) agentReport(ctx context.Context, c *agentConn, r *proto.Report)
 			return err
 		}
 		c.ifsHash = string(h)
+	}
+	if v, _ := json.Marshal(vlans); string(v) != c.vlanHash {
+		if err := s.store.SetDeviceVLANs(ctx, c.deviceID, store.VLANFromAgent, vlans); err != nil {
+			return err
+		}
+		c.vlanHash = string(v)
 	}
 	if created {
 		s.log.Info("agent checks added", "device", c.deviceID)

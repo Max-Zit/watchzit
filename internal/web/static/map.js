@@ -1,4 +1,9 @@
-// WatchZit network map: a drawing of the network that is live monitoring.
+      if (kioskBase) return false;
+      var n = nodeByID(+nodeEl.getAttribute("data-node"));
+      var to = n && n.kind === "device" ? "/devices/" + n.device : n && n.kind === "submap" ? "/maps/" + n.submap : "";
+      if (!to || (editing && n.kind === "submap")) return false;
+      // while editing: in a new tab, so the unsaved drawing stays
+      if (editing) window.open(to, "_blank", "noopener"); else location.href = to;// WatchZit network map: a drawing of the network that is live monitoring.
 // Devices are pictures (built-in drawings or uploaded ones) placed by drag
 // and drop, mounted in racks, and linked port to port by cables of
 // different kinds that can bend at 90° or 45°. Colours show their state,
@@ -405,7 +410,7 @@
     var cls = "link k-" + (k.kind || "ethernet") + (s.down ? " down" : "") + (selected && selected.type === "link" && selected.id === k.id ? " sel" : "");
     if (!s.down && s.known) cls += s.util > 0.8 ? " u3" : s.util > 0.5 ? " u2" : "";
     cls += onPath("links", k.id);
-    if (vlan && (portVLAN(s.a, vlan) || portVLAN(s.b, vlan))) cls += " invlan";
+    if (vlan && findVLAN(linkVLANs(k, s), vlan)) cls += " invlan";
     var g = el("g", { "class": cls, "data-link": k.id }, gLinks);
     var d = pathD(pts), w = 2.2 + Math.min(7, s.util * 9);
     if (k.kind === "fiber" || k.kind === "fiber-sm") w += 0.6;
@@ -416,8 +421,8 @@
     // port names near both ends, traffic in the middle (cables are drawn over
   // the pictures, like patch cords in front of a rack)
     var endA = box(a), endB = box(b);
-    var offA = anchor(a, slotOf(k, "a")).port ? 11 : Math.min(len * 0.4, Math.max(endA.w, endA.h) / 2 + 22);
-    var offB = anchor(b, slotOf(k, "b")).port ? 11 : Math.min(len * 0.4, Math.max(endB.w, endB.h) / 2 + 22);
+    var offA = anchor(a, slotOf(k, "a")).port ? 9 : Math.min(len * 0.4, Math.max(endA.w, endA.h) / 2 + 22);
+    var offB = anchor(b, slotOf(k, "b")).port ? 9 : Math.min(len * 0.4, Math.max(endB.w, endB.h) / 2 + 22);
     var nameA = s.a ? s.a.name : k.a_slot ? slotName(a, k.a_slot) : "";
     var nameB = s.b ? s.b.name : k.b_slot ? slotName(b, k.b_slot) : "";
     if (len < 70) nameA = nameB = ""; // a short patch cord: the panel names its ports
@@ -425,7 +430,7 @@
     if (nameB) { var pb = pointAlong(pts, len - offB); label(g, "port", pb.x, pb.y, nameB); }
     var text = k.label || "";
     if (vlan) {
-      var pv = portVLAN(s.a, vlan) || portVLAN(s.b, vlan);
+      var pv = findVLAN(linkVLANs(k, s), vlan);
       text = "VLAN " + vlan + (pv ? " · " + (pv.tagged ? T("tagged") : T("untagged")) : "");
     } else if (s.ab !== null && s.ab !== undefined && len > 190) text = (text ? text + "  " : "") + "→ " + bits(s.ab) + "  ← " + bits(s.ba);
     if (text) { var mid = pointAlong(pts, len / 2); label(g, "traffic", mid.x, mid.y, text); }
@@ -517,7 +522,8 @@
       if (!kioskBase) {
         var acts = h("div", { "class": "row mt" });
         acts.appendChild(btn(T("Open device"), "/devices/" + n.device, "primary"));
-        if (d.web) { var wa = btn(T("Open web interface"), d.web); wa.target = "_blank"; wa.rel = "noopener noreferrer"; acts.appendChild(wa); }
+        if (d.web) { var wa = btn(d.web_name || T("Open web interface"), d.web); wa.target = "_blank"; wa.rel = "noopener noreferrer"; acts.appendChild(wa); }
+        (d.links || []).forEach(function (l) { var la = btn(l.name, l.url); la.target = "_blank"; la.rel = "noopener noreferrer"; acts.appendChild(la); });
         (d.tools || []).forEach(function (t) { acts.appendChild(btn(t.name, "/devices/" + n.device + "/open/" + t.id)); });
         p.appendChild(acts);
       }
@@ -636,8 +642,8 @@
       row(dl2, nodeName(b) + " → " + nodeName(a), bits(s.ba));
     }
     if (s.speed) row(dl2, T("Speed"), bits(s.speed));
-    var vl = vlanText(s.a) || vlanText(s.b);
-    if (vl) row(dl2, T("VLANs"), vl);
+    var vl = vlanText(linkVLANs(k, s));
+    if (vl) row(dl2, T("VLANs"), vl + (k.vlans && k.vlans.length ? "" : " · " + T("detected")));
     p.appendChild(dl2);
     if (editing) {
       field(p, T("Cable"), select(["ethernet", "fiber", "fiber-sm", "dac", "wireless", "vpn", "wan", "serial", "power"].map(function (x) { return [x, T("cable:" + x)]; }), k.kind || "ethernet", function (v) { k.kind = v; render(); changed(); showSelection(); }));
@@ -645,11 +651,13 @@
       p.appendChild(h("p", { "class": "muted small" }, T("Drag the + points to bend the cable; drag the round points to move a bend; double-click a point to remove it.")));
       var ll = field(p, T("Label"), h("input", { value: k.label || "", maxlength: "100" }));
       ll.addEventListener("input", function () { k.label = ll.value; render(); changed(); });
+      vlanFields(p, k, s);
     }
     if (!kioskBase) {
       var acts = h("div", { "class": "row mt" });
-      if (s.a && s.a.check) acts.appendChild(btn(T("Open device"), "/devices/" + a.device + "#graph-" + s.a.check, "secondary"));
-      else if (s.b && s.b.check) acts.appendChild(btn(T("Open device"), "/devices/" + b.device + "#graph-" + s.b.check, "secondary"));
+      // the port graphs of each end on its device page
+      if (s.a && s.a.check) acts.appendChild(btn(T("Graphs") + " · " + nodeName(a), "/devices/" + a.device + "#graph-" + s.a.check, "secondary"));
+      if (s.b && s.b.check) acts.appendChild(btn(T("Graphs") + " · " + nodeName(b), "/devices/" + b.device + "#graph-" + s.b.check, "secondary"));
       p.appendChild(acts);
     }
   }
@@ -925,28 +933,60 @@
     for (var i = 0; i < p.vlans.length; i++) if (p.vlans[i].id === id) return p.vlans[i];
     return null;
   }
-  function vlanText(p) {
-    if (!p || !p.vlans || !p.vlans.length) return "";
-    return p.vlans.map(function (v) { return v.id + (v.tagged ? " (T)" : " (U)"); }).join(", ");
+  function findVLAN(list, id) {
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+  // linkVLANs: the VLANs set by hand on a cable, or else those its ports report
+  function linkVLANs(k, s) {
+    if (k.vlans && k.vlans.length) return k.vlans;
+    var out = [];
+    [s.a, s.b].forEach(function (p) { ((p && p.vlans) || []).forEach(function (v) { if (!findVLAN(out, v.id)) out.push(v); }); });
+    return out.sort(function (x, y) { return x.id - y.id; });
+  }
+  function vlanText(list) {
+    if (!list.length) return "";
+    return list.map(function (v) { return v.id + (v.tagged ? " (T)" : " (U)"); }).join(", ");
   }
   function deviceInVLAN(n, id) {
     var ports = n.kind === "device" && live.ports ? live.ports[n.device] : null;
     for (var k in ports || {}) if (portVLAN(ports[k], id)) return true;
-    return false;
+    return layout.links.some(function (l) { return (l.a === n.id || l.b === n.id) && findVLAN(l.vlans || [], id); });
   }
   // syncVLANs fills the VLAN list when the VLANs on the map change
   function syncVLANs() {
     if (!vlanSel) return;
-    var ids = Object.keys(live.vlans || {}).map(Number).sort(function (a, b) { return a - b; });
-    var key = ids.map(function (id) { return id + ":" + live.vlans[id]; }).join(",");
+    var names = live.vlans || {}, seen = {};
+    Object.keys(names).forEach(function (id) { seen[id] = true; });
+    layout.links.forEach(function (k) { (k.vlans || []).forEach(function (v) { seen[v.id] = true; }); });
+    var ids = Object.keys(seen).map(Number).sort(function (a, b) { return a - b; });
+    var key = ids.map(function (id) { return id + ":" + (names[id] || ""); }).join(",");
     vlanSel.hidden = !ids.length;
     if (key === vlanKey) return;
     vlanKey = key;
     vlanSel.innerHTML = "";
     vlanSel.appendChild(h("option", { value: "0" }, T("All VLANs")));
-    ids.forEach(function (id) { vlanSel.appendChild(h("option", { value: String(id) }, "VLAN " + id + (live.vlans[id] ? " · " + live.vlans[id] : ""))); });
+    ids.forEach(function (id) { vlanSel.appendChild(h("option", { value: String(id) }, "VLAN " + id + (names[id] ? " · " + names[id] : ""))); });
     if (vlan && ids.indexOf(vlan) < 0) vlan = 0;
     vlanSel.value = String(vlan);
+  }
+  // vlanFields: the VLANs of a cable set by hand ("10, 20" tagged, one untagged)
+  function vlanFields(p, k, s) {
+    var list = k.vlans || [];
+    var tagged = field(p, T("Tagged VLANs"), h("input", { value: list.filter(function (v) { return v.tagged; }).map(function (v) { return v.id; }).join(", "), placeholder: "10, 20", inputmode: "numeric" }));
+    var plain = field(p, T("Untagged VLAN"), h("input", { value: list.filter(function (v) { return !v.tagged; }).map(function (v) { return v.id; }).join(""), placeholder: "1", inputmode: "numeric" }));
+    var auto = linkVLANs({}, s);
+    p.appendChild(h("p", { "class": "muted small" }, T("Leave empty to use the VLANs the ports report.") + (auto.length ? " " + T("Detected:") + " " + vlanText(auto) : "")));
+    function update() {
+      var out = [];
+      tagged.value.split(/[^0-9]+/).forEach(function (x) { var id = +x; if (id >= 1 && id <= 4094 && !findVLAN(out, id)) out.push({ id: id, tagged: true }); });
+      var u = +plain.value.replace(/[^0-9]/g, "");
+      if (u >= 1 && u <= 4094 && !findVLAN(out, u)) out.push({ id: u });
+      k.vlans = out.sort(function (x, y) { return x.id - y.id; });
+      syncVLANs(); render(); changed();
+    }
+    tagged.addEventListener("change", update);
+    plain.addEventListener("change", update);
   }
   if (vlanSel) vlanSel.addEventListener("change", function () { vlan = +vlanSel.value; render(); });
 
@@ -1105,7 +1145,7 @@
     // Double clicks and taps are recognised here: the pointer capture makes
     // the browser's dblclick land on the whole drawing, not on what was hit.
     var key = handle ? "h" + handle.getAttribute("data-handle") : addh ? "a" : nodeEl ? "n" + nodeEl.getAttribute("data-node") : linkEl ? "l" : "bg";
-    var now = Date.now(), dbl = lastTap && lastTap.key === key && now - lastTap.t < 400 && Math.abs(p.x - lastTap.x) + Math.abs(p.y - lastTap.y) < 12;
+    var now = Date.now(), dbl = lastTap && lastTap.key === key && now - lastTap.t < 500 && Math.abs(p.x - lastTap.x) + Math.abs(p.y - lastTap.y) < 12;
     lastTap = dbl ? null : { key: key, t: now, x: p.x, y: p.y };
     if (dbl && doubleTap(handle, nodeEl, linkEl || addh, p)) { drag = null; return; }
     if (editing && handle && selected) {
@@ -1222,11 +1262,12 @@
       return true;
     }
     if (nodeEl) {
-      if (editing || kioskBase) return false;
+      if (kioskBase) return false;
       var n = nodeByID(+nodeEl.getAttribute("data-node"));
-      if (n && n.kind === "device") location.href = "/devices/" + n.device;
-      else if (n && n.kind === "submap") location.href = "/maps/" + n.submap;
-      else return false;
+      var to = n && n.kind === "device" ? "/devices/" + n.device : n && n.kind === "submap" ? "/maps/" + n.submap : "";
+      if (!to || (editing && n.kind === "submap")) return false;
+      // while editing: in a new tab, so the unsaved drawing stays
+      if (editing) window.open(to, "_blank", "noopener"); else location.href = to;
       return true;
     }
     if (linkEl) return false;

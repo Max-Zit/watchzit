@@ -648,6 +648,22 @@ func TestMaps(t *testing.T) {
 	if r := c.get("/devices/1"); !strings.Contains(r.body, "<td>mgmt</td><td>ether2</td><td></td>") || !strings.Contains(r.body, "<td>voice</td><td></td><td>ether2</td>") {
 		t.Fatalf("device VLANs: %s", r.body)
 	}
+	// VLANs set by hand on a cable: kept sorted and once; bad ones refused
+	withVLANs := saved
+	withVLANs.Links = []store.MapLink{saved.Links[0]}
+	withVLANs.Links[0].VLANs = []store.PortVLAN{{ID: 20, Tagged: true}, {ID: 1}, {ID: 20, Tagged: true}}
+	if r := c.postJSON("/maps/1/layout", withVLANs); r.code != http.StatusOK || !strings.Contains(r.body, `"vlans":[{"id":1},{"id":20,"tagged":true}]`) {
+		t.Fatalf("cable VLANs: %d %s", r.code, r.body)
+	}
+	for _, bad := range [][]store.PortVLAN{{{ID: 5000}}, {{ID: 1}, {ID: 2}}} {
+		withVLANs.Links[0].VLANs = bad
+		if r := c.postJSON("/maps/1/layout", withVLANs); r.code != http.StatusBadRequest {
+			t.Fatalf("bad cable VLANs %v accepted: %d", bad, r.code)
+		}
+	}
+	if r := c.get("/maps/1/layout"); !strings.Contains(r.body, `"vlans":[{"id":1},{"id":20,"tagged":true}]`) {
+		t.Fatalf("cable VLANs not kept: %s", r.body)
+	}
 	// submaps: the parent shows the worst state inside
 	c.post("/maps", "name", "Branch")
 	if r := c.postJSON("/maps/2/layout", store.MapLayout{Nodes: []store.MapNode{{ID: -1, Kind: "device", DeviceID: 2}, {ID: -2, Kind: "submap", SubmapID: 1}}}); r.code != http.StatusOK {
@@ -687,5 +703,39 @@ func TestMaps(t *testing.T) {
 	}
 	if r := c.post("/maps/1/delete"); r.code != http.StatusSeeOther {
 		t.Fatalf("delete: %d", r.code)
+	}
+}
+
+// A device's web links: the main button can be renamed, more links are kept
+// in order (empty rows dropped, a nameless one named after its host) and
+// shown on the device page and the map; a bad address is refused.
+func TestWebLinks(t *testing.T) {
+	e := newEnv(t)
+	c, _ := e.setupAdmin("192.168.1.10")
+	c.post("/devices/new", "name", "srv1", "address", "10.0.0.5")
+	r := c.post("/devices/1/edit", "name", "srv1", "address", "10.0.0.5", "kind", "server",
+		"web_url", "https://10.0.0.5", "web_name", "Proxmox",
+		"link_name", "iDRAC", "link_url", "https://10.0.9.5",
+		"link_name", "", "link_url", "https://192.168.2.10:8443/x",
+		"link_name", "", "link_url", "")
+	if r.code != http.StatusSeeOther {
+		t.Fatalf("save: %d %s", r.code, r.body)
+	}
+	r = c.get("/devices/1")
+	for _, want := range []string{`href="https://10.0.0.5"`, ">Proxmox</a>", `href="https://10.0.9.5"`, ">iDRAC</a>", ">192.168.2.10:8443</a>"} {
+		if !strings.Contains(r.body, want) {
+			t.Fatalf("device page lacks %s", want)
+		}
+	}
+	if r := c.get("/devices/1/edit"); strings.Count(r.body, `name="link_url"`) != 4 {
+		t.Fatalf("form rows: %d", strings.Count(r.body, `name="link_url"`))
+	}
+	c.post("/maps", "name", "M")
+	c.postJSON("/maps/1/layout", store.MapLayout{Nodes: []store.MapNode{{ID: -1, Kind: "device", DeviceID: 1}}})
+	if r := c.get("/maps/1/live"); !strings.Contains(r.body, `"web_name":"Proxmox","links":[{"name":"iDRAC","url":"https://10.0.9.5"}`) {
+		t.Fatalf("map links: %s", r.body)
+	}
+	if r := c.post("/devices/1/edit", "name", "srv1", "address", "10.0.0.5", "kind", "server", "link_name", "x", "link_url", "javascript:alert(1)"); r.code != http.StatusBadRequest {
+		t.Fatalf("bad link accepted: %d", r.code)
 	}
 }

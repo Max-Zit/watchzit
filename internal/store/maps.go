@@ -64,6 +64,7 @@ type MapLink struct {
 	Label  string       `json:"label,omitempty"`
 	Route  string       `json:"route,omitempty"`
 	Points [][2]float64 `json:"points,omitempty"`
+	VLANs  []PortVLAN   `json:"vlans,omitempty"` // set by hand
 }
 
 // MapBackground is a picture under the map.
@@ -252,18 +253,19 @@ func (s *Store) MapLayout(ctx context.Context, id int64) (*MapLayout, error) {
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	rows, err = s.db.Query(ctx, `SELECT id, a_node, b_node, COALESCE(a_if,0), COALESCE(b_if,0), a_slot, b_slot, kind, label, route, points FROM map_links WHERE map_id=$1 ORDER BY id`, id)
+	rows, err = s.db.Query(ctx, `SELECT id, a_node, b_node, COALESCE(a_if,0), COALESCE(b_if,0), a_slot, b_slot, kind, label, route, points, vlans FROM map_links WHERE map_id=$1 ORDER BY id`, id)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var k MapLink
-		var pts []byte
-		if err := rows.Scan(&k.ID, &k.A, &k.B, &k.AIf, &k.BIf, &k.ASlot, &k.BSlot, &k.Kind, &k.Label, &k.Route, &pts); err != nil {
+		var pts, vls []byte
+		if err := rows.Scan(&k.ID, &k.A, &k.B, &k.AIf, &k.BIf, &k.ASlot, &k.BSlot, &k.Kind, &k.Label, &k.Route, &pts, &vls); err != nil {
 			return nil, err
 		}
 		_ = json.Unmarshal(pts, &k.Points)
+		_ = json.Unmarshal(vls, &k.VLANs)
 		l.Links = append(l.Links, k)
 	}
 	return l, rows.Err()
@@ -453,6 +455,10 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 		if len(k.Points) > 50 {
 			return nil, errors.New("a link can have at most 50 bends")
 		}
+		if k.VLANs, err = cleanLinkVLANs(k.VLANs); err != nil {
+			return nil, err
+		}
+		vls, _ := json.Marshal(k.VLANs)
 		for _, p := range k.Points {
 			if badCoord(p[0], p[1]) {
 				return nil, errors.New("a node lies outside the map")
@@ -463,8 +469,8 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 			pts, _ = json.Marshal(k.Points)
 		}
 		k.A, k.B = a, b
-		if err := tx.QueryRow(ctx, `INSERT INTO map_links(map_id, a_node, b_node, a_if, b_if, a_slot, b_slot, kind, label, route, points) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
-			mapID, a, b, intPtr(k.AIf), intPtr(k.BIf), k.ASlot, k.BSlot, k.Kind, k.Label, k.Route, pts).Scan(&k.ID); err != nil {
+		if err := tx.QueryRow(ctx, `INSERT INTO map_links(map_id, a_node, b_node, a_if, b_if, a_slot, b_slot, kind, label, route, points, vlans) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,
+			mapID, a, b, intPtr(k.AIf), intPtr(k.BIf), k.ASlot, k.BSlot, k.Kind, k.Label, k.Route, pts, vls).Scan(&k.ID); err != nil {
 			return nil, err
 		}
 		out.Links = append(out.Links, k)
@@ -502,6 +508,8 @@ type LiveDevice struct {
 	Kind       string     `json:"kind"`
 	Status     string     `json:"status"`
 	WebURL     string     `json:"web,omitempty"`
+	WebName    string     `json:"web_name,omitempty"`
+	WebLinks   []WebLink  `json:"links,omitempty"`
 	ChecksDown int        `json:"down"`
 	Checks     int        `json:"checks"`
 	Vendor     string     `json:"vendor,omitempty"`
@@ -617,7 +625,7 @@ func (s *Store) MapLiveData(ctx context.Context, l *MapLayout) (*MapLive, error)
 		}
 	}
 	if len(ids) > 0 {
-		rows, err := s.db.Query(ctx, `SELECT d.id, d.name, d.address, d.kind, d.status, d.web_url, COALESCE(d.facts->>'vendor',''),
+		rows, err := s.db.Query(ctx, `SELECT d.id, d.name, d.address, d.kind, d.status, d.web_url, d.web_name, d.web_links, COALESCE(d.facts->>'vendor',''),
 			(SELECT count(*) FROM checks c WHERE c.device_id=d.id), (SELECT count(*) FROM checks c WHERE c.device_id=d.id AND c.status='down' AND NOT c.paused)
 			FROM devices d WHERE d.id = ANY($1)`, ids)
 		if err != nil {
@@ -625,10 +633,12 @@ func (s *Store) MapLiveData(ctx context.Context, l *MapLayout) (*MapLive, error)
 		}
 		for rows.Next() {
 			d := &LiveDevice{}
-			if err := rows.Scan(&d.ID, &d.Name, &d.Address, &d.Kind, &d.Status, &d.WebURL, &d.Vendor, &d.Checks, &d.ChecksDown); err != nil {
+			var links []byte
+			if err := rows.Scan(&d.ID, &d.Name, &d.Address, &d.Kind, &d.Status, &d.WebURL, &d.WebName, &links, &d.Vendor, &d.Checks, &d.ChecksDown); err != nil {
 				rows.Close()
 				return nil, err
 			}
+			_ = json.Unmarshal(links, &d.WebLinks)
 			live.Devices[d.ID] = d
 		}
 		rows.Close()

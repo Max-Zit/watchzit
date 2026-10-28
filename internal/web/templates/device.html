@@ -5,7 +5,8 @@
 <div class="titlebar">
   <h1>{{$d.Name}} {{template "status" (statusOf $ $d.Status)}}</h1>
   <div class="row">
-    {{with $d.WebURL}}<a class="btn secondary" href="{{.}}" target="_blank" rel="noopener noreferrer">{{template "icon" "globe"}}{{$.T "Open web interface"}}</a>{{end}}
+    {{with $d.WebURL}}<a class="btn secondary" href="{{.}}" target="_blank" rel="noopener noreferrer">{{template "icon" "globe"}}{{with $d.WebName}}{{.}}{{else}}{{$.T "Open web interface"}}{{end}}</a>{{end}}
+    {{range $d.WebLinks}}<a class="btn secondary" href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{template "icon" "globe"}}{{.Name}}</a>{{end}}
     {{if .User.CanWrite}}<a class="btn secondary" href="/devices/{{$d.ID}}/edit">{{template "icon" "settings"}}{{.T "Edit"}}</a>{{end}}
   </div>
 </div>

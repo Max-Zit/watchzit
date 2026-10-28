@@ -131,6 +131,14 @@ A self-hosted web application for monitoring networks and devices: a mix of **Mi
   - **Path** (toolbar): click two devices → only the shortest chain of cables between them (with patch panels/switches and their racks), zoomed to fit; Esc or Path again shows everything.
   - **VLANs**: migration 010 `device_vlans` (device, source snmp|routeros, VLAN, ifIndex, name, tagged). SNMP Q-BRIDGE-MIB in the hourly SNMP refresh (current tables preferred, bridge port → ifIndex, PVID as untagged member, nothing without a VLAN table); RouterOS REST `/interface/bridge/vlan` + `/interface/vlan` names after a successful RouterOS check, every 10 min, ports matched by interface name. Map: VLAN list in the toolbar (only when there are VLANs), one VLAN shows only its cables (label "VLAN 10 · tagged") and fades other devices; cable panel lists port VLANs; device page has a VLAN table (tagged/untagged ports). Guide (maps, devices) en+sr updated.
   - Lab: both CHRs got bridge `br-lab` on ether2 with VLAN filtering (VLAN 10 vlan10-mgmt, VLAN 20 vlan20-voice tagged; the 10.98.0.x/30 address moved to the bridge, link still pings) and a read-only REST user **wzmon** (password in credentials.txt). Dev console: RouterOS checks 35/36 with wzmon; VLANs 1/10/20 appear on ether2 of both.
+- **2026-10-28 late: Stefan's feedback on the map round** (labels "a bit smaller", double-click on a device did not open it for him, manual VLANs, VLANs from agents/SNMP, rename "Open device", several web links).
+  - Port names on cables 3.6 units (picture size), 9 units from the port.
+  - Double-click: window 500 ms (Windows default); while editing a device opens in a new tab (unsaved drawing kept). Most likely Stefan was still in edit mode, where it did nothing.
+  - **Manual VLANs on a cable** (migration 011 `map_links.vlans`): edit panel fields "Tagged VLANs" (10, 20) and "Untagged VLAN"; they replace the ports' VLANs for that cable; validated (1–4094, at most one untagged, 64 max); in the VLAN list, filter and device fading.
+  - **Cisco Catalyst over SNMP**: CISCO-VTP-MIB names, vmVlan access ports (untagged), trunk ports (allowed VLANs 0–4095 bitmaps, native VLAN untagged), 1002–1005 skipped; used when Q-BRIDGE has no table.
+  - **Agents report VLANs**: proto.Net.VLANs; Linux `/proc/net/vlan/config` (eth0.10 → VLAN 10 tagged on eth0), Windows adapter registry `VlanID` matched by InterfaceGuid; stored as source "agent" when changed.
+  - Cable panel button "Open device" → **"Graphs · <device>"** for each end with a port graph.
+  - **Web links** (migration 011 `devices.web_name`, `web_links`): the main web interface button can be renamed; up to 8 more named links (second IP, iDRAC/iLO, service pages), http/https only, nameless ones named after the host; device form "Web links" (two empty rows each save), device page buttons, map device panel buttons.
 
 ## Next steps
 

@@ -5,6 +5,8 @@ import (
 	"os"
 	"runtime"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -19,6 +21,7 @@ type netCounter struct {
 	Up                bool
 	InBytes, OutBytes uint64
 	InErr, OutErr     uint64
+	VLANs             []int // tagged VLANs on the port
 }
 
 // Sampler takes the reports; it keeps the previous counters to turn them
@@ -64,7 +67,7 @@ func (s *Sampler) Sample(ctx context.Context, services []string) *proto.Report {
 	cur := map[int]netCounter{}
 	for _, c := range ncs {
 		cur[c.Index] = c
-		n := proto.Net{Index: c.Index, Name: c.Name, Alias: c.Alias, MAC: c.MAC, Speed: c.Speed, Up: c.Up}
+		n := proto.Net{Index: c.Index, Name: c.Name, Alias: c.Alias, MAC: c.MAC, Speed: c.Speed, Up: c.Up, VLANs: c.VLANs}
 		if old, ok := s.prev[c.Index]; ok && !s.prevAt.IsZero() {
 			n.InBps = rate(c.InBytes, old.InBytes, dt, 8)
 			n.OutBps = rate(c.OutBytes, old.OutBytes, dt, 8)
@@ -89,4 +92,26 @@ func CollectInventory(ctx context.Context) *proto.Inventory {
 	platformInventory(ctx, inv)
 	inv.Addresses = localAddresses()
 	return inv
+}
+
+// parseProcVLAN reads Linux's /proc/net/vlan/config ("eth0.10 | 10 | eth0"
+// after two header lines): the VLANs on each parent interface.
+func parseProcVLAN(s string) map[string][]int {
+	out := map[string][]int{}
+	for _, line := range strings.Split(s, "\n") {
+		f := strings.Split(line, "|")
+		if len(f) != 3 {
+			continue
+		}
+		id, err := strconv.Atoi(strings.TrimSpace(f[1]))
+		parent := strings.TrimSpace(f[2])
+		if err != nil || id < 1 || id > 4094 || parent == "" {
+			continue
+		}
+		out[parent] = append(out[parent], id)
+	}
+	for p := range out {
+		sort.Ints(out[p])
+	}
+	return out
 }

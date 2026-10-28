@@ -114,6 +114,8 @@ type Device struct {
 	Address     string
 	Kind        string
 	WebURL      string
+	WebName     string    // label of the web interface button ("" = the default)
+	WebLinks    []WebLink // more links
 	Notes       string
 	Paused      bool
 	SNMPProfile int64 // 0 = none
@@ -126,12 +128,14 @@ type Device struct {
 	ChecksDown  int
 }
 
-const deviceCols = `d.id, d.group_id, COALESCE(g.name,''), d.name, d.address, d.kind, d.web_url, d.notes, d.paused, COALESCE(d.snmp_profile_id,0), COALESCE(d.parent_id,0), COALESCE((SELECT p.name FROM devices p WHERE p.id=d.parent_id),''), d.status, d.status_since, d.created_at,
+const deviceCols = `d.id, d.group_id, COALESCE(g.name,''), d.name, d.address, d.kind, d.web_url, d.web_name, d.web_links, d.notes, d.paused, COALESCE(d.snmp_profile_id,0), COALESCE(d.parent_id,0), COALESCE((SELECT p.name FROM devices p WHERE p.id=d.parent_id),''), d.status, d.status_since, d.created_at,
 	(SELECT count(*) FROM checks c WHERE c.device_id=d.id), (SELECT count(*) FROM checks c WHERE c.device_id=d.id AND c.status='down' AND NOT c.paused)`
 
 func scanDevice(row interface{ Scan(...any) error }) (*Device, error) {
 	d := &Device{}
-	err := row.Scan(&d.ID, &d.GroupID, &d.Group, &d.Name, &d.Address, &d.Kind, &d.WebURL, &d.Notes, &d.Paused, &d.SNMPProfile, &d.Parent, &d.ParentName, &d.Status, &d.StatusSince, &d.CreatedAt, &d.Checks, &d.ChecksDown)
+	var links []byte
+	err := row.Scan(&d.ID, &d.GroupID, &d.Group, &d.Name, &d.Address, &d.Kind, &d.WebURL, &d.WebName, &links, &d.Notes, &d.Paused, &d.SNMPProfile, &d.Parent, &d.ParentName, &d.Status, &d.StatusSince, &d.CreatedAt, &d.Checks, &d.ChecksDown)
+	_ = json.Unmarshal(links, &d.WebLinks)
 	return d, err
 }
 
@@ -207,15 +211,17 @@ func ValidAddress(a string) error {
 
 // DeviceInput is what the device form sets.
 type DeviceInput struct {
-	GroupID int64 // 0 = none
-	Name    string
-	Address string
-	Kind    string
-	WebURL  string
-	Notes   string
-	Paused  bool
-	SNMP    int64 // profile, 0 = none
-	Parent  int64 // device this one depends on, 0 = none
+	GroupID  int64 // 0 = none
+	Name     string
+	Address  string
+	Kind     string
+	WebURL   string
+	WebName  string
+	WebLinks []WebLink
+	Notes    string
+	Paused   bool
+	SNMP     int64 // profile, 0 = none
+	Parent   int64 // device this one depends on, 0 = none
 }
 
 func (in *DeviceInput) clean() error {
@@ -241,6 +247,12 @@ func (in *DeviceInput) clean() error {
 			return errors.New("the web address must start with http:// or https://")
 		}
 	}
+	if in.WebName, err = cleanLabel(in.WebName, 60); err != nil {
+		return errors.New("the name of a link can have at most 60 characters on one line")
+	}
+	if in.WebLinks, err = cleanWebLinks(in.WebLinks); err != nil {
+		return err
+	}
 	in.Notes = strings.TrimSpace(in.Notes)
 	if len(in.Notes) > 4000 {
 		return errors.New("the notes are too long")
@@ -265,8 +277,8 @@ func (s *Store) CreateDevice(ctx context.Context, in DeviceInput) (int64, error)
 		status = StatusPaused
 	}
 	var id int64
-	err := s.db.QueryRow(ctx, `INSERT INTO devices(group_id, name, address, kind, web_url, notes, paused, status, status_since, snmp_profile_id, parent_id, created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$9) RETURNING id`,
-		nullID(in.GroupID), in.Name, in.Address, in.Kind, in.WebURL, in.Notes, in.Paused, status, s.now(), nullID(in.SNMP), nullID(in.Parent)).Scan(&id)
+	err := s.db.QueryRow(ctx, `INSERT INTO devices(group_id, name, address, kind, web_url, notes, paused, status, status_since, snmp_profile_id, parent_id, created_at, web_name, web_links) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$9,$12,$13) RETURNING id`,
+		nullID(in.GroupID), in.Name, in.Address, in.Kind, in.WebURL, in.Notes, in.Paused, status, s.now(), nullID(in.SNMP), nullID(in.Parent), in.WebName, webLinksJSON(in.WebLinks)).Scan(&id)
 	if isUnique(err) {
 		return 0, ErrConflict
 	}
@@ -284,8 +296,8 @@ func (s *Store) UpdateDevice(ctx context.Context, id int64, in DeviceInput) erro
 	if err := s.checkParent(ctx, id, in.Parent); err != nil {
 		return err
 	}
-	tag, err := s.db.Exec(ctx, `UPDATE devices SET group_id=$2, name=$3, address=$4, kind=$5, web_url=$6, notes=$7, paused=$8, snmp_profile_id=$9, parent_id=$10 WHERE id=$1`,
-		id, nullID(in.GroupID), in.Name, in.Address, in.Kind, in.WebURL, in.Notes, in.Paused, nullID(in.SNMP), nullID(in.Parent))
+	tag, err := s.db.Exec(ctx, `UPDATE devices SET group_id=$2, name=$3, address=$4, kind=$5, web_url=$6, notes=$7, paused=$8, snmp_profile_id=$9, parent_id=$10, web_name=$11, web_links=$12 WHERE id=$1`,
+		id, nullID(in.GroupID), in.Name, in.Address, in.Kind, in.WebURL, in.Notes, in.Paused, nullID(in.SNMP), nullID(in.Parent), in.WebName, webLinksJSON(in.WebLinks))
 	if isUnique(err) {
 		return ErrConflict
 	}
@@ -857,3 +869,47 @@ func (s *Store) DevicesWithSNMP(ctx context.Context) ([]*Device, error) {
 
 // Clean validates a check and fills in defaults (the name), as saving would.
 func (in *CheckInput) Clean() error { return in.clean() }
+
+// WebLink is a further web page of a device (a second address, iDRAC …).
+type WebLink struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
+
+// cleanWebLinks drops empty rows, checks the rest (http/https only, at
+// most 8) and names a link without a name after its host.
+func cleanWebLinks(in []WebLink) ([]WebLink, error) {
+	out := []WebLink{}
+	for _, l := range in {
+		l.Name, l.URL = strings.TrimSpace(l.Name), strings.TrimSpace(l.URL)
+		if l.URL == "" {
+			if l.Name != "" {
+				return nil, errors.New("a web link needs an address")
+			}
+			continue
+		}
+		u, err := url.Parse(l.URL)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.User != nil || len(l.URL) > 500 {
+			return nil, errors.New("the web address must start with http:// or https://")
+		}
+		if l.Name == "" {
+			l.Name = u.Host
+		}
+		if l.Name, err = cleanLabel(l.Name, 60); err != nil {
+			return nil, errors.New("the name of a link can have at most 60 characters on one line")
+		}
+		out = append(out, l)
+	}
+	if len(out) > 8 {
+		return nil, errors.New("a device can have at most 8 more web links")
+	}
+	return out, nil
+}
+
+func webLinksJSON(l []WebLink) []byte {
+	if len(l) == 0 {
+		return []byte("[]")
+	}
+	b, _ := json.Marshal(l)
+	return b
+}

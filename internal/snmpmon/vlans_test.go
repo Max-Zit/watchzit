@@ -57,3 +57,44 @@ func TestVLANs(t *testing.T) {
 		t.Fatal(portList([]byte{0x81, 0x01}))
 	}
 }
+
+func TestCiscoVLANs(t *testing.T) {
+	a, err := snmp.NewTestAgent("pub")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer a.Close()
+	LoadTestDevice(a)
+	c, err := snmp.Dial(a.Addr(), snmp.Config{Version: 2, Community: "pub"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	str := func(o snmp.OID, b []byte) { a.Set(snmp.Variable{OID: o, Kind: snmp.KindOctetString, Bytes: b}) }
+	integer := func(o snmp.OID, v int64) { a.Set(snmp.Variable{OID: o, Kind: snmp.KindInteger, Int: v}) }
+	for id, name := range map[uint32]string{1: "default", 10: "users", 20: "phones", 1002: "fddi-default", 2000: "far"} {
+		str(vtpVlanName.Append(1, id), []byte(name))
+	}
+	// port 1: access VLAN 10; port 2: trunk, native 1, allowed 1, 10, 20, 30 (30 does not exist) and 2000
+	integer(vmVlan.Append(1), 10)
+	integer(vlanTrunkPortDynamicStatus.Append(1), 2)
+	integer(vlanTrunkPortDynamicStatus.Append(2), 1)
+	integer(vlanTrunkPortNativeVlan.Append(2), 1)
+	bits := make([]byte, 128)
+	for _, id := range []int{1, 10, 20, 30} {
+		bits[id/8] |= 0x80 >> (id % 8)
+	}
+	str(vlanTrunkPortVlansEnabled.Append(2), bits)
+	bits2k := make([]byte, 128)
+	bits2k[(2000-1024)/8] |= 0x80 >> ((2000 - 1024) % 8)
+	str(vlanTrunkPortVlansEnabled2k.Append(2), bits2k)
+	vs, err := VLANs(context.Background(), c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := fmt.Sprint(vs)
+	want := "[{1 default 2 false} {10 users 1 false} {10 users 2 true} {20 phones 2 true} {2000 far 2 true}]"
+	if got != want {
+		t.Fatalf("got  %s\nwant %s", got, want)
+	}
+}

@@ -103,7 +103,7 @@ func TestAgentEnrollAndReport(t *testing.T) {
 
 	report := &proto.Report{CPU: 37.5, Load1: f64(0.42), MemTotal: 8 << 30, MemUsed: 2 << 30, Uptime: 90061,
 		Disks: []proto.Disk{{Mount: "/", FS: "ext4", Total: 100 << 30, Used: 25 << 30}, {Mount: "/boot/efi", Total: 1 << 20, Used: 1 << 19}},
-		Nets: []proto.Net{{Index: 2, Name: "eth0", MAC: "52:54:00:12:34:56", Speed: 1e9, Up: true, InBps: f64(1.5e6), OutBps: f64(250e3), InErr: f64(0), OutErr: f64(0)},
+		Nets: []proto.Net{{Index: 2, Name: "eth0", MAC: "52:54:00:12:34:56", Speed: 1e9, Up: true, InBps: f64(1.5e6), OutBps: f64(250e3), InErr: f64(0), OutErr: f64(0), VLANs: []int{10, 20}},
 			{Index: 3, Name: "eth1", MAC: "52:54:00:12:34:57", Up: false}}}
 	var askedServices []string
 	a := &agent.Agent{Dir: dir, Cfg: cfg, Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
@@ -155,6 +155,9 @@ func TestAgentEnrollAndReport(t *testing.T) {
 	ifs, _ := e.st.Interfaces(ctx, 1)
 	if len(ifs) != 2 || ifs[0].Name != "eth0" || !ifs[0].OperUp {
 		t.Fatalf("interfaces for the map: %+v", ifs)
+	}
+	if vs, _ := e.st.DeviceVLANs(ctx, 1); len(vs) != 2 || vs[0].ID != 10 || len(vs[1].Tagged) != 1 || vs[1].Tagged[0] != "eth0" {
+		t.Fatalf("VLANs from the agent: %+v", vs)
 	}
 
 	// the device page shows the agent; watching a service tells the agent

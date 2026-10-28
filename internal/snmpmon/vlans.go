@@ -55,7 +55,7 @@ func VLANs(ctx context.Context, c *snmp.Client) ([]store.VLANPort, error) {
 		}
 	}
 	if len(names) == 0 && len(egress) == 0 {
-		return nil, nil
+		return ciscoVLANs(ctx, c)
 	}
 	base, err := last(dot1dBasePortIfIndex)
 	if err != nil {
@@ -140,4 +140,92 @@ func contains(list []int, x int) bool {
 		}
 	}
 	return false
+}
+
+// CISCO-VTP-MIB and CISCO-VLAN-MEMBERSHIP-MIB: Catalyst switches, which
+// report their VLANs here rather than in Q-BRIDGE-MIB.
+var (
+	vtpVlanName                 = snmp.MustOID("1.3.6.1.4.1.9.9.46.1.3.1.1.4") // .domain.vlan
+	vlanTrunkPortVlansEnabled   = snmp.MustOID("1.3.6.1.4.1.9.9.46.1.6.1.1.4") // .ifIndex: VLANs 0–1023
+	vlanTrunkPortNativeVlan     = snmp.MustOID("1.3.6.1.4.1.9.9.46.1.6.1.1.5")
+	vlanTrunkPortDynamicStatus  = snmp.MustOID("1.3.6.1.4.1.9.9.46.1.6.1.1.14") // 1 trunking
+	vlanTrunkPortVlansEnabled2k = snmp.MustOID("1.3.6.1.4.1.9.9.46.1.6.1.1.17") // 1024–2047
+	vlanTrunkPortVlansEnabled3k = snmp.MustOID("1.3.6.1.4.1.9.9.46.1.6.1.1.18")
+	vlanTrunkPortVlansEnabled4k = snmp.MustOID("1.3.6.1.4.1.9.9.46.1.6.1.1.19")
+	vmVlan                      = snmp.MustOID("1.3.6.1.4.1.9.9.68.1.2.2.1.2") // .ifIndex: access VLAN
+)
+
+// ciscoVLANs reads the VLANs of a Catalyst: access ports carry their VLAN
+// untagged; trunk ports carry the allowed VLANs that exist, tagged, and the
+// native VLAN untagged. The reserved VLANs 1002–1005 are left out.
+func ciscoVLANs(ctx context.Context, c *snmp.Client) ([]store.VLANPort, error) {
+	walk := func(root snmp.OID) (map[int]snmp.Variable, error) {
+		m := map[int]snmp.Variable{}
+		err := c.Walk(ctx, root, func(v snmp.Variable) error {
+			if len(v.OID) > len(root) {
+				m[int(v.OID[len(v.OID)-1])] = v
+			}
+			return nil
+		})
+		return m, err
+	}
+	names, err := walk(vtpVlanName)
+	if err != nil || len(names) == 0 {
+		return nil, err
+	}
+	exists := func(id int) bool { _, ok := names[id]; return ok && (id < 1002 || id > 1005) }
+	var out []store.VLANPort
+	add := func(id, idx int, tagged bool) {
+		if exists(id) {
+			out = append(out, store.VLANPort{VLAN: id, Name: str(names[id]), IfIndex: idx, Tagged: tagged})
+		}
+	}
+	access, err := walk(vmVlan)
+	if err != nil {
+		return nil, err
+	}
+	for idx, v := range access {
+		add(whole(v), idx, false)
+	}
+	status, err := walk(vlanTrunkPortDynamicStatus)
+	if err != nil {
+		return nil, err
+	}
+	native, _ := walk(vlanTrunkPortNativeVlan)
+	var maps [4]map[int]snmp.Variable
+	for i, oid := range []snmp.OID{vlanTrunkPortVlansEnabled, vlanTrunkPortVlansEnabled2k, vlanTrunkPortVlansEnabled3k, vlanTrunkPortVlansEnabled4k} {
+		if maps[i], err = walk(oid); err != nil {
+			return nil, err
+		}
+	}
+	for idx, s := range status {
+		if whole(s) != 1 {
+			continue
+		}
+		nat := whole(native[idx])
+		add(nat, idx, false)
+		for block, m := range maps {
+			for _, bit := range portList(m[idx].Bytes) {
+				if id := block*1024 + bit - 1; id != nat {
+					add(id, idx, true)
+				}
+			}
+		}
+	}
+	used := map[int]bool{}
+	for _, v := range out {
+		used[v.VLAN] = true
+	}
+	for id := range names {
+		if exists(id) && !used[id] {
+			out = append(out, store.VLANPort{VLAN: id, Name: str(names[id])})
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].VLAN != out[j].VLAN {
+			return out[i].VLAN < out[j].VLAN
+		}
+		return out[i].IfIndex < out[j].IfIndex
+	})
+	return out, nil
 }

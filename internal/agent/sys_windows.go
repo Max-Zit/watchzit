@@ -159,6 +159,7 @@ func disks() []proto.Disk {
 const (
 	ifRowSize     = 1352
 	offIndex      = 8
+	offGUID       = 12
 	offAlias      = 28
 	offDescr      = 542
 	offPhysLen    = 1056
@@ -188,6 +189,7 @@ func netCounters() ([]netCounter, error) {
 	}
 	defer procFreeMibTable.Call(uintptr(table)) //nolint:errcheck // nothing to do on failure
 	num := *(*uint32)(table)                    // #nosec G103 -- MIB_IF_TABLE2.NumEntries
+	vlans := adapterVLANs()
 	var out []netCounter
 	for i := uint32(0); i < num && i < 4096; i++ {
 		row := unsafe.Slice((*byte)(unsafe.Add(table, 8+uintptr(i)*ifRowSize)), ifRowSize) // #nosec G103 -- rows follow the 8-byte header
@@ -211,6 +213,9 @@ func netCounters() ([]netCounter, error) {
 		}
 		if n := binary.LittleEndian.Uint32(row[offPhysLen:]); n == 6 {
 			c.MAC = macOf(row[offPhys : offPhys+6])
+		}
+		if id := vlans[guidAt(row, offGUID)]; id > 0 {
+			c.VLANs = []int{id}
 		}
 		out = append(out, c)
 	}
@@ -350,4 +355,43 @@ func macOf(b []byte) string {
 		return ""
 	}
 	return net.HardwareAddr(b).String()
+}
+
+// guidAt formats the InterfaceGuid of an MIB_IF_ROW2 the way the registry
+// writes it ({XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}), in upper case.
+func guidAt(row []byte, off int) string {
+	b := row[off : off+16]
+	return strings.ToUpper(fmt.Sprintf("{%08x-%04x-%04x-%x-%x}", binary.LittleEndian.Uint32(b[0:]),
+		binary.LittleEndian.Uint16(b[4:]), binary.LittleEndian.Uint16(b[6:]), b[8:10], b[10:16]))
+}
+
+// adapterVLANs reads the VLAN ID set on network adapters (driver setting
+// "VlanID" of the network adapter class), by adapter GUID.
+func adapterVLANs() map[string]int {
+	const class = `SYSTEM\CurrentControlSet\Control\Class\{4d36e972-e325-11ce-bfc1-08002be10318}`
+	out := map[string]int{}
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, class, registry.ENUMERATE_SUB_KEYS|registry.WOW64_64KEY)
+	if err != nil {
+		return out
+	}
+	defer k.Close()
+	subs, _ := k.ReadSubKeyNames(-1)
+	for _, s := range subs {
+		a, err := registry.OpenKey(k, s, registry.QUERY_VALUE)
+		if err != nil {
+			continue
+		}
+		guid, _, _ := a.GetStringValue("NetCfgInstanceId")
+		v, _, err := a.GetStringValue("VlanID")
+		if err != nil {
+			if n, _, err2 := a.GetIntegerValue("VlanID"); err2 == nil {
+				v, err = strconv.FormatUint(n, 10), nil
+			}
+		}
+		_ = a.Close()
+		if id, e := strconv.Atoi(strings.TrimSpace(v)); err == nil && e == nil && id >= 1 && id <= 4094 && guid != "" {
+			out[strings.ToUpper(guid)] = id
+		}
+	}
+	return out
 }

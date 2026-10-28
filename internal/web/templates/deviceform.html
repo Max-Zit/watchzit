@@ -14,7 +14,18 @@
     </div>
     <label>SNMP <small>{{.T "optional"}}</small><select name="snmp"><option value="0">{{.T "No SNMP"}}</option>{{range .Data.Profiles}}<option value="{{.ID}}" {{if eq .ID $.Data.In.SNMP}}selected{{end}}>{{.Name}} ({{.VersionName}})</option>{{end}}</select><small>{{.T "Interfaces, traffic, CPU, memory and disks are read over SNMP with this profile."}}{{if .User.IsAdmin}} <a href="/settings/snmp">{{.T "Manage SNMP profiles"}}</a>{{end}}</small></label>
     <label>{{.T "Depends on"}} <small>{{.T "optional"}}</small><select name="parent"><option value="0">{{.T "Nothing"}}</option>{{range .Data.Devices}}<option value="{{.ID}}" {{if eq .ID $.Data.In.Parent}}selected{{end}}>{{.Name}}</option>{{end}}</select><small>{{.T "The router or switch this device is reached through. While it is down, this device's problems are not sent."}}</small></label>
-    <label>{{.T "Web interface"}} <small>{{.T "optional"}}</small><input name="web_url" value="{{.Data.In.WebURL}}" maxlength="500" class="mono" spellcheck="false" placeholder="https://192.168.1.1"><small>{{.T "Opened by the button on the device page."}}</small></label>
+    <fieldset class="box">
+      <legend>{{.T "Web links"}} <small class="muted">{{.T "optional"}}</small></legend>
+      <div class="cols">
+        <label>{{.T "Button name"}}<input name="web_name" value="{{.Data.In.WebName}}" maxlength="60" placeholder="{{.T "Open web interface"}}"></label>
+        <label>{{.T "Web interface"}}<input name="web_url" value="{{.Data.In.WebURL}}" maxlength="500" class="mono" spellcheck="false" placeholder="https://192.168.1.1"></label>
+      </div>
+      {{range linkRows .Data.In.WebLinks}}<div class="cols">
+        <label>{{$.T "Name"}}<input name="link_name" value="{{.Name}}" maxlength="60" placeholder="iDRAC"></label>
+        <label>{{$.T "Address"}}<input name="link_url" value="{{.URL}}" maxlength="500" class="mono" spellcheck="false" placeholder="https://192.168.2.10"></label>
+      </div>{{end}}
+      <small class="muted">{{.T "Buttons on the device page and on maps: a second address, iDRAC or iLO, the page of a service. Save to get more empty rows."}}</small>
+    </fieldset>
     <fieldset class="box">
       <legend>{{.T "Remote access"}} <small class="muted">{{.T "optional"}}</small></legend>
       <label>{{.T "User name"}}<input name="access_user" value="{{.Data.Access.User}}" maxlength="64" class="mono" spellcheck="false" autocapitalize="none" autocomplete="off" placeholder="admin"><small>{{.T "SSH, Remote Desktop and WinBox open with this user. Passwords are never stored: the program asks for them."}}</small></label>

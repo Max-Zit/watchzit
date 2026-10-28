@@ -660,7 +660,7 @@ main:has(.mapview) { max-width: none; padding-bottom: 12px; }
 .mapsvg.far .rack .unum, .mapsvg.far .node.mounted .name.side { display: none; }
 /* Port names on cables: about the size of the port numbers on the pictures,
    shown only when zoomed in (zoomed out they would pile up). */
-.link .lbl.port { font-size: 5px; stroke-width: 1.6px; }
+.link .lbl.port { font-size: 3.6px; stroke-width: 1.2px; }
 .mapsvg:not(.close) .lbl.port { display: none; }
 .mp-pic { display: flex; align-items: center; gap: 10px; }
 .mp-pic img { max-width: 120px; max-height: 48px; }

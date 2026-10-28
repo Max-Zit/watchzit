@@ -169,6 +169,10 @@ func netCounters() ([]netCounter, error) {
 	if err != nil {
 		return nil, err
 	}
+	vlans := map[string][]int{} // VLAN interfaces (eth0.10) on their parents
+	if v, err := os.ReadFile("/proc/net/vlan/config"); err == nil {
+		vlans = parseProcVLAN(string(v))
+	}
 	var out []netCounter
 	for _, line := range strings.Split(string(b), "\n")[2:] {
 		name, rest, ok := strings.Cut(line, ":")
@@ -183,6 +187,7 @@ func netCounters() ([]netCounter, error) {
 		base := filepath.Join("/sys/class/net", name)
 		idx, _ := strconv.Atoi(readSys(filepath.Join(base, "ifindex")))
 		c := netCounter{Index: idx, Name: name, MAC: readSys(filepath.Join(base, "address")), Up: readSys(filepath.Join(base, "operstate")) == "up"}
+		c.VLANs = vlans[name]
 		if c.MAC == "00:00:00:00:00:00" {
 			c.MAC = ""
 		}

@@ -110,7 +110,7 @@ func (s *Server) handleMap(w http.ResponseWriter, r *http.Request) {
 // mapText are the words map.js shows, translated on the server.
 var mapText = []string{"Edit", "Done", "Zoom in", "Zoom out", "Fit to screen", "Add device", "Add submap", "Add text", "Connect", "Delete",
 	"Saved", "Saving…", "Could not save.", "Unsaved changes", "Uploading…", "Discard the changes made since the last save?", "Search", "All devices are on this map.", "Click the first device, then the second.",
-	"Path", "Layers", "Show only how two devices are connected", "Click the first device, then the second; the map then shows only how they are connected.", "These two are not connected on this map.", "cable", "cables", "Click Path or press Esc to show the whole map.", "Show on the map", "Devices", "Racks", "Items", "Submaps", "Cables", "Port names", "Traffic", "Names and addresses", "Background", "Show all", "VLANs", "All VLANs", "tagged", "untagged",
+	"Path", "Layers", "Show only how two devices are connected", "Click the first device, then the second; the map then shows only how they are connected.", "These two are not connected on this map.", "cable", "cables", "Click Path or press Esc to show the whole map.", "Show on the map", "Devices", "Racks", "Items", "Submaps", "Cables", "Port names", "Traffic", "Names and addresses", "Background", "Show all", "VLANs", "All VLANs", "tagged", "untagged", "detected", "Tagged VLANs", "Untagged VLAN", "Leave empty to use the VLANs the ports report.", "Detected:", "Graphs",
 	"Open device", "Open web interface", "Open map", "Port", "Not set", "Kind", "Wired", "Wireless", "VPN", "Label", "In", "Out", "Speed",
 	"Checks", "down", "Up", "Down", "Warning", "Unknown", "Paused", "No link", "Disabled", "Text", "Ports", "Link", "No other maps yet.",
 	"Drag devices to place them. Use Connect to draw a link and choose the ports.", "Address", "Status", "Suggested links", "Add", "Neighbours found over LLDP and MikroTik discovery.",
@@ -310,6 +310,9 @@ func structure(l *store.MapLayout) string {
 	}
 	for _, k := range l.Links {
 		b.WriteString(strconv.FormatInt(k.A, 10) + "-" + strconv.FormatInt(k.B, 10) + ":" + strconv.Itoa(k.AIf) + "/" + strconv.Itoa(k.BIf) + k.Kind + k.Label + ";")
+		for _, v := range k.VLANs {
+			b.WriteString("v" + strconv.Itoa(v.ID) + strconv.FormatBool(v.Tagged))
+		}
 	}
 	return b.String()
 }
