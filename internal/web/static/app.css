@@ -658,7 +658,10 @@ main:has(.mapview) { max-width: none; padding-bottom: 12px; }
 .bgimg { pointer-events: none; }
 .bgimg.movable { pointer-events: auto; cursor: move; outline: 2px dashed var(--accent); }
 .mapsvg.far .rack .unum, .mapsvg.far .node.mounted .name.side { display: none; }
-.mapsvg:not(.near) .lbl.port { font-size: 10px; }
+/* Port names on cables: about the size of the port numbers on the pictures,
+   shown only when zoomed in (zoomed out they would pile up). */
+.link .lbl.port { font-size: 5px; stroke-width: 1.6px; }
+.mapsvg:not(.close) .lbl.port { display: none; }
 .mp-pic { display: flex; align-items: center; gap: 10px; }
 .mp-pic img { max-width: 120px; max-height: 48px; }
 .mp-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -772,3 +775,20 @@ article.doc pre { margin: 6px 0 16px; }
 .search-hits li { margin-bottom: 12px; }
 kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; background: var(--panel-2); }
 @media (max-width: 900px) { .docs { grid-template-columns: 1fr; } .docnav { position: static; } article.doc { padding: 20px; } }
+
+/* Map layers (what the map shows) and the path between two devices */
+.maptools .btn.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.maplayers { position: absolute; right: 12px; top: 12px; z-index: 6; display: grid; gap: 8px; min-width: 200px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; box-shadow: var(--shadow); }
+.maplayers p { margin: 0; }
+.maplayers .btn { justify-self: start; margin-top: 4px; }
+.mapsvg.hide-devices .node.n-device, .mapsvg.hide-racks .rack, .mapsvg.hide-items .node.n-item,
+.mapsvg.hide-submaps .node.n-submap, .mapsvg.hide-cables .link, .mapsvg.hide-ports .lbl.port,
+.mapsvg.hide-traffic .lbl.traffic, .mapsvg.hide-names .node .name, .mapsvg.hide-names .node .addr,
+.mapsvg.hide-text .node.n-label, .mapsvg.hide-background .bg { display: none; }
+.mapsvg.pathmode .node:not(.onpath), .mapsvg.pathmode .rack:not(.onpath), .mapsvg.pathmode .link:not(.onpath) { display: none; }
+.mapsvg.pathmode .bg { opacity: .25; }
+.mapsvg.pathmode .link.onpath .wire { stroke-width: 4px; }
+.maptools .mapvlan { width: auto; min-width: 140px; padding: 5px 30px 5px 10px; font-size: 13px; }
+.mapsvg.vlanmode .link:not(.invlan) { display: none; }
+.mapsvg.vlanmode .node.n-device:not(.invlan) { opacity: .25; }
+.mapsvg.vlanmode .link.invlan .wire { stroke: var(--accent); }

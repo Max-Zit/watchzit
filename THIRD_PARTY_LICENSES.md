@@ -6,7 +6,7 @@ Its programs contain the following components under their own licenses, all comp
 | Component | Version | License |
 |---|---|---|
 | Go standard library and runtime | go1.27.3 | BSD-3-Clause |
-| filippo.io/edwards25519 | v1.1.0 | BSD-3-Clause |
+| filippo.io/edwards25519 | v1.1.1 | BSD-3-Clause |
 | github.com/coder/websocket | v1.8.15 | ISC |
 | github.com/fergusstrange/embedded-postgres | v1.34.0 | MIT |
 | github.com/go-sql-driver/mysql | v1.9.3 | MPL-2.0 |
@@ -17,7 +17,7 @@ Its programs contain the following components under their own licenses, all comp
 | github.com/lib/pq | v1.10.9 | MIT |
 | github.com/xi2/xz | v0.0.0-20171230120015-48954b6210f8 | Public domain |
 | golang.org/x/crypto | v0.58.0 | BSD-3-Clause |
-| golang.org/x/net | v0.61.0 | BSD-3-Clause |
+| golang.org/x/net | v0.62.0 | BSD-3-Clause |
 | golang.org/x/sync | v0.24.0 | BSD-3-Clause |
 | golang.org/x/sys | v0.49.0 | BSD-3-Clause |
 | golang.org/x/text | v0.43.0 | BSD-3-Clause |
@@ -58,7 +58,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## filippo.io/edwards25519 v1.1.0 (BSD-3-Clause)
+## filippo.io/edwards25519 v1.1.1 (BSD-3-Clause)
 
 ```
 Copyright (c) 2009 The Go Authors. All rights reserved.
@@ -688,7 +688,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## golang.org/x/net v0.61.0 (BSD-3-Clause)
+## golang.org/x/net v0.62.0 (BSD-3-Clause)
 
 ```
 Copyright 2009 The Go Authors.

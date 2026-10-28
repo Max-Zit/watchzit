@@ -2,6 +2,7 @@ package checks
 
 import (
 	"context"
+	"fmt"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -182,6 +183,39 @@ func TestRouterOS(t *testing.T) {
 	}
 	if r := run(store.CheckRouterOS, p, Target{Host: "127.0.0.1", Secret: "x"}); r.Up || !strings.Contains(r.Text, "wrong user or password") {
 		t.Fatalf("bad password: %+v", r)
+	}
+}
+
+func TestRouterOSVLANs(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/rest/interface/bridge/vlan":
+			_ = json.NewEncoder(w).Encode([]map[string]string{
+				{"bridge": "br1", "vlan-ids": "10", "current-tagged": "br1,ether2,sfp1", "current-untagged": "", "disabled": "false"},
+				{"bridge": "br1", "vlan-ids": "20,30-31", "current-tagged": "ether2", "current-untagged": "ether3", "comment": "phones", "disabled": "false"},
+				{"bridge": "br1", "vlan-ids": "99", "current-tagged": "", "current-untagged": "", "disabled": "false", "dynamic": "true", "comment": "added by pvid"},
+				{"bridge": "br1", "vlan-ids": "50", "current-tagged": "ether2", "disabled": "true"},
+			})
+		case "/rest/interface/vlan":
+			_ = json.NewEncoder(w).Encode([]map[string]string{{"name": "mgmt", "vlan-id": "10", "interface": "br1"}})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	u, _ := url.Parse(srv.URL)
+	port, _ := strconv.Atoi(u.Port())
+	vs, err := RouterOSVLANs(context.Background(), store.CheckParams{Port: port, User: "monitor"}, Target{Host: "127.0.0.1", Secret: "s3cret"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := fmt.Sprint(vs)
+	want := "[{10 mgmt ether2 true} {10 mgmt sfp1 true} {20 phones ether2 true} {20 phones ether3 false} {30 phones ether2 true} {30 phones ether3 false} {31 phones ether2 true} {31 phones ether3 false} {99   false}]"
+	if got != want {
+		t.Fatalf("got  %s\nwant %s", got, want)
+	}
+	if fmt.Sprint(rosIDs("1,5-7,0,5000,x")) != "[1 5 6 7]" {
+		t.Fatal(rosIDs("1,5-7,0,5000,x"))
 	}
 }
 

@@ -89,6 +89,7 @@ type deviceData struct {
 	Facts      store.Facts
 	Profile    *store.SNMPProfile
 	Interfaces []store.Interface
+	VLANs      []store.VLANSummary
 	Traffic    map[int]*store.Check // interface checks by ifIndex
 	Agent      *store.AgentInfo
 	Watched    map[string]bool // services the agent reports
@@ -210,6 +211,10 @@ func (s *Server) showDevice(w http.ResponseWriter, r *http.Request, status int, 
 		return
 	}
 	if data.Interfaces, err = s.store.Interfaces(r.Context(), d.ID); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	if data.VLANs, err = s.store.DeviceVLANs(r.Context(), d.ID); err != nil {
 		s.serverError(w, r, err)
 		return
 	}

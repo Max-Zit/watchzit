@@ -31,6 +31,8 @@
   var view = { x: 0, y: 0, k: 1 };
   var editing = !kioskBase && root.getAttribute("data-edit") === "1";
   var selected = null;      // {type: "node"|"link", id}
+  var path = null;          // shown path: {nodes: {id: true}, links: {id: true}}
+  var pathPick = null;      // picking the two ends of a path: {a}
   var connectFrom = null, connecting = false, moveBg = false;
   var nextTmp = -1;         // ids of nodes and links not saved yet
   var saving = false, dirty = false;
@@ -87,6 +89,7 @@
     svg.classList.toggle("far", view.k < 0.6);
     svg.classList.toggle("very-far", view.k < 0.32);
     svg.classList.toggle("near", view.k > 1.6);
+    svg.classList.toggle("close", view.k > 1.2); // port names on cables
     if (!kioskBase) store("wz-map-view-" + mapID, view);
   }
   function toWorld(px, py) { return { x: (px - view.x) / view.k, y: (py - view.y) / view.k }; }
@@ -114,9 +117,10 @@
   function bounds() {
     var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     layout.nodes.forEach(function (n) {
+      if (path && !path.nodes[n.id]) return; // showing a path: fit it
       var b = box(n);
       x0 = Math.min(x0, n.x - b.w / 2 - 20); y0 = Math.min(y0, n.y - b.h / 2 - 30);
-      x1 = Math.max(x1, n.x + b.w / 2 + 20); y1 = Math.max(y1, n.y + b.h / 2 + 50);
+      x1 = Math.max(x1, n.x + b.w / 2 + (n.parent ? 110 : 20)); y1 = Math.max(y1, n.y + b.h / 2 + 50); // mounted: name on the right
     });
     var bg = layout.background;
     if (bg && bg.asset && !layout.nodes.length) { x0 = bg.x; y0 = bg.y; x1 = bg.x + bg.w; y1 = bg.y + bgHeight(); }
@@ -326,6 +330,8 @@
     layout.links.forEach(drawLink);
     layout.nodes.forEach(function (n) { if (n.kind !== "rack") drawNode(n); });
     drawHandles();
+    svg.classList.toggle("pathmode", !!path);
+    svg.classList.toggle("vlanmode", !!vlan);
     root.classList.toggle("editing", editing);
     var del = root.querySelector('[data-act="delete"]');
     if (del) del.disabled = !selected;
@@ -340,7 +346,7 @@
   function drawRack(n) {
     var st = nodeStatus(n), b = box(n), top = rackTop(n);
     var sel = selected && selected.type === "node" && selected.id === n.id;
-    var g = el("g", { "class": "rack" + (st ? " s-" + st : "") + (sel ? " sel" : ""), "data-node": n.id }, gRacks);
+    var g = el("g", { "class": "rack" + (st ? " s-" + st : "") + (sel ? " sel" : "") + onPath("nodes", n.id), "data-node": n.id }, gRacks);
     el("rect", { "class": "cab", x: n.x - b.w / 2, y: top - 30, width: b.w, height: n.u * UH + 40, rx: 6 }, g);
     el("rect", { "class": "inner", x: n.x - RACK_W / 2, y: top, width: RACK_W, height: n.u * UH }, g);
     for (var u = 1; u <= n.u; u++) {
@@ -354,7 +360,7 @@
   function drawNode(n) {
     var st = nodeStatus(n), b = box(n);
     var sel = selected && selected.type === "node" && selected.id === n.id;
-    var g = el("g", { "class": "node n-" + n.kind + (st ? " s-" + st : "") + (sel ? " sel" : "") + (connectFrom === n.id ? " from" : "") + (n.parent ? " mounted" : ""),
+    var g = el("g", { "class": "node n-" + n.kind + (st ? " s-" + st : "") + (sel ? " sel" : "") + (connectFrom === n.id ? " from" : "") + (n.parent ? " mounted" : "") + onPath("nodes", n.id) + (vlan && deviceInVLAN(n, vlan) ? " invlan" : ""),
       transform: "translate(" + n.x + " " + n.y + ")", "data-node": n.id }, gNodes);
     if (n.kind === "label") {
       el("text", { "class": "maplabel", y: 6, "text-anchor": "middle" }, g).textContent = n.label;
@@ -398,6 +404,8 @@
     var s = linkState(k), pts = routePoints(k);
     var cls = "link k-" + (k.kind || "ethernet") + (s.down ? " down" : "") + (selected && selected.type === "link" && selected.id === k.id ? " sel" : "");
     if (!s.down && s.known) cls += s.util > 0.8 ? " u3" : s.util > 0.5 ? " u2" : "";
+    cls += onPath("links", k.id);
+    if (vlan && (portVLAN(s.a, vlan) || portVLAN(s.b, vlan))) cls += " invlan";
     var g = el("g", { "class": cls, "data-link": k.id }, gLinks);
     var d = pathD(pts), w = 2.2 + Math.min(7, s.util * 9);
     if (k.kind === "fiber" || k.kind === "fiber-sm") w += 0.6;
@@ -408,15 +416,18 @@
     // port names near both ends, traffic in the middle (cables are drawn over
   // the pictures, like patch cords in front of a rack)
     var endA = box(a), endB = box(b);
-    var offA = anchor(a, slotOf(k, "a")).port ? 16 : Math.min(len * 0.4, Math.max(endA.w, endA.h) / 2 + 22);
-    var offB = anchor(b, slotOf(k, "b")).port ? 16 : Math.min(len * 0.4, Math.max(endB.w, endB.h) / 2 + 22);
+    var offA = anchor(a, slotOf(k, "a")).port ? 11 : Math.min(len * 0.4, Math.max(endA.w, endA.h) / 2 + 22);
+    var offB = anchor(b, slotOf(k, "b")).port ? 11 : Math.min(len * 0.4, Math.max(endB.w, endB.h) / 2 + 22);
     var nameA = s.a ? s.a.name : k.a_slot ? slotName(a, k.a_slot) : "";
     var nameB = s.b ? s.b.name : k.b_slot ? slotName(b, k.b_slot) : "";
     if (len < 70) nameA = nameB = ""; // a short patch cord: the panel names its ports
     if (nameA) { var pa = pointAlong(pts, offA); label(g, "port", pa.x, pa.y, nameA); }
     if (nameB) { var pb = pointAlong(pts, len - offB); label(g, "port", pb.x, pb.y, nameB); }
     var text = k.label || "";
-    if (s.ab !== null && s.ab !== undefined && len > 190) text = (text ? text + "  " : "") + "→ " + bits(s.ab) + "  ← " + bits(s.ba);
+    if (vlan) {
+      var pv = portVLAN(s.a, vlan) || portVLAN(s.b, vlan);
+      text = "VLAN " + vlan + (pv ? " · " + (pv.tagged ? T("tagged") : T("untagged")) : "");
+    } else if (s.ab !== null && s.ab !== undefined && len > 190) text = (text ? text + "  " : "") + "→ " + bits(s.ab) + "  ← " + bits(s.ba);
     if (text) { var mid = pointAlong(pts, len / 2); label(g, "traffic", mid.x, mid.y, text); }
   }
   function label(g, cls, x, y, text) {
@@ -625,6 +636,8 @@
       row(dl2, nodeName(b) + " → " + nodeName(a), bits(s.ba));
     }
     if (s.speed) row(dl2, T("Speed"), bits(s.speed));
+    var vl = vlanText(s.a) || vlanText(s.b);
+    if (vl) row(dl2, T("VLANs"), vl);
     p.appendChild(dl2);
     if (editing) {
       field(p, T("Cable"), select(["ethernet", "fiber", "fiber-sm", "dac", "wireless", "vpn", "wan", "serial", "power"].map(function (x) { return [x, T("cable:" + x)]; }), k.kind || "ethernet", function (v) { k.kind = v; render(); changed(); showSelection(); }));
@@ -857,6 +870,125 @@
     selected = { type: "link", id: k.id };
     render(); showSelection(); changed();
   }
+
+  // ---- path: only the devices and cables between two devices
+  function onPath(set, id) { return path && path[set][id] ? " onpath" : ""; }
+  function setPath(on) {
+    var had = !!path;
+    pathPick = on ? {} : null;
+    path = null;
+    connectFrom = null;
+    var b = root.querySelector('[data-act="path"]');
+    if (b) b.classList.toggle("on", on);
+    showHint(on ? T("Click the first device, then the second; the map then shows only how they are connected.") : "");
+    render();
+    if (had) fit(true);
+  }
+  function pathClick(n) {
+    if (n.kind === "label" || n.kind === "rack") return;
+    if (pathPick.a === undefined) { pathPick.a = n.id; connectFrom = n.id; render(); return; }
+    if (pathPick.a === n.id) return;
+    var a = nodeByID(pathPick.a), found = findPath(pathPick.a, n.id);
+    setPath(false);
+    var b = root.querySelector('[data-act="path"]');
+    if (!found) { showHint(T("These two are not connected on this map.")); return; }
+    path = found;
+    if (b) b.classList.add("on");
+    showHint(nodeName(a) + " → " + nodeName(n) + ": " + found.hops + " " + (found.hops === 1 ? T("cable") : T("cables")) + ". " + T("Click Path or press Esc to show the whole map."));
+    selected = null; closePanel();
+    render(); fit(true);
+  }
+  // findPath: the shortest chain of cables (breadth first), with the racks
+  // the devices on it are mounted in
+  function findPath(from, to) {
+    var prev = {}, queue = [from];
+    prev[from] = null;
+    while (queue.length && !(to in prev)) {
+      var x = queue.shift();
+      layout.links.forEach(function (k) {
+        var y = k.a === x ? k.b : k.b === x ? k.a : null;
+        if (y !== null && !(y in prev)) { prev[y] = { n: x, k: k.id }; queue.push(y); }
+      });
+    }
+    if (!(to in prev)) return null;
+    var res = { nodes: {}, links: {}, hops: 0 };
+    for (var c = to; c !== from; c = prev[c].n) { res.nodes[c] = true; res.links[prev[c].k] = true; res.hops++; }
+    res.nodes[from] = true;
+    layout.nodes.forEach(function (n) { if (res.nodes[n.id] && n.parent) res.nodes[n.parent] = true; });
+    return res;
+  }
+
+  // ---- VLANs: from the switches' and routers' ports; one can be shown alone
+  var vlan = 0, vlanSel = root.querySelector("[data-vlan]"), vlanKey = "";
+  function portVLAN(p, id) {
+    if (!p || !p.vlans) return null;
+    for (var i = 0; i < p.vlans.length; i++) if (p.vlans[i].id === id) return p.vlans[i];
+    return null;
+  }
+  function vlanText(p) {
+    if (!p || !p.vlans || !p.vlans.length) return "";
+    return p.vlans.map(function (v) { return v.id + (v.tagged ? " (T)" : " (U)"); }).join(", ");
+  }
+  function deviceInVLAN(n, id) {
+    var ports = n.kind === "device" && live.ports ? live.ports[n.device] : null;
+    for (var k in ports || {}) if (portVLAN(ports[k], id)) return true;
+    return false;
+  }
+  // syncVLANs fills the VLAN list when the VLANs on the map change
+  function syncVLANs() {
+    if (!vlanSel) return;
+    var ids = Object.keys(live.vlans || {}).map(Number).sort(function (a, b) { return a - b; });
+    var key = ids.map(function (id) { return id + ":" + live.vlans[id]; }).join(",");
+    vlanSel.hidden = !ids.length;
+    if (key === vlanKey) return;
+    vlanKey = key;
+    vlanSel.innerHTML = "";
+    vlanSel.appendChild(h("option", { value: "0" }, T("All VLANs")));
+    ids.forEach(function (id) { vlanSel.appendChild(h("option", { value: String(id) }, "VLAN " + id + (live.vlans[id] ? " · " + live.vlans[id] : ""))); });
+    if (vlan && ids.indexOf(vlan) < 0) vlan = 0;
+    vlanSel.value = String(vlan);
+  }
+  if (vlanSel) vlanSel.addEventListener("change", function () { vlan = +vlanSel.value; render(); });
+
+  // ---- layers: what the map shows (kept per browser)
+  var LAYERS = [["devices", "Devices"], ["racks", "Racks"], ["items", "Items"], ["submaps", "Submaps"], ["cables", "Cables"],
+    ["ports", "Port names"], ["traffic", "Traffic"], ["names", "Names and addresses"], ["text", "Text"], ["background", "Background"]];
+  var hidden = load("wz-map-layers") || {};
+  var layersBox = root.querySelector("[data-layers]");
+  function applyLayers() {
+    LAYERS.forEach(function (l) { svg.classList.toggle("hide-" + l[0], !!hidden[l[0]]); });
+    var b = root.querySelector('[data-act="layers"]');
+    if (b) b.classList.toggle("on", LAYERS.some(function (l) { return hidden[l[0]]; }));
+  }
+  function toggleLayers() {
+    if (!layersBox) return;
+    var open = layersBox.hidden;
+    layersBox.hidden = !open;
+    var b = root.querySelector('[data-act="layers"]');
+    if (b) b.setAttribute("aria-expanded", open ? "true" : "false");
+    if (!open) return;
+    layersBox.innerHTML = "";
+    layersBox.appendChild(h("p", { "class": "small muted" }, T("Show on the map")));
+    LAYERS.forEach(function (l) {
+      var cb = h("input", { type: "checkbox" });
+      cb.checked = !hidden[l[0]];
+      cb.addEventListener("change", function () {
+        if (cb.checked) delete hidden[l[0]]; else hidden[l[0]] = true;
+        store("wz-map-layers", hidden); applyLayers();
+      });
+      var lb = h("label", { "class": "check" });
+      lb.appendChild(cb);
+      lb.appendChild(document.createTextNode(" " + T(l[1])));
+      layersBox.appendChild(lb);
+    });
+    layersBox.appendChild(button(T("Show all"), "secondary", function () {
+      hidden = {}; store("wz-map-layers", hidden); applyLayers(); toggleLayers(); toggleLayers();
+    }));
+  }
+  applyLayers();
+  document.addEventListener("click", function (ev) {
+    if (layersBox && !layersBox.hidden && !layersBox.contains(ev.target) && !ev.target.closest('[data-act="layers"]')) toggleLayers();
+  });
   function suggestions() {
     var p = openPanel(T("Suggested links"));
     p.appendChild(h("p", { "class": "muted small" }, T("Neighbours found over LLDP and MikroTik discovery.")));
@@ -943,7 +1075,7 @@
   }
 
   // ---- pointer handling: drag nodes, racks, bends, background; pan; pinch
-  var pointers = {}, drag = null, pinch = null, moved = false;
+  var pointers = {}, drag = null, pinch = null, moved = false, lastTap = null;
   function rackAt(x, y, self) {
     for (var i = 0; i < layout.nodes.length; i++) {
       var r = layout.nodes[i];
@@ -970,6 +1102,12 @@
     var addh = t.closest ? t.closest("[data-add]") : null;
     var nodeEl = t.closest ? t.closest("[data-node]") : null;
     var linkEl = t.closest ? t.closest("[data-link]") : null;
+    // Double clicks and taps are recognised here: the pointer capture makes
+    // the browser's dblclick land on the whole drawing, not on what was hit.
+    var key = handle ? "h" + handle.getAttribute("data-handle") : addh ? "a" : nodeEl ? "n" + nodeEl.getAttribute("data-node") : linkEl ? "l" : "bg";
+    var now = Date.now(), dbl = lastTap && lastTap.key === key && now - lastTap.t < 400 && Math.abs(p.x - lastTap.x) + Math.abs(p.y - lastTap.y) < 12;
+    lastTap = dbl ? null : { key: key, t: now, x: p.x, y: p.y };
+    if (dbl && doubleTap(handle, nodeEl, linkEl || addh, p)) { drag = null; return; }
     if (editing && handle && selected) {
       drag = { type: "bend", k: linkByID(selected.id), i: +handle.getAttribute("data-handle"), sx: p.x, sy: p.y };
     } else if (editing && addh && selected) {
@@ -1054,8 +1192,9 @@
       return;
     }
     if ((d.type === "bend" || d.type === "bg") && (d.changed || d.added)) { changed(); return; }
-    if (moved) return;
+    if (moved || d.type === "bend") return; // a click on a bend keeps the cable selected
     if (d.type === "node") {
+      if (pathPick) { pathClick(d.n); return; }
       if (connecting) { connectClick(d.n); return; }
       selected = { type: "node", id: d.n.id };
     } else if (d.type === "link") {
@@ -1073,25 +1212,33 @@
     var dy = ev.deltaMode === 1 ? ev.deltaY * 16 : ev.deltaY;
     zoomAt(p.x, p.y, Math.pow(1.0012, -dy));
   }, { passive: false });
-  svg.addEventListener("dblclick", function (ev) {
-    var t = ev.target;
-    var handle = t.closest ? t.closest("[data-handle]") : null;
-    if (editing && handle && selected && selected.type === "link") {
+  // doubleTap: a bend point is removed, a device or submap opens (not while
+  // editing), the empty drawing zooms in. Reports whether it acted.
+  function doubleTap(handle, nodeEl, linkEl, p) {
+    if (handle) {
+      if (!editing || !selected || selected.type !== "link") return false;
       linkByID(selected.id).points.splice(+handle.getAttribute("data-handle"), 1);
       render(); changed();
-      return;
+      return true;
     }
-    var nodeEl = t.closest ? t.closest("[data-node]") : null;
-    if (!nodeEl || editing || kioskBase) { if (!nodeEl && !t.closest("[data-link]")) { var p = pointer(ev); zoomAt(p.x, p.y, 1.6); } return; }
-    var n = nodeByID(+nodeEl.getAttribute("data-node"));
-    if (n && n.kind === "device") location.href = "/devices/" + n.device;
-    if (n && n.kind === "submap") location.href = "/maps/" + n.submap;
-  });
+    if (nodeEl) {
+      if (editing || kioskBase) return false;
+      var n = nodeByID(+nodeEl.getAttribute("data-node"));
+      if (n && n.kind === "device") location.href = "/devices/" + n.device;
+      else if (n && n.kind === "submap") location.href = "/maps/" + n.submap;
+      else return false;
+      return true;
+    }
+    if (linkEl) return false;
+    zoomAt(p.x, p.y, 1.6);
+    return true;
+  }
+  svg.addEventListener("dblclick", function (ev) { ev.preventDefault(); });
   document.addEventListener("keydown", function (ev) {
     if ((ev.ctrlKey || ev.metaKey) && (ev.key === "s" || ev.key === "S") && editing) { ev.preventDefault(); save(); return; }
     if (ev.target && /INPUT|SELECT|TEXTAREA/.test(ev.target.tagName)) return;
     if ((ev.key === "Delete" || ev.key === "Backspace") && editing && selected) { ev.preventDefault(); removeSelected(); }
-    if (ev.key === "Escape") { if (connecting) setConnect(false); else { selected = null; closePanel(); render(); } }
+    if (ev.key === "Escape") { if (pathPick || path) setPath(false); else if (connecting) setConnect(false); else { selected = null; closePanel(); render(); } }
     var r = svg.getBoundingClientRect();
     if (ev.key === "+" || ev.key === "=") zoomAt(r.width / 2, r.height / 2, 1.25);
     if (ev.key === "-") zoomAt(r.width / 2, r.height / 2, 0.8);
@@ -1116,7 +1263,9 @@
     else if (act === "add-submap") { setConnect(false); pickSubmap(); }
     else if (act === "add-text") { setConnect(false); addNode({ kind: "label", label: T("Text") }); }
     else if (act === "background") { setConnect(false); selected = null; render(); showBackground(); }
-    else if (act === "connect") setConnect(!connecting);
+    else if (act === "path") { setConnect(false); setPath(!(pathPick || path)); }
+    else if (act === "layers") toggleLayers();
+    else if (act === "connect") { setPath(false); setConnect(!connecting); }
     else if (act === "suggest") { setConnect(false); suggestions(); }
     else if (act === "delete") removeSelected();
   });
@@ -1141,7 +1290,7 @@
   function refresh() {
     return fetch(url("live", mapID), { credentials: "same-origin", headers: { "Accept": "application/json" } })
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function (d) { live = d; if (!drag) { render(); if (selected && !editing && !panel.contains(document.activeElement)) showSelection(); } })
+      .then(function (d) { live = d; syncVLANs(); if (!drag) { render(); if (selected && !editing && !panel.contains(document.activeElement)) showSelection(); } })
       .catch(function () { /* next round */ });
   }
   function loadMap(id, restoreView) {

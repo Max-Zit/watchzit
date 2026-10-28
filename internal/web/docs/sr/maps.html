@@ -14,7 +14,7 @@
 <ul>
   <li>Svaki uređaj ima sliku iz ugrađene biblioteke (svičevi sa svojim portovima, ruteri, serveri, firewall-ovi, pristupne tačke, telefoni, kamere …) ili onu koju otpremite.</li>
   <li><b>Rekovi</b> od 4 do 48 jedinica: ubacite uređaje u njih; sami se poređaju po slobodnim jedinicama.</li>
-  <li>Kablovi imaju <b>vrstu</b> (bakar, optika, DAC, bežično, VPN, WAN, serijski, napajanje) i <b>putanju</b>: pravu, sa savijanjem pod 90° ili 45°, zakrivljenu; prevucite tačke da ih savijete.</li>
+  <li>Kablovi imaju <b>vrstu</b> (bakar, optika, DAC, bežično, VPN, WAN, serijski, napajanje) i <b>trasu</b>: pravu, sa savijanjem pod 90° ili 45°, zakrivljenu; prevucite tačke da ih savijete, a dvoklikom na tačku je uklanjate.</li>
   <li><b>Slika u pozadini</b> (plan sprata, lokacija) sa veličinom, providnošću i položajem.</li>
   <li><b>Podmape</b> vode na druge mape i pokazuju njihovo najgore stanje.</li>
 </ul>
@@ -24,6 +24,14 @@
   <li>Zeleno radi, žuto delimično ne radi, crveno ne radi (trepće); sivo je nepoznato ili pauzirano.</li>
   <li>Kablovi se šire i menjaju boju sa iskorišćenošću (preko 50 % žuto, preko 80 % crveno); kabl čiji port nema link je crven i isprekidan.</li>
   <li>Uvećavajte točkićem ili sa dva prsta; imena i oznake portova se pojavljuju kada ste dovoljno blizu. Klik na uređaj otvara panel sa proverama, portovima i alatima; dvoklik otvara uređaj.</li>
+</ul>
+
+<h2 id="layers">Slojevi i putanje</h2>
+<ul>
+  <li><b>Slojevi</b> biraju šta mapa prikazuje: uređaje, rekove, predmete, podmape, kablove, imena portova, saobraćaj, imena i adrese, tekst i pozadinu, u bilo kojoj kombinaciji. Izbor se pamti u ovom pregledaču.</li>
+  <li><b>Putanja</b>: kliknite dva uređaja i mapa prikazuje samo lanac kablova između njih (sa patch panelima, svičevima i rekovima usput) i uvećava ga. Ponovo kliknite Putanja ili pritisnite Esc da vidite celu mapu.</li>
+  <li>Imena portova na kablovima se pojavljuju kada uvećate, pa pretrpana mapa ostaje čitljiva.</li>
+  <li><b>VLAN-ovi</b>: kada svičevi ili ruteri na mapi javljaju VLAN-ove, u traci se pojavljuje lista VLAN-ova. Izaberite VLAN i mapa prikazuje samo kablove koji ga nose, označene kao tagovane ili netagovane; uređaji bez njega blede. Panel kabla navodi VLAN-ove njegovih portova.</li>
 </ul>
 
 <h2 id="kiosk">Kiosk ekrani</h2>

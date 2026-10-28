@@ -34,5 +34,8 @@
 </ol>
 <div class="callout tip"><p>MikroTik, Cisco, HP, Ubiquiti, printers and UPS devices speak SNMP. On Linux install <code>snmpd</code>; on Windows the SNMP service.</p></div>
 
+<h2 id="vlans">VLANs</h2>
+<p>WatchZit reads the VLANs of switches over SNMP (Q-BRIDGE-MIB: HP/Aruba, Cisco small business, Ubiquiti, Netgear, D-Link and most managed switches) once an hour, and of MikroTik bridges over the RouterOS API (with the device's <b>MikroTik RouterOS (API)</b> check) every ten minutes. The device page lists each VLAN with its tagged and untagged ports; maps can show one VLAN at a time.</p>
+
 <h2 id="graphs">Graphs</h2>
 <p>Every value is kept: raw for days, then as 5-minute and hourly minimum, average and maximum (Settings → Metric data). On a graph drag to zoom in, double-click to go back; the time range buttons go from one hour to a year.</p>

@@ -19,6 +19,9 @@
       <button type="button" class="btn secondary sm" data-act="background">{{template "icon" "image"}}<span>{{.T "Background"}}</span></button>
       <button type="button" class="btn danger sm" data-act="delete" disabled>{{template "icon" "trash"}}<span>{{.T "Delete"}}</span></button>
     </div>
+    <select class="mapvlan" data-vlan hidden aria-label="VLAN"></select>
+    <button type="button" class="btn secondary sm" data-act="path" title="{{.T "Show only how two devices are connected"}}">{{template "icon" "route"}}<span>{{.T "Path"}}</span></button>
+    <button type="button" class="btn secondary sm" data-act="layers" aria-expanded="false">{{template "icon" "layers"}}<span>{{.T "Layers"}}</span></button>
     <button type="button" class="btn secondary sm" data-act="fullscreen" title="{{.T "Full screen"}}">{{template "icon" "expand"}}</button>
     {{if .User.CanWrite}}<button type="button" class="btn primary sm" data-act="edit">{{template "icon" "edit"}}<span data-edit-label>{{if .Data.Edit}}{{.T "Done"}}{{else}}{{.T "Edit"}}{{end}}</span></button>{{end}}
   </div>
@@ -29,6 +32,7 @@
       <button type="button" class="iconbtn" data-act="zoom-out" title="{{.T "Zoom out"}}">{{template "icon" "zoomout"}}</button>
       <button type="button" class="iconbtn" data-act="fit" title="{{.T "Fit to screen"}}">{{template "icon" "expand"}}</button>
     </div>
+    <div class="maplayers" data-layers hidden></div>
     <p class="maphint muted small" data-hint hidden></p>
     <aside class="mappanel" data-panel hidden></aside>
     <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml,.svg" data-upload hidden>

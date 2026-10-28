@@ -90,6 +90,16 @@
 </section>
 {{end}}
 
+{{if .Data.VLANs}}
+<section class="panel">
+  <h2>{{.T "VLANs"}}</h2>
+  <table class="list">
+    <thead><tr><th>VLAN</th><th>{{.T "Name"}}</th><th>{{.T "Tagged ports"}}</th><th>{{.T "Untagged ports"}}</th></tr></thead>
+    <tbody>{{range .Data.VLANs}}<tr><td class="num">{{.ID}}</td><td>{{.Name}}</td><td>{{join .Tagged ", "}}</td><td>{{join .Untagged ", "}}</td></tr>{{end}}</tbody>
+  </table>
+</section>
+{{end}}
+
 {{if .Data.Graphs}}
 <div class="titlebar"><h2>{{.T "Graphs"}}</h2>
   <nav class="seg" aria-label="{{.T "Time range"}}">{{range .Data.Ranges}}<a href="?range={{.}}" class="{{if eq . $.Data.Range}}on{{end}}">{{.}}</a>{{end}}</nav>

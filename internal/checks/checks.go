@@ -386,13 +386,139 @@ func dbErr(err error, user string) string {
 
 // RouterOS reads CPU, memory, uptime and temperature over the REST API.
 func RouterOS(ctx context.Context, p store.CheckParams, t Target) Result {
+	get := rosGetter(ctx, p, t)
+	start := time.Now()
+	var res map[string]any
+	if err := get("system/resource", &res); err != nil {
+		return fail("%v", err)
+	}
+	r := Result{Up: true, Values: map[string]float64{}}
+	if v, ok := num(res["cpu-load"]); ok {
+		r.Values["cpu_pct"] = v
+	}
+	free, ok1 := num(res["free-memory"])
+	total, ok2 := num(res["total-memory"])
+	if ok1 && ok2 && total > 0 {
+		r.Values["mem_pct"] = math.Round((1-free/total)*10000) / 100
+	}
+	if up, ok := res["uptime"].(string); ok {
+		if s, ok := rosDuration(up); ok {
+			r.Values["uptime_s"] = s
+		}
+	}
+	var health []map[string]any
+	if get("system/health", &health) == nil {
+		for _, h := range health {
+			if n, _ := h["name"].(string); strings.Contains(n, "temperature") {
+				if v, ok := num(h["value"]); ok {
+					r.Values["temperature"] = v
+					break
+				}
+			}
+		}
+	}
+	ver, _ := res["version"].(string)
+	board, _ := res["board-name"].(string)
+	r.Text = fmt.Sprintf("RouterOS %s %s, CPU %.0f%%, memory %.0f%%, %.0f ms", strings.Fields(ver + " ")[0], board, r.Values["cpu_pct"], r.Values["mem_pct"], msSince(start))
+	if t, ok := r.Values["temperature"]; ok {
+		r.Text += fmt.Sprintf(", %.0f °C", t)
+	}
+	return r
+}
+
+// RouterVLAN is a VLAN on a port of a RouterOS bridge.
+type RouterVLAN struct {
+	ID     int
+	Name   string
+	Port   string // interface name; "" for a VLAN on no port
+	Tagged bool
+}
+
+// RouterOSVLANs reads the VLANs of the bridges (bridge VLAN filtering) with
+// the ports that currently carry them; names come from the VLAN interfaces
+// or the comments. The bridge itself (the router's own port) is left out.
+func RouterOSVLANs(ctx context.Context, p store.CheckParams, t Target) ([]RouterVLAN, error) {
+	get := rosGetter(ctx, p, t)
+	var rows []map[string]any
+	if err := get("interface/bridge/vlan", &rows); err != nil {
+		return nil, err
+	}
+	var ifs []map[string]any
+	names := map[int]string{}
+	if get("interface/vlan", &ifs) == nil {
+		for _, v := range ifs {
+			if id, ok := num(v["vlan-id"]); ok && names[int(id)] == "" {
+				names[int(id)], _ = v["name"].(string)
+			}
+		}
+	}
+	var out []RouterVLAN
+	for _, r := range rows {
+		if d, _ := r["disabled"].(string); d == "true" {
+			continue
+		}
+		bridge, _ := r["bridge"].(string)
+		comment, _ := r["comment"].(string)
+		if dyn, _ := r["dynamic"].(string); dyn == "true" {
+			comment = "" // "added by pvid" and the like
+		}
+		for _, id := range rosIDs(fmt.Sprint(r["vlan-ids"])) {
+			name := names[id]
+			if name == "" {
+				name = comment
+			}
+			n := len(out)
+			for _, part := range []struct {
+				key    string
+				tagged bool
+			}{{"current-tagged", true}, {"current-untagged", false}} {
+				list, _ := r[part.key].(string)
+				for _, port := range strings.Split(list, ",") {
+					if port = strings.TrimSpace(port); port != "" && port != bridge {
+						out = append(out, RouterVLAN{ID: id, Name: name, Port: port, Tagged: part.tagged})
+					}
+				}
+			}
+			if len(out) == n {
+				out = append(out, RouterVLAN{ID: id, Name: name})
+			}
+		}
+	}
+	return out, nil
+}
+
+// rosIDs reads "10", "10,20" or "100-105" (at most 4094 numbers).
+func rosIDs(s string) []int {
+	var out []int
+	for _, part := range strings.Split(s, ",") {
+		lo, hi, isRange := strings.Cut(strings.TrimSpace(part), "-")
+		a, err := strconv.Atoi(lo)
+		if err != nil {
+			continue
+		}
+		b := a
+		if isRange {
+			if b, err = strconv.Atoi(hi); err != nil {
+				continue
+			}
+		}
+		for id := max(a, 1); id <= min(b, 4094) && len(out) < 4094; id++ {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+// rosGetter returns a function that reads a path of the RouterOS REST API
+// (e.g. "system/resource") into v.
+func rosGetter(ctx context.Context, p store.CheckParams, t Target) func(path string, v any) error {
 	scheme := "http"
 	if p.TLS {
 		scheme = "https"
 	}
-	base := scheme + "://" + hostPort(t.Host, p.Port) + "/rest/system/"
+	base := scheme + "://" + hostPort(t.Host, p.Port) + "/rest/"
 	cl := httpClient(p.Insecure)
-	get := func(path string, v any) error {
+	return func(path string, v any) error {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+path, nil)
 		if err != nil {
 			return err
@@ -411,43 +537,6 @@ func RouterOS(ctx context.Context, p store.CheckParams, t Target) Result {
 		}
 		return json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(v)
 	}
-	start := time.Now()
-	var res map[string]any
-	if err := get("resource", &res); err != nil {
-		return fail("%v", err)
-	}
-	r := Result{Up: true, Values: map[string]float64{}}
-	if v, ok := num(res["cpu-load"]); ok {
-		r.Values["cpu_pct"] = v
-	}
-	free, ok1 := num(res["free-memory"])
-	total, ok2 := num(res["total-memory"])
-	if ok1 && ok2 && total > 0 {
-		r.Values["mem_pct"] = math.Round((1-free/total)*10000) / 100
-	}
-	if up, ok := res["uptime"].(string); ok {
-		if s, ok := rosDuration(up); ok {
-			r.Values["uptime_s"] = s
-		}
-	}
-	var health []map[string]any
-	if get("health", &health) == nil {
-		for _, h := range health {
-			if n, _ := h["name"].(string); strings.Contains(n, "temperature") {
-				if v, ok := num(h["value"]); ok {
-					r.Values["temperature"] = v
-					break
-				}
-			}
-		}
-	}
-	ver, _ := res["version"].(string)
-	board, _ := res["board-name"].(string)
-	r.Text = fmt.Sprintf("RouterOS %s %s, CPU %.0f%%, memory %.0f%%, %.0f ms", strings.Fields(ver + " ")[0], board, r.Values["cpu_pct"], r.Values["mem_pct"], msSince(start))
-	if t, ok := r.Values["temperature"]; ok {
-		r.Text += fmt.Sprintf(", %.0f °C", t)
-	}
-	return r
 }
 
 // num reads a JSON number, a numeric string or a boolean.

@@ -626,6 +626,28 @@ func TestMaps(t *testing.T) {
 	if !strings.Contains(r.body, `"can_edit":true`) || !strings.Contains(r.body, `"Add device"`) {
 		t.Fatalf("layout json: %s", r.body)
 	}
+	// VLANs: SNMP and RouterOS rows of a device add up; a source replaces
+	// only its own; the map knows them per port, the device page lists them
+	if err := e.st.SetDeviceVLANs(ctx, 1, store.VLANFromSNMP, []store.VLANPort{{VLAN: 10, Name: "mgmt", IfIndex: 2, Tagged: true}, {VLAN: 30, Name: "spare"}, {VLAN: 5000, IfIndex: 2}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.st.SetDeviceVLANs(ctx, 1, store.VLANFromRouterOS, []store.VLANPort{{VLAN: 20, Name: "voice", IfIndex: 2}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.st.SetDeviceVLANs(ctx, 1, store.VLANFromSNMP, []store.VLANPort{{VLAN: 10, Name: "mgmt", IfIndex: 2, Tagged: true}, {VLAN: 30, Name: "spare"}}); err != nil {
+		t.Fatal(err)
+	}
+	r = c.get("/maps/1/live")
+	live = store.MapLive{}
+	if err := json.Unmarshal([]byte(r.body), &live); err != nil {
+		t.Fatal(err)
+	}
+	if v := live.Ports[1][2].VLANs; len(v) != 2 || v[0] != (store.PortVLAN{ID: 10, Tagged: true}) || v[1] != (store.PortVLAN{ID: 20}) || live.VLANs[30] != "spare" || len(live.VLANs) != 3 {
+		t.Fatalf("live VLANs: %s", r.body)
+	}
+	if r := c.get("/devices/1"); !strings.Contains(r.body, "<td>mgmt</td><td>ether2</td><td></td>") || !strings.Contains(r.body, "<td>voice</td><td></td><td>ether2</td>") {
+		t.Fatalf("device VLANs: %s", r.body)
+	}
 	// submaps: the parent shows the worst state inside
 	c.post("/maps", "name", "Branch")
 	if r := c.postJSON("/maps/2/layout", store.MapLayout{Nodes: []store.MapNode{{ID: -1, Kind: "device", DeviceID: 2}, {ID: -2, Kind: "submap", SubmapID: 1}}}); r.code != http.StatusOK {

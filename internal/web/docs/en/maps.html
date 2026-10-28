@@ -14,7 +14,7 @@
 <ul>
   <li>Every device has a picture from the built-in library (switches with their ports, routers, servers, firewalls, access points, phones, cameras …) or one you upload.</li>
   <li><b>Racks</b> of 4 to 48 units: drop devices into them; they snap to free units.</li>
-  <li>Cables have a <b>kind</b> (copper, fibre, DAC, wireless, VPN, WAN, serial, power) and a <b>route</b>: straight, 90° or 45° bends, curved; drag the points to bend them.</li>
+  <li>Cables have a <b>kind</b> (copper, fibre, DAC, wireless, VPN, WAN, serial, power) and a <b>route</b>: straight, 90° or 45° bends, curved; drag the points to bend them; double-click a point to remove it.</li>
   <li>A <b>background picture</b> (a floor plan, a site) with size, transparency and position.</li>
   <li><b>Submaps</b> link to other maps and show their worst state.</li>
 </ul>
@@ -24,6 +24,14 @@
   <li>Green is up, amber partly down, red down (blinking); grey means unknown or paused.</li>
   <li>Cables get wider and change colour with utilisation (above 50 % amber, above 80 % red); a cable whose port has no link is red and dashed.</li>
   <li>Zoom with the wheel or two fingers; names and port labels appear when you are close enough. Click a device for its panel with checks, ports and tools; double-click to open it.</li>
+</ul>
+
+<h2 id="layers">Layers and paths</h2>
+<ul>
+  <li><b>Layers</b> chooses what the map shows: devices, racks, items, submaps, cables, port names, traffic, names and addresses, text and the background, in any combination. Your choice is kept in this browser.</li>
+  <li><b>Path</b>: click two devices and the map shows only the chain of cables between them (with patch panels, switches and racks on the way) and zooms to it. Click Path again or press Esc to see the whole map.</li>
+  <li>Port names on cables appear when you zoom in, so a crowded map stays readable.</li>
+  <li><b>VLANs</b>: when switches or routers on the map report VLANs, a VLAN list appears in the toolbar. Choose a VLAN and the map shows only the cables that carry it, marked tagged or untagged; devices without it fade. The cable panel lists the VLANs of its ports.</li>
 </ul>
 
 <h2 id="kiosk">Kiosk displays</h2>

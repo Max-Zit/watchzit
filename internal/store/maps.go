@@ -517,22 +517,24 @@ type LiveTool struct {
 
 // LivePort is an interface with its latest traffic.
 type LivePort struct {
-	Name   string   `json:"name"`
-	Alias  string   `json:"alias,omitempty"`
-	Speed  int64    `json:"speed,omitempty"`
-	Up     bool     `json:"up"`
-	Admin  bool     `json:"admin"`
-	In     *float64 `json:"in,omitempty"`  // bit/s
-	Out    *float64 `json:"out,omitempty"` // bit/s
-	Check  int64    `json:"check,omitempty"`
-	Status string   `json:"status,omitempty"` // of the interface check
+	Name   string     `json:"name"`
+	Alias  string     `json:"alias,omitempty"`
+	Speed  int64      `json:"speed,omitempty"`
+	Up     bool       `json:"up"`
+	Admin  bool       `json:"admin"`
+	In     *float64   `json:"in,omitempty"`  // bit/s
+	Out    *float64   `json:"out,omitempty"` // bit/s
+	Check  int64      `json:"check,omitempty"`
+	Status string     `json:"status,omitempty"` // of the interface check
+	VLANs  []PortVLAN `json:"vlans,omitempty"`
 }
 
 // MapLive is the state of everything on a map, refreshed by the browser.
 type MapLive struct {
 	Devices map[int64]*LiveDevice       `json:"devices"`
-	Ports   map[int64]map[int]*LivePort `json:"ports"` // device → ifIndex → port
-	Maps    map[int64]string            `json:"maps"`  // submap → worst status
+	Ports   map[int64]map[int]*LivePort `json:"ports"`           // device → ifIndex → port
+	Maps    map[int64]string            `json:"maps"`            // submap → worst status
+	VLANs   map[int]string              `json:"vlans,omitempty"` // VLAN → name (may be empty)
 }
 
 // DevicePorts lists the interfaces of devices with their latest traffic.
@@ -635,6 +637,9 @@ func (s *Store) MapLiveData(ctx context.Context, l *MapLayout) (*MapLive, error)
 		}
 		var err2 error
 		if live.Ports, err2 = s.DevicePorts(ctx, ids); err2 != nil {
+			return nil, err2
+		}
+		if live.VLANs, err2 = s.portVLANs(ctx, ids, live.Ports); err2 != nil {
 			return nil, err2
 		}
 	}

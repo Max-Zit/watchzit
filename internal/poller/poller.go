@@ -38,6 +38,7 @@ type Poller struct {
 	reload   chan struct{}
 	profiles map[int64]*store.SNMPProfile
 	counters map[int64]*counterState // last raw counters per check
+	vlanSync map[int64]time.Time     // last read of a router's VLANs per device
 }
 
 type counterState struct {
@@ -53,7 +54,7 @@ type entry struct {
 
 // New creates a poller.
 func New(st *store.Store, db *tsdb.DB, log *slog.Logger) *Poller {
-	return &Poller{store: st, db: db, log: log, now: time.Now, Workers: 64, entries: map[int64]*entry{}, reload: make(chan struct{}, 1), profiles: map[int64]*store.SNMPProfile{}, counters: map[int64]*counterState{}}
+	return &Poller{store: st, db: db, log: log, now: time.Now, Workers: 64, entries: map[int64]*entry{}, reload: make(chan struct{}, 1), profiles: map[int64]*store.SNMPProfile{}, counters: map[int64]*counterState{}, vlanSync: map[int64]time.Time{}}
 }
 
 // Reload makes the poller read the checks again (after a change).
@@ -475,7 +476,15 @@ func (p *Poller) refreshDevice(ctx context.Context, d *store.Device) error {
 	if err != nil {
 		return err
 	}
-	return p.store.SetInterfaces(ctx, d.ID, ifs)
+	if err := p.store.SetInterfaces(ctx, d.ID, ifs); err != nil {
+		return err
+	}
+	vs, err := snmpmon.VLANs(ctx, cl)
+	if err != nil {
+		p.log.Debug("poller: SNMP VLANs not read", "device", d.Name, "err", err)
+		return nil
+	}
+	return p.store.SetDeviceVLANs(ctx, d.ID, store.VLANFromSNMP, vs)
 }
 
 // runService runs a check of a service (web page, certificate, DNS,
@@ -503,5 +512,45 @@ func (p *Poller) runService(ctx context.Context, c *store.Check, o *outcome, sam
 	o.res.Text = r.Text
 	if r.Up {
 		o.res.Status = store.StatusUp
+		if c.Type == store.CheckRouterOS {
+			p.routerVLANs(ctx, c, t)
+		}
+	}
+}
+
+// routerVLANs reads the bridge VLANs of a RouterOS device, at most every
+// ten minutes, and keeps them with the ports matched by interface name.
+func (p *Poller) routerVLANs(ctx context.Context, c *store.Check, t checks.Target) {
+	p.mu.Lock()
+	due := p.now().Sub(p.vlanSync[c.DeviceID]) >= 10*time.Minute
+	if due {
+		p.vlanSync[c.DeviceID] = p.now()
+	}
+	p.mu.Unlock()
+	if !due {
+		return
+	}
+	vs, err := checks.RouterOSVLANs(ctx, c.Params, t)
+	if err != nil {
+		p.log.Debug("poller: RouterOS VLANs not read", "device", c.DeviceID, "err", err)
+		return
+	}
+	ifs, err := p.store.Interfaces(ctx, c.DeviceID)
+	if err != nil {
+		return
+	}
+	idx := map[string]int{}
+	for _, i := range ifs {
+		idx[i.Name] = i.Index
+		if _, ok := idx[i.Descr]; !ok && i.Descr != "" {
+			idx[i.Descr] = i.Index
+		}
+	}
+	out := make([]store.VLANPort, 0, len(vs))
+	for _, v := range vs {
+		out = append(out, store.VLANPort{VLAN: v.ID, Name: v.Name, IfIndex: idx[v.Port], Tagged: v.Tagged})
+	}
+	if err := p.store.SetDeviceVLANs(ctx, c.DeviceID, store.VLANFromRouterOS, out); err != nil {
+		p.log.Warn("poller: cannot save the VLANs", "device", c.DeviceID, "err", err)
 	}
 }
