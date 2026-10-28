@@ -48,6 +48,7 @@
     </form>
   </header>
   <main>
+    {{with .BackMap}}<a class="btn secondary sm backmap" href="/maps/{{.ID}}">{{template "icon" "chevl"}}{{$.T "Back to the map %s" .Name}}</a>{{end}}
     {{if .DevNo2FA}}<div class="flash err" role="alert">{{template "icon" "alert"}}<span>{{.T "Development mode: two-factor sign-in is switched off (--dev-no-2fa). Never use this on a real server."}}</span></div>{{end}}
     {{if .Flash}}{{if .FlashErr}}<div class="flash err" role="alert">{{template "icon" "alert"}}<span>{{.Flash}}</span></div>{{else}}<div class="flash ok" role="status">{{template "icon" "check"}}<span>{{.Flash}}</span></div>{{end}}{{end}}
     {{if .Error}}<div class="flash err" role="alert">{{template "icon" "alert"}}<span>{{.Error}}</span></div>{{end}}

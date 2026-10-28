@@ -103,7 +103,7 @@
 
 {{if .Data.Graphs}}
 <div class="titlebar"><h2>{{.T "Graphs"}}</h2>
-  <nav class="seg" aria-label="{{.T "Time range"}}">{{range .Data.Ranges}}<a href="?range={{.}}" class="{{if eq . $.Data.Range}}on{{end}}">{{.}}</a>{{end}}</nav>
+  <nav class="seg" aria-label="{{.T "Time range"}}">{{range .Data.Ranges}}<a href="?range={{.}}{{with $.BackMap}}&amp;map={{.ID}}{{end}}" class="{{if eq . $.Data.Range}}on{{end}}">{{.}}</a>{{end}}</nav>
 </div>
 <div class="graphs">
 {{range $g := .Data.Graphs}}{{template "graphfig" (graphOf $ $g $.Data.Range)}}{{end}}

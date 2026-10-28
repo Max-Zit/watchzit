@@ -739,3 +739,20 @@ func TestWebLinks(t *testing.T) {
 		t.Fatalf("bad link accepted: %d", r.code)
 	}
 }
+
+// Pages opened from a map (?map=ID) lead back to it; other pages and an
+// unknown map show no button.
+func TestBackToMap(t *testing.T) {
+	e := newEnv(t)
+	c, _ := e.setupAdmin("192.168.1.10")
+	c.post("/devices/new", "name", "srv1", "address", "10.0.0.5")
+	c.post("/maps", "name", "Head office")
+	if r := c.get("/devices/1?map=1"); !strings.Contains(r.body, `class="btn secondary sm backmap" href="/maps/1"`) || !strings.Contains(r.body, "Head office") {
+		t.Fatalf("from the map: %s", r.body)
+	}
+	for _, path := range []string{"/devices/1", "/devices/1?map=99", "/devices/1?map=x", "/maps/1?map=1"} {
+		if r := c.get(path); strings.Contains(r.body, "backmap") {
+			t.Fatalf("%s shows the button", path)
+		}
+	}
+}

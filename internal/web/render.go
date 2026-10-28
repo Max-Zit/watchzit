@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -89,6 +90,9 @@ type Page struct {
 	Path     string
 	Host     string // the console host as the browser sees it
 	Refresh  int    // seconds until the page reloads itself (0 = never)
+	// BackMap is the map this page was opened from (?map=ID): a button
+	// leads back to it.
+	BackMap *store.Map
 	// Problems counts open problems that were sent (sidebar badge);
 	// ProblemsCritical is set when one of them is critical.
 	Problems         int
@@ -281,6 +285,11 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, status int, name
 	p.Asset = assetVersion
 	p.Path = r.URL.RequestURI()
 	p.Host = r.Host
+	if id, err := strconv.ParseInt(r.URL.Query().Get("map"), 10, 64); err == nil && id > 0 && p.User != nil && p.Nav != "maps" {
+		if m, err := s.store.MapByID(r.Context(), id); err == nil {
+			p.BackMap = m
+		}
+	}
 	if p.User != nil {
 		if c, err := s.store.ProblemCounts(r.Context()); err == nil {
 			for _, n := range c {

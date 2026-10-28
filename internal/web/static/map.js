@@ -465,6 +465,8 @@
   }
   function badgeClass(s) { return { up: "ok", down: "bad", warning: "warn", paused: "muted", unknown: "muted" }[s] || "muted"; }
   function row(dl, k, v) { dl.appendChild(h("dt", {}, k)); var dd = h("dd"); if (typeof v === "string") dd.textContent = v; else dd.appendChild(v); dl.appendChild(dd); }
+  // fromMap marks links from the map, so the page offers a way back
+  function fromMap() { return kioskBase ? "" : "?map=" + mapID; }
   function btn(text, href, cls) { return h("a", { "class": "btn " + (cls || "secondary") + " sm", href: href }, text); }
   function button(text, cls, fn) { var b = h("button", { type: "button", "class": "btn " + (cls || "secondary") + " sm" }, text); b.addEventListener("click", fn); return b; }
   function field(p, text, input) { var l = h("label", {}, text); l.appendChild(input); p.appendChild(l); return input; }
@@ -516,7 +518,7 @@
       }
       if (!kioskBase) {
         var acts = h("div", { "class": "row mt" });
-        acts.appendChild(btn(T("Metrics"), "/devices/" + n.device, "primary"));
+        acts.appendChild(btn(T("Metrics"), "/devices/" + n.device + fromMap(), "primary"));
         if (d.web) { var wa = btn(d.web_name || T("Open web interface"), d.web); wa.target = "_blank"; wa.rel = "noopener noreferrer"; acts.appendChild(wa); }
         (d.links || []).forEach(function (l) { var la = btn(l.name, l.url); la.target = "_blank"; la.rel = "noopener noreferrer"; acts.appendChild(la); });
         (d.tools || []).forEach(function (t) { acts.appendChild(btn(t.name, "/devices/" + n.device + "/open/" + t.id)); });
@@ -524,7 +526,7 @@
         if (d.tools && d.tools.length) {
           // the tools need the Launcher paired with this console
           var lp = h("p", { "class": "muted small" }, T("SSH, Remote Desktop and the other tools open through the WatchZit Launcher.") + " ");
-          lp.appendChild(h("a", { href: "/launcher" }, T("Set it up")));
+          lp.appendChild(h("a", { href: "/launcher" + fromMap() }, T("Set it up")));
           p.appendChild(lp);
         }
       }
@@ -657,8 +659,8 @@
     if (!kioskBase) {
       var acts = h("div", { "class": "row mt" });
       // the port graphs of each end on its device page
-      if (s.a && s.a.check) acts.appendChild(btn(T("Graphs") + " · " + nodeName(a), "/devices/" + a.device + "#graph-" + s.a.check, "secondary"));
-      if (s.b && s.b.check) acts.appendChild(btn(T("Graphs") + " · " + nodeName(b), "/devices/" + b.device + "#graph-" + s.b.check, "secondary"));
+      if (s.a && s.a.check) acts.appendChild(btn(T("Graphs") + " · " + nodeName(a), "/devices/" + a.device + fromMap() + "#graph-" + s.a.check, "secondary"));
+      if (s.b && s.b.check) acts.appendChild(btn(T("Graphs") + " · " + nodeName(b), "/devices/" + b.device + fromMap() + "#graph-" + s.b.check, "secondary"));
       p.appendChild(acts);
     }
   }
@@ -1265,7 +1267,7 @@
     if (nodeEl) {
       if (kioskBase) return false;
       var n = nodeByID(+nodeEl.getAttribute("data-node"));
-      var to = n && n.kind === "device" ? "/devices/" + n.device : n && n.kind === "submap" ? "/maps/" + n.submap : "";
+      var to = n && n.kind === "device" ? "/devices/" + n.device + fromMap() : n && n.kind === "submap" ? "/maps/" + n.submap : "";
       if (!to || (editing && n.kind === "submap")) return false;
       // while editing: in a new tab, so the unsaved drawing stays
       if (editing) window.open(to, "_blank", "noopener"); else location.href = to;
