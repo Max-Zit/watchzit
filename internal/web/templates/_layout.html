@@ -18,6 +18,7 @@
     <a href="/" class="{{if eq .Nav "overview"}}on{{end}}">{{template "icon" "overview"}}{{.T "Overview"}}{{if .DownCount}} <span class="navcount">{{.DownCount}}</span>{{end}}</a>
     <a href="/maps" class="{{if eq .Nav "maps"}}on{{end}}">{{template "icon" "map"}}{{.T "Maps"}}</a>
     <a href="/devices" class="{{if eq .Nav "devices"}}on{{end}}">{{template "icon" "devices"}}{{.T "Devices"}}</a>
+    <a href="/agents" class="{{if eq .Nav "agents"}}on{{end}}">{{template "icon" "cpu"}}{{.T "Agents"}}</a>
     <a href="/groups" class="{{if eq .Nav "groups"}}on{{end}}">{{template "icon" "folder"}}{{.T "Groups"}}</a>
     {{if .User.IsAdmin}}
     <span class="navlabel">{{.T "Administration"}}</span>

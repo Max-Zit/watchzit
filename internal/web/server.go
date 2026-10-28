@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -34,6 +35,12 @@ type Server struct {
 
 	// MgmtACL guards the console listener.
 	MgmtACL *netacl.List
+	// AgentACL guards the agent endpoint; AgentFingerprint is its pinned
+	// certificate; RunningAgent its listen address.
+	AgentACL         *netacl.List
+	AgentFingerprint string
+	RunningAgent     string
+	hub              *hub
 	// RunningMgmt is the listen address the server actually uses.
 	RunningMgmt string
 	// ListenOverride: the address comes from a command-line option.
@@ -41,6 +48,8 @@ type Server struct {
 	Version        string
 	// SetupTokenFile holds the one-time token the first-run setup asks for.
 	SetupTokenFile string
+	// DownloadsDir holds the agent installers offered in the console.
+	DownloadsDir string
 	// DevNo2FA skips the second factor (development server only).
 	DevNo2FA   bool
 	setupToken string
@@ -60,6 +69,9 @@ func New(ctx context.Context, st *store.Store, db *tsdb.DB, p *poller.Poller, lo
 	}
 	mg, _ := netacl.Parse(n.MgmtAllowed)
 	s.MgmtACL = netacl.NewManagement(mg)
+	ag, _ := netacl.Parse(n.AgentAllowed)
+	s.AgentACL = netacl.NewOptional(ag)
+	s.hub = newHub()
 	db.SetRetention(s.retention(ctx))
 	return s, nil
 }
@@ -74,27 +86,58 @@ func (s *Server) SetSetupToken(tok string) { s.setupToken = tok }
 
 const settingNetwork = "network"
 
-// NetworkSettings are the console listener and who may reach it.
+// NetworkSettings are the two listeners and who may reach them.
 type NetworkSettings struct {
 	// MgmtListen is the console address, e.g. ":8443" or "192.168.1.10:8443".
 	MgmtListen string `json:"mgmt_listen"`
 	// MgmtAllowed may reach the console (loopback always may).
 	MgmtAllowed []string `json:"mgmt_allowed"`
+	// AgentListen is the agent endpoint, e.g. ":8444" (a separate port, so a
+	// firewall can open it for remote sites and keep the console closed).
+	AgentListen string `json:"agent_listen"`
+	// AgentAllowed may reach the agent endpoint; empty = everyone.
+	AgentAllowed []string `json:"agent_allowed"`
+	// PublicAgentURL is how agents reach the server (put into enrollment
+	// codes), e.g. "https://monitor.example.com:8444". Empty: derived from
+	// the console address.
+	PublicAgentURL string `json:"public_agent_url,omitempty"`
 }
 
 // defaultNetwork is used until the settings are saved (a fresh copy each
 // time: JSON decoding into it must not change the package defaults).
 func defaultNetwork() NetworkSettings {
-	return NetworkSettings{MgmtListen: ":8443", MgmtAllowed: append([]string(nil), netacl.DefaultManagement...)}
+	return NetworkSettings{MgmtListen: ":8443", AgentListen: ":8444", MgmtAllowed: append([]string(nil), netacl.DefaultManagement...)}
 }
 
-// Validate checks the listen address and the networks.
+// Validate checks the listen addresses and the networks.
 func (n *NetworkSettings) Validate() error {
-	if _, _, err := splitListen(n.MgmtListen); err != nil {
+	if n.AgentListen == "" {
+		n.AgentListen = ":8444" // settings saved before agents existed
+	}
+	mh, mp, err := splitListen(n.MgmtListen)
+	if err != nil {
 		return fmt.Errorf("console address: %w", err)
 	}
-	_, err := netacl.Parse(n.MgmtAllowed)
-	return err
+	ah, ap, err := splitListen(n.AgentListen)
+	if err != nil {
+		return fmt.Errorf("agent address: %w", err)
+	}
+	if mp == ap && (mh == ah || mh == "" || ah == "") {
+		return errors.New("the console and the agent endpoint must use different ports")
+	}
+	if _, err := netacl.Parse(n.MgmtAllowed); err != nil {
+		return err
+	}
+	if _, err := netacl.Parse(n.AgentAllowed); err != nil {
+		return err
+	}
+	if n.PublicAgentURL != "" {
+		u, err := url.Parse(n.PublicAgentURL)
+		if err != nil || u.Scheme != "https" || u.Host == "" || u.Path != "" && u.Path != "/" || u.RawQuery != "" || u.User != nil {
+			return errors.New("the public agent address must look like https://monitor.example.com:8444")
+		}
+	}
+	return nil
 }
 
 func splitListen(a string) (host string, port int, err error) {
@@ -137,6 +180,8 @@ func (s *Server) SaveNetwork(ctx context.Context, n NetworkSettings) error {
 	}
 	mg, _ := netacl.Parse(n.MgmtAllowed)
 	s.MgmtACL.Set(mg)
+	ag, _ := netacl.Parse(n.AgentAllowed)
+	s.AgentACL.Set(ag)
 	return nil
 }
 
@@ -272,6 +317,13 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /kiosk/{token}/assets/{id}", s.handleKioskAsset)
 	write("POST /maps/{id}", s.handleMapUpdate)
 	write("POST /maps/{id}/delete", s.handleMapDelete)
+	app("GET /agents", s.handleAgents)
+	write("POST /agents/tokens", s.handleTokenCreate)
+	write("POST /agents/tokens/{id}/revoke", s.handleTokenRevoke)
+	app("GET /downloads/{name}", s.handleDownload)
+	write("POST /devices/{id}/services", s.handleAgentServices)
+	write("POST /devices/{id}/agent/remove", s.handleAgentRemove)
+	write("POST /devices/{id}/agent/refresh", s.handleAgentRefresh)
 	app("GET /groups", s.handleGroups)
 	write("POST /groups", s.handleGroupCreate)
 	write("POST /groups/{id}", s.handleGroupUpdate)

@@ -25,6 +25,10 @@ jobs:
         run: go vet ./...
       - name: Tests
         run: go test -count=1 -timeout 20m ./...
+      - name: Agent for ARM64
+        env:
+          GOARCH: arm64
+        run: go build -o /dev/null ./cmd/watchzit-agent
 
   windows:
     name: Build (Windows)
@@ -41,3 +45,23 @@ jobs:
         run: |
           go build ./...
           go vet ./...
+
+  agent-windows:
+    name: Agent tests and MSI (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Agent tests
+        run: go test -count=1 ./internal/agent/...
+      - name: WiX 5.0.2
+        run: |
+          dotnet tool install --global wix --version 5.0.2
+          wix extension add -g WixToolset.Util.wixext/5.0.2
+          wix extension add -g WixToolset.UI.wixext/5.0.2
+      - name: Build the MSI
+        shell: pwsh
+        run: .\packaging\windows\build-msi.ps1 -Version 0.0.0

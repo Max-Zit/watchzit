@@ -23,6 +23,39 @@
   {{if and .User.CanWrite .Data.Profile}}<div class="row mt"><a class="btn secondary" href="/devices/{{$d.ID}}/discover">{{template "icon" "refresh"}}{{.T "SNMP discovery"}}</a></div>{{end}}
 </section>
 
+{{with .Data.Agent}}{{$a := .}}
+<section class="panel">
+  <div class="titlebar"><h2>{{template "icon" "cpu"}}{{$.T "Agent"}} {{if .Online}}<span class="badge ok"><i></i>{{$.T "Online"}}</span>{{else}}<span class="badge bad"><i></i>{{$.T "Offline"}}</span>{{end}}</h2>
+    {{if $.User.CanWrite}}<div class="row">
+      {{if .Online}}<form method="post" action="/devices/{{$d.ID}}/agent/refresh" class="inline"><button class="ghost sm">{{template "icon" "refresh"}}{{$.T "Read inventory again"}}</button></form>{{end}}
+      <form method="post" action="/devices/{{$d.ID}}/agent/remove" class="inline" data-confirm="{{$.T "Remove the agent from %s? Its data stays; to use the agent again, enroll the computer with a new code." $d.Name}}"><button class="ghost sm">{{template "icon" "trash"}}{{$.T "Remove agent"}}</button></form>
+    </div>{{end}}
+  </div>
+  <dl class="facts">
+    <dt>{{$.T "Operating system"}}</dt><dd>{{with .Inventory.OS}}{{.}}{{else}}{{$a.OS}}{{end}}{{with .Inventory.Kernel}} <span class="muted small">· {{.}}</span>{{end}}</dd>
+    {{with .Inventory.CPUModel}}<dt>CPU</dt><dd>{{.}} <span class="muted small">· {{$a.Inventory.CPUs}} {{$.T "logical processors"}}</span></dd>{{end}}
+    {{if .Inventory.MemTotal}}<dt>{{$.T "Memory"}}</dt><dd>{{bytes .Inventory.MemTotal}}</dd>{{end}}
+    {{with .Inventory.Model}}<dt>{{$.T "Model"}}</dt><dd>{{$a.Inventory.Vendor}} {{.}}{{with $a.Inventory.Serial}} <span class="muted small">· {{.}}</span>{{end}}</dd>{{end}}
+    {{with .Inventory.Addresses}}<dt>{{$.T "Addresses"}}</dt><dd class="mono small">{{range $i, $x := .}}{{if $i}}, {{end}}{{$x}}{{end}}</dd>{{end}}
+    <dt>{{$.T "Version"}}</dt><dd>{{.Version}} <span class="muted small">· {{if .Seen}}{{$.T "last seen %s" ($.Ago .Seen)}}{{end}}{{with .IP}} · <span class="mono">{{.}}</span>{{end}}</span></dd>
+  </dl>
+  {{if and $.User.CanWrite .Inventory.Services}}
+  <details class="mt services-pick">
+    <summary class="btn secondary sm">{{template "icon" "service"}}{{$.T "Watch services"}}{{with $.Data.Watched}} ({{len .}}){{end}}</summary>
+    <form method="post" action="/devices/{{$d.ID}}/services" class="stack mt">
+      <p class="small muted">{{$.T "A watched service that is not running makes its check and the device red. Services that start with the system are listed first."}}</p>
+      <input type="search" placeholder="{{$.T "Search"}}" data-filter="#svc-list" aria-label="{{$.T "Search"}}">
+      <div class="svc-list" id="svc-list">
+        {{range .Inventory.Services}}{{if .Auto}}<label class="check" data-text="{{.Name}} {{.Display}}"><input type="checkbox" name="service" value="{{.Name}}" {{if index $.Data.Watched .Name}}checked{{end}}><span>{{with .Display}}{{.}}{{else}}{{$.T "(no name)"}}{{end}} <small class="muted mono">{{.Name}}</small></span></label>{{end}}{{end}}
+        {{range .Inventory.Services}}{{if not .Auto}}<label class="check" data-text="{{.Name}} {{.Display}}"><input type="checkbox" name="service" value="{{.Name}}" {{if index $.Data.Watched .Name}}checked{{end}}><span class="muted">{{with .Display}}{{.}}{{else}}{{.Name}}{{end}} <small class="mono">{{.Name}}</small></span></label>{{end}}{{end}}
+      </div>
+      <div><button class="primary sm">{{$.T "Save"}}</button></div>
+    </form>
+  </details>
+  {{end}}
+</section>
+{{end}}
+
 {{if .Data.Interfaces}}
 <section class="panel">
   <div class="titlebar"><h2>{{.T "Ports"}}</h2><span class="muted small">{{.T "Updated %s" (.Ago (index .Data.Interfaces 0).Updated)}}</span></div>
@@ -63,7 +96,7 @@
       <td class="hide-sm nowrap">{{.IntervalS}} s</td>
       <td class="hide-sm muted nowrap">{{$.Ago .LastRun}}</td>
       {{if $.User.CanWrite}}<td class="actions nowrap">
-        <form method="post" action="/checks/{{.ID}}/run" class="inline"><button class="ghost sm" title="{{$.T "Run now"}}">{{template "icon" "refresh"}}<span class="hide-sm">{{$.T "Run now"}}</span></button></form>
+        {{if not (isAgent .Type)}}<form method="post" action="/checks/{{.ID}}/run" class="inline"><button class="ghost sm" title="{{$.T "Run now"}}">{{template "icon" "refresh"}}<span class="hide-sm">{{$.T "Run now"}}</span></button></form>{{end}}
         <details class="pop right"><summary class="btn ghost sm" title="{{$.T "Settings"}}">{{template "icon" "settings"}}</summary>
           <div class="pop-body">
             <form method="post" action="/checks/{{.ID}}" class="stack">

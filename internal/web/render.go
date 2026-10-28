@@ -394,6 +394,7 @@ func init() {
 		}
 		return ""
 	}
+	funcs["isAgent"] = store.IsAgent
 	funcs["inList"] = func(xs []int64, x int64) bool { return slices.Contains(xs, x) }
 	funcs["groupName"] = func(g string) string {
 		if n, ok := groupNames[g]; ok {
@@ -418,7 +419,16 @@ func init() {
 		}
 		return m
 	}
-	funcs["bytes"] = func(n int64) string {
+	funcs["bytes"] = func(v any) string {
+		var n int64
+		switch x := v.(type) {
+		case int64:
+			n = x
+		case uint64:
+			n = int64(min(x, 1<<62)) // #nosec G115 -- capped
+		case int:
+			n = int64(x)
+		}
 		const unit = 1024
 		if n < unit {
 			return fmt.Sprintf("%d B", n)
@@ -435,11 +445,13 @@ func init() {
 // metricNames are the display names of metrics (translated in templates).
 var metricNames = map[string]string{"rtt_ms": "Response time", "loss_pct": "Packet loss", "connect_ms": "Connect time",
 	"response_ms": "Response time", "uptime_s": "Uptime", "in_bps": "Traffic in", "out_bps": "Traffic out", "in_err": "Errors in", "out_err": "Errors out",
-	"cpu_pct": "CPU load", "used_pct": "Used", "used_b": "Used space", "value": "Value"}
+	"cpu_pct": "CPU load", "used_pct": "Used", "used_b": "Used space", "value": "Value",
+	"mem_pct": "Memory used", "swap_pct": "Swap used", "mem_used_b": "Memory used (bytes)", "load1": "Load average", "running": "Running"}
 
 // checkKinds name the check types.
 var checkKinds = map[string]string{"icmp": "Ping (ICMP)", "tcp": "TCP port", "snmp": "SNMP availability", "snmp_if": "Interface traffic",
-	"snmp_cpu": "CPU load", "snmp_storage": "Memory or disk", "snmp_oid": "SNMP value (OID)"}
+	"snmp_cpu": "CPU load", "snmp_storage": "Memory or disk", "snmp_oid": "SNMP value (OID)",
+	"agent": "Agent", "agent_cpu": "CPU load", "agent_mem": "Memory", "agent_disk": "Disk", "agent_net": "Interface traffic", "agent_service": "Service"}
 
 // groupNames name the kinds of items discovery finds.
 var groupNames = map[string]string{"system": "System", "interface": "Interface", "memory": "Memory", "disk": "Disk"}

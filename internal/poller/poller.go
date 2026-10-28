@@ -90,6 +90,9 @@ func (p *Poller) load(ctx context.Context) error {
 	}
 	seen := map[int64]bool{}
 	for _, c := range cs {
+		if store.IsAgent(c.Type) {
+			continue // the agent reports these itself
+		}
 		seen[c.ID] = true
 		if e := p.entries[c.ID]; e != nil {
 			if e.c.IntervalS != c.IntervalS {

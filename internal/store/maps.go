@@ -557,7 +557,7 @@ func (s *Store) DevicePorts(ctx context.Context, ids []int64) (map[int64]map[int
 		return nil, err
 	}
 	// traffic from the interface checks
-	rows, err = s.db.Query(ctx, `SELECT device_id, id, params, last_values, status, paused FROM checks WHERE type=$1 AND device_id = ANY($2)`, CheckSNMPIf, ids)
+	rows, err = s.db.Query(ctx, `SELECT device_id, id, params, last_values, status, paused FROM checks WHERE type IN ($1, $3) AND device_id = ANY($2)`, CheckSNMPIf, ids, CheckAgentNet)
 	if err != nil {
 		return nil, err
 	}

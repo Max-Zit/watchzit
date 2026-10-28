@@ -396,8 +396,9 @@ func TestPagesRender(t *testing.T) {
 	c.post("/devices/new", "name", "d2", "address", "127.0.0.1", "snmp", "1")
 	c.post("/devices/2/discover", "add", "snmp_if:1:ZXRoZXIx", "add", "snmp:0:")
 	c.post("/maps", "name", "M")
+	c.post("/agents/tokens", "name", "T", "days", "7", "max_uses", "5")
 	pages := []string{"/", "/devices", "/devices?status=down", "/devices/new", "/devices/1", "/devices/1?range=7d", "/devices/1/edit", "/groups",
-		"/users", "/users/1", "/account", "/audit", "/settings/network", "/settings/security", "/settings/data", "/settings/snmp", "/settings/snmp/1", "/devices/2", "/devices/2/discover", "/maps", "/maps/1", "/maps/1?edit=1", "/settings/kiosks", "/nothing"}
+		"/users", "/users/1", "/account", "/audit", "/settings/network", "/settings/security", "/settings/data", "/settings/snmp", "/settings/snmp/1", "/devices/2", "/devices/2/discover", "/maps", "/maps/1", "/maps/1?edit=1", "/settings/kiosks", "/agents", "/nothing"}
 	for _, l := range web.Languages {
 		c.post("/lang", "lang", l.Code)
 		for _, p := range pages {

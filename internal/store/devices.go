@@ -338,13 +338,19 @@ func (s *Store) RefreshDeviceStatus(ctx context.Context, id int64) error {
 
 // Check types.
 const (
-	CheckICMP     = "icmp"
-	CheckTCP      = "tcp"
-	CheckSNMP     = "snmp"         // the agent answers; uptime
-	CheckSNMPIf   = "snmp_if"      // one interface: traffic, errors, link state
-	CheckSNMPCPU  = "snmp_cpu"     // processor load (HOST-RESOURCES)
-	CheckSNMPStor = "snmp_storage" // memory or a disk (HOST-RESOURCES)
-	CheckSNMPOID  = "snmp_oid"     // any numeric OID
+	CheckICMP         = "icmp"
+	CheckTCP          = "tcp"
+	CheckSNMP         = "snmp"          // the agent answers; uptime
+	CheckSNMPIf       = "snmp_if"       // one interface: traffic, errors, link state
+	CheckSNMPCPU      = "snmp_cpu"      // processor load (HOST-RESOURCES)
+	CheckSNMPStor     = "snmp_storage"  // memory or a disk (HOST-RESOURCES)
+	CheckSNMPOID      = "snmp_oid"      // any numeric OID
+	CheckAgent        = "agent"         // the agent is connected; uptime
+	CheckAgentCPU     = "agent_cpu"     // processor load (and load average)
+	CheckAgentMem     = "agent_mem"     // memory and swap
+	CheckAgentDisk    = "agent_disk"    // one file system / drive
+	CheckAgentNet     = "agent_net"     // one network interface
+	CheckAgentService = "agent_service" // one watched service
 )
 
 // CheckTypes are the types a user can add by hand.
@@ -352,6 +358,9 @@ var CheckTypes = []string{CheckICMP, CheckTCP, CheckSNMP, CheckSNMPOID}
 
 // IsSNMP tells whether a check type polls SNMP.
 func IsSNMP(typ string) bool { return strings.HasPrefix(typ, "snmp") }
+
+// IsAgent tells whether the agent reports a check (the poller skips it).
+func IsAgent(typ string) bool { return strings.HasPrefix(typ, "agent") }
 
 // CheckParams are the settings of a check (by type).
 type CheckParams struct {
@@ -497,6 +506,18 @@ func metricsOf(typ string, p CheckParams) []Series {
 		return []Series{{Metric: "used_pct", Unit: "%"}, {Metric: "used_b", Unit: "B"}}
 	case CheckSNMPOID:
 		return []Series{{Metric: "value", Unit: p.Unit}}
+	case CheckAgent:
+		return []Series{{Metric: "uptime_s", Unit: "s"}}
+	case CheckAgentCPU:
+		return []Series{{Metric: "cpu_pct", Unit: "%"}, {Metric: "load1", Unit: ""}}
+	case CheckAgentMem:
+		return []Series{{Metric: "mem_pct", Unit: "%"}, {Metric: "swap_pct", Unit: "%"}, {Metric: "mem_used_b", Unit: "B"}}
+	case CheckAgentDisk:
+		return []Series{{Metric: "used_pct", Unit: "%"}, {Metric: "used_b", Unit: "B"}}
+	case CheckAgentNet:
+		return []Series{{Metric: "in_bps", Unit: "bit/s"}, {Metric: "out_bps", Unit: "bit/s"}, {Metric: "in_err", Unit: "/s"}, {Metric: "out_err", Unit: "/s"}}
+	case CheckAgentService:
+		return []Series{{Metric: "running", Unit: ""}}
 	}
 	return nil
 }
@@ -540,6 +561,20 @@ func (in *CheckInput) clean() error {
 		if strings.TrimSpace(in.Name) == "" {
 			in.Name = "TCP " + strconv.Itoa(p.Port)
 		}
+	case CheckAgent, CheckAgentCPU, CheckAgentMem, CheckAgentDisk, CheckAgentNet, CheckAgentService:
+		keep := CheckParams{TimeoutMS: p.TimeoutMS, IfIndex: p.IfIndex, IfName: truncate(p.IfName, 95), Descr: truncate(strings.TrimSpace(p.Descr), 95)}
+		switch {
+		case in.Type == CheckAgentNet && p.IfIndex < 1, (in.Type == CheckAgentDisk || in.Type == CheckAgentService) && keep.Descr == "":
+			return errors.New("the agent check misses its interface, drive or service")
+		}
+		*p = keep
+		if strings.TrimSpace(in.Name) == "" {
+			in.Name = map[string]string{CheckAgent: "Agent", CheckAgentCPU: "CPU", CheckAgentMem: "Memory"}[in.Type]
+			if in.Name == "" {
+				in.Name = p.IfName + p.Descr
+			}
+		}
+		in.Name = truncate(strings.Join(strings.Fields(in.Name), " "), 95)
 	default: // SNMP
 		p.Count, p.Port = 0, 0
 		if err := p.cleanSNMP(in.Type); err != nil {
@@ -604,7 +639,7 @@ func (s *Store) UpdateCheck(ctx context.Context, id int64, in CheckInput) error 
 		return err
 	}
 	in.Type = c.Type
-	if IsSNMP(c.Type) && c.Type != CheckSNMPOID {
+	if (IsSNMP(c.Type) && c.Type != CheckSNMPOID) || IsAgent(c.Type) {
 		// what discovery set (interface, storage) is not in the settings form
 		p := c.Params
 		p.TimeoutMS = in.Params.TimeoutMS

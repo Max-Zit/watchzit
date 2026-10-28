@@ -55,6 +55,7 @@ func run() error {
 	dbURL := flag.String("db", os.Getenv("WATCHZIT_DB"), "PostgreSQL URL, e.g. postgres://watchzit:…@localhost/watchzit")
 	devDB := flag.Bool("dev-embedded-db", false, "start a private PostgreSQL in the data directory (development and evaluation only)")
 	mgmtListen := flag.String("mgmt-listen", "", "console address; overrides the saved setting (e.g. 127.0.0.1:8443)")
+	agentListen := flag.String("agent-listen", "", "agent endpoint address; overrides the saved setting (e.g. :8444)")
 	devHTTP := flag.String("dev-http", "", "also serve the console over plain HTTP on this loopback address (development only)")
 	devNo2FA := flag.Bool("dev-no-2fa", false, "sign in with the password only (development only, needs --dev-embedded-db; shown as a warning and audited)")
 	resetACL := flag.Bool("reset-allowlist", false, "allow the console again from the private networks (10/8, 172.16/12, 192.168/16, fc00::/7) and exit")
@@ -140,6 +141,7 @@ func run() error {
 		return err
 	}
 	srv.Version = version
+	srv.DownloadsDir = filepath.Join(*dataDir, "downloads")
 	if *devNo2FA {
 		srv.DevNo2FA = true
 		log.Warn("TEST MODE: two-factor sign-in is switched off (--dev-no-2fa); never use this on a production server")
@@ -152,16 +154,25 @@ func run() error {
 	if *mgmtListen != "" {
 		net0.MgmtListen = *mgmtListen
 	}
+	if *agentListen != "" {
+		net0.AgentListen = *agentListen
+	}
 	if err := net0.Validate(); err != nil {
 		return err
 	}
-	srv.RunningMgmt = net0.MgmtListen
-	srv.ListenOverride = *mgmtListen != ""
+	srv.RunningMgmt, srv.RunningAgent = net0.MgmtListen, net0.AgentListen
+	srv.ListenOverride = *mgmtListen != "" || *agentListen != ""
 
 	consoleCert, err := tlsutil.LoadOrCreate(filepath.Join(*dataDir, "tls"), "console", "WatchZit console", 5)
 	if err != nil {
 		return fmt.Errorf("console certificate: %w", err)
 	}
+	// agents pin this certificate at enrollment: it lives long and stays
+	agentCert, err := tlsutil.LoadOrCreate(filepath.Join(*dataDir, "tls"), "agent", "WatchZit agent endpoint", 20)
+	if err != nil {
+		return fmt.Errorf("agent certificate: %w", err)
+	}
+	srv.AgentFingerprint = tlsutil.Fingerprint(agentCert)
 
 	if n, err := st.UserCount(ctx); err != nil {
 		return err
@@ -176,7 +187,7 @@ func run() error {
 		log.Warn("no users yet: open the console and finish the setup; the setup token is in the file", "file", p)
 	}
 
-	errc := make(chan error, 2)
+	errc := make(chan error, 3)
 	var servers []*http.Server
 	raw, err := net.Listen("tcp", net0.MgmtListen)
 	if err != nil {
@@ -191,6 +202,18 @@ func run() error {
 	servers = append(servers, hs)
 	go func() { errc <- hs.Serve(l) }()
 	log.Info("listening", "listener", "console", "addr", raw.Addr().String())
+	raw2, err := net.Listen("tcp", net0.AgentListen)
+	if err != nil {
+		return fmt.Errorf("agent listener %s: %w", net0.AgentListen, err)
+	}
+	al := tls.NewListener(&netacl.Listener{Listener: raw2, List: srv.AgentACL, OnRefuse: func(remote string) {
+		log.Debug("agent connection refused by allow-list", "remote", remote)
+	}}, tlsutil.AgentServerConfig(agentCert))
+	as := &http.Server{Handler: srv.AgentHandler(), ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 120 * time.Second, MaxHeaderBytes: 16 << 10,
+		ErrorLog: slog.NewLogLogger(log.Handler(), slog.LevelDebug)}
+	servers = append(servers, as)
+	go func() { errc <- as.Serve(al) }()
+	log.Info("listening", "listener", "agent", "addr", raw2.Addr().String(), "fingerprint", srv.AgentFingerprint)
 	if *devHTTP != "" {
 		a, ok := netacl.AddrOf(*devHTTP)
 		if !ok || !a.IsLoopback() {

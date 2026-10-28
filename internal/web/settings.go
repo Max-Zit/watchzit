@@ -11,12 +11,15 @@ import (
 )
 
 type networkData struct {
-	N           NetworkSettings
-	MgmtText    string
-	RunningMgmt string
-	Restart     bool
-	Override    bool
-	ClientIP    string
+	N            NetworkSettings
+	MgmtText     string
+	AgentText    string
+	Fingerprint  string
+	RunningAgent string
+	RunningMgmt  string
+	Restart      bool
+	Override     bool
+	ClientIP     string
 }
 
 func (s *Server) handleNetwork(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +42,9 @@ func (s *Server) showNetwork(w http.ResponseWriter, r *http.Request, status int,
 }
 
 func (s *Server) handleNetworkSave(w http.ResponseWriter, r *http.Request) {
-	n := NetworkSettings{MgmtListen: strings.TrimSpace(r.FormValue("mgmt_listen")), MgmtAllowed: netacl.Split(r.FormValue("mgmt_allowed"))}
+	n := NetworkSettings{MgmtListen: strings.TrimSpace(r.FormValue("mgmt_listen")), MgmtAllowed: netacl.Split(r.FormValue("mgmt_allowed")),
+		AgentListen: strings.TrimSpace(r.FormValue("agent_listen")), AgentAllowed: netacl.Split(r.FormValue("agent_allowed")),
+		PublicAgentURL: strings.TrimRight(strings.TrimSpace(r.FormValue("public_agent_url")), "/")}
 	if err := n.Validate(); err != nil {
 		s.showNetwork(w, r, http.StatusBadRequest, n, err.Error())
 		return
@@ -55,8 +60,13 @@ func (s *Server) handleNetworkSave(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	s.audit(r, "settings.network", "settings", "console %s, allowed %s", n.MgmtListen, strings.Join(n.MgmtAllowed, ", "))
-	s.redirect(w, r, "/settings/network", "Saved.")
+	s.audit(r, "settings.network", "settings", "console %s, allowed %s; agents %s, allowed %s, public address %q", n.MgmtListen, strings.Join(n.MgmtAllowed, ", "),
+		n.AgentListen, strings.Join(n.AgentAllowed, ", "), n.PublicAgentURL)
+	msg := "Saved."
+	if s.RunningMgmt != "" && !s.ListenOverride && (n.MgmtListen != s.RunningMgmt || n.AgentListen != s.RunningAgent) {
+		msg = "Saved. Restart the WatchZit service to use the new ports."
+	}
+	s.redirect(w, r, "/settings/network", msg)
 }
 
 type securityData struct {

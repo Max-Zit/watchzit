@@ -1,0 +1,148 @@
+<!--
+  WatchZit Agent MSI (publisher MaxZit).
+
+  Interactive: the installer asks for the enrollment code that the console
+  shows under Agents after "Create enrollment code".
+
+  Silent (GPO, Intune, RMM, script):
+    msiexec /i watchzit-agent-x64.msi /qn ENROLLCODE="WZ1-…"
+
+  Enrollment runs as SYSTEM before the service starts. If the server cannot
+  be reached (no network yet at boot), the service finishes it later; a
+  refused token fails the installation. Upgrades keep the enrollment.
+  Uninstalling removes the enrollment (key and configuration).
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+  <Package Name="WatchZit Agent"
+           Manufacturer="MaxZit"
+           Version="$(var.Version)"
+           UpgradeCode="8C2E5B71-4D3A-4F09-A6E8-1B7D9C3F2E54"
+           Scope="perMachine"
+           InstallerVersion="500"
+           Compressed="yes">
+
+    <SummaryInformation Description="WatchZit Agent $(var.Version)" Manufacturer="MaxZit" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="WatchZitIcon" SourceFile="$(var.ArtDir)\watchzit.ico" />
+    <WixVariable Id="WixUIDialogBmp" Value="$(var.ArtDir)\dialog.bmp" />
+    <WixVariable Id="WixUIBannerBmp" Value="$(var.ArtDir)\banner.bmp" />
+    <Property Id="ARPPRODUCTICON" Value="WatchZitIcon" />
+    <Property Id="ARPCOMMENTS" Value="Monitoring agent for the WatchZit server" />
+    <Property Id="ARPCONTACT" Value="MaxZit" />
+    <Property Id="ARPURLINFOABOUT" Value="https://maxzit.com" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+
+    <Property Id="ENROLLCODE" Secure="yes" Hidden="yes" />
+    <Property Id="FORCEENROLL" Secure="yes" />
+    <Property Id="SKIPENROLL" Secure="yes" />
+    <!-- Written by the agent after a successful enrollment. -->
+    <Property Id="ALREADYENROLLED" Secure="yes">
+      <RegistrySearch Id="EnrolledSearch" Root="HKLM" Key="SOFTWARE\MaxZit\WatchZit Agent" Name="Enrolled" Type="raw" Bitness="always64" />
+    </Property>
+
+    <Launch Condition="VersionNT64" Message="This package requires 64-bit Windows." />
+    <Launch Condition="Privileged" Message="Installing the WatchZit Agent requires administrator rights." />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="WatchZit Agent">
+        <Component Id="AgentExe" Bitness="always64">
+          <File Id="AgentExeFile" Source="$(var.AgentExe)" Name="watchzit-agent.exe" KeyPath="yes" />
+          <ServiceInstall Id="AgentService"
+                          Name="WatchZitAgent"
+                          DisplayName="WatchZit Agent"
+                          Description="WatchZit monitoring agent (MaxZit): reports this computer's health to the WatchZit server."
+                          Type="ownProcess"
+                          Start="auto"
+                          ErrorControl="normal"
+                          Account="LocalSystem"
+                          Vital="yes">
+            <util:ServiceConfig FirstFailureActionType="restart" SecondFailureActionType="restart" ThirdFailureActionType="restart"
+                                RestartServiceDelayInSeconds="30" ResetPeriodInDays="1" />
+          </ServiceInstall>
+          <ServiceControl Id="AgentServiceControl" Name="WatchZitAgent" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+          <RegistryValue Root="HKLM" Key="SOFTWARE\MaxZit\WatchZit Agent\Install" Name="InstallDir" Value="[INSTALLFOLDER]" Type="string" />
+        </Component>        <Component Id="License" Bitness="always64">
+          <File Id="LicenseFile" Source="$(var.RootDir)\LICENSE" Name="LICENSE.txt" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <!-- Enrollment (as SYSTEM, before the service starts). The command line
+         holds the token, so it is hidden from the installer log. -->
+    <CustomAction Id="EnrollCode" FileRef="AgentExeFile"
+                  ExeCommand="enroll --if-not-enrolled --pending-ok --code &quot;[ENROLLCODE]&quot;"
+                  Execute="deferred" Impersonate="no" Return="check" HideTarget="yes" />
+    <CustomAction Id="EnrollCodeForce" FileRef="AgentExeFile"
+                  ExeCommand="enroll --force --pending-ok --code &quot;[ENROLLCODE]&quot;"
+                  Execute="deferred" Impersonate="no" Return="check" HideTarget="yes" />
+    <!-- Uninstall (not an upgrade): remove the enrollment and key. -->
+    <CustomAction Id="Forget" FileRef="AgentExeFile" ExeCommand="forget"
+                  Execute="deferred" Impersonate="no" Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="EnrollCode" Before="StartServices" Condition="ENROLLCODE AND NOT FORCEENROLL AND NOT REMOVE~=&quot;ALL&quot;" />
+      <Custom Action="EnrollCodeForce" Before="StartServices" Condition="ENROLLCODE AND FORCEENROLL AND NOT REMOVE~=&quot;ALL&quot;" />
+      <Custom Action="Forget" Before="RemoveFiles" Condition="REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+    </InstallExecuteSequence>
+
+    <UI Id="WatchZitUI">
+      <TextStyle Id="WixUI_Font_Normal" FaceName="Segoe UI" Size="9" />
+      <TextStyle Id="WixUI_Font_Bigger" FaceName="Segoe UI" Size="12" />
+      <TextStyle Id="WixUI_Font_Title" FaceName="Segoe UI" Size="9" Bold="yes" />
+      <Property Id="DefaultUIFont" Value="WixUI_Font_Normal" />
+      <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value="The agent runs in the background. This computer appears in your WatchZit console within a minute." />
+
+      <DialogRef Id="ErrorDlg" />
+      <DialogRef Id="FatalError" />
+      <DialogRef Id="FilesInUse" />
+      <DialogRef Id="MsiRMFilesInUse" />
+      <DialogRef Id="PrepareDlg" />
+      <DialogRef Id="ProgressDlg" />
+      <DialogRef Id="ResumeDlg" />
+      <DialogRef Id="UserExit" />
+      <DialogRef Id="ExitDialog" />
+      <DialogRef Id="CancelDlg" />
+      <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999" />
+
+      <Dialog Id="EnrollDlg" Width="370" Height="270" Title="[ProductName] Setup">
+        <Control Id="Bitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="234" TabSkip="no" Text="!(loc.WelcomeDlgBitmap)" />
+        <Control Id="Title" Type="Text" X="135" Y="20" Width="220" Height="40" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Bigger}Connect to your WatchZit server" />
+        <Control Id="Intro" Type="Text" X="135" Y="64" Width="220" Height="52" Transparent="yes" NoPrefix="yes"
+                 Text="In the WatchZit console open Agents, click Create enrollment code and copy the code. Paste it here:" />
+        <Control Id="CodeEdit" Type="Edit" X="135" Y="120" Width="220" Height="18" Property="ENROLLCODE" Text="{2048}" />
+        <Control Id="Skip" Type="CheckBox" X="135" Y="148" Width="220" Height="17" Property="SKIPENROLL" CheckBoxValue="1"
+                 Text="Enroll later (watchzit-agent enroll --code …)" />
+        <Control Id="Hint" Type="Text" X="135" Y="172" Width="220" Height="50" Transparent="yes" NoPrefix="yes" HideCondition="ALREADYENROLLED"
+                 Text="The code contains the server address and the fingerprint of its certificate, so the agent cannot be taken over by a wrong server." />
+        <Control Id="Already" Type="Text" X="135" Y="172" Width="220" Height="56" Transparent="yes" NoPrefix="yes" HideCondition="NOT ALREADYENROLLED"
+                 Text="This computer is already enrolled. Leave the code empty to keep the enrollment, or paste a new code to enroll it again." />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Disabled="yes" Text="!(loc.WixUIBack)" />
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="Install">
+          <Publish Event="SpawnDialog" Value="BadCodeDlg" Condition="NOT SKIPENROLL AND NOT (ENROLLCODE &lt;&lt; &quot;WZ1-&quot;) AND NOT (ALREADYENROLLED AND NOT ENROLLCODE)" />
+          <Publish Property="FORCEENROLL" Value="1" Condition="ALREADYENROLLED AND (ENROLLCODE &lt;&lt; &quot;WZ1-&quot;)" />
+          <Publish Event="EndDialog" Value="Return" Condition="SKIPENROLL OR (ENROLLCODE &lt;&lt; &quot;WZ1-&quot;) OR (ALREADYENROLLED AND NOT ENROLLCODE)" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+      </Dialog>
+
+      <Dialog Id="BadCodeDlg" Width="260" Height="95" Title="[ProductName] Setup" NoMinimize="yes">
+        <Control Id="Text" Type="Text" X="20" Y="15" Width="220" Height="45" NoPrefix="yes"
+                 Text="Paste the enrollment code from the console (it starts with WZ1-), or tick &quot;Enroll later&quot;." />
+        <Control Id="OK" Type="PushButton" X="102" Y="68" Width="56" Height="17" Default="yes" Cancel="yes" Text="OK">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+
+      <InstallUISequence>
+        <Show Dialog="EnrollDlg" Before="ProgressDlg" Condition="NOT Installed AND NOT ENROLLCODE" />
+      </InstallUISequence>
+    </UI>
+    <UIRef Id="WixUI_Common" />
+  </Package>
+</Wix>

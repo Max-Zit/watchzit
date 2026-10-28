@@ -4,8 +4,8 @@
 <div class="settings">
 {{template "settingstabs" .}}
 <div class="settings-body">
-{{if .Data.Restart}}<div class="flash warn" role="status">{{template "icon" "alert"}}<span>{{.T "The saved address differs from the running one (%s). Restart the WatchZit service to use it." .Data.RunningMgmt}}</span></div>{{end}}
-{{if .Data.Override}}<div class="flash info" role="status">{{template "icon" "alert"}}<span>{{.T "The service runs with the console address from its command line (%s). The address saved here is used when it starts without this option." .Data.RunningMgmt}}</span></div>{{end}}
+{{if .Data.Restart}}<div class="flash warn" role="status">{{template "icon" "alert"}}<span>{{.T "The saved ports differ from the running ones (console %s, agents %s). Restart the WatchZit service to use the new ports." .Data.RunningMgmt .Data.RunningAgent}}</span></div>{{end}}
+{{if .Data.Override}}<div class="flash info" role="status">{{template "icon" "alert"}}<span>{{.T "The service runs with ports from its command line (console %s, agents %s). The addresses saved here are used when it starts without these options." .Data.RunningMgmt .Data.RunningAgent}}</span></div>{{end}}
 <form method="post" action="/settings/network" class="stack wide">
   <section class="panel">
     <h2>{{template "icon" "lock"}}{{.T "Management console"}}</h2>
@@ -15,9 +15,17 @@
     <p class="small">{{.T "Your address:"}} <code>{{.Data.ClientIP}}</code> — {{.T "it must stay in the list, otherwise saving is refused."}}</p>
   </section>
   <section class="panel">
+    <h2>{{template "icon" "network"}}{{.T "Agent endpoint"}}</h2>
+    <p class="muted">{{.T "WatchZit agents connect here, outbound from the monitored computers. It is a separate port, so you can open only this port on the firewall (for example for remote offices) and keep the console closed."}}</p>
+    <label>{{.T "Listen address"}}<input name="agent_listen" value="{{.Data.N.AgentListen}}" required spellcheck="false" class="mono"><small>{{.T "Must use a different port than the console."}}</small></label>
+    <label>{{.T "Allowed networks"}} <small>{{.T "optional"}}</small><textarea name="agent_allowed" rows="4" spellcheck="false" placeholder="{{.T "empty = all addresses"}}">{{.Data.AgentText}}</textarea><small>{{.T "Empty allows every address (agents still need a valid identity). Restrict it when all agents come from known networks."}}</small></label>
+    <label>{{.T "Public agent address"}} <small>{{.T "optional"}}</small><input name="public_agent_url" value="{{.Data.N.PublicAgentURL}}" spellcheck="false" class="mono" placeholder="https://monitor.example.com:8444"><small>{{.T "How agents reach this server (it goes into enrollment codes). Empty: the console host name with the agent port."}}</small></label>
+    {{with .Data.Fingerprint}}<p class="small">{{$.T "Agent certificate fingerprint (SHA-256), pinned by agents at enrollment:"}}<br><code class="wrap">{{.}}</code></p>{{end}}
+  </section>
+  <section class="panel">
     <h2>{{.T "Recommended second layer"}}</h2>
     <ul class="tips">
-      <li>{{.T "Allow the console port on the server's firewall only from your admin networks."}}</li>
+      <li>{{.T "Allow the console port on the server's firewall only from your admin networks, and the agent port only where agents are."}}</li>
       <li>{{.T "For access from outside, use a VPN (for example WireGuard) instead of opening the console port to the internet."}}</li>
       <li>{{.T "If you lock yourself out, run on the server: watchzit-server --reset-allowlist"}}</li>
     </ul>

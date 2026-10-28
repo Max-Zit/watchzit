@@ -56,6 +56,19 @@
     sync();
   });
 
+  // A search field with data-filter=SELECTOR hides the [data-text] items in
+  // it that do not contain the typed text.
+  Array.prototype.forEach.call(document.querySelectorAll("input[data-filter]"), function (q) {
+    var box = document.querySelector(q.getAttribute("data-filter"));
+    if (!box) return;
+    q.addEventListener("input", function () {
+      var f = q.value.toLowerCase();
+      Array.prototype.forEach.call(box.querySelectorAll("[data-text]"), function (el) {
+        el.hidden = f && el.getAttribute("data-text").toLowerCase().indexOf(f) < 0;
+      });
+    });
+  });
+
   // A checkbox with data-part shows the part of a form it switches on.
   Array.prototype.forEach.call(document.querySelectorAll("input[data-part]"), function (cb) {
     var part = document.getElementById(cb.getAttribute("data-part"));

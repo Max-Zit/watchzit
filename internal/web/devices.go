@@ -92,6 +92,8 @@ type deviceData struct {
 	Profile    *store.SNMPProfile
 	Interfaces []store.Interface
 	Traffic    map[int]*store.Check // interface checks by ifIndex
+	Agent      *store.AgentInfo
+	Watched    map[string]bool // services the agent reports
 	CheckTypes []string
 }
 
@@ -105,7 +107,7 @@ type graphDef struct {
 }
 
 // hiddenMetrics are kept but not drawn (they say little as a line).
-var hiddenMetrics = map[string]bool{"uptime_s": true, "used_b": true, "in_err": true, "out_err": true}
+var hiddenMetrics = map[string]bool{"uptime_s": true, "used_b": true, "in_err": true, "out_err": true, "mem_used_b": true, "running": true}
 
 // unitTitles name graphs that hold several metrics.
 var unitTitles = map[string]string{"bit/s": "Traffic", "/s": "Errors"}
@@ -204,9 +206,20 @@ func (s *Server) showDevice(w http.ResponseWriter, r *http.Request, status int, 
 		s.serverError(w, r, err)
 		return
 	}
+	if a, err := s.store.DeviceAgent(r.Context(), d.ID); err == nil {
+		a.Online = s.hub.get(d.ID) != nil
+		data.Agent = a
+	}
+	data.Watched = map[string]bool{}
 	for _, c := range cs {
 		if c.Type == store.CheckSNMPIf {
 			data.Traffic[c.Params.IfIndex] = c
+		}
+		if c.Type == store.CheckAgentNet {
+			data.Traffic[c.Params.IfIndex] = c
+		}
+		if c.Type == store.CheckAgentService {
+			data.Watched[c.Params.Descr] = true
 		}
 	}
 	p := &Page{Title: d.Name, Nav: "devices", Data: data}
@@ -360,6 +373,7 @@ func (s *Server) handleDeviceDelete(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
+	s.disconnectAgent(dev.ID)
 	if err := s.tsdb.Forget(r.Context(), ids); err != nil {
 		s.log.Error("cannot delete the samples of a device", "device", dev.ID, "err", err)
 	}

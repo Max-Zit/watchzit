@@ -685,3 +685,9 @@ body.kiosk { margin: 0; background: var(--bg); overflow: hidden; }
 .kdots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line-2); }
 .kdots i.on { background: var(--accent); }
 .kioskbar .spacer { flex: 1; }
+
+/* ---- WatchZit 0.4: agents */
+.svc-list { max-height: 360px; overflow: auto; display: grid; gap: 2px; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 10px; background: var(--panel-2); }
+.svc-list label.check { padding: 3px 0; }
+.svc-list label[hidden] { display: none; }
+.services-pick[open] summary { margin-bottom: 4px; }
