@@ -139,6 +139,12 @@ A self-hosted web application for monitoring networks and devices: a mix of **Mi
   - **Agents report VLANs**: proto.Net.VLANs; Linux `/proc/net/vlan/config` (eth0.10 → VLAN 10 tagged on eth0), Windows adapter registry `VlanID` matched by InterfaceGuid; stored as source "agent" when changed.
   - Cable panel button "Open device" → **"Graphs · <device>"** for each end with a port graph.
   - **Web links** (migration 011 `devices.web_name`, `web_links`): the main web interface button can be renamed; up to 8 more named links (second IP, iDRAC/iLO, service pages), http/https only, nameless ones named after the host; device form "Web links" (two empty rows each save), device page buttons, map device panel buttons.
+- **2026-10-28 night: model picture library** (Stefan: all FortiGates, HP servers from Gen6, all MikroTik, servers of all vendors).
+  - `tools/devicons/models.go`: catalog of 452 models as data (vendor, model, kind, form rack/desk/wifi/tower/outdoor, U, RJ45, SFP, bays, LFF/SFF, NIC count): Fortinet FortiGate 30D–7000F + FortiWiFi (75), HPE ProLiant G6–Gen12 rack and tower (93), MikroTik routers/CCR/CRS/CSS/hAP/cAP/wAP/outdoor (91), Dell PowerEdge 11G–17G (94), Lenovo ThinkSystem + System x (40), Supermicro (18), Cisco UCS C (13), Fujitsu PRIMERGY (19), Huawei/xFusion (9), Inspur (5). Port counts from public data sheets (combo ports once); own drawings, model name as text, no logos or photos (copyright; users can still upload a photo).
+  - `models_draw.go`: rack front panels (ports scaled to fit, 2–4 rows), servers with SFF/LFF bays, NICs + management port (iLO/iDRAC/XCC/CIMC/iRMC/IPMI, marked), desktop boxes, Wi-Fi with antennas, towers, outdoor units; MikroTik in white.
+  - index.json now compact (121 KB) with `vendor`; map.js loads it and the SVGs with `?v=<asset version>` (static files are cached an hour, an update showed the old index).
+  - Picture panel: manufacturer list (default "Generic pictures"), search over all vendors by all words ("dl380 gen10"), lazy images, two-line labels without the vendor prefix.
+  - Test TestDeviceLibrary (every index entry has its SVG, vendor counts, ports/U of sample models).
 
 ## Next steps
 

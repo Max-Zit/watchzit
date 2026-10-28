@@ -9,6 +9,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -188,5 +189,46 @@ func TestKiosk(t *testing.T) {
 	}
 	if r := tv.get("/kiosk/" + token); r.code != http.StatusNotFound {
 		t.Fatalf("deleted display still works: %d", r.code)
+	}
+}
+
+// The picture library: every entry of the index has its drawing, the
+// catalog models are there with their vendor, ports and rack units.
+func TestDeviceLibrary(t *testing.T) {
+	b, err := os.ReadFile("static/devices/index.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var icons []struct {
+		Name, Label, Vendor string
+		U                   int
+		Ports               [][2]float64
+	}
+	if err := json.Unmarshal(b, &icons); err != nil {
+		t.Fatal(err)
+	}
+	byName := map[string]int{}
+	vendors := map[string]int{}
+	for i, ic := range icons {
+		if _, err := os.Stat("static/devices/" + ic.Name + ".svg"); err != nil {
+			t.Errorf("%s: %v", ic.Name, err)
+		}
+		byName[ic.Name] = i
+		vendors[ic.Vendor]++
+	}
+	if len(icons) < 500 || vendors["Fortinet"] < 60 || vendors["HPE"] < 80 || vendors["MikroTik"] < 80 || vendors["Dell"] < 80 {
+		t.Fatalf("%d pictures, by vendor %v", len(icons), vendors)
+	}
+	for name, want := range map[string]struct{ ports, u int }{
+		"fortinet-fortigate-100f": {28, 1}, "mikrotik-crs354-48g-4splus2qplusrm": {54, 1},
+		"hpe-proliant-dl380-gen10": {5, 2}, "dell-poweredge-r940": {5, 3},
+	} {
+		i, ok := byName[name]
+		if !ok {
+			t.Fatalf("%s missing", name)
+		}
+		if ic := icons[i]; len(ic.Ports) != want.ports || ic.U != want.u {
+			t.Errorf("%s: %d ports, %dU", name, len(ic.Ports), ic.U)
+		}
 	}
 }

@@ -669,10 +669,10 @@ main:has(.mapview) { max-width: none; padding-bottom: 12px; }
 .mp-tabs button.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 .mp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 6px; }
 .mp-grid.wide { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
-.mp-grid button { display: grid; gap: 4px; justify-items: center; align-content: start; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); color: var(--text); cursor: pointer; font: inherit; min-height: 74px; }
+.mp-grid button { display: grid; gap: 4px; justify-items: center; align-content: start; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); color: var(--text); cursor: pointer; font: inherit; min-height: 74px; min-width: 0; }
 .mp-grid button:hover, .mp-grid button.on { border-color: var(--accent); }
 .mp-grid img { max-width: 100%; height: 40px; object-fit: contain; }
-.mp-grid small { font-size: 10.5px; line-height: 1.2; text-align: center; color: var(--muted); }
+.mp-grid small { font-size: 10.5px; line-height: 1.2; text-align: center; color: var(--muted); max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
 .mappanel input[type=range] { width: 100%; }
 .mapview:fullscreen { background: var(--bg); padding: 10px; height: 100vh !important; }
 /* kiosk display */

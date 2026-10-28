@@ -16,16 +16,17 @@ import (
 
 // Icon is one picture in index.json.
 type Icon struct {
-	Name  string       `json:"name"`
-	Label string       `json:"label"`
-	Cat   string       `json:"cat"`  // network, server, rack, end, wireless, security, power, logical
-	Kind  string       `json:"kind"` // the device kind it suits
-	W     float64      `json:"w"`    // picture size (viewBox)
-	H     float64      `json:"h"`
-	U     int          `json:"u,omitempty"`     // rack units (0 = not rack-mounted)
-	Show  float64      `json:"show"`            // default width on the map
-	Ports [][2]float64 `json:"ports,omitempty"` // port centres, port 1 first
-	Fiber int          `json:"fiber,omitempty"` // the last n ports are SFP cages
+	Name   string       `json:"name"`
+	Label  string       `json:"label"`
+	Cat    string       `json:"cat"`              // network, server, rack, end, wireless, security, power, logical
+	Kind   string       `json:"kind"`             // the device kind it suits
+	Vendor string       `json:"vendor,omitempty"` // catalog models: the manufacturer
+	W      float64      `json:"w"`                // picture size (viewBox)
+	H      float64      `json:"h"`
+	U      int          `json:"u,omitempty"`     // rack units (0 = not rack-mounted)
+	Show   float64      `json:"show"`            // default width on the map
+	Ports  [][2]float64 `json:"ports,omitempty"` // port centres, port 1 first
+	Fiber  int          `json:"fiber,omitempty"` // the last n ports are SFP cages
 }
 
 // rack front panels: 19" is 482.6 mm wide, 1U is 44.45 mm high
@@ -719,7 +720,8 @@ func main() {
 	add("vm", "Virtual machine", "logical", "server", vm(), 70)
 	add("user", "User", "logical", "pc", users(false), 50)
 	add("users", "Users / department", "logical", "pc", users(true), 60)
-	b, _ := json.MarshalIndent(icons, "", " ")
+	icons = append(icons, modelIcons(out)...)
+	b, _ := json.Marshal(icons)
 	if err := os.WriteFile(filepath.Join(out, "index.json"), append(b, '\n'), 0o600); err != nil {
 		panic(err)
 	}
