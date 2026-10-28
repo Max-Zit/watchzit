@@ -167,7 +167,7 @@ func (s *Server) handleLauncher(w http.ResponseWriter, r *http.Request) {
 	}
 	_, d.Download = s.agentDownloads()["launcher"]
 	d.Tools, _ = s.store.Tools(r.Context())
-	s.render(w, r, http.StatusOK, "launcher", &Page{Title: "Launcher", Nav: "devices", Data: d})
+	s.render(w, r, http.StatusOK, "launcher", &Page{Title: "Launcher", Nav: "launcher", Data: d})
 }
 
 // ---- Settings → Tools (administrators)
