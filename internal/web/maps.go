@@ -109,7 +109,7 @@ func (s *Server) handleMap(w http.ResponseWriter, r *http.Request) {
 
 // mapText are the words map.js shows, translated on the server.
 var mapText = []string{"Edit", "Done", "Zoom in", "Zoom out", "Fit to screen", "Add device", "Add submap", "Add text", "Connect", "Delete",
-	"Saved", "Saving…", "Could not save. Reload the page.", "Search", "All devices are on this map.", "Click the first device, then the second.",
+	"Saved", "Saving…", "Could not save.", "Unsaved changes", "Uploading…", "Discard the changes made since the last save?", "Search", "All devices are on this map.", "Click the first device, then the second.",
 	"Open device", "Open web interface", "Open map", "Port", "Not set", "Kind", "Wired", "Wireless", "VPN", "Label", "In", "Out", "Speed",
 	"Checks", "down", "Up", "Down", "Warning", "Unknown", "Paused", "No link", "Disabled", "Text", "Ports", "Link", "No other maps yet.",
 	"Drag devices to place them. Use Connect to draw a link and choose the ports.", "Address", "Status", "Suggested links", "Add", "Neighbours found over LLDP and MikroTik discovery.",

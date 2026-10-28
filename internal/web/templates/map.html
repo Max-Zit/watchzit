@@ -6,6 +6,8 @@
     <h1>{{.Data.M.Name}}</h1>
     <span class="spacer"></span>
     <span class="mapsave muted small" data-save hidden></span>
+    {{if .User.CanWrite}}<button type="button" class="btn secondary sm" data-act="discard" hidden>{{.T "Cancel"}}</button>
+    <button type="button" class="btn primary sm" data-act="save" hidden disabled>{{.T "Save"}}</button>{{end}}
     <div class="mapbtns" data-edit-only hidden>
       <button type="button" class="btn secondary sm" data-act="add-device">{{template "icon" "plus"}}<span>{{.T "Add device"}}</span></button>
       <button type="button" class="btn secondary sm" data-act="add-item">{{template "icon" "package"}}<span>{{.T "Add item"}}</span></button>

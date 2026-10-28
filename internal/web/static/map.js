@@ -33,7 +33,7 @@
   var selected = null;      // {type: "node"|"link", id}
   var connectFrom = null, connecting = false, moveBg = false;
   var nextTmp = -1;         // ids of nodes and links not saved yet
-  var saving = false, dirty = false, saveTimer = null;
+  var saving = false, dirty = false;
 
   function T(s) { return (meta && meta.text[s]) || s; }
   function el(name, attrs, parent) {
@@ -695,10 +695,10 @@
       var fd = new FormData();
       fd.append("kind", kind);
       fd.append("file", f);
-      setSave(T("Saving…"));
+      setSave(T("Uploading…"));
       fetch("/assets", { method: "POST", credentials: "same-origin", body: fd })
         .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.status); return j; }); })
-        .then(function (a) { meta.assets[a.id] = a; setSave(T("Saved")); done(a); })
+        .then(function (a) { meta.assets[a.id] = a; setSave(dirty ? T("Unsaved changes") : ""); done(a); })
         .catch(function (e) { setSave(T("The picture could not be uploaded.") + " " + (e.message || "")); });
     };
     upload.click();
@@ -883,18 +883,39 @@
     }).catch(function () { ul.appendChild(h("li", { "class": "muted small" }, T("No suggestions."))); });
   }
 
-  // ---- saving: debounced; temporary ids are replaced by the server's
+  // ---- saving: only on Save; temporary ids are replaced by the server's
+  var changeGen = 0;
   function changed() {
     if (kioskBase) return;
     dirty = true;
-    setSave(T("Saving…"));
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(save, 700);
+    changeGen++;
+    setSave(T("Unsaved changes"));
+    syncSaveButtons();
   }
   function setSave(t) { if (!saveState) return; saveState.textContent = t; saveState.hidden = !t; }
+  // While there are unsaved changes, Save and Cancel replace Done.
+  function syncSaveButtons() {
+    var s = root.querySelector('[data-act="save"]'), c = root.querySelector('[data-act="discard"]'), e = root.querySelector('[data-act="edit"]');
+    if (s) { s.hidden = !editing; s.disabled = !dirty || saving; }
+    if (c) c.hidden = !editing || !dirty;
+    if (e) e.hidden = editing && dirty;
+  }
+  function discard() {
+    if (!dirty || !window.confirm(T("Discard the changes made since the last save?"))) return;
+    var v = { x: view.x, y: view.y, k: view.k };
+    dirty = false;
+    setSave("");
+    loadMap(mapID, false).then(function () { view = v; applyView(); syncSaveButtons(); });
+  }
+  window.addEventListener("beforeunload", function (ev) {
+    if (dirty || saving) { ev.preventDefault(); ev.returnValue = ""; }
+  });
   function save() {
-    if (saving) { saveTimer = setTimeout(save, 300); return; }
-    saving = true; dirty = false;
+    if (saving || !dirty) return;
+    saving = true;
+    var gen = changeGen;
+    setSave(T("Saving…"));
+    syncSaveButtons();
     layout.nodes = layout.nodes.filter(function (n) { return n.kind !== "label" || (n.label && n.label.trim()); });
     var sent = JSON.parse(JSON.stringify(layout));
     fetch("/maps/" + mapID + "/layout", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(sent) })
@@ -912,11 +933,12 @@
         if (selected) { var m = selected.type === "node" ? ids : lids; if (m[selected.id] !== undefined) selected.id = m[selected.id]; }
         if (connectFrom !== null && ids[connectFrom] !== undefined) connectFrom = ids[connectFrom];
         saving = false;
-        if (!dirty) setSave(T("Saved"));
+        if (changeGen === gen) { dirty = false; setSave(T("Saved")); } else setSave(T("Unsaved changes"));
+        syncSaveButtons();
         render();
         refresh();
       })
-      .catch(function (e) { saving = false; setSave(T("Could not save. Reload the page.") + " " + (e.message || "")); });
+      .catch(function (e) { saving = false; syncSaveButtons(); setSave(T("Could not save.") + " " + (e.message || "")); });
   }
 
   // ---- pointer handling: drag nodes, racks, bends, background; pan; pinch
@@ -1065,6 +1087,7 @@
     if (n && n.kind === "submap") location.href = "/maps/" + n.submap;
   });
   document.addEventListener("keydown", function (ev) {
+    if ((ev.ctrlKey || ev.metaKey) && (ev.key === "s" || ev.key === "S") && editing) { ev.preventDefault(); save(); return; }
     if (ev.target && /INPUT|SELECT|TEXTAREA/.test(ev.target.tagName)) return;
     if ((ev.key === "Delete" || ev.key === "Backspace") && editing && selected) { ev.preventDefault(); removeSelected(); }
     if (ev.key === "Escape") { if (connecting) setConnect(false); else { selected = null; closePanel(); render(); } }
@@ -1084,6 +1107,8 @@
     else if (act === "fit") fit(true);
     else if (act === "fullscreen") fullscreen();
     else if (act === "edit") setEditing(!editing);
+    else if (act === "save") save();
+    else if (act === "discard") discard();
     else if (act === "add-device") { setConnect(false); pickDevice(); }
     else if (act === "add-item") { setConnect(false); pickPicture(function (icon) { var p = picOf({ icon: icon }); addNode({ kind: "item", icon: icon, label: p && p.label ? p.label : "" }); }, false); }
     else if (act === "add-rack") { setConnect(false); addRack(); }
@@ -1104,6 +1129,7 @@
     Array.prototype.forEach.call(root.querySelectorAll("[data-edit-only]"), function (e) { e.hidden = !editing; });
     var l = root.querySelector("[data-edit-label]");
     if (l) l.textContent = editing ? T("Done") : T("Edit");
+    syncSaveButtons();
     if (!editing) { moveBg = false; setConnect(false); }
     else showHint(!layout.nodes.length ? T("Drag devices to place them. Use Connect to draw a link and choose the ports.") : "");
     if (!kioskBase) try { history.replaceState(null, "", location.pathname + (editing ? "?edit=1" : "")); } catch (e) { /* ignore */ }

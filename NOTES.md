@@ -85,6 +85,8 @@ A self-hosted web application for monitoring networks and devices: a mix of **Mi
   - Tests: TestAlerts (dependency suppression and release, device down after delay, resolved sent, ack with safe return address, maintenance suppression and release, value trigger with 5-minute delay, trigger edit resolves, signed webhook, email through a fake SMTP server, settings validation, sealed channel URL), pages render incl. all alert pages. vet, staticcheck, gosec, govulncheck clean.
   - Lab (CT 9803, Mailpit on bz-storage 192.168.101.102:1025 / web :8025): SMTP + channel "Lab NOC" set through the console; test mail arrived in Serbian; Remote Registry stopped → problem; test-gw 192.0.2.10 down → critical mail; test-behind 192.0.2.11 (depends on test-gw) → only "unreachable", no mail; Print Spooler stopped on bz-win11 → warning mail, started → resolved mail. The lab service needed `AmbientCapabilities=CAP_NET_RAW` (drop-in ping.conf) for ICMP in the unprivileged CT — the future Linux package's unit must set it (or ping_group_range).
 
+- **2026-10-28: map editor saves only on Save** (Stefan): edits are kept in the page until Save (or Ctrl+S); Cancel discards them (reloads the saved layout, keeps the view); Done is hidden while there are unsaved changes; the browser warns before leaving with unsaved changes. Picture uploads still go up at once (they are files), using them on the map needs Save. Checked in the dev console (cancel leaves the server layout untouched, save and Ctrl+S store it).
+
 ## Next steps
 
 1. Show Stefan 0.4 (agent); agent follow-ups when useful: processes, event logs, deb/rpm packages, signed agent self-update, MSI/exe code signing (needs Stefan's certificate).
