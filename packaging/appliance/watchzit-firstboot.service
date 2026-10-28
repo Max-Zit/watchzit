@@ -1,0 +1,14 @@
+[Unit]
+Description=Set up WatchZit on the first start of the appliance
+After=network-online.target postgresql.service
+Wants=network-online.target
+Before=getty@tty1.service
+ConditionPathExists=!/var/lib/watchzit/.appliance-ready
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/watchzit-firstboot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

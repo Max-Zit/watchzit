@@ -39,6 +39,22 @@ contents:
     dst: /usr/lib/systemd/system/watchzit-helper.path
   - src: ./packaging/linux/watchzit-helper.service
     dst: /usr/lib/systemd/system/watchzit-helper.service
+  - src: ./packaging/appliance/watchzit-setup
+    dst: /usr/share/watchzit/appliance/watchzit-setup
+    file_info:
+      mode: 0755
+  - src: ./packaging/appliance/watchzit-appliance-boot
+    dst: /usr/share/watchzit/appliance/watchzit-appliance-boot
+    file_info:
+      mode: 0755
+  - src: ./packaging/appliance/watchzit-appliance-boot.service
+    dst: /usr/share/watchzit/appliance/watchzit-appliance-boot.service
+  - src: ./packaging/appliance/watchzit-menu.sh
+    dst: /usr/share/watchzit/appliance/watchzit-menu.sh
+  - src: ./packaging/appliance/sudoers-watchzit-setup
+    dst: /usr/share/watchzit/appliance/sudoers-watchzit-setup
+  - src: ./packaging/appliance/sshd-watchzit.conf
+    dst: /usr/share/watchzit/appliance/sshd-watchzit.conf
   - src: ./packaging/linux/server.env
     dst: /etc/watchzit/server.env
     type: config|noreplace

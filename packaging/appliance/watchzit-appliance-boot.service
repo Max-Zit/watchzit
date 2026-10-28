@@ -1,0 +1,11 @@
+[Unit]
+Description=WatchZit appliance start (disk size, login screen)
+After=local-fs.target watchzit-server.service
+Before=getty@tty1.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/watchzit-appliance-boot
+
+[Install]
+WantedBy=multi-user.target

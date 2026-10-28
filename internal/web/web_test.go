@@ -239,6 +239,9 @@ func TestSecurityHeadersAndCSRF(t *testing.T) {
 	if csp := r.hdr.Get("Content-Security-Policy"); !strings.Contains(csp, "script-src 'self'") || strings.Contains(csp, "unsafe-inline") {
 		t.Fatalf("CSP: %q", csp)
 	}
+	if r.hdr.Get("Cross-Origin-Embedder-Policy") != "require-corp" || r.hdr.Get("Cross-Origin-Opener-Policy") != "same-origin" {
+		t.Fatalf("cross-origin headers: %v", r.hdr)
+	}
 	if strings.Contains(r.body, "<script>") || strings.Contains(r.body, " style=") {
 		t.Fatal("inline script or style in a page")
 	}
