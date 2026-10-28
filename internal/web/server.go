@@ -15,8 +15,10 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/max-zit/watchzit/internal/alert"
 	"github.com/max-zit/watchzit/internal/netacl"
 	"github.com/max-zit/watchzit/internal/poller"
 	"github.com/max-zit/watchzit/internal/store"
@@ -53,6 +55,9 @@ type Server struct {
 	// DevNo2FA skips the second factor (development server only).
 	DevNo2FA   bool
 	setupToken string
+	// Alerts is the alert engine (kicked after changes; may be nil).
+	Alerts *alert.Engine
+	wg     sync.WaitGroup // notifications in flight
 }
 
 // New creates the server; settings are loaded from the database.
@@ -324,6 +329,16 @@ func (s *Server) Handler() http.Handler {
 	write("POST /devices/{id}/services", s.handleAgentServices)
 	write("POST /devices/{id}/agent/remove", s.handleAgentRemove)
 	write("POST /devices/{id}/agent/refresh", s.handleAgentRefresh)
+	app("GET /problems", s.handleProblems)
+	write("POST /problems/{id}/ack", s.handleProblemAck)
+	app("GET /alerts/triggers", s.handleTriggers)
+	app("GET /alerts/triggers/{id}", s.handleTriggers)
+	write("POST /alerts/triggers", s.handleTriggerCreate)
+	write("POST /alerts/triggers/{id}", s.handleTriggerUpdate)
+	write("POST /alerts/triggers/{id}/delete", s.handleTriggerDelete)
+	app("GET /alerts/maintenance", s.handleMaintenance)
+	write("POST /alerts/maintenance", s.handleMaintenanceCreate)
+	write("POST /alerts/maintenance/{id}/end", s.handleMaintenanceEnd)
 	app("GET /groups", s.handleGroups)
 	write("POST /groups", s.handleGroupCreate)
 	write("POST /groups/{id}", s.handleGroupUpdate)
@@ -349,6 +364,13 @@ func (s *Server) Handler() http.Handler {
 	admin("POST /settings/security/unblock", s.handleUnblock)
 	admin("GET /settings/data", s.handleRetention)
 	admin("POST /settings/data", s.handleRetentionSave)
+	admin("GET /settings/notifications", s.handleNotifications)
+	admin("POST /settings/notifications", s.handleNotificationsSave)
+	admin("POST /settings/notifications/test", s.handleNotificationsTestMail)
+	admin("POST /settings/notifications/channels", s.handleChannelCreate)
+	admin("POST /settings/notifications/channels/{id}", s.handleChannelUpdate)
+	admin("POST /settings/notifications/channels/{id}/delete", s.handleChannelDelete)
+	admin("POST /settings/notifications/channels/{id}/test", s.handleChannelTest)
 	admin("GET /settings/snmp", s.handleSNMPProfiles)
 	admin("POST /settings/snmp", s.handleSNMPCreate)
 	admin("GET /settings/snmp/{id}", s.handleSNMPProfile)

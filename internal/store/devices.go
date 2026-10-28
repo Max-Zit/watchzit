@@ -117,6 +117,8 @@ type Device struct {
 	Notes       string
 	Paused      bool
 	SNMPProfile int64 // 0 = none
+	Parent      int64 // device this one depends on (0 = none)
+	ParentName  string
 	Status      string
 	StatusSince time.Time
 	CreatedAt   time.Time
@@ -124,12 +126,12 @@ type Device struct {
 	ChecksDown  int
 }
 
-const deviceCols = `d.id, d.group_id, COALESCE(g.name,''), d.name, d.address, d.kind, d.web_url, d.notes, d.paused, COALESCE(d.snmp_profile_id,0), d.status, d.status_since, d.created_at,
+const deviceCols = `d.id, d.group_id, COALESCE(g.name,''), d.name, d.address, d.kind, d.web_url, d.notes, d.paused, COALESCE(d.snmp_profile_id,0), COALESCE(d.parent_id,0), COALESCE((SELECT p.name FROM devices p WHERE p.id=d.parent_id),''), d.status, d.status_since, d.created_at,
 	(SELECT count(*) FROM checks c WHERE c.device_id=d.id), (SELECT count(*) FROM checks c WHERE c.device_id=d.id AND c.status='down' AND NOT c.paused)`
 
 func scanDevice(row interface{ Scan(...any) error }) (*Device, error) {
 	d := &Device{}
-	err := row.Scan(&d.ID, &d.GroupID, &d.Group, &d.Name, &d.Address, &d.Kind, &d.WebURL, &d.Notes, &d.Paused, &d.SNMPProfile, &d.Status, &d.StatusSince, &d.CreatedAt, &d.Checks, &d.ChecksDown)
+	err := row.Scan(&d.ID, &d.GroupID, &d.Group, &d.Name, &d.Address, &d.Kind, &d.WebURL, &d.Notes, &d.Paused, &d.SNMPProfile, &d.Parent, &d.ParentName, &d.Status, &d.StatusSince, &d.CreatedAt, &d.Checks, &d.ChecksDown)
 	return d, err
 }
 
@@ -213,6 +215,7 @@ type DeviceInput struct {
 	Notes   string
 	Paused  bool
 	SNMP    int64 // profile, 0 = none
+	Parent  int64 // device this one depends on, 0 = none
 }
 
 func (in *DeviceInput) clean() error {
@@ -262,13 +265,13 @@ func (s *Store) CreateDevice(ctx context.Context, in DeviceInput) (int64, error)
 		status = StatusPaused
 	}
 	var id int64
-	err := s.db.QueryRow(ctx, `INSERT INTO devices(group_id, name, address, kind, web_url, notes, paused, status, status_since, snmp_profile_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
-		nullID(in.GroupID), in.Name, in.Address, in.Kind, in.WebURL, in.Notes, in.Paused, status, s.now(), nullID(in.SNMP)).Scan(&id)
+	err := s.db.QueryRow(ctx, `INSERT INTO devices(group_id, name, address, kind, web_url, notes, paused, status, status_since, snmp_profile_id, parent_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
+		nullID(in.GroupID), in.Name, in.Address, in.Kind, in.WebURL, in.Notes, in.Paused, status, s.now(), nullID(in.SNMP), nullID(in.Parent)).Scan(&id)
 	if isUnique(err) {
 		return 0, ErrConflict
 	}
 	if isFK(err) {
-		return 0, errors.New("the group or SNMP profile does not exist")
+		return 0, errors.New("the group, SNMP profile or parent device does not exist")
 	}
 	return id, err
 }
@@ -278,13 +281,16 @@ func (s *Store) UpdateDevice(ctx context.Context, id int64, in DeviceInput) erro
 	if err := in.clean(); err != nil {
 		return err
 	}
-	tag, err := s.db.Exec(ctx, `UPDATE devices SET group_id=$2, name=$3, address=$4, kind=$5, web_url=$6, notes=$7, paused=$8, snmp_profile_id=$9 WHERE id=$1`,
-		id, nullID(in.GroupID), in.Name, in.Address, in.Kind, in.WebURL, in.Notes, in.Paused, nullID(in.SNMP))
+	if err := s.checkParent(ctx, id, in.Parent); err != nil {
+		return err
+	}
+	tag, err := s.db.Exec(ctx, `UPDATE devices SET group_id=$2, name=$3, address=$4, kind=$5, web_url=$6, notes=$7, paused=$8, snmp_profile_id=$9, parent_id=$10 WHERE id=$1`,
+		id, nullID(in.GroupID), in.Name, in.Address, in.Kind, in.WebURL, in.Notes, in.Paused, nullID(in.SNMP), nullID(in.Parent))
 	if isUnique(err) {
 		return ErrConflict
 	}
 	if isFK(err) {
-		return errors.New("the group or SNMP profile does not exist")
+		return errors.New("the group, SNMP profile or parent device does not exist")
 	}
 	if err == nil && tag.RowsAffected() == 0 {
 		return ErrNotFound

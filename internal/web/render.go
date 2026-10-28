@@ -87,9 +87,11 @@ type Page struct {
 	DevNo2FA bool
 	Asset    string
 	Path     string
-	// DownCount is the number of devices that are down (sidebar badge).
-	DownCount int
-	Data      any
+	// Problems counts open problems that were sent (sidebar badge);
+	// ProblemsCritical is set when one of them is critical.
+	Problems         int
+	ProblemsCritical bool
+	Data             any
 }
 
 // T translates a text for the page language.
@@ -277,8 +279,11 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, status int, name
 	p.Asset = assetVersion
 	p.Path = r.URL.RequestURI()
 	if p.User != nil {
-		if c, err := s.store.StatusCounts(r.Context()); err == nil {
-			p.DownCount = c[store.StatusDown] + c[store.StatusWarning]
+		if c, err := s.store.ProblemCounts(r.Context()); err == nil {
+			for _, n := range c {
+				p.Problems += n
+			}
+			p.ProblemsCritical = c[store.SeverityCritical] > 0
 		}
 	}
 	if f := s.takeFlash(w, r); f != "" && p.Flash == "" {
@@ -395,6 +400,15 @@ func init() {
 		return ""
 	}
 	funcs["isAgent"] = store.IsAgent
+	funcs["severityName"] = severityName
+	funcs["list"] = func(xs ...string) []string { return xs }
+	funcs["minutes"] = minutesText
+	funcs["sevOf"] = func(p *Page, sev string) sevCtx { return sevCtx{P: p, Sev: sev} }
+	funcs["severities"] = func() []string { return store.Severities }
+	funcs["dur"] = func(p *Page, d time.Duration) string { return durationText(p.Lang, d) }
+	funcs["triggerKind"] = func(k string) string { return triggerKinds[k] }
+	funcs["channelKind"] = func(k string) string { return channelKinds[k] }
+	funcs["inStrings"] = func(xs []string, x string) bool { return slices.Contains(xs, x) }
 	funcs["inList"] = func(xs []int64, x int64) bool { return slices.Contains(xs, x) }
 	funcs["groupName"] = func(g string) string {
 		if n, ok := groupNames[g]; ok {
@@ -464,4 +478,14 @@ type rowCtx struct {
 
 func init() {
 	funcs["rowOf"] = func(p *Page, v string) rowCtx { return rowCtx{P: p, Row: v} }
+}
+
+// triggerKinds and channelKinds name the kinds (translated in templates).
+var triggerKinds = map[string]string{store.TriggerDeviceDown: "Device down", store.TriggerCheckDown: "Check down", store.TriggerMetric: "Value out of range"}
+var channelKinds = map[string]string{store.ChannelEmail: "Email", store.ChannelWebhook: "Webhook (JSON)", store.ChannelSlack: "Slack", store.ChannelTeams: "Microsoft Teams"}
+
+// sevCtx is the argument of the sev template.
+type sevCtx struct {
+	P   *Page
+	Sev string
 }

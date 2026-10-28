@@ -1,0 +1,42 @@
+{{template "app" .}}
+{{define "content"}}
+<h1>{{.T "Maintenance"}}</h1>
+{{template "alerttabs" .}}
+<p class="muted">{{.T "During a maintenance window the devices are still monitored and their problems recorded, but nothing is sent. Problems that are still open when the window ends are sent then."}}</p>
+<section class="panel">
+  {{if .Data.Windows}}
+  <div class="table-wrap"><table>
+    <thead><tr><th>{{.T "Name"}}</th><th>{{.T "When"}}</th><th class="hide-sm">{{.T "Devices and groups"}}</th><th>{{.T "Status"}}</th>{{if .User.CanWrite}}<th></th>{{end}}</tr></thead>
+    <tbody>{{range .Data.Windows}}<tr>
+      <td><b>{{.Name}}</b><br><span class="small muted">{{.CreatedBy}}</span></td>
+      <td class="small nowrap">{{$.Time .StartsAt}}<br>{{$.Time .EndsAt}}</td>
+      <td class="hide-sm small">{{range $i, $id := .GroupIDs}}{{if $i}}, {{end}}{{$.T "Group"}} {{index $.Data.Names (printf "g%d" $id)}}{{end}}{{if and .GroupIDs .DeviceIDs}}; {{end}}{{range $i, $id := .DeviceIDs}}{{if $i}}, {{end}}{{index $.Data.Names (printf "d%d" $id)}}{{end}}</td>
+      <td>{{if .Active $.Data.Now}}<span class="badge warn"><i></i>{{$.T "Running"}}</span>{{else if .StartsAt.After $.Data.Now}}<span class="badge info"><i></i>{{$.T "Planned"}}</span>{{else}}<span class="badge muted"><i></i>{{$.T "Over"}}</span>{{end}}</td>
+      {{if $.User.CanWrite}}<td class="actions">{{if .EndsAt.After $.Data.Now}}<form method="post" action="/alerts/maintenance/{{.ID}}/end" data-confirm="{{if .Active $.Data.Now}}{{$.T "End this maintenance now?"}}{{else}}{{$.T "Remove this planned maintenance?"}}{{end}}"><button class="ghost sm">{{if .Active $.Data.Now}}{{$.T "End now"}}{{else}}{{$.T "Remove"}}{{end}}</button></form>{{end}}</td>{{end}}
+    </tr>{{end}}</tbody>
+  </table></div>
+  {{else}}<p class="muted">{{.T "No maintenance planned."}}</p>{{end}}
+</section>
+
+{{if .User.CanWrite}}
+<section class="panel">
+  <h2>{{.T "Plan maintenance"}}</h2>
+  <form method="post" action="/alerts/maintenance" class="stack">
+    <div class="cols">
+      <label>{{.T "Name"}}<input name="name" value="{{.Data.In.Name}}" required maxlength="100" placeholder="{{.T "Name, for example Firmware update"}}"></label>
+      <label>{{.T "From"}}<input type="datetime-local" name="from" value="{{.Data.From}}" required></label>
+      <label>{{.T "Until"}}<input type="datetime-local" name="to" value="{{.Data.To}}" required></label>
+    </div>
+    <p class="small muted">{{.T "Times are in the server's time zone."}}</p>
+    {{if .Data.Groups}}<fieldset class="box"><legend>{{.T "Groups"}}</legend>
+      <div class="pickers">{{range .Data.Groups}}<label class="check"><input type="checkbox" name="group" value="{{.ID}}" {{if inList $.Data.In.GroupIDs .ID}}checked{{end}}>{{.Name}}</label>{{end}}</div>
+    </fieldset>{{end}}
+    <fieldset class="box"><legend>{{.T "Devices"}}</legend>
+      <input type="search" data-filter="#mw-devices" placeholder="{{.T "Search"}}" aria-label="{{.T "Search"}}">
+      <div class="pickers" id="mw-devices">{{range .Data.Devices}}<label class="check" data-text="{{.Name}} {{.Address}}"><input type="checkbox" name="device" value="{{.ID}}" {{if inList $.Data.In.DeviceIDs .ID}}checked{{end}}>{{.Name}} <small class="muted mono">{{.Address}}</small></label>{{end}}</div>
+    </fieldset>
+    <div><button class="primary">{{template "icon" "wrench"}}{{.T "Plan maintenance"}}</button></div>
+  </form>
+</section>
+{{end}}
+{{end}}

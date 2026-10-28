@@ -18,10 +18,24 @@
     {{with .Data.Facts.SysDescr}}<dt>{{$.T "Description"}}</dt><dd class="small">{{.}}</dd>{{end}}
     {{with .Data.Facts.SysLocation}}<dt>{{$.T "Location"}}</dt><dd>{{.}}</dd>{{end}}
     {{with .Data.Profile}}<dt>SNMP</dt><dd>{{.Name}} <span class="muted">· {{.VersionName}}{{with .Security}}, {{.}}{{end}}</span></dd>{{end}}
+    {{if $d.Parent}}<dt>{{$.T "Depends on"}}</dt><dd><a href="/devices/{{$d.Parent}}">{{$d.ParentName}}</a></dd>{{end}}
     {{with $d.Notes}}<dt>{{$.T "Notes"}}</dt><dd class="pre">{{.}}</dd>{{end}}
   </dl>
   {{if and .User.CanWrite .Data.Profile}}<div class="row mt"><a class="btn secondary" href="/devices/{{$d.ID}}/discover">{{template "icon" "refresh"}}{{.T "SNMP discovery"}}</a></div>{{end}}
 </section>
+{{with .Data.Problems}}
+<section class="panel">
+  <div class="titlebar"><h2>{{template "icon" "bell"}}{{$.T "Problems"}}</h2>{{if $.User.CanWrite}}<a class="btn ghost sm" href="/alerts/maintenance?device={{$d.ID}}">{{template "icon" "wrench"}}{{$.T "Plan maintenance"}}</a>{{end}}</div>
+  <div class="table-wrap"><table>
+    <tbody>{{range .}}<tr class="p-{{.Severity}}{{if .Suppressed}} p-supp{{end}}">
+      <td>{{template "sev" (sevOf $ .Severity)}}</td>
+      <td><b>{{$.T .Title}}</b>{{with .Detail}}<br><span class="small">{{.}}</span>{{end}}{{if eq .Suppressed "maintenance"}}<br><span class="badge muted">{{$.T "In maintenance"}}</span>{{else if eq .Suppressed "dependency"}}<br><span class="badge muted">{{$.T "Unreachable: a device it depends on is down"}}</span>{{end}}</td>
+      <td class="muted nowrap">{{$.T "for %s" (dur $ (.Duration $.Data.Now))}}</td>
+      <td>{{if .AckAt}}<span class="ack">{{template "icon" "check"}} {{.AckBy}}{{with .AckNote}}: {{.}}{{end}}</span>{{else if $.User.CanWrite}}<form method="post" action="/problems/{{.ID}}/ack" class="ack-form"><input type="hidden" name="back" value="/devices/{{$d.ID}}"><input name="note" maxlength="500" placeholder="{{$.T "Note (optional)"}}" aria-label="{{$.T "Note"}}"><button class="secondary sm">{{$.T "Acknowledge"}}</button></form>{{end}}</td>
+    </tr>{{end}}</tbody>
+  </table></div>
+</section>
+{{end}}
 
 {{with .Data.Agent}}{{$a := .}}
 <section class="panel">

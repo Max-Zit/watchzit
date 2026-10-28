@@ -1,0 +1,42 @@
+{{template "app" .}}
+{{define "content"}}
+<h1>{{.T "Problems"}}</h1>
+{{template "alerttabs" .}}
+<div class="titlebar">
+  <nav class="seg" aria-label="{{.T "Problems"}}">
+    <a href="/problems" class="{{if not .Data.History}}on{{end}}">{{.T "Open"}}{{with .Problems}} ({{.}}){{end}}</a>
+    <a href="/problems?view=history" class="{{if .Data.History}}on{{end}}">{{.T "Resolved (30 days)"}}</a>
+  </nav>
+  <form method="get" action="/problems" class="row">
+    {{if .Data.History}}<input type="hidden" name="view" value="history">{{end}}
+    <select name="severity" aria-label="{{.T "Severity"}}" data-autosubmit><option value="">{{.T "All severities"}}</option>{{range severities}}<option value="{{.}}" {{if eq . $.Data.Severity}}selected{{end}}>{{$.T (severityName .)}}</option>{{end}}</select>
+    {{if not .Data.History}}<label class="check"><input type="checkbox" name="suppressed" value="1" {{if .Data.Suppressed}}checked{{end}} data-autosubmit>{{.T "Show suppressed"}}</label>{{end}}
+    <noscript><button class="secondary sm">{{.T "Show"}}</button></noscript>
+  </form>
+</div>
+<section class="panel">
+  {{if .Data.Problems}}
+  <div class="table-wrap"><table>
+    <thead><tr><th>{{.T "Severity"}}</th><th>{{.T "Device"}}</th><th>{{.T "Problem"}}</th><th class="hide-sm">{{.T "Started"}}</th><th>{{.T "Duration"}}</th>{{if not .Data.History}}<th>{{.T "Acknowledged"}}</th>{{end}}</tr></thead>
+    <tbody>{{range .Data.Problems}}<tr class="p-{{.Severity}}{{if .Suppressed}} p-supp{{end}}">
+      <td>{{template "sev" (sevOf $ .Severity)}}</td>
+      <td><a href="/devices/{{.DeviceID}}"><b>{{.Device}}</b></a><br><span class="small muted mono">{{.Address}}</span></td>
+      <td><b>{{$.T .Title}}</b>{{with .Detail}}<br><span class="small">{{.}}</span>{{end}}
+        {{if eq .Suppressed "maintenance"}}<br><span class="badge muted">{{template "icon" "wrench"}}{{$.T "In maintenance"}}</span>{{else if eq .Suppressed "dependency"}}<br><span class="badge muted">{{$.T "Unreachable: a device it depends on is down"}}</span>{{end}}</td>
+      <td class="hide-sm muted nowrap">{{$.Time .StartedAt}}</td>
+      <td class="nowrap">{{dur $ (.Duration $.Data.Now)}}{{if .ResolvedAt}}<br><span class="small muted">{{$.T "resolved"}} {{$.Ago .ResolvedAt}}</span>{{end}}</td>
+      {{if not $.Data.History}}<td>
+        {{if .AckAt}}<span class="ack">{{template "icon" "check"}} {{.AckBy}} · {{$.Ago .AckAt}}{{with .AckNote}}<br>{{.}}{{end}}</span>
+        {{else if $.User.CanWrite}}<form method="post" action="/problems/{{.ID}}/ack" class="ack-form"><input type="hidden" name="back" value="{{$.Path}}"><input name="note" maxlength="500" placeholder="{{$.T "Note (optional)"}}" aria-label="{{$.T "Note"}}"><button class="secondary sm">{{$.T "Acknowledge"}}</button></form>
+        {{else}}<span class="muted">—</span>{{end}}
+      </td>{{end}}
+    </tr>{{end}}</tbody>
+  </table></div>
+  {{else if .Data.History}}
+  <p class="muted">{{.T "No resolved problems in the last 30 days."}}</p>
+  {{else}}
+  <div class="empty">{{template "icon" "check"}}<p>{{.T "No problems."}}</p></div>
+  {{end}}
+</section>
+<p class="small muted">{{.T "Problems come from triggers. While a device is in maintenance, or a device it depends on is down, its problems are recorded but not sent."}}</p>
+{{end}}

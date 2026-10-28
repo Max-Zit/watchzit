@@ -22,6 +22,7 @@ import (
 
 	embeddedpostgres "github.com/fergusstrange/embedded-postgres"
 
+	"github.com/max-zit/watchzit/internal/alert"
 	"github.com/max-zit/watchzit/internal/auth"
 	"github.com/max-zit/watchzit/internal/logfile"
 	"github.com/max-zit/watchzit/internal/netacl"
@@ -131,16 +132,20 @@ func run() error {
 
 	db := tsdb.New(st.Pool(), log)
 	pl := poller.New(st, db, log)
+	alerts := alert.New(st, log)
 	pl.OnChange = func(cs []store.StatusChange) {
 		for _, c := range cs {
 			log.Info("check status changed", "check", c.CheckID, "device", c.DeviceID, "from", c.From, "to", c.To, "result", c.Text)
 		}
+		alerts.Kick()
 	}
 	srv, err := web.New(ctx, st, db, pl, log)
 	if err != nil {
 		return err
 	}
 	srv.Version = version
+	srv.Alerts = alerts
+	alerts.Notify = srv.Notify
 	srv.DownloadsDir = filepath.Join(*dataDir, "downloads")
 	if *devNo2FA {
 		srv.DevNo2FA = true
@@ -226,9 +231,10 @@ func run() error {
 	}
 	log.Info("WatchZit server started", "version", version)
 
-	done := make(chan struct{}, 2)
+	done := make(chan struct{}, 3)
 	go func() { db.Run(ctx); done <- struct{}{} }()
 	go func() { pl.Run(ctx); done <- struct{}{} }()
+	go func() { alerts.Run(ctx); done <- struct{}{} }()
 	go func() {
 		t := time.NewTicker(time.Hour)
 		defer t.Stop()
@@ -257,6 +263,8 @@ func run() error {
 	}
 	<-done
 	<-done
+	<-done
+	srv.WaitNotifications()
 	log.Info("stopped")
 	return nil
 }

@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/max-zit/watchzit/internal/store"
 )
 
 // uiTexts collects the English texts of the console: template {{.T "…"}}
@@ -28,7 +30,7 @@ func uiTexts(t *testing.T) map[string]bool {
 		}
 	}
 	// Go: messages passed to translate/T/redirect/show*/fail and errors.
-	goMsg := regexp.MustCompile(`(?:translate\([^,\n]+, |uiErrf?\(|\.T\(|fail\(|redirect\(w, r, "[^"]*", |redirectErr\(w, r, [^,\n]+, |show\w+\(w, r, http\.Status\w+, [^"\n]*?|errors\.New\()"((?:[^"\\]|\\.)+)"`)
+	goMsg := regexp.MustCompile(`(?:translate\([^,\n]+, |uiErrf?\(|\.T\(|fail\(|redirect\(w, r, [^\n]*?, |redirectErr\(w, r, [^,\n]+, |show\w+\(w, r, http\.Status\w+, [^"\n]*?|errors\.New\()"((?:[^"\\]|\\.)+)"`)
 	for _, dir := range []string{".", "../store"} {
 		gofiles, _ := filepath.Glob(filepath.Join(dir, "*.go"))
 		for _, f := range gofiles {
@@ -47,6 +49,12 @@ func uiTexts(t *testing.T) map[string]bool {
 	out["the password must be between 12 and 256 characters"] = true
 	out["The name is already used."] = true
 	out["Not found."] = true
+	for _, s := range builtinTriggers {
+		out[s] = true
+	}
+	for _, s := range store.Severities {
+		out[severityName(s)] = true
+	}
 	for _, n := range kindNames {
 		out[n] = true
 	}
@@ -56,7 +64,7 @@ func uiTexts(t *testing.T) map[string]bool {
 	for _, s := range mapText {
 		out[s] = true
 	}
-	for _, m := range []map[string]string{checkKinds, groupNames, unitTitles, linkKindNames} {
+	for _, m := range []map[string]string{checkKinds, groupNames, unitTitles, linkKindNames, triggerKinds, channelKinds} {
 		for _, n := range m {
 			out[n] = true
 		}

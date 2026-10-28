@@ -1,0 +1,51 @@
+{{template "app" .}}
+{{define "content"}}
+<h1>{{.T "Triggers"}}</h1>
+{{template "alerttabs" .}}
+<p class="muted">{{.T "A trigger opens a problem when a device or check is down, or a measured value stays above or below a threshold for the set time. The problem closes by itself when the condition ends."}}</p>
+<section class="panel">
+  <div class="table-wrap"><table>
+    <thead><tr><th>{{.T "Name"}}</th><th>{{.T "Condition"}}</th><th class="hide-sm">{{.T "Applies to"}}</th><th>{{.T "Severity"}}</th>{{if .User.CanWrite}}<th></th>{{end}}</tr></thead>
+    <tbody>{{range .Data.Triggers}}<tr class="{{if not .Enabled}}trig-off{{end}}">
+      <td><b>{{$.T .Name}}</b>{{if not .Enabled}} <span class="badge muted">{{$.T "Off"}}</span>{{end}}</td>
+      <td class="small">{{$.T (triggerKind .Kind)}}{{if eq .Kind "metric"}}: {{$.T (metricName .Metric)}} {{if eq .Op ">"}}{{$.T "above"}}{{else}}{{$.T "below"}}{{end}} <b>{{.Threshold}}</b>{{end}}
+        {{if .ForS}} · {{$.T "for %s min" (minutes .ForS)}}{{end}}
+        {{if .CheckTypes}}<br><span class="muted">{{range $i, $t := .CheckTypes}}{{if $i}}, {{end}}{{$.T (checkKind $t)}}{{end}}</span>{{end}}</td>
+      <td class="hide-sm small">{{if .Device}}{{.Device}}{{else if .Group}}{{$.T "Group"}} {{.Group}}{{else}}<span class="muted">{{$.T "All devices"}}</span>{{end}}</td>
+      <td>{{template "sev" (sevOf $ .Severity)}}</td>
+      {{if $.User.CanWrite}}<td class="actions nowrap"><a class="btn ghost sm" href="/alerts/triggers/{{.ID}}" title="{{$.T "Edit"}}">{{template "icon" "settings"}}</a></td>{{end}}
+    </tr>{{end}}</tbody>
+  </table></div>
+</section>
+
+{{if .User.CanWrite}}
+{{$e := .Data.Edit}}{{$in := .Data.In}}
+<section class="panel" id="form">
+  <h2>{{if $e}}{{.T "Edit %s" $e.Name}}{{else}}{{.T "Add a trigger"}}{{end}}</h2>
+  <form method="post" action="{{if $e}}/alerts/triggers/{{$e.ID}}{{else}}/alerts/triggers{{end}}" class="stack">
+    <div class="cols">
+      <label>{{.T "Name"}}<input name="name" value="{{$in.Name}}" required maxlength="100" placeholder="{{.T "Name, for example Disk almost full"}}"></label>
+      <label>{{.T "Kind"}}<select name="kind" data-switch="tkind">{{range $k := (list "device_down" "check_down" "metric")}}<option value="{{$k}}" {{if eq $k $in.Kind}}selected{{end}}>{{$.T (triggerKind $k)}}</option>{{end}}</select></label>
+    </div>
+    <div class="cols" data-show="tkind" data-when="metric">
+      <label>{{.T "Value"}}<select name="metric">{{range .Data.Metrics}}<option value="{{.Metric}}" {{if eq .Metric $in.Metric}}selected{{end}}>{{$.T .Name}}{{with .Unit}} ({{.}}){{end}}</option>{{end}}</select></label>
+      <label>{{.T "Condition"}}<select name="op"><option value=">" {{if eq $in.Op ">"}}selected{{end}}>{{.T "above"}}</option><option value="<" {{if eq $in.Op "<"}}selected{{end}}>{{.T "below"}}</option></select></label>
+      <label>{{.T "Threshold"}}<input name="threshold" value="{{$in.Threshold}}" inputmode="decimal" required><small>{{.T "In the unit of the value: % for loads, ms for times, bit/s for traffic."}}</small></label>
+    </div>
+    <div class="cols">
+      <label>{{.T "For at least (minutes)"}}<input type="number" name="for" value="{{.Data.ForMin}}" min="0" max="1440" step="0.5"><small>{{.T "0 = at once. A short dip does not open a problem."}}</small></label>
+      <label>{{.T "Severity"}}<select name="severity">{{range severities}}<option value="{{.}}" {{if eq . $in.Severity}}selected{{end}}>{{$.T (severityName .)}}</option>{{end}}</select></label>
+      <label>{{.T "Applies to"}}<select name="scope"><option value="">{{.T "All devices"}}</option>
+        <optgroup label="{{.T "Groups"}}">{{range .Data.Groups}}<option value="g{{.ID}}" {{if eq .ID $in.GroupID}}selected{{end}}>{{.Name}}</option>{{end}}</optgroup>
+        <optgroup label="{{.T "Devices"}}">{{range .Data.Devices}}<option value="d{{.ID}}" {{if eq .ID $in.DeviceID}}selected{{end}}>{{.Name}}</option>{{end}}</optgroup></select></label>
+    </div>
+    <fieldset class="box" data-show="tkind" data-when="check_down metric"><legend>{{.T "Only checks of these types"}} <small class="muted">{{.T "none ticked = all that have the value"}}</small></legend>
+      <div class="pickers">{{range .Data.Types}}<label class="check"><input type="checkbox" name="type" value="{{.}}" {{if inStrings $in.CheckTypes .}}checked{{end}}>{{$.T (checkKind .)}} <small class="muted mono">{{.}}</small></label>{{end}}</div>
+    </fieldset>
+    <label class="check"><input type="checkbox" name="enabled" value="1" {{if $in.Enabled}}checked{{end}}>{{.T "Enabled"}}</label>
+    <div class="row"><button class="primary">{{if $e}}{{.T "Save"}}{{else}}{{template "icon" "plus"}}{{.T "Add trigger"}}{{end}}</button>{{if $e}}<a class="btn secondary" href="/alerts/triggers">{{.T "Cancel"}}</a>{{end}}</div>
+  </form>
+  {{if $e}}<form method="post" action="/alerts/triggers/{{$e.ID}}/delete" class="mt" data-confirm="{{.T "Delete the trigger %s? Its open problems close." $e.Name}}"><button class="danger sm">{{template "icon" "trash"}}{{.T "Delete trigger"}}</button></form>{{end}}
+</section>
+{{end}}
+{{end}}

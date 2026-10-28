@@ -1,0 +1,84 @@
+{{template "app" .}}
+{{define "content"}}
+<h1>{{.T "Settings"}}</h1>
+<div class="settings">
+{{template "settingstabs" .}}
+<div class="settings-body">
+<section class="panel">
+  <h2>{{.T "Notification channels"}}</h2>
+  <p class="muted">{{.T "Problems are sent to every enabled channel whose lowest severity they reach; on request also when they are resolved. Problems in maintenance and behind a down device are not sent."}}</p>
+  {{if .Data.Channels}}
+  <div class="table-wrap"><table>
+    <thead><tr><th>{{.T "Name"}}</th><th>{{.T "Type"}}</th><th class="hide-sm">{{.T "From severity"}}</th><th class="hide-sm">{{.T "Last sent"}}</th><th></th></tr></thead>
+    <tbody>{{range .Data.Channels}}<tr class="{{if not .Enabled}}trig-off{{end}}">
+      <td><b>{{.Name}}</b>{{if not .Enabled}} <span class="badge muted">{{$.T "Off"}}</span>{{end}}{{if eq .Kind "email"}}<br><span class="small muted">{{.Target}}</span>{{end}}</td>
+      <td>{{$.T (channelKind .Kind)}}{{if and (eq .Kind "webhook") .Secret}} <span class="small muted">· {{$.T "signed"}}</span>{{end}}</td>
+      <td class="hide-sm">{{template "sev" (sevOf $ .MinSeverity)}}{{if .OnResolve}} <span class="small muted">+ {{$.T "resolved"}}</span>{{end}}</td>
+      <td class="hide-sm small">{{if .LastError}}<span class="badge bad" title="{{.LastError}}"><i></i>{{$.T "Failed"}}</span><br><span class="muted">{{.LastError}}</span>{{else if .LastSent}}{{$.Ago .LastSent}}{{else}}<span class="muted">{{$.T "never"}}</span>{{end}}</td>
+      <td class="actions nowrap">
+        <form method="post" action="/settings/notifications/channels/{{.ID}}/test" class="inline"><button class="ghost sm">{{$.T "Send test"}}</button></form>
+        <details class="pop right"><summary class="btn ghost sm" title="{{$.T "Settings"}}">{{template "icon" "settings"}}</summary>
+          <div class="pop-body">
+            <form method="post" action="/settings/notifications/channels/{{.ID}}" class="stack">
+              <label>{{$.T "Name"}}<input name="name" value="{{.Name}}" required maxlength="100"></label>
+              <label>{{if eq .Kind "email"}}{{$.T "Recipients"}}<input name="target" value="{{.Target}}" maxlength="2000">{{else}}{{$.T "New address"}} <small>{{$.T "empty keeps the saved one"}}</small><input name="target" type="url" maxlength="2000" autocomplete="off">{{end}}</label>
+              {{if eq .Kind "webhook"}}<label>{{$.T "New signing key"}} <small>{{$.T "empty keeps the saved one"}}</small><input name="secret" type="password" maxlength="200" autocomplete="new-password"></label>{{end}}
+              <label>{{$.T "From severity"}}<select name="min_severity">{{$m := .MinSeverity}}{{range severities}}<option value="{{.}}" {{if eq . $m}}selected{{end}}>{{$.T (severityName .)}}</option>{{end}}</select></label>
+              <label class="check"><input type="checkbox" name="on_resolve" value="1" {{if .OnResolve}}checked{{end}}>{{$.T "Also when resolved"}}</label>
+              <label class="check"><input type="checkbox" name="enabled" value="1" {{if .Enabled}}checked{{end}}>{{$.T "Enabled"}}</label>
+              <button class="primary sm">{{$.T "Save"}}</button>
+            </form>
+            <form method="post" action="/settings/notifications/channels/{{.ID}}/delete" class="mt" data-confirm="{{$.T "Delete the channel %s?" .Name}}"><button class="danger sm">{{template "icon" "trash"}}{{$.T "Delete"}}</button></form>
+          </div>
+        </details>
+      </td>
+    </tr>{{end}}</tbody>
+  </table></div>
+  {{else}}<p class="muted">{{.T "No channels yet: problems are only shown in the console."}}</p>{{end}}
+
+  <h3>{{.T "Add a channel"}}</h3>
+  <form method="post" action="/settings/notifications/channels" class="stack">
+    <div class="cols">
+      <label>{{.T "Name"}}<input name="name" required maxlength="100" placeholder="{{.T "Name, for example On-call team"}}"></label>
+      <label>{{.T "Type"}}<select name="kind" data-switch="chkind">{{range (list "email" "webhook" "slack" "teams")}}<option value="{{.}}" {{if eq . $.Data.Kind}}selected{{end}}>{{$.T (channelKind .)}}</option>{{end}}</select></label>
+      <label>{{.T "From severity"}}<select name="min_severity">{{range severities}}<option value="{{.}}" {{if eq . "warning"}}selected{{end}}>{{$.T (severityName .)}}</option>{{end}}</select></label>
+    </div>
+    <label data-show="chkind" data-when="email">{{.T "Recipients"}}<input name="target" maxlength="2000" placeholder="noc@example.com, admin@example.com" required><small>{{.T "Email addresses, separated by commas. Set up the SMTP server below."}}</small></label>
+    <label data-show="chkind" data-when="webhook slack teams">{{.T "Address"}}<input name="target" type="url" maxlength="2000" placeholder="https://" required autocomplete="off"><small data-show="chkind" data-when="slack">{{.T "A Slack incoming webhook address."}}</small><small data-show="chkind" data-when="teams">{{.T "The address of a Teams workflow \"When a Teams webhook request is received\"."}}</small><small data-show="chkind" data-when="webhook">{{.T "WatchZit posts JSON with the problems to this address."}}</small></label>
+    <label data-show="chkind" data-when="webhook">{{.T "Signing key"}} <small>{{.T "optional"}}</small><input name="secret" type="password" maxlength="200" autocomplete="new-password"><small>{{.T "With a key, the header X-WatchZit-Signature carries sha256=HMAC of the body."}}</small></label>
+    <label class="check"><input type="checkbox" name="on_resolve" value="1" checked>{{.T "Also when resolved"}}</label>
+    <div><button class="primary">{{template "icon" "plus"}}{{.T "Add channel"}}</button></div>
+  </form>
+</section>
+
+{{$n := .Data.N}}
+<section class="panel">
+  <h2>{{template "icon" "mail"}}{{.T "Email server (SMTP)"}}</h2>
+  <form method="post" action="/settings/notifications" class="stack">
+    <div class="cols">
+      <label>{{.T "SMTP server"}}<input name="smtp_host" value="{{$n.Email.Host}}" maxlength="255" class="mono" spellcheck="false" placeholder="smtp.example.com"><small>{{.T "Empty = no email."}}</small></label>
+      <label>{{.T "Port"}}<input type="number" name="smtp_port" value="{{$n.Email.Port}}" min="1" max="65535"></label>
+      <label>{{.T "Security"}}<select name="smtp_security"><option value="starttls" {{if eq $n.Email.Security "starttls"}}selected{{end}}>STARTTLS</option><option value="tls" {{if eq $n.Email.Security "tls"}}selected{{end}}>TLS</option><option value="none" {{if eq $n.Email.Security "none"}}selected{{end}}>{{.T "None"}}</option></select></label>
+    </div>
+    <div class="cols">
+      <label>{{.T "User name"}} <small>{{.T "optional"}}</small><input name="smtp_user" value="{{$n.Email.Username}}" maxlength="255" autocomplete="off"></label>
+      <label>{{.T "Password"}} <small>{{if .Data.HasPass}}{{.T "saved; empty keeps it"}}{{else}}{{.T "optional"}}{{end}}</small><input name="smtp_password" type="password" maxlength="255" autocomplete="new-password"></label>
+      <label>{{.T "Sender"}}<input name="smtp_from" value="{{$n.Email.From}}" maxlength="255" placeholder="WatchZit &lt;watchzit@example.com&gt;"></label>
+    </div>
+    <h3>{{.T "Message"}}</h3>
+    <div class="cols">
+      <label>{{.T "Console address for links"}} <small>{{.T "optional"}}</small><input name="console_url" value="{{$n.ConsoleURL}}" maxlength="300" class="mono" placeholder="https://monitor.example.com:8443"></label>
+      <label>{{.T "Language of notifications"}}<select name="lang"><option value="">English</option>{{range .Languages}}{{if ne .Code "en"}}<option value="{{.Code}}" {{if eq .Code $n.Lang}}selected{{end}}>{{.Name}}</option>{{end}}{{end}}</select></label>
+    </div>
+    <div><button class="primary">{{.T "Save"}}</button></div>
+  </form>
+  {{if $n.Email.Host}}
+  <form method="post" action="/settings/notifications/test" class="row mt">
+    <input name="to" type="email" required placeholder="{{.T "Email address"}}" aria-label="{{.T "Email address"}}">
+    <button class="secondary">{{template "icon" "mail"}}{{.T "Send a test email"}}</button>
+  </form>
+  {{end}}
+</section>
+</div>
+</div>
+{{end}}

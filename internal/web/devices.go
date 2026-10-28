@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -18,7 +19,8 @@ import (
 type overviewData struct {
 	Counts   map[string]int
 	Total    int
-	Problems []*store.Device
+	Problems []*store.Problem
+	Now      time.Time
 }
 
 func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
@@ -32,16 +34,11 @@ func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 	for _, n := range c {
 		d.Total += n
 	}
-	all, err := s.store.Devices(ctx, store.DeviceFilter{})
-	if err != nil {
+	if d.Problems, err = s.store.Problems(ctx, store.ProblemFilter{Open: true, Limit: 20}); err != nil {
 		s.serverError(w, r, err)
 		return
 	}
-	for _, x := range all {
-		if x.Status == store.StatusDown || x.Status == store.StatusWarning {
-			d.Problems = append(d.Problems, x)
-		}
-	}
+	d.Now = s.now()
 	s.render(w, r, http.StatusOK, "overview", &Page{Title: "Overview", Nav: "overview", Data: d})
 }
 
@@ -94,6 +91,8 @@ type deviceData struct {
 	Traffic    map[int]*store.Check // interface checks by ifIndex
 	Agent      *store.AgentInfo
 	Watched    map[string]bool // services the agent reports
+	Problems   []*store.Problem
+	Now        time.Time
 	CheckTypes []string
 }
 
@@ -192,6 +191,8 @@ func (s *Server) showDevice(w http.ResponseWriter, r *http.Request, status int, 
 		rg = "24h"
 	}
 	data := &deviceData{D: d, Checks: cs, Graphs: graphsOf(cs), Range: rg, Ranges: graphRanges, New: in, CheckTypes: store.CheckTypes, Traffic: map[int]*store.Check{}}
+	data.Problems = s.deviceProblems(r.Context(), d.ID)
+	data.Now = s.now()
 	if d.SNMPProfile != 0 {
 		if data.Profile, err = s.store.DeviceSNMP(r.Context(), d.ID); err != nil && !errors.Is(err, store.ErrNotFound) {
 			s.serverError(w, r, err)
@@ -236,6 +237,7 @@ type deviceFormData struct {
 	In       store.DeviceInput
 	Groups   []store.Group
 	Profiles []*store.SNMPProfile
+	Devices  []*store.Device // possible parents
 	// New devices get a ping check and optional TCP ports.
 	Ping  bool
 	Ports string
@@ -252,7 +254,7 @@ func (s *Server) handleDeviceForm(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		d.ID = dev.ID
-		d.In = store.DeviceInput{GroupID: deref(dev.GroupID), Name: dev.Name, Address: dev.Address, Kind: dev.Kind, WebURL: dev.WebURL, Notes: dev.Notes, Paused: dev.Paused, SNMP: dev.SNMPProfile}
+		d.In = store.DeviceInput{GroupID: deref(dev.GroupID), Name: dev.Name, Address: dev.Address, Kind: dev.Kind, WebURL: dev.WebURL, Notes: dev.Notes, Paused: dev.Paused, SNMP: dev.SNMPProfile, Parent: dev.Parent}
 	}
 	s.showDeviceForm(w, r, http.StatusOK, d, "")
 }
@@ -274,6 +276,17 @@ func (s *Server) showDeviceForm(w http.ResponseWriter, r *http.Request, status i
 		s.serverError(w, r, err)
 		return
 	}
+	all, err := s.store.Devices(r.Context(), store.DeviceFilter{})
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	for _, x := range all {
+		if x.ID != d.ID {
+			d.Devices = append(d.Devices, x)
+		}
+	}
+	sort.Slice(d.Devices, func(i, j int) bool { return strings.ToLower(d.Devices[i].Name) < strings.ToLower(d.Devices[j].Name) })
 	title := "Add a device"
 	if d.ID != 0 {
 		title = "Edit device"
@@ -288,7 +301,8 @@ func (s *Server) showDeviceForm(w http.ResponseWriter, r *http.Request, status i
 func deviceInput(r *http.Request) store.DeviceInput {
 	g, _ := strconv.ParseInt(r.FormValue("group"), 10, 64)
 	sp, _ := strconv.ParseInt(r.FormValue("snmp"), 10, 64)
-	return store.DeviceInput{GroupID: g, SNMP: sp, Name: r.FormValue("name"), Address: r.FormValue("address"), Kind: r.FormValue("kind"),
+	pa, _ := strconv.ParseInt(r.FormValue("parent"), 10, 64)
+	return store.DeviceInput{GroupID: g, SNMP: sp, Parent: pa, Name: r.FormValue("name"), Address: r.FormValue("address"), Kind: r.FormValue("kind"),
 		WebURL: r.FormValue("web_url"), Notes: r.FormValue("notes"), Paused: r.FormValue("paused") == "1"}
 }
 

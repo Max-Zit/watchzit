@@ -9,15 +9,15 @@
   <a class="stat" href="/devices?status=unknown"><span class="si">{{template "icon" "clock"}}</span><b>{{index .Data.Counts "unknown"}}</b><span>{{.T "Unknown"}}</span></a>
 </div>
 <section class="panel">
-  <h2>{{.T "Problems"}}</h2>
+  <div class="titlebar"><h2>{{.T "Problems"}}</h2><a class="btn ghost sm" href="/problems">{{.T "All problems"}}</a></div>
   {{if .Data.Problems}}
   <div class="table-wrap"><table>
-    <thead><tr><th>{{.T "Device"}}</th><th>{{.T "Status"}}</th><th class="hide-sm">{{.T "Address"}}</th><th>{{.T "Since"}}</th></tr></thead>
-    <tbody>{{range .Data.Problems}}<tr>
-      <td><a href="/devices/{{.ID}}">{{.Name}}</a>{{with .Group}} <span class="muted small">· {{.}}</span>{{end}}</td>
-      <td>{{template "status" (statusOf $ .Status)}}{{if eq .Status "warning"}} <span class="small muted">{{$.T "%d of %d checks down" .ChecksDown .Checks}}</span>{{end}}</td>
-      <td class="hide-sm mono">{{.Address}}</td>
-      <td class="muted">{{$.Since .StatusSince}}</td>
+    <thead><tr><th>{{.T "Severity"}}</th><th>{{.T "Device"}}</th><th>{{.T "Problem"}}</th><th>{{.T "Duration"}}</th></tr></thead>
+    <tbody>{{range .Data.Problems}}<tr class="p-{{.Severity}}">
+      <td>{{template "sev" (sevOf $ .Severity)}}</td>
+      <td><a href="/devices/{{.DeviceID}}">{{.Device}}</a></td>
+      <td><b>{{$.T .Title}}</b>{{with .Detail}} <span class="small muted">· {{.}}</span>{{end}}{{if .AckAt}} <span class="ack">{{template "icon" "check"}} {{.AckBy}}</span>{{end}}</td>
+      <td class="muted nowrap">{{dur $ (.Duration $.Data.Now)}}</td>
     </tr>{{end}}</tbody>
   </table></div>
   {{else if .Data.Total}}

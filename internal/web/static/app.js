@@ -104,7 +104,7 @@
   });
 
   document.addEventListener("change", function (ev) {
-    if (ev.target.matches("select[data-autosubmit]")) ev.target.form.submit();
+    if (ev.target.matches("select[data-autosubmit],input[data-autosubmit]")) ev.target.form.submit();
   });
 
   document.addEventListener("submit", function (ev) {
