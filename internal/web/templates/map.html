@@ -8,16 +8,20 @@
     <span class="mapsave muted small" data-save hidden></span>
     <div class="mapbtns" data-edit-only hidden>
       <button type="button" class="btn secondary sm" data-act="add-device">{{template "icon" "plus"}}<span>{{.T "Add device"}}</span></button>
+      <button type="button" class="btn secondary sm" data-act="add-item">{{template "icon" "package"}}<span>{{.T "Add item"}}</span></button>
+      <button type="button" class="btn secondary sm" data-act="add-rack">{{template "icon" "rack"}}<span>{{.T "Add rack"}}</span></button>
       <button type="button" class="btn secondary sm" data-act="connect">{{template "icon" "link"}}<span>{{.T "Connect"}}</span></button>
       <button type="button" class="btn secondary sm" data-act="suggest">{{template "icon" "network"}}<span>{{.T "Suggested links"}}</span></button>
       <button type="button" class="btn secondary sm" data-act="add-submap">{{template "icon" "map"}}<span>{{.T "Add submap"}}</span></button>
       <button type="button" class="btn secondary sm" data-act="add-text">{{template "icon" "text"}}<span>{{.T "Add text"}}</span></button>
+      <button type="button" class="btn secondary sm" data-act="background">{{template "icon" "image"}}<span>{{.T "Background"}}</span></button>
       <button type="button" class="btn danger sm" data-act="delete" disabled>{{template "icon" "trash"}}<span>{{.T "Delete"}}</span></button>
     </div>
+    <button type="button" class="btn secondary sm" data-act="fullscreen" title="{{.T "Full screen"}}">{{template "icon" "expand"}}</button>
     {{if .User.CanWrite}}<button type="button" class="btn primary sm" data-act="edit">{{template "icon" "edit"}}<span data-edit-label>{{if .Data.Edit}}{{.T "Done"}}{{else}}{{.T "Edit"}}{{end}}</span></button>{{end}}
   </div>
   <div class="mapstage">
-    <svg class="mapsvg" role="application" aria-label="{{.Data.M.Name}}"><g class="viewport"><g class="links"></g><g class="nodes"></g></g></svg>
+    <svg class="mapsvg" role="application" aria-label="{{.Data.M.Name}}"><g class="viewport"><g class="bg"></g><g class="racks"></g><g class="nodes"></g><g class="links"></g><g class="handles"></g></g></svg>
     <div class="mapzoom">
       <button type="button" class="iconbtn" data-act="zoom-in" title="{{.T "Zoom in"}}">{{template "icon" "zoomin"}}</button>
       <button type="button" class="iconbtn" data-act="zoom-out" title="{{.T "Zoom out"}}">{{template "icon" "zoomout"}}</button>
@@ -25,6 +29,7 @@
     </div>
     <p class="maphint muted small" data-hint hidden></p>
     <aside class="mappanel" data-panel hidden></aside>
+    <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml,.svg" data-upload hidden>
     <noscript><p class="panel">{{.T "The map needs JavaScript."}}</p></noscript>
   </div>
 </div>

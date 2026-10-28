@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -24,12 +25,17 @@ const (
 	NodeDevice = "device"
 	NodeSubmap = "submap"
 	NodeLabel  = "label"
+	NodeItem   = "item" // something not monitored: patch panel, internet, building …
+	NodeRack   = "rack"
 )
 
-// Link kinds.
-var LinkKinds = []string{"wired", "wireless", "vpn"}
+// LinkKinds are the cable and connection kinds.
+var LinkKinds = []string{"ethernet", "fiber", "fiber-sm", "dac", "wireless", "vpn", "wan", "serial", "power"}
 
-// MapNode is a device, a submap or a text on a map.
+// LinkRoutes are the ways a link is drawn through its bend points.
+var LinkRoutes = []string{"straight", "ortho", "diagonal", "curve"}
+
+// MapNode is a device, a submap, a passive item, a rack or a text.
 type MapNode struct {
 	ID       int64   `json:"id"`
 	Kind     string  `json:"kind"`
@@ -38,24 +44,43 @@ type MapNode struct {
 	Label    string  `json:"label,omitempty"`
 	X        float64 `json:"x"`
 	Y        float64 `json:"y"`
+	Icon     string  `json:"icon,omitempty"`   // "lib:<name>", "asset:<id>" or "" (kind symbol)
+	Size     float64 `json:"size,omitempty"`   // shown width (0 = default)
+	Parent   int64   `json:"parent,omitempty"` // rack it is mounted in
+	U        int     `json:"u,omitempty"`      // rack: height in units; mounted: lowest unit
 }
 
-// MapLink connects two nodes, optionally port to port (ifIndex).
+// MapLink connects two nodes, optionally port to port (ifIndex for the
+// traffic, slot for the port on the picture).
 type MapLink struct {
-	ID    int64  `json:"id"`
-	A     int64  `json:"a"`
-	B     int64  `json:"b"`
-	AIf   int    `json:"a_if,omitempty"`
-	BIf   int    `json:"b_if,omitempty"`
-	Kind  string `json:"kind"`
-	Label string `json:"label,omitempty"`
+	ID     int64        `json:"id"`
+	A      int64        `json:"a"`
+	B      int64        `json:"b"`
+	AIf    int          `json:"a_if,omitempty"`
+	BIf    int          `json:"b_if,omitempty"`
+	ASlot  int          `json:"a_slot,omitempty"`
+	BSlot  int          `json:"b_slot,omitempty"`
+	Kind   string       `json:"kind"`
+	Label  string       `json:"label,omitempty"`
+	Route  string       `json:"route,omitempty"`
+	Points [][2]float64 `json:"points,omitempty"`
+}
+
+// MapBackground is a picture under the map.
+type MapBackground struct {
+	Asset   int64   `json:"asset,omitempty"` // 0 = the dotted grid
+	X       float64 `json:"x"`
+	Y       float64 `json:"y"`
+	W       float64 `json:"w"`
+	Opacity float64 `json:"opacity"`
 }
 
 // MapLayout is what the editor saves: nodes with client ids (new nodes
 // have ids ≤ 0) and links that refer to them.
 type MapLayout struct {
-	Nodes []MapNode `json:"nodes"`
-	Links []MapLink `json:"links"`
+	Nodes      []MapNode      `json:"nodes"`
+	Links      []MapLink      `json:"links"`
+	Background *MapBackground `json:"background,omitempty"`
 }
 
 // statusRank orders statuses for "worst of" (higher is worse).
@@ -202,14 +227,22 @@ func (s *Store) DeleteMap(ctx context.Context, id int64) error {
 
 // MapLayout loads the nodes and links of a map.
 func (s *Store) MapLayout(ctx context.Context, id int64) (*MapLayout, error) {
-	l := &MapLayout{Nodes: []MapNode{}, Links: []MapLink{}}
-	rows, err := s.db.Query(ctx, `SELECT id, kind, COALESCE(device_id,0), COALESCE(submap_id,0), label, x, y FROM map_nodes WHERE map_id=$1 ORDER BY id`, id)
+	l := &MapLayout{Nodes: []MapNode{}, Links: []MapLink{}, Background: &MapBackground{}}
+	bg := l.Background
+	var asset *int64
+	if err := s.db.QueryRow(ctx, `SELECT bg_asset, bg_x, bg_y, bg_w, bg_opacity FROM maps WHERE id=$1`, id).Scan(&asset, &bg.X, &bg.Y, &bg.W, &bg.Opacity); err != nil {
+		return nil, notFound(err)
+	}
+	if asset != nil {
+		bg.Asset = *asset
+	}
+	rows, err := s.db.Query(ctx, `SELECT id, kind, COALESCE(device_id,0), COALESCE(submap_id,0), label, x, y, icon, size, COALESCE(parent,0), u FROM map_nodes WHERE map_id=$1 ORDER BY id`, id)
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
 		var n MapNode
-		if err := rows.Scan(&n.ID, &n.Kind, &n.DeviceID, &n.SubmapID, &n.Label, &n.X, &n.Y); err != nil {
+		if err := rows.Scan(&n.ID, &n.Kind, &n.DeviceID, &n.SubmapID, &n.Label, &n.X, &n.Y, &n.Icon, &n.Size, &n.Parent, &n.U); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -219,16 +252,18 @@ func (s *Store) MapLayout(ctx context.Context, id int64) (*MapLayout, error) {
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	rows, err = s.db.Query(ctx, `SELECT id, a_node, b_node, COALESCE(a_if,0), COALESCE(b_if,0), kind, label FROM map_links WHERE map_id=$1 ORDER BY id`, id)
+	rows, err = s.db.Query(ctx, `SELECT id, a_node, b_node, COALESCE(a_if,0), COALESCE(b_if,0), a_slot, b_slot, kind, label, route, points FROM map_links WHERE map_id=$1 ORDER BY id`, id)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var k MapLink
-		if err := rows.Scan(&k.ID, &k.A, &k.B, &k.AIf, &k.BIf, &k.Kind, &k.Label); err != nil {
+		var pts []byte
+		if err := rows.Scan(&k.ID, &k.A, &k.B, &k.AIf, &k.BIf, &k.ASlot, &k.BSlot, &k.Kind, &k.Label, &k.Route, &pts); err != nil {
 			return nil, err
 		}
+		_ = json.Unmarshal(pts, &k.Points)
 		l.Links = append(l.Links, k)
 	}
 	return l, rows.Err()
@@ -250,6 +285,26 @@ func intPtr(i int) *int {
 		return nil
 	}
 	return &i
+}
+
+func badCoord(vs ...float64) bool {
+	for _, v := range vs {
+		if math.IsNaN(v) || math.IsInf(v, 0) || math.Abs(v) > mapLimit {
+			return true
+		}
+	}
+	return false
+}
+
+var iconRE = regexp.MustCompile(`^(lib:[a-z0-9-]{1,40}|asset:[0-9]{1,18})?$`)
+
+func oneOf(v string, list []string, def string) string {
+	for _, x := range list {
+		if x == v {
+			return v
+		}
+	}
+	return def
 }
 
 // SaveMapLayout replaces the nodes and links of a map with the editor's
@@ -286,16 +341,27 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 	if _, err := tx.Exec(ctx, `DELETE FROM map_links WHERE map_id=$1`, mapID); err != nil {
 		return nil, err
 	}
+	// parents are set in a second pass, after every node has its real id
+	if _, err := tx.Exec(ctx, `UPDATE map_nodes SET parent=NULL WHERE map_id=$1`, mapID); err != nil {
+		return nil, err
+	}
+	kinds := map[int64]string{}
+	for _, n := range in.Nodes {
+		kinds[n.ID] = n.Kind
+	}
 	ids := map[int64]int64{} // client id → real id
 	keep := map[int64]bool{}
 	out := &MapLayout{Nodes: []MapNode{}, Links: []MapLink{}}
 	devices := map[int64]bool{}
 	for _, n := range in.Nodes {
-		if math.IsNaN(n.X) || math.IsNaN(n.Y) || math.Abs(n.X) > mapLimit || math.Abs(n.Y) > mapLimit {
+		if badCoord(n.X, n.Y, n.Size) || n.Size < 0 || n.Size > 5000 {
 			return nil, errors.New("a node lies outside the map")
 		}
 		if n.Label, err = cleanLabel(n.Label, 200); err != nil {
 			return nil, err
+		}
+		if !iconRE.MatchString(n.Icon) {
+			return nil, errors.New("unknown picture")
 		}
 		var dev, sub *int64
 		switch n.Kind {
@@ -308,20 +374,35 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 		case NodeSubmap:
 			sub, n.DeviceID = &n.SubmapID, 0
 		case NodeLabel:
-			n.DeviceID, n.SubmapID = 0, 0
+			n.DeviceID, n.SubmapID, n.Icon = 0, 0, ""
 			if n.Label == "" {
 				continue
+			}
+		case NodeItem:
+			n.DeviceID, n.SubmapID = 0, 0
+		case NodeRack:
+			n.DeviceID, n.SubmapID, n.Icon, n.Parent = 0, 0, "", 0
+			if n.U < 1 || n.U > 60 {
+				return nil, errors.New("a rack has 1–60 units")
 			}
 		default:
 			return nil, errors.New("unknown node kind")
 		}
+		if n.Parent != 0 {
+			if kinds[n.Parent] != NodeRack || n.U < 1 || n.U > 60 {
+				return nil, errors.New("a mounted device needs a rack and a unit")
+			}
+		} else if n.Kind != NodeRack {
+			n.U = 0
+		}
 		var real int64
 		if n.ID > 0 && old[n.ID] {
-			_, err = tx.Exec(ctx, `UPDATE map_nodes SET kind=$2, device_id=$3, submap_id=$4, label=$5, x=$6, y=$7 WHERE id=$1`, n.ID, n.Kind, dev, sub, n.Label, n.X, n.Y)
+			_, err = tx.Exec(ctx, `UPDATE map_nodes SET kind=$2, device_id=$3, submap_id=$4, label=$5, x=$6, y=$7, icon=$8, size=$9, u=$10 WHERE id=$1`,
+				n.ID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U)
 			real = n.ID
 		} else {
-			err = tx.QueryRow(ctx, `INSERT INTO map_nodes(map_id, kind, device_id, submap_id, label, x, y) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
-				mapID, n.Kind, dev, sub, n.Label, n.X, n.Y).Scan(&real)
+			err = tx.QueryRow(ctx, `INSERT INTO map_nodes(map_id, kind, device_id, submap_id, label, x, y, icon, size, u) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+				mapID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U).Scan(&real)
 		}
 		if isFK(err) {
 			return nil, errors.New("a device or map on the map no longer exists")
@@ -333,6 +414,20 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 		keep[real] = true
 		n.ID = real
 		out.Nodes = append(out.Nodes, n)
+	}
+	for i := range out.Nodes {
+		n := &out.Nodes[i]
+		if n.Parent == 0 {
+			continue
+		}
+		p, ok := ids[n.Parent]
+		if !ok {
+			return nil, errors.New("a mounted device needs a rack and a unit")
+		}
+		n.Parent = p
+		if _, err := tx.Exec(ctx, `UPDATE map_nodes SET parent=$2 WHERE id=$1`, n.ID, p); err != nil {
+			return nil, err
+		}
 	}
 	for id := range old {
 		if !keep[id] {
@@ -347,25 +442,49 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 		if !okA || !okB || a == b {
 			return nil, errors.New("a link must connect two nodes of the map")
 		}
-		ok := false
-		for _, x := range LinkKinds {
-			ok = ok || x == k.Kind
-		}
-		if !ok {
-			k.Kind = "wired"
-		}
+		k.Kind = oneOf(k.Kind, LinkKinds, "ethernet")
+		k.Route = oneOf(k.Route, LinkRoutes, "straight")
 		if k.Label, err = cleanLabel(k.Label, 100); err != nil {
 			return nil, err
 		}
-		if k.AIf < 0 || k.BIf < 0 {
+		if k.AIf < 0 || k.BIf < 0 || k.ASlot < 0 || k.BSlot < 0 || k.ASlot > 1000 || k.BSlot > 1000 {
 			return nil, errors.New("invalid interface")
 		}
+		if len(k.Points) > 50 {
+			return nil, errors.New("a link can have at most 50 bends")
+		}
+		for _, p := range k.Points {
+			if badCoord(p[0], p[1]) {
+				return nil, errors.New("a node lies outside the map")
+			}
+		}
+		pts := []byte("[]")
+		if len(k.Points) > 0 {
+			pts, _ = json.Marshal(k.Points)
+		}
 		k.A, k.B = a, b
-		if err := tx.QueryRow(ctx, `INSERT INTO map_links(map_id, a_node, b_node, a_if, b_if, kind, label) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
-			mapID, a, b, intPtr(k.AIf), intPtr(k.BIf), k.Kind, k.Label).Scan(&k.ID); err != nil {
+		if err := tx.QueryRow(ctx, `INSERT INTO map_links(map_id, a_node, b_node, a_if, b_if, a_slot, b_slot, kind, label, route, points) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
+			mapID, a, b, intPtr(k.AIf), intPtr(k.BIf), k.ASlot, k.BSlot, k.Kind, k.Label, k.Route, pts).Scan(&k.ID); err != nil {
 			return nil, err
 		}
 		out.Links = append(out.Links, k)
+	}
+	if bg := in.Background; bg != nil {
+		if badCoord(bg.X, bg.Y, bg.W) || bg.W < 10 || bg.Opacity < 0 || bg.Opacity > 1 {
+			return nil, errors.New("invalid background")
+		}
+		var asset *int64
+		if bg.Asset > 0 {
+			asset = &bg.Asset
+		}
+		_, err := tx.Exec(ctx, `UPDATE maps SET bg_asset=$2, bg_x=$3, bg_y=$4, bg_w=$5, bg_opacity=$6 WHERE id=$1`, mapID, asset, bg.X, bg.Y, bg.W, bg.Opacity)
+		if isFK(err) {
+			return nil, errors.New("unknown picture")
+		}
+		if err != nil {
+			return nil, err
+		}
+		out.Background = bg
 	}
 	if _, err := tx.Exec(ctx, `UPDATE maps SET updated_at=$2 WHERE id=$1`, mapID, s.now()); err != nil {
 		return nil, err

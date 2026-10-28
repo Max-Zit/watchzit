@@ -1,0 +1,49 @@
+{{template "app" .}}
+{{define "content"}}
+<h1>{{.T "Settings"}}</h1>
+<div class="settings">
+{{template "settingstabs" .}}
+<div class="settings-body">
+{{with .Data.Link}}
+<section class="panel notice-ok">
+  <h2>{{$.T "Kiosk link"}}</h2>
+  <p>{{$.T "Open this link on the display (a TV with a browser). It shows the maps without signing in; keep it secret. It is shown only now."}}</p>
+  <div class="row"><code class="secret mono" id="kiosklink">{{.}}</code><button type="button" class="btn secondary sm" data-copy="#kiosklink">{{template "icon" "copy"}}{{$.T "Copy"}}</button></div>
+</section>
+{{end}}
+<section class="panel">
+  <h2>{{.T "Kiosk displays"}}</h2>
+  <p class="muted">{{.T "A kiosk display shows maps full screen on a monitoring TV and changes between them. It opens through a secret link, without signing in, read only; the console's allowed networks still apply. Delete a display to make its link stop working."}}</p>
+  {{if .Data.Kiosks}}
+  <div class="table-wrap"><table>
+    <thead><tr><th>{{.T "Name"}}</th><th class="num">{{.T "Maps"}}</th><th class="hide-sm">{{.T "Last seen"}}</th><th></th></tr></thead>
+    <tbody>{{range .Data.Kiosks}}<tr>
+      <td><b>{{.Name}}</b></td>
+      <td class="num">{{len .Maps}}</td>
+      <td class="hide-sm muted">{{if .LastSeen}}{{$.Ago .LastSeen}}{{with .LastIP}} · <span class="mono">{{.}}</span>{{end}}{{else}}{{$.T "never"}}{{end}}</td>
+      <td class="actions nowrap"><a class="btn ghost sm" href="/settings/kiosks/{{.ID}}" title="{{$.T "Edit"}}">{{template "icon" "settings"}}</a></td>
+    </tr>{{end}}</tbody>
+  </table></div>
+  {{else}}<p class="muted">{{.T "No kiosk displays yet."}}</p>{{end}}
+</section>
+{{$e := .Data.Edit}}
+<section class="panel">
+  <h2>{{if $e}}{{.T "Edit %s" $e.Name}}{{else}}{{.T "Add a kiosk display"}}{{end}}</h2>
+  {{if .Data.Maps}}
+  <form method="post" action="{{if $e}}/settings/kiosks/{{$e.ID}}{{else}}/settings/kiosks{{end}}" class="stack">
+    <div class="cols">
+      <label>{{.T "Name"}}<input name="name" value="{{.Data.In.Name}}" required maxlength="100" placeholder="{{.T "Name, for example NOC TV"}}"></label>
+      <label>{{.T "Change map every (seconds)"}}<input type="number" name="rotate" value="{{.Data.In.RotateS}}" min="5" max="3600" required></label>
+      <label>{{.T "Theme"}}<select name="theme"><option value="dark" {{if eq .Data.In.Theme "dark"}}selected{{end}}>{{.T "Dark"}}</option><option value="light" {{if eq .Data.In.Theme "light"}}selected{{end}}>{{.T "Light"}}</option></select></label>
+    </div>
+    <fieldset class="box"><legend>{{.T "Maps to show"}}</legend>
+      {{range .Data.Maps}}<label class="check"><input type="checkbox" name="map" value="{{.ID}}" {{if inList $.Data.In.Maps .ID}}checked{{end}}>{{.Name}}</label>{{end}}
+    </fieldset>
+    <div class="row"><button class="primary">{{if $e}}{{.T "Save"}}{{else}}{{template "icon" "plus"}}{{.T "Add display"}}{{end}}</button>{{if $e}}<a class="btn secondary" href="/settings/kiosks">{{.T "Cancel"}}</a>{{end}}</div>
+  </form>
+  {{if $e}}<form method="post" action="/settings/kiosks/{{$e.ID}}/delete" class="mt" data-confirm="{{.T "Delete the kiosk display %s? Its link stops working." $e.Name}}"><button class="danger sm">{{template "icon" "trash"}}{{.T "Delete display"}}</button></form>{{end}}
+  {{else}}<p class="muted">{{.T "Add a map first."}} <a href="/maps">{{.T "Maps"}}</a></p>{{end}}
+</section>
+</div>
+</div>
+{{end}}

@@ -56,7 +56,7 @@ func uiTexts(t *testing.T) map[string]bool {
 	for _, s := range mapText {
 		out[s] = true
 	}
-	for _, m := range []map[string]string{checkKinds, groupNames, unitTitles} {
+	for _, m := range []map[string]string{checkKinds, groupNames, unitTitles, linkKindNames} {
 		for _, n := range m {
 			out[n] = true
 		}

@@ -578,14 +578,6 @@ main:has(.mapview) { max-width: none; padding-bottom: 12px; }
 /* links */
 .link { cursor: pointer; }
 .link .hit { stroke: transparent; stroke-width: 16; }
-.link .wire { stroke: var(--line-2); stroke-linecap: round; }
-.link.u0 .wire { stroke: color-mix(in srgb, var(--ok) 55%, var(--line-2)); }
-.link.u1 .wire { stroke: var(--ok); }
-.link.u2 .wire { stroke: var(--warn); }
-.link.u3 .wire { stroke: var(--bad); }
-.link.down .wire { stroke: var(--bad); stroke-dasharray: 7 5; }
-.link.k-wireless .wire { stroke-dasharray: 2 6; }
-.link.k-vpn .wire { stroke-dasharray: 10 4 2 4; }
 .link.sel .wire { filter: drop-shadow(0 0 3px var(--accent)); }
 .link .lbl { font: 11px var(--font); fill: var(--muted); paint-order: stroke; stroke: var(--panel); stroke-width: 4px; stroke-linejoin: round; }
 .link .lbl.traffic { fill: var(--text); font-variant-numeric: tabular-nums; }
@@ -614,3 +606,82 @@ main:has(.mapview) { max-width: none; padding-bottom: 12px; }
   .mapbtns .btn span, .maptools [data-act="edit"] span { display: none; }
   .mappanel { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; max-height: 55%; }
 }
+
+/* ---- WatchZit 0.3.1: map design (pictures, racks, cables, kiosk) */
+.link .wire { fill: none; stroke: #5b8def; stroke-linecap: round; stroke-linejoin: round; }
+.link .hit { fill: none; }
+.link .casing { fill: none; stroke: #1f2530; stroke-linecap: round; }
+.link.k-fiber .wire { stroke: #06b6d4; }
+.link.k-fiber-sm .wire { stroke: #eab308; }
+.link.k-dac .wire { stroke: #94a3b8; }
+.link.k-wireless .wire { stroke: #a855f7; stroke-dasharray: 3 7; }
+.link.k-vpn .wire { stroke: #22c55e; stroke-dasharray: 10 4 2 4; }
+.link.k-wan .wire { stroke: #f97316; stroke-dasharray: 14 5; }
+.link.k-serial .wire { stroke: #60a5fa; stroke-dasharray: 2 3; }
+.link.k-power .wire { stroke: #ef4444; }
+.link.u2 .wire { stroke: var(--warn); }
+.link.u3 .wire { stroke: var(--bad); }
+.link.down .wire { stroke: var(--bad); stroke-dasharray: 7 5; }
+.addh { cursor: copy; }
+.addh circle { fill: var(--panel); stroke: var(--accent); stroke-width: 1.5; }
+.addh path { stroke: var(--accent); stroke-width: 1.6; fill: none; }
+.handle { fill: var(--accent); stroke: var(--panel); stroke-width: 2; cursor: move; }
+.node .frame { fill: none; stroke: transparent; stroke-width: 2.5; }
+.node.s-up .frame { stroke: color-mix(in srgb, var(--ok) 55%, transparent); }
+.node.s-warning .frame { stroke: var(--warn); }
+.node.s-down .frame { stroke: var(--bad); stroke-width: 3.5; }
+.node.sel .frame { stroke: var(--accent); stroke-width: 3; }
+.node .dot { fill: var(--muted); stroke: var(--panel); stroke-width: 2; }
+.node.s-up .dot { fill: var(--ok); }
+.node.s-warning .dot { fill: var(--warn); }
+.node.s-down .dot { fill: var(--bad); }
+.node rect.pulse { fill: var(--bad); }
+.node.mounted .stripe { fill: var(--line-2); }
+.node.mounted.s-up .stripe { fill: var(--ok); }
+.node.mounted.s-warning .stripe { fill: var(--warn); }
+.node.mounted.s-down .stripe { fill: var(--bad); }
+.node.mounted .ring { fill: none; stroke: transparent; stroke-width: 1.5; }
+.node.mounted.sel .ring, .node.mounted.from .ring { stroke: var(--accent); }
+.node.mounted .name.side { font-size: 11px; text-anchor: start; }
+.node .panel1u { fill: #2b313c; stroke: #59616e; stroke-width: .8; }
+.n-item .name { font-weight: 500; fill: var(--muted); }
+.rack { cursor: pointer; }
+.mapview.editing .rack { cursor: move; }
+.rack .cab { fill: #1b2029; stroke: #4a5466; stroke-width: 2; }
+.rack .inner { fill: #10141b; }
+.rack .uline { stroke: #262c37; stroke-width: .6; }
+.rack .unum { font: 7px var(--mono); fill: #7d8796; }
+.rack .rname { font: 600 12px var(--font); fill: #e6ebf2; }
+.rack.sel .cab { stroke: var(--accent); stroke-width: 3; }
+.rack.s-down .cab { stroke: var(--bad); }
+.rack.s-warning .cab { stroke: var(--warn); }
+.bgimg { pointer-events: none; }
+.bgimg.movable { pointer-events: auto; cursor: move; outline: 2px dashed var(--accent); }
+.mapsvg.far .rack .unum, .mapsvg.far .node.mounted .name.side { display: none; }
+.mapsvg:not(.near) .lbl.port { font-size: 10px; }
+.mp-pic { display: flex; align-items: center; gap: 10px; }
+.mp-pic img { max-width: 120px; max-height: 48px; }
+.mp-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+.mp-tabs button { border: 1px solid var(--line); background: var(--panel-2); color: var(--text); border-radius: 999px; padding: 2px 10px; font: inherit; font-size: 12px; cursor: pointer; }
+.mp-tabs button.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.mp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 6px; }
+.mp-grid.wide { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+.mp-grid button { display: grid; gap: 4px; justify-items: center; align-content: start; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); color: var(--text); cursor: pointer; font: inherit; min-height: 74px; }
+.mp-grid button:hover, .mp-grid button.on { border-color: var(--accent); }
+.mp-grid img { max-width: 100%; height: 40px; object-fit: contain; }
+.mp-grid small { font-size: 10.5px; line-height: 1.2; text-align: center; color: var(--muted); }
+.mappanel input[type=range] { width: 100%; }
+.mapview:fullscreen { background: var(--bg); padding: 10px; height: 100vh !important; }
+/* kiosk display */
+body.kiosk { margin: 0; background: var(--bg); overflow: hidden; }
+.kioskview { height: 100vh; gap: 0; }
+.kioskview .mapstage { border: 0; border-radius: 0; }
+.kioskbar { display: flex; align-items: center; gap: 14px; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.kbrand { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.kbrand svg { width: 26px; height: 26px; }
+.ktitle { font-size: 18px; }
+.kclock { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 15px; }
+.kdots { display: flex; gap: 5px; }
+.kdots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line-2); }
+.kdots i.on { background: var(--accent); }
+.kioskbar .spacer { flex: 1; }

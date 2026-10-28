@@ -113,16 +113,22 @@ var mapText = []string{"Edit", "Done", "Zoom in", "Zoom out", "Fit to screen", "
 	"Open device", "Open web interface", "Open map", "Port", "Not set", "Kind", "Wired", "Wireless", "VPN", "Label", "In", "Out", "Speed",
 	"Checks", "down", "Up", "Down", "Warning", "Unknown", "Paused", "No link", "Disabled", "Text", "Ports", "Link", "No other maps yet.",
 	"Drag devices to place them. Use Connect to draw a link and choose the ports.", "Address", "Status", "Suggested links", "Add", "Neighbours found over LLDP and MikroTik discovery.",
-	"No suggestions.", "Close", "Vendor"}
+	"No suggestions.", "Close", "Vendor",
+	"Item", "Picture", "Change picture", "Symbol (no picture)", "Upload picture", "Size", "Rack", "Not in a rack", "Mounted at unit", "Devices in rack", "Rack name", "Units",
+	"Drag devices into the rack; they snap to the units.", "Port on picture", "Interface", "Cable", "Route", "Straight", "90° bends", "45° bends", "Curved",
+	"Drag the + points to bend the cable; drag the round points to move a bend; double-click a point to remove it.", "Background", "Remove background",
+	"Without a picture the map shows the dotted grid.", "Opacity", "Move background (drag it)", "The picture could not be uploaded.", "All", "Network", "Servers",
+	"Security", "Power", "End devices", "Logical", "Uploaded", "Add rack", "Port", "Automatic"}
 
 type mapJSON struct {
-	ID      int64             `json:"id"`
-	Name    string            `json:"name"`
-	CanEdit bool              `json:"can_edit"`
-	Layout  *store.MapLayout  `json:"layout"`
-	Devices []mapDevice       `json:"devices,omitempty"` // for "Add device"
-	Maps    []mapRef          `json:"maps"`              // for submaps and names
-	Text    map[string]string `json:"text"`
+	ID      int64                 `json:"id"`
+	Name    string                `json:"name"`
+	CanEdit bool                  `json:"can_edit"`
+	Layout  *store.MapLayout      `json:"layout"`
+	Devices []mapDevice           `json:"devices,omitempty"` // for "Add device"
+	Maps    []mapRef              `json:"maps"`              // for submaps and names
+	Text    map[string]string     `json:"text"`
+	Assets  map[int64]store.Asset `json:"assets"`
 }
 
 type mapDevice struct {
@@ -149,20 +155,27 @@ func (s *Server) handleMapLayout(w http.ResponseWriter, r *http.Request) {
 	if m == nil {
 		return
 	}
+	u := userFrom(r)
+	s.writeMapJSON(w, r, m, u.CanWrite(), s.lang(r, u))
+}
+
+// writeMapJSON sends a map's layout with what map.js needs to draw it.
+func (s *Server) writeMapJSON(w http.ResponseWriter, r *http.Request, m *store.Map, canEdit bool, lang string) {
 	ctx := r.Context()
 	l, err := s.store.MapLayout(ctx, m.ID)
 	if err != nil {
 		s.serverError(w, r, err)
 		return
 	}
-	u := userFrom(r)
-	out := mapJSON{ID: m.ID, Name: m.Name, CanEdit: u.CanWrite(), Layout: l, Maps: []mapRef{}, Text: map[string]string{}}
-	lang := s.lang(r, u)
+	out := mapJSON{ID: m.ID, Name: m.Name, CanEdit: canEdit, Layout: l, Maps: []mapRef{}, Text: map[string]string{}, Assets: map[int64]store.Asset{}}
 	for _, t := range mapText {
 		out.Text[t] = translate(lang, t)
 	}
 	for k, n := range kindNames {
 		out.Text["kind:"+k] = translate(lang, n)
+	}
+	for k, n := range linkKindNames {
+		out.Text["cable:"+k] = translate(lang, n)
 	}
 	ms, err := s.store.Maps(ctx)
 	if err != nil {
@@ -172,7 +185,32 @@ func (s *Server) handleMapLayout(w http.ResponseWriter, r *http.Request) {
 	for _, x := range ms {
 		out.Maps = append(out.Maps, mapRef{x.ID, x.Name})
 	}
-	if out.CanEdit {
+	// sizes of the uploaded pictures on this map
+	for _, kind := range []string{"icon", "background"} {
+		as, err := s.store.Assets(ctx, kind)
+		if err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+		for _, a := range as {
+			out.Assets[a.ID] = a
+		}
+	}
+	if !canEdit {
+		used := map[int64]bool{l.Background.Asset: true}
+		for _, n := range l.Nodes {
+			if id, ok := strings.CutPrefix(n.Icon, "asset:"); ok {
+				x, _ := strconv.ParseInt(id, 10, 64)
+				used[x] = true
+			}
+		}
+		for id := range out.Assets {
+			if !used[id] {
+				delete(out.Assets, id)
+			}
+		}
+	}
+	if canEdit {
 		ds, err := s.store.Devices(ctx, store.DeviceFilter{})
 		if err != nil {
 			s.serverError(w, r, err)
@@ -185,11 +223,19 @@ func (s *Server) handleMapLayout(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
+// linkKindNames name the cable kinds.
+var linkKindNames = map[string]string{"ethernet": "Ethernet (copper)", "fiber": "Fibre, multimode", "fiber-sm": "Fibre, single mode", "dac": "DAC cable",
+	"wireless": "Wireless", "vpn": "VPN tunnel", "wan": "WAN / internet line", "serial": "Serial / console", "power": "Power"}
+
 func (s *Server) handleMapLive(w http.ResponseWriter, r *http.Request) {
 	m := s.loadMap(w, r)
 	if m == nil {
 		return
 	}
+	s.writeMapLive(w, r, m)
+}
+
+func (s *Server) writeMapLive(w http.ResponseWriter, r *http.Request, m *store.Map) {
 	l, err := s.store.MapLayout(r.Context(), m.ID)
 	if err != nil {
 		s.serverError(w, r, err)

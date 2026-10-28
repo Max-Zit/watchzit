@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -393,6 +394,7 @@ func init() {
 		}
 		return ""
 	}
+	funcs["inList"] = func(xs []int64, x int64) bool { return slices.Contains(xs, x) }
 	funcs["groupName"] = func(g string) string {
 		if n, ok := groupNames[g]; ok {
 			return n
