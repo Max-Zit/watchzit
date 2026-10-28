@@ -331,6 +331,7 @@
     drawBackground();
     layout.nodes.forEach(function (n) { if (n.kind === "rack") drawRack(n); });
     layout.links.forEach(drawLink);
+    drawTunnels();
     layout.nodes.forEach(function (n) { if (n.kind !== "rack") drawNode(n); });
     drawHandles();
     svg.classList.toggle("pathmode", !!path);
@@ -408,7 +409,8 @@
     var cls = "link k-" + (k.kind || "ethernet") + (s.down ? " down" : "") + (selected && selected.type === "link" && selected.id === k.id ? " sel" : "");
     if (!s.down && s.known) cls += s.util > 0.8 ? " u3" : s.util > 0.5 ? " u2" : "";
     cls += onPath("links", k.id);
-    if (vlan && findVLAN(linkVLANs(k, s), vlan)) cls += " invlan";
+    if (vlan && vlanMatch(linkVLANs(k, s))) cls += " invlan";
+    if (vlanMismatch(k, s)) cls += " vlanwarn";
     var g = el("g", { "class": cls, "data-link": k.id }, gLinks);
     var d = pathD(pts), w = 2.2 + Math.min(7, s.util * 9);
     if (k.kind === "fiber" || k.kind === "fiber-sm") w += 0.6;
@@ -431,7 +433,43 @@
       var pv = findVLAN(linkVLANs(k, s), vlan);
       text = "VLAN " + vlan + (pv ? " · " + (pv.tagged ? T("tagged") : T("untagged")) : "");
     } else if (s.ab !== null && s.ab !== undefined && len > 190) text = (text ? text + "  " : "") + "→ " + bits(s.ab) + "  ← " + bits(s.ba);
-    if (text) { var mid = pointAlong(pts, len / 2); label(g, "traffic", mid.x, mid.y, text); }
+    var mid = pointAlong(pts, len / 2);
+    if (text) label(g, "traffic", mid.x, mid.y, text);
+    // the VLAN mode (access / trunk, native VLAN) and the VXLAN VNI
+    var vt = vlan ? "" : modeText(linkMode(k, s), 30);
+    if (k.vni) vt = (vt ? vt + " · " : "") + "VNI " + k.vni;
+    if (vt && len > 120) label(g, "vlan", mid.x, mid.y + (text ? 13 : 0), vt);
+  }
+  // VXLAN tunnels the devices report, between devices on the map (a cable
+  // of kind VXLAN with the same VNI between them stands for it)
+  function drawTunnels() {
+    (live.tunnels || []).forEach(function (t) {
+      var a = nodeOfDevice(t.a), b = nodeOfDevice(t.b);
+      if (!a || !b) return;
+      var drawn = layout.links.some(function (k) {
+        var ka = nodeByID(k.a), kb = nodeByID(k.b);
+        return k.kind === "vxlan" && (!k.vni || k.vni === t.vni) && ka && kb && ((ka.device === t.a && kb.device === t.b) || (ka.device === t.b && kb.device === t.a));
+      });
+      if (drawn) return;
+      // an arc to the side, so a tunnel stays apart from the cables (and
+      // visible between devices in the same rack)
+      var pa = anchor(a), pb = anchor(b), dx = pb.x - pa.x, dy = pb.y - pa.y, d = Math.max(1, Math.hypot(dx, dy)), off = 40 + d * 0.15;
+      var c = { x: (pa.x + pb.x) / 2 - dy / d * off, y: (pa.y + pb.y) / 2 + dx / d * off };
+      if (a.parent && a.parent === b.parent) { // the same rack: out of its right side
+        var right = Math.max(a.x + box(a).w / 2, b.x + box(b).w / 2);
+        pa = { x: a.x + box(a).w / 2, y: a.y };
+        pb = { x: b.x + box(b).w / 2, y: b.y };
+        c = { x: right + 150 + d * 0.3, y: (pa.y + pb.y) / 2 };
+      }
+      var g = el("g", { "class": "tunnel" }, gLinks);
+      el("path", { "class": "wire", d: "M" + pa.x + " " + pa.y + "Q" + c.x + " " + c.y + " " + pb.x + " " + pb.y }, g);
+      el("title", {}, g).textContent = "VXLAN VNI " + t.vni + (t.name ? " (" + t.name + ")" : "") + " — " + nodeName(a) + " ↔ " + nodeName(b);
+      label(g, "vlan", (pa.x + 2 * c.x + pb.x) / 4, (pa.y + 2 * c.y + pb.y) / 4, "VXLAN " + t.vni);
+    });
+  }
+  function nodeOfDevice(id) {
+    for (var i = 0; i < layout.nodes.length; i++) if (layout.nodes[i].kind === "device" && layout.nodes[i].device === id) return layout.nodes[i];
+    return null;
   }
   function label(g, cls, x, y, text) {
     el("text", { "class": "lbl " + cls, x: x, y: y + 4, "text-anchor": "middle" }, g).textContent = text;
@@ -648,11 +686,16 @@
       row(dl2, nodeName(b) + " → " + nodeName(a), bits(s.ba));
     }
     if (s.speed) row(dl2, T("Speed"), bits(s.speed));
+    var lm = linkMode(k, s);
+    if (lm) row(dl2, T("VLAN mode"), modeText(lm) + (k.vlans && k.vlans.length ? "" : " · " + T("detected")));
     var vl = vlanText(linkVLANs(k, s));
-    if (vl) row(dl2, T("VLANs"), vl + (k.vlans && k.vlans.length ? "" : " · " + T("detected")));
+    if (vl) row(dl2, T("VLANs"), vl);
+    if (k.vni) row(dl2, "VXLAN VNI", String(k.vni));
+    var warn = vlanMismatch(k, s);
+    if (warn) row(dl2, T("Warning"), h("span", { "class": "warntext" }, warn));
     p.appendChild(dl2);
     if (editing) {
-      field(p, T("Cable"), select(["ethernet", "fiber", "fiber-sm", "dac", "wireless", "vpn", "wan", "serial", "power"].map(function (x) { return [x, T("cable:" + x)]; }), k.kind || "ethernet", function (v) { k.kind = v; render(); changed(); showSelection(); }));
+      field(p, T("Cable"), select(["ethernet", "fiber", "fiber-sm", "dac", "wireless", "vpn", "vxlan", "wan", "serial", "power"].map(function (x) { return [x, T("cable:" + x)]; }), k.kind || "ethernet", function (v) { k.kind = v; render(); changed(); showSelection(); }));
       field(p, T("Route"), select([["straight", T("Straight")], ["ortho", T("90° bends")], ["diagonal", T("45° bends")], ["curve", T("Curved")]], k.route || "straight", function (v) { k.route = v; render(); changed(); }));
       p.appendChild(h("p", { "class": "muted small" }, T("Drag the + points to bend the cable; drag the round points to move a bend; double-click a point to remove it.")));
       var ll = field(p, T("Label"), h("input", { value: k.label || "", maxlength: "100" }));
@@ -962,10 +1005,63 @@
     if (!list.length) return "";
     return list.map(function (v) { return v.id + (v.tagged ? " (T)" : " (U)"); }).join(", ");
   }
-  function deviceInVLAN(n, id) {
+  // vlanMatch: the shown VLAN is in the list, tagged or untagged as chosen
+  function vlanMatch(list) {
+    var v = findVLAN(list || [], vlan);
+    return !!v && (!vlanHow || (vlanHow === "t") === !!v.tagged);
+  }
+  function deviceInVLAN(n) {
     var ports = n.kind === "device" && live.ports ? live.ports[n.device] : null;
-    for (var k in ports || {}) if (portVLAN(ports[k], id)) return true;
-    return layout.links.some(function (l) { return (l.a === n.id || l.b === n.id) && findVLAN(l.vlans || [], id); });
+    for (var k in ports || {}) if (vlanMatch(ports[k].vlans)) return true;
+    return layout.links.some(function (l) { return (l.a === n.id || l.b === n.id) && vlanMatch(l.vlans); });
+  }
+  // modeOf: access (one untagged VLAN), trunk (tagged VLANs; the untagged
+  // one is the native VLAN) or hybrid (several untagged)
+  function modeOf(list) {
+    var t = [], u = [];
+    (list || []).forEach(function (v) { (v.tagged ? t : u).push(v.id); });
+    if (u.length > 1) return { mode: "hybrid", native: 0, tagged: t, untagged: u };
+    if (t.length) return { mode: "trunk", native: u[0] || 0, tagged: t };
+    if (u.length === 1) return { mode: "access", native: u[0], tagged: [] };
+    return null;
+  }
+  // linkMode: the mode set by hand on a cable, or else that of a port
+  function linkMode(k, s) {
+    if (k.vlans && k.vlans.length) return modeOf(k.vlans);
+    return modeOf(s.a && s.a.vlans && s.a.vlans.length ? s.a.vlans : s.b && s.b.vlans);
+  }
+  // ranges writes VLAN numbers compactly: "1-4, 10, 20-22"
+  function ranges(ids) {
+    ids = ids.slice().sort(function (a, b) { return a - b; });
+    var out = [];
+    for (var i = 0; i < ids.length;) {
+      var j = i;
+      while (j + 1 < ids.length && ids[j + 1] === ids[j] + 1) j++;
+      out.push(j > i ? ids[i] + "-" + ids[j] : String(ids[i]));
+      i = j + 1;
+    }
+    return out.join(", ");
+  }
+  function modeText(m, max) {
+    if (!m) return "";
+    var t = ranges(m.tagged);
+    if (max && t.length > max) t = t.slice(0, t.lastIndexOf(",", max)) + " …";
+    if (m.mode === "access") return T("Access") + " " + m.native;
+    if (m.mode === "hybrid") return T("Hybrid") + " · U " + ranges(m.untagged) + (t ? " · T " + t : "");
+    return T("Trunk") + (m.native ? " · " + T("native") + " " + m.native : "") + " · " + t;
+  }
+  // vlanMismatch: the two ends of a cable disagree (access against trunk, or
+  // another native VLAN); a cable set by hand is taken as it is
+  function vlanMismatch(k, s) {
+    if (k.vlans && k.vlans.length) return "";
+    var a = modeOf(s.a && s.a.vlans), b = modeOf(s.b && s.b.vlans);
+    if (!a || !b) return "";
+    var na = nodeName(nodeByID(k.a)), nb = nodeName(nodeByID(k.b));
+    if ((a.mode === "access") !== (b.mode === "access"))
+      return T("One end is an access port, the other a trunk:") + " " + na + " " + modeText(a, 20) + ", " + nb + " " + modeText(b, 20);
+    if (a.native && b.native && a.native !== b.native)
+      return T("The native VLAN differs:") + " " + na + " " + a.native + ", " + nb + " " + b.native;
+    return "";
   }
   // syncVLANs fills the VLAN list when the VLANs on the map change
   function syncVLANs() {
@@ -984,29 +1080,63 @@
     if (vlan && ids.indexOf(vlan) < 0) vlan = 0;
     vlanSel.value = String(vlan);
   }
-  // vlanFields: the VLANs of a cable set by hand ("10, 20" tagged, one untagged)
+  // parseVLANs reads "10, 20-25" (VLANs 1–4094)
+  function parseVLANs(s) {
+    var out = [];
+    s.split(/[^0-9-]+/).forEach(function (part) {
+      var r = part.split("-"), a = +r[0], b = r.length > 1 && r[1] !== "" ? +r[1] : a;
+      if (!(a >= 1 && b <= 4094 && a <= b)) return;
+      for (var id = a; id <= b; id++) if (out.indexOf(id) < 0) out.push(id);
+    });
+    return out;
+  }
+  // vlanFields: the VLAN mode of a cable set by hand (access VLAN, or a
+  // trunk with its native and tagged VLANs) and the VXLAN VNI
   function vlanFields(p, k, s) {
-    var list = k.vlans || [];
-    var tagged = field(p, T("Tagged VLANs"), h("input", { value: list.filter(function (v) { return v.tagged; }).map(function (v) { return v.id; }).join(", "), placeholder: "10, 20", inputmode: "numeric" }));
-    var plain = field(p, T("Untagged VLAN"), h("input", { value: list.filter(function (v) { return !v.tagged; }).map(function (v) { return v.id; }).join(""), placeholder: "1", inputmode: "numeric" }));
-    var auto = linkVLANs({}, s);
-    p.appendChild(h("p", { "class": "muted small" }, T("Leave empty to use the VLANs the ports report.") + (auto.length ? " " + T("Detected:") + " " + vlanText(auto) : "")));
+    var m = modeOf(k.vlans) || { mode: "", native: 0, tagged: [] };
+    var auto = modeOf(linkVLANs({}, s));
+    var wrap = h("div"), acc = h("div"), trk = h("div");
+    var mode = field(p, T("VLAN mode"), select([["", T("Automatic") + (auto ? " (" + modeText(auto, 24) + ")" : "")], ["access", T("Access")], ["trunk", T("Trunk")]], m.mode === "hybrid" ? "trunk" : m.mode, function () { show(); update(); }));
+    p.appendChild(wrap);
+    wrap.appendChild(acc);
+    wrap.appendChild(trk);
+    var accVLAN = field(acc, T("Access VLAN"), h("input", { value: m.mode === "access" ? String(m.native) : "", placeholder: "10", inputmode: "numeric" }));
+    var native = field(trk, T("Native VLAN (untagged)"), h("input", { value: m.mode === "trunk" && m.native ? String(m.native) : "", placeholder: "1", inputmode: "numeric" }));
+    var tagged = field(trk, T("Allowed VLANs (tagged)"), h("input", { value: ranges(m.tagged), placeholder: "10, 20-25" }));
+    var vni = field(p, "VXLAN VNI", h("input", { value: k.vni ? String(k.vni) : "", placeholder: "10010", inputmode: "numeric" }));
+    p.appendChild(h("p", { "class": "muted small" }, T("Automatic uses the VLANs the ports report.")));
+    function show() { acc.hidden = mode.value !== "access"; trk.hidden = mode.value !== "trunk"; }
     function update() {
       var out = [];
-      tagged.value.split(/[^0-9]+/).forEach(function (x) { var id = +x; if (id >= 1 && id <= 4094 && !findVLAN(out, id)) out.push({ id: id, tagged: true }); });
-      var u = +plain.value.replace(/[^0-9]/g, "");
-      if (u >= 1 && u <= 4094 && !findVLAN(out, u)) out.push({ id: u });
+      if (mode.value === "access") {
+        var a = parseVLANs(accVLAN.value)[0];
+        if (a) out.push({ id: a });
+      } else if (mode.value === "trunk") {
+        parseVLANs(tagged.value).forEach(function (id) { out.push({ id: id, tagged: true }); });
+        var n = parseVLANs(native.value)[0];
+        if (n) { out = out.filter(function (v) { return v.id !== n; }); out.push({ id: n }); }
+      }
       k.vlans = out.sort(function (x, y) { return x.id - y.id; });
+      var v = +vni.value.replace(/[^0-9]/g, "");
+      k.vni = v >= 1 && v <= 16777215 ? v : 0;
       syncVLANs(); render(); changed();
     }
-    tagged.addEventListener("change", update);
-    plain.addEventListener("change", update);
+    show();
+    [accVLAN, native, tagged, vni].forEach(function (x) { x.addEventListener("change", update); });
   }
-  if (vlanSel) vlanSel.addEventListener("change", function () { vlan = +vlanSel.value; render(); });
+  // the VLAN filter: one VLAN, tagged and untagged or only one of them
+  var vlanHow = "", howSel = null;
+  if (vlanSel) {
+    howSel = h("select", { "class": "mapvlan", hidden: "", "aria-label": T("Tagged or untagged") });
+    [["", T("Tagged and untagged")], ["t", T("Only tagged")], ["u", T("Only untagged")]].forEach(function (o) { howSel.appendChild(h("option", { value: o[0] }, o[1])); });
+    vlanSel.parentNode.insertBefore(howSel, vlanSel.nextSibling);
+    vlanSel.addEventListener("change", function () { vlan = +vlanSel.value; howSel.hidden = !vlan; render(); });
+    howSel.addEventListener("change", function () { vlanHow = howSel.value; render(); });
+  }
 
   // ---- layers: what the map shows (kept per browser)
   var LAYERS = [["devices", "Devices"], ["racks", "Racks"], ["items", "Items"], ["submaps", "Submaps"], ["cables", "Cables"],
-    ["ports", "Port names"], ["traffic", "Traffic"], ["names", "Names and addresses"], ["text", "Text"], ["background", "Background"]];
+    ["ports", "Port names"], ["traffic", "Traffic"], ["vlans", "VLAN labels"], ["tunnels", "VXLAN tunnels"], ["names", "Names and addresses"], ["text", "Text"], ["background", "Background"]];
   var hidden = load("wz-map-layers") || {};
   var layersBox = root.querySelector("[data-layers]");
   function applyLayers() {

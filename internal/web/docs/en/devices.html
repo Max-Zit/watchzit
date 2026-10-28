@@ -38,7 +38,10 @@
 <div class="callout tip"><p>MikroTik, Cisco, HP, Ubiquiti, printers and UPS devices speak SNMP. On Linux install <code>snmpd</code>; on Windows the SNMP service.</p></div>
 
 <h2 id="vlans">VLANs</h2>
-<p>WatchZit reads the VLANs of switches over SNMP once an hour (Q-BRIDGE-MIB: HP/Aruba, Cisco small business, Ubiquiti, Netgear, D-Link and most managed switches; CISCO-VTP-MIB: Cisco Catalyst access and trunk ports), from agents (Linux VLAN interfaces such as eth0.10, the VLAN ID of Windows network adapters) and of MikroTik bridges over the RouterOS API (with the device's <b>MikroTik RouterOS (API)</b> check) every ten minutes. The device page lists each VLAN with its tagged and untagged ports; maps can show one VLAN at a time.</p>
+<p>WatchZit reads the VLANs of switches over SNMP once an hour (Q-BRIDGE-MIB: HP/Aruba, Cisco small business, Ubiquiti, Netgear, D-Link and most managed switches; CISCO-VTP-MIB: Cisco Catalyst access and trunk ports), from agents (Linux VLAN interfaces such as eth0.10, the VLAN ID of Windows network adapters) and of MikroTik bridges over the RouterOS API (with the device's <b>MikroTik RouterOS (API)</b> check) every ten minutes. The device page lists each VLAN with its tagged and untagged ports, and each port with its <b>mode</b>: <b>Access</b> (one untagged VLAN), <b>Trunk</b> (tagged VLANs; the untagged one is the <b>native VLAN</b>) or <b>Hybrid</b> (several untagged VLANs). Maps can show one VLAN at a time.</p>
+
+<h2 id="vxlan">VXLAN</h2>
+<p>VXLAN interfaces (VTEPs) are read from MikroTik RouterOS 7 (with the RouterOS API check, every ten minutes) and from Linux agents (with iproute2, every five minutes): VNI, interface, own address, UDP port and remote VTEPs, also those in the forwarding table. The device page lists them; a remote VTEP that is the address of another device links to it. A VXLAN with no remote addresses uses multicast or EVPN. Maps draw a tunnel between two devices of the map that are each other's VTEPs.</p>
 
 <h2 id="graphs">Graphs</h2>
 <p>Every value is kept: raw for days, then as 5-minute and hourly minimum, average and maximum (Settings → Metric data). On a graph drag to zoom in, double-click to go back; the time range buttons go from one hour to a year.</p>

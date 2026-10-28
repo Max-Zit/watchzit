@@ -2,7 +2,9 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
 	"os"
+	"regexp"
 	"runtime"
 	"sort"
 	"strconv"
@@ -31,6 +33,8 @@ type Sampler struct {
 	cpu    cpuState
 	prev   map[int]netCounter
 	prevAt time.Time
+	vx     []proto.VXLAN // VXLANs, read every five minutes
+	vxAt   time.Time
 }
 
 // NewSampler prepares a sampler (the first CPU value comes on the second report).
@@ -81,6 +85,10 @@ func (s *Sampler) Sample(ctx context.Context, services []string) *proto.Report {
 	if len(services) > 0 {
 		r.Services = serviceStates(ctx, services)
 	}
+	if now.Sub(s.vxAt) >= 5*time.Minute {
+		s.vx, s.vxAt = vxlans(ctx), now
+	}
+	r.VXLANs = s.vx
 	return r
 }
 
@@ -114,4 +122,69 @@ func parseProcVLAN(s string) map[string][]int {
 		sort.Ints(out[p])
 	}
 	return out
+}
+
+// ifNameRE is a Linux interface name (at most 15 characters, not an option).
+var ifNameRE = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9_.:@-]{0,14}$`)
+
+// parseIPVXLAN reads "ip -d -j link show type vxlan".
+func parseIPVXLAN(b []byte) []proto.VXLAN {
+	var links []struct {
+		Name     string `json:"ifname"`
+		LinkInfo struct {
+			Kind string `json:"info_kind"`
+			Data struct {
+				ID     int    `json:"id"`
+				Remote string `json:"remote"`
+				Local  string `json:"local"`
+				Port   int    `json:"port"`
+			} `json:"info_data"`
+		} `json:"linkinfo"`
+	}
+	if json.Unmarshal(b, &links) != nil {
+		return nil
+	}
+	var out []proto.VXLAN
+	for _, l := range links {
+		d := l.LinkInfo.Data
+		if l.LinkInfo.Kind != "vxlan" || d.ID < 1 {
+			continue
+		}
+		x := proto.VXLAN{VNI: d.ID, Name: l.Name, Local: d.Local, Port: d.Port}
+		if d.Remote != "" {
+			x.Remotes = []string{d.Remote}
+		}
+		out = append(out, x)
+	}
+	return out
+}
+
+// parseFDBRemotes reads the remote VTEPs ("dst") of "bridge -j fdb show".
+func parseFDBRemotes(b []byte) []string {
+	var rows []struct {
+		Dst string `json:"dst"`
+	}
+	if json.Unmarshal(b, &rows) != nil {
+		return nil
+	}
+	var out []string
+	for _, r := range rows {
+		if r.Dst != "" {
+			out = mergeRemotes(out, []string{r.Dst})
+		}
+	}
+	return out
+}
+
+func mergeRemotes(list, more []string) []string {
+	for _, m := range more {
+		dup := false
+		for _, x := range list {
+			dup = dup || x == m
+		}
+		if !dup && len(list) < 64 {
+			list = append(list, m)
+		}
+	}
+	return list
 }

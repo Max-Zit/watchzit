@@ -157,10 +157,10 @@ func appendNew(list []string, s string) []string {
 }
 
 // cleanLinkVLANs checks the VLANs set by hand on a map cable: numbers
-// 1–4094, each once, at most one untagged, at most 64.
+// 1–4094, each once, at most one untagged (the access or native VLAN).
 func cleanLinkVLANs(in []PortVLAN) ([]PortVLAN, error) {
-	if len(in) > 64 {
-		return nil, errors.New("a cable can have at most 64 VLANs")
+	if len(in) > 4094 {
+		return nil, errors.New("a cable can have at most 4094 VLANs")
 	}
 	out, seen, untagged := []PortVLAN{}, map[int]bool{}, 0
 	for _, v := range in {

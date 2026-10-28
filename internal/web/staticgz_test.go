@@ -37,3 +37,12 @@ func TestStaticGzip(t *testing.T) {
 		t.Fatal("plain request was compressed")
 	}
 }
+
+func TestVLANRanges(t *testing.T) {
+	if got := vlanRanges([]int{1, 2, 3, 4, 10, 20, 21, 22, 30}); got != "1-4, 10, 20-22, 30" {
+		t.Fatal(got)
+	}
+	if vlanRanges(nil) != "" {
+		t.Fatal("empty")
+	}
+}

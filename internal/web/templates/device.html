@@ -98,6 +98,25 @@
     <thead><tr><th>VLAN</th><th>{{.T "Name"}}</th><th>{{.T "Tagged ports"}}</th><th>{{.T "Untagged ports"}}</th></tr></thead>
     <tbody>{{range .Data.VLANs}}<tr><td class="num">{{.ID}}</td><td>{{.Name}}</td><td>{{join .Tagged ", "}}</td><td>{{join .Untagged ", "}}</td></tr>{{end}}</tbody>
   </table>
+  {{if .Data.PortModes}}
+  <h3>{{.T "Ports"}}</h3>
+  <div class="table-wrap"><table class="list">
+    <thead><tr><th>{{.T "Port"}}</th><th>{{.T "Mode"}}</th><th>{{.T "Access / native VLAN"}}</th><th>{{.T "Tagged VLANs"}}</th></tr></thead>
+    <tbody>{{range .Data.PortModes}}<tr><td>{{.Port}}</td><td>{{if .Mode}}<span class="badge vm-{{.Mode}}">{{$.T (vlanmode .Mode)}}</span>{{end}}</td><td>{{if .Native}}{{.Native}}{{else}}<span class="muted">—</span>{{end}}</td><td>{{ranges .Tagged}}</td></tr>{{end}}</tbody>
+  </table></div>
+  {{end}}
+</section>
+{{end}}
+
+{{if .Data.VXLANs}}
+<section class="panel">
+  <h2>VXLAN</h2>
+  <div class="table-wrap"><table class="list">
+    <thead><tr><th>VNI</th><th>{{.T "Interface"}}</th><th>{{.T "Local VTEP"}}</th><th>{{.T "Remote VTEPs"}}</th><th class="hide-sm">{{.T "UDP port"}}</th><th class="hide-sm">{{.T "Source"}}</th></tr></thead>
+    <tbody>{{range .Data.VXLANs}}<tr><td class="num">{{.VNI}}</td><td>{{.Name}}</td><td class="mono">{{.Local}}</td>
+      <td>{{range $i, $p := .Peers}}{{if $i}}, {{end}}{{if $p.DeviceID}}<a href="/devices/{{$p.DeviceID}}">{{$p.Device}}</a> <span class="muted mono small">{{$p.Address}}</span>{{else}}<span class="mono">{{$p.Address}}</span>{{end}}{{else}}<span class="muted">{{$.T "multicast or EVPN"}}</span>{{end}}</td>
+      <td class="hide-sm num">{{if .Port}}{{.Port}}{{end}}</td><td class="hide-sm muted">{{if eq .Source "routeros"}}RouterOS{{else}}{{$.T "Agent"}}{{end}}</td></tr>{{end}}</tbody>
+  </table></div>
 </section>
 {{end}}
 

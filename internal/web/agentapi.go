@@ -36,6 +36,7 @@ type agentConn struct {
 	cancel   context.CancelFunc
 	ifsHash  string // the interfaces last stored for the map
 	vlanHash string // the VLANs last stored
+	vxHash   string // the VXLANs last stored
 }
 
 func newHub() *hub { return &hub{conns: map[int64]*agentConn{}} }
@@ -441,6 +442,16 @@ func (s *Server) agentReport(ctx context.Context, c *agentConn, r *proto.Report)
 			return err
 		}
 		c.vlanHash = string(v)
+	}
+	vx := make([]store.VXLAN, 0, len(r.VXLANs))
+	for _, x := range r.VXLANs {
+		vx = append(vx, store.VXLAN{VNI: x.VNI, Name: x.Name, Local: x.Local, Remotes: x.Remotes, Port: x.Port})
+	}
+	if v, _ := json.Marshal(vx); string(v) != c.vxHash {
+		if err := s.store.SetDeviceVXLANs(ctx, c.deviceID, store.VLANFromAgent, vx); err != nil {
+			return err
+		}
+		c.vxHash = string(v)
 	}
 	if created {
 		s.log.Info("agent checks added", "device", c.deviceID)

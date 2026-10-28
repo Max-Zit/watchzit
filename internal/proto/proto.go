@@ -93,6 +93,7 @@ type Report struct {
 	Disks     []Disk     `json:"disks,omitempty"`
 	Nets      []Net      `json:"nets,omitempty"`
 	Services  []Service  `json:"services,omitempty"`
+	VXLANs    []VXLAN    `json:"vxlans,omitempty"`
 	Errors    []string   `json:"errors,omitempty"`
 	Boot      *time.Time `json:"boot,omitempty"`
 }
@@ -119,6 +120,16 @@ type Net struct {
 	InErr  *float64 `json:"in_err,omitempty"`
 	OutErr *float64 `json:"out_err,omitempty"`
 	VLANs  []int    `json:"vlans,omitempty"` // VLANs the port carries tagged (VLAN interfaces on it)
+}
+
+// VXLAN is a VXLAN interface of the machine (Linux): its VNI, own address
+// and remote VTEPs.
+type VXLAN struct {
+	VNI     int      `json:"vni"`
+	Name    string   `json:"name"`
+	Local   string   `json:"local,omitempty"`
+	Remotes []string `json:"remotes,omitempty"`
+	Port    int      `json:"port,omitempty"`
 }
 
 // Service is the state of a watched service.

@@ -29,11 +29,13 @@
 
 <h2 id="layers">Layers and paths</h2>
 <ul>
-  <li><b>Layers</b> chooses what the map shows: devices, racks, items, submaps, cables, port names, traffic, names and addresses, text and the background, in any combination. Your choice is kept in this browser.</li>
+  <li><b>Layers</b> chooses what the map shows: devices, racks, items, submaps, cables, port names, traffic, VLAN labels, VXLAN tunnels, names and addresses, text and the background, in any combination. Your choice is kept in this browser.</li>
   <li><b>Path</b>: click two devices and the map shows only the chain of cables between them (with patch panels, switches and racks on the way) and zooms to it. Click Path again or press Esc to see the whole map.</li>
   <li>Port names on cables appear when you zoom in, so a crowded map stays readable.</li>
   <li><b>VLANs</b>: when switches or routers on the map report VLANs, a VLAN list appears in the toolbar. Choose a VLAN and the map shows only the cables that carry it, marked tagged or untagged; devices without it fade. The cable panel lists the VLANs of its ports.</li>
-  <li>VLANs can also be set by hand on a cable while editing (<b>Tagged VLANs</b> such as 10, 20 and one <b>Untagged VLAN</b>); they replace what the ports report.</li>
+  <li>Cables are labelled with their VLAN mode, for example <i>Access 20</i> or <i>Trunk · native 1 · 10, 20-25</i> (layer <b>VLAN labels</b>). The VLAN filter can also show only tagged or only untagged VLANs. A cable is drawn dashed in orange when its ends disagree: an access port against a trunk, or another native VLAN on each end.</li>
+  <li>While editing, a cable's <b>VLAN mode</b> can be set by hand: <b>Access</b> with its VLAN, or <b>Trunk</b> with the native VLAN and the allowed (tagged) VLANs, ranges such as 20-25 included; <b>Automatic</b> uses what the ports report. A cable can also carry a <b>VXLAN VNI</b>, and the cable kind <b>VXLAN tunnel</b> draws a tunnel by hand.</li>
+  <li>VXLAN tunnels the devices report are drawn as dashed purple arcs with their VNI (layer <b>VXLAN tunnels</b>).</li>
 </ul>
 
 <h2 id="kiosk">Kiosk displays</h2>

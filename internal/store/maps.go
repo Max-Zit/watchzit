@@ -30,7 +30,7 @@ const (
 )
 
 // LinkKinds are the cable and connection kinds.
-var LinkKinds = []string{"ethernet", "fiber", "fiber-sm", "dac", "wireless", "vpn", "wan", "serial", "power"}
+var LinkKinds = []string{"ethernet", "fiber", "fiber-sm", "dac", "wireless", "vpn", "vxlan", "wan", "serial", "power"}
 
 // LinkRoutes are the ways a link is drawn through its bend points.
 var LinkRoutes = []string{"straight", "ortho", "diagonal", "curve"}
@@ -65,6 +65,7 @@ type MapLink struct {
 	Route  string       `json:"route,omitempty"`
 	Points [][2]float64 `json:"points,omitempty"`
 	VLANs  []PortVLAN   `json:"vlans,omitempty"` // set by hand
+	VNI    int          `json:"vni,omitempty"`   // VXLAN VNI set by hand
 }
 
 // MapBackground is a picture under the map.
@@ -253,7 +254,7 @@ func (s *Store) MapLayout(ctx context.Context, id int64) (*MapLayout, error) {
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	rows, err = s.db.Query(ctx, `SELECT id, a_node, b_node, COALESCE(a_if,0), COALESCE(b_if,0), a_slot, b_slot, kind, label, route, points, vlans FROM map_links WHERE map_id=$1 ORDER BY id`, id)
+	rows, err = s.db.Query(ctx, `SELECT id, a_node, b_node, COALESCE(a_if,0), COALESCE(b_if,0), a_slot, b_slot, kind, label, route, points, vlans, vni FROM map_links WHERE map_id=$1 ORDER BY id`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +262,7 @@ func (s *Store) MapLayout(ctx context.Context, id int64) (*MapLayout, error) {
 	for rows.Next() {
 		var k MapLink
 		var pts, vls []byte
-		if err := rows.Scan(&k.ID, &k.A, &k.B, &k.AIf, &k.BIf, &k.ASlot, &k.BSlot, &k.Kind, &k.Label, &k.Route, &pts, &vls); err != nil {
+		if err := rows.Scan(&k.ID, &k.A, &k.B, &k.AIf, &k.BIf, &k.ASlot, &k.BSlot, &k.Kind, &k.Label, &k.Route, &pts, &vls, &k.VNI); err != nil {
 			return nil, err
 		}
 		_ = json.Unmarshal(pts, &k.Points)
@@ -458,6 +459,9 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 		if k.VLANs, err = cleanLinkVLANs(k.VLANs); err != nil {
 			return nil, err
 		}
+		if k.VNI < 0 || k.VNI > MaxVNI {
+			return nil, errors.New("a VXLAN VNI is a number from 1 to 16777215")
+		}
 		vls, _ := json.Marshal(k.VLANs)
 		for _, p := range k.Points {
 			if badCoord(p[0], p[1]) {
@@ -469,8 +473,8 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 			pts, _ = json.Marshal(k.Points)
 		}
 		k.A, k.B = a, b
-		if err := tx.QueryRow(ctx, `INSERT INTO map_links(map_id, a_node, b_node, a_if, b_if, a_slot, b_slot, kind, label, route, points, vlans) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,
-			mapID, a, b, intPtr(k.AIf), intPtr(k.BIf), k.ASlot, k.BSlot, k.Kind, k.Label, k.Route, pts, vls).Scan(&k.ID); err != nil {
+		if err := tx.QueryRow(ctx, `INSERT INTO map_links(map_id, a_node, b_node, a_if, b_if, a_slot, b_slot, kind, label, route, points, vlans, vni) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
+			mapID, a, b, intPtr(k.AIf), intPtr(k.BIf), k.ASlot, k.BSlot, k.Kind, k.Label, k.Route, pts, vls, k.VNI).Scan(&k.ID); err != nil {
 			return nil, err
 		}
 		out.Links = append(out.Links, k)
@@ -540,9 +544,10 @@ type LivePort struct {
 // MapLive is the state of everything on a map, refreshed by the browser.
 type MapLive struct {
 	Devices map[int64]*LiveDevice       `json:"devices"`
-	Ports   map[int64]map[int]*LivePort `json:"ports"`           // device → ifIndex → port
-	Maps    map[int64]string            `json:"maps"`            // submap → worst status
-	VLANs   map[int]string              `json:"vlans,omitempty"` // VLAN → name (may be empty)
+	Ports   map[int64]map[int]*LivePort `json:"ports"`             // device → ifIndex → port
+	Maps    map[int64]string            `json:"maps"`              // submap → worst status
+	VLANs   map[int]string              `json:"vlans,omitempty"`   // VLAN → name (may be empty)
+	Tunnels []LiveTunnel                `json:"tunnels,omitempty"` // VXLAN tunnels between devices of the map
 }
 
 // DevicePorts lists the interfaces of devices with their latest traffic.
@@ -650,6 +655,9 @@ func (s *Store) MapLiveData(ctx context.Context, l *MapLayout) (*MapLive, error)
 			return nil, err2
 		}
 		if live.VLANs, err2 = s.portVLANs(ctx, ids, live.Ports); err2 != nil {
+			return nil, err2
+		}
+		if live.Tunnels, err2 = s.mapTunnels(ctx, live.Devices); err2 != nil {
 			return nil, err2
 		}
 	}

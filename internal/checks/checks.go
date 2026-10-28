@@ -487,6 +487,45 @@ func RouterOSVLANs(ctx context.Context, p store.CheckParams, t Target) ([]Router
 	return out, nil
 }
 
+// RouterOSVXLANs reads the VXLAN interfaces (RouterOS 7) with their remote
+// VTEPs. A router without VXLAN support answers 404 or an empty list: none.
+func RouterOSVXLANs(ctx context.Context, p store.CheckParams, t Target) ([]store.VXLAN, error) {
+	get := rosGetter(ctx, p, t)
+	var ifs []map[string]any
+	if err := get("interface/vxlan", &ifs); err != nil {
+		return nil, err
+	}
+	var vteps []map[string]any
+	remotes := map[string][]string{}
+	if get("interface/vxlan/vteps", &vteps) == nil {
+		for _, v := range vteps {
+			name, _ := v["interface"].(string)
+			if ip, _ := v["remote-ip"].(string); ip != "" {
+				remotes[name] = append(remotes[name], ip)
+			}
+		}
+	}
+	var out []store.VXLAN
+	for _, f := range ifs {
+		if d, _ := f["disabled"].(string); d == "true" {
+			continue
+		}
+		vni, ok := num(f["vni"])
+		if !ok {
+			continue
+		}
+		x := store.VXLAN{VNI: int(vni)}
+		x.Name, _ = f["name"].(string)
+		x.Local, _ = f["local-address"].(string)
+		if port, ok := num(f["port"]); ok {
+			x.Port = int(port)
+		}
+		x.Remotes = remotes[x.Name]
+		out = append(out, x)
+	}
+	return out, nil
+}
+
 // rosIDs reads "10", "10,20" or "100-105" (at most 4094 numbers).
 func rosIDs(s string) []int {
 	var out []int

@@ -38,7 +38,10 @@
 <div class="callout tip"><p>MikroTik, Cisco, HP, Ubiquiti, štampači i UPS uređaji govore SNMP. Na Linux-u instalirajte <code>snmpd</code>; na Windows-u SNMP servis.</p></div>
 
 <h2 id="vlans">VLAN-ovi</h2>
-<p>WatchZit čita VLAN-ove svičeva preko SNMP-a jednom na sat (Q-BRIDGE-MIB: HP/Aruba, Cisco small business, Ubiquiti, Netgear, D-Link i većina upravljivih svičeva; CISCO-VTP-MIB: access i trunk portovi Cisco Catalyst-a), od agenata (Linux VLAN interfejsi kao eth0.10, VLAN ID mrežnih adaptera na Windows-u) a MikroTik bridge-eva preko RouterOS API-ja (uz proveru <b>MikroTik RouterOS (API)</b> na uređaju) svakih deset minuta. Stranica uređaja navodi svaki VLAN sa tagovanim i netagovanim portovima; mape mogu da prikažu jedan VLAN.</p>
+<p>WatchZit čita VLAN-ove svičeva preko SNMP-a jednom na sat (Q-BRIDGE-MIB: HP/Aruba, Cisco small business, Ubiquiti, Netgear, D-Link i većina upravljivih svičeva; CISCO-VTP-MIB: access i trunk portovi Cisco Catalyst-a), od agenata (Linux VLAN interfejsi kao eth0.10, VLAN ID mrežnih adaptera na Windows-u) a MikroTik bridge-eva preko RouterOS API-ja (uz proveru <b>MikroTik RouterOS (API)</b> na uređaju) svakih deset minuta. Stranica uređaja navodi svaki VLAN sa tagovanim i netagovanim portovima, i svaki port sa njegovim <b>režimom</b>: <b>Access</b> (jedan netagovani VLAN), <b>Trunk</b> (tagovani VLAN-ovi; netagovani je <b>native VLAN</b>) ili <b>Hibridni</b> (više netagovanih VLAN-ova). Mape mogu da prikažu jedan VLAN.</p>
+
+<h2 id="vxlan">VXLAN</h2>
+<p>VXLAN interfejsi (VTEP-ovi) se čitaju sa MikroTik RouterOS 7 (uz proveru RouterOS API, svakih deset minuta) i sa Linux agenata (preko iproute2, svakih pet minuta): VNI, interfejs, sopstvena adresa, UDP port i udaljeni VTEP-ovi, uključujući i one iz tabele prosleđivanja. Stranica uređaja ih navodi; udaljeni VTEP koji je adresa drugog uređaja vodi na taj uređaj. VXLAN bez udaljenih adresa koristi multicast ili EVPN. Mape crtaju tunel između dva uređaja na mapi koji su jedan drugom VTEP.</p>
 
 <h2 id="graphs">Grafici</h2>
 <p>Svaka vrednost se čuva: sirova nekoliko dana, zatim kao minimum, prosek i maksimum po 5 minuta i po satu (Podešavanja → Podaci merenja). Na grafiku prevucite mišem da uvećate, dvoklik vraća nazad; dugmad za period idu od jednog sata do godinu dana.</p>

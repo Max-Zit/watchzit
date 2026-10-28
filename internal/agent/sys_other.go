@@ -29,3 +29,5 @@ func netCounters() ([]netCounter, error)                      { return nil, nil 
 func serviceStates(context.Context, []string) []proto.Service { return nil }
 func basicOS() string                                         { return "" }
 func platformInventory(context.Context, *proto.Inventory)     {}
+
+func vxlans(context.Context) []proto.VXLAN { return nil }

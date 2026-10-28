@@ -232,7 +232,9 @@ var funcs = template.FuncMap{
 		}
 		return "?"
 	},
-	"join": strings.Join,
+	"join":     strings.Join,
+	"ranges":   vlanRanges,
+	"vlanmode": func(m string) string { return vlanModeNames[m] },
 	"deref64": func(p *int64) int64 {
 		if p == nil {
 			return 0
@@ -535,3 +537,26 @@ type graphCtx struct {
 // widgetNames name the dashboard widget kinds.
 var widgetNames = map[string]string{store.WidgetGraph: "Graph", store.WidgetValue: "Current value", store.WidgetStatus: "Device states",
 	store.WidgetProblems: "Open problems", store.WidgetMap: "Map"}
+
+// vlanModeNames name the VLAN modes of ports.
+var vlanModeNames = map[string]string{"access": "Access", "trunk": "Trunk", "hybrid": "Hybrid"}
+
+// vlanRanges writes sorted VLAN numbers compactly: "1-4, 10, 20-22".
+func vlanRanges(ids []int) string {
+	var b strings.Builder
+	for i := 0; i < len(ids); {
+		j := i
+		for j+1 < len(ids) && ids[j+1] == ids[j]+1 {
+			j++
+		}
+		if b.Len() > 0 {
+			b.WriteString(", ")
+		}
+		b.WriteString(strconv.Itoa(ids[i]))
+		if j > i {
+			b.WriteString("-" + strconv.Itoa(ids[j]))
+		}
+		i = j + 1
+	}
+	return b.String()
+}

@@ -395,3 +395,7 @@ func adapterVLANs() map[string]int {
 	}
 	return out
 }
+
+// vxlans: Windows has no VXLAN interfaces of its own (Hyper-V SDN keeps
+// them in the virtual switch).
+func vxlans(context.Context) []proto.VXLAN { return nil }

@@ -664,6 +664,44 @@ func TestMaps(t *testing.T) {
 	if r := c.get("/maps/1/layout"); !strings.Contains(r.body, `"vlans":[{"id":1},{"id":20,"tagged":true}]`) {
 		t.Fatalf("cable VLANs not kept: %s", r.body)
 	}
+	// a VXLAN VNI on a cable: 1–16777215
+	withVLANs.Links[0].VLANs, withVLANs.Links[0].Kind, withVLANs.Links[0].VNI = nil, "vxlan", 10010
+	if r := c.postJSON("/maps/1/layout", withVLANs); r.code != http.StatusOK || !strings.Contains(r.body, `"kind":"vxlan"`) || !strings.Contains(r.body, `"vni":10010`) {
+		t.Fatalf("cable VNI: %d %s", r.code, r.body)
+	}
+	withVLANs.Links[0].VNI = 1 << 24
+	if r := c.postJSON("/maps/1/layout", withVLANs); r.code != http.StatusBadRequest {
+		t.Fatalf("bad VNI accepted: %d", r.code)
+	}
+	// ports: trunk with its native VLAN; VXLANs: the tunnel between two
+	// devices of the map, the peer named on the device page
+	if err := e.st.SetDeviceVXLANs(ctx, 1, store.VLANFromRouterOS, []store.VXLAN{{VNI: 100, Name: "vxlan100", Local: "10.9.0.1", Remotes: []string{"10.9.0.2", "bad"}, Port: 4789}, {VNI: 0}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.st.SetDeviceVXLANs(ctx, 2, store.VLANFromAgent, []store.VXLAN{{VNI: 100, Name: "vx100", Local: "10.9.0.2", Remotes: []string{"10.9.0.1"}}, {VNI: 200, Name: "vx200"}}); err != nil {
+		t.Fatal(err)
+	}
+	r = c.get("/maps/1/live")
+	live = store.MapLive{}
+	if err := json.Unmarshal([]byte(r.body), &live); err != nil {
+		t.Fatal(err)
+	}
+	if len(live.Tunnels) != 1 || live.Tunnels[0].A != 1 || live.Tunnels[0].B != 2 || live.Tunnels[0].VNI != 100 {
+		t.Fatalf("tunnels: %+v", live.Tunnels)
+	}
+	if r := c.get("/devices/1"); !strings.Contains(r.body, `vm-trunk`) || !strings.Contains(r.body, `<td>20</td><td>10</td>`) ||
+		!strings.Contains(r.body, `<a href="/devices/2">sw1</a>`) || !strings.Contains(r.body, "vxlan100") {
+		t.Fatalf("device page VLAN modes and VXLANs: %s", r.body)
+	}
+	if r := c.get("/devices/2"); !strings.Contains(r.body, "multicast or EVPN") {
+		t.Fatal("VXLAN without remotes")
+	}
+	if m, n, tg := store.ModeOf([]store.PortVLAN{{ID: 5}}); m != "access" || n != 5 || tg != nil {
+		t.Fatal("access", m, n, tg)
+	}
+	if m, n, _ := store.ModeOf([]store.PortVLAN{{ID: 5}, {ID: 6}}); m != "hybrid" || n != 0 {
+		t.Fatal("hybrid", m, n)
+	}
 	// submaps: the parent shows the worst state inside
 	c.post("/maps", "name", "Branch")
 	if r := c.postJSON("/maps/2/layout", store.MapLayout{Nodes: []store.MapNode{{ID: -1, Kind: "device", DeviceID: 2}, {ID: -2, Kind: "submap", SubmapID: 1}}}); r.code != http.StatusOK {

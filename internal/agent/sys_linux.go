@@ -310,3 +310,26 @@ func charsToString[T int8 | uint8](ca []T) string {
 	}
 	return string(b)
 }
+
+// vxlans reads the VXLAN interfaces with iproute2 ("ip -d -j link"): VNI,
+// own address, the remote set on the interface, and the remotes in the
+// forwarding table ("bridge -j fdb"). Without iproute2: none.
+func vxlans(ctx context.Context) []proto.VXLAN {
+	cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	b, err := exec.CommandContext(cctx, "ip", "-d", "-j", "link", "show", "type", "vxlan").Output()
+	if err != nil {
+		return nil
+	}
+	out := parseIPVXLAN(b)
+	for i := range out {
+		if !ifNameRE.MatchString(out[i].Name) {
+			continue
+		}
+		fdb, err := exec.CommandContext(cctx, "bridge", "-j", "fdb", "show", "dev", out[i].Name).Output() // #nosec G204 -- interface name checked above
+		if err == nil {
+			out[i].Remotes = mergeRemotes(out[i].Remotes, parseFDBRemotes(fdb))
+		}
+	}
+	return out
+}

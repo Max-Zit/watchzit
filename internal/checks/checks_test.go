@@ -219,6 +219,33 @@ func TestRouterOSVLANs(t *testing.T) {
 	}
 }
 
+func TestRouterOSVXLANs(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/rest/interface/vxlan":
+			_ = json.NewEncoder(w).Encode([]map[string]string{
+				{"name": "vxlan100", "vni": "100", "port": "4789", "local-address": "10.0.0.1", "disabled": "false"},
+				{"name": "vxlan200", "vni": "200", "port": "8472", "disabled": "false"},
+				{"name": "vxlan300", "vni": "300", "disabled": "true"},
+			})
+		case "/rest/interface/vxlan/vteps":
+			_ = json.NewEncoder(w).Encode([]map[string]string{{"interface": "vxlan100", "remote-ip": "10.0.0.2"}, {"interface": "vxlan100", "remote-ip": "10.0.0.3"}})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	u, _ := url.Parse(srv.URL)
+	port, _ := strconv.Atoi(u.Port())
+	vs, err := RouterOSVXLANs(context.Background(), store.CheckParams{Port: port, User: "monitor"}, Target{Host: "127.0.0.1", Secret: "s3cret"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := fmt.Sprint(vs); got != "[{100 vxlan100 10.0.0.1 [10.0.0.2 10.0.0.3] 4789} {200 vxlan200  [] 8472}]" {
+		t.Fatal(got)
+	}
+}
+
 func TestJSONValue(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer tok" {

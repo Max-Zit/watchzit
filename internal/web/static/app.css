@@ -581,6 +581,14 @@ main:has(.mapview) { max-width: none; padding-bottom: 12px; }
 .link.sel .wire { filter: drop-shadow(0 0 3px var(--accent)); }
 .link .lbl { font: 11px var(--font); fill: var(--muted); paint-order: stroke; stroke: var(--panel); stroke-width: 4px; stroke-linejoin: round; }
 .link .lbl.traffic { fill: var(--text); font-variant-numeric: tabular-nums; }
+.link .lbl.vlan, .tunnel .lbl.vlan { font-size: 10px; fill: #7c3aed; }
+.link.vlanwarn .wire { stroke: var(--warn, #f59e0b); stroke-dasharray: 6 3; }
+.link.k-vxlan .wire, .tunnel .wire { stroke: #8b5cf6; stroke-dasharray: 3 4; fill: none; }
+.tunnel .wire { stroke-width: 2px; opacity: .8; }
+.tunnel .lbl { font: 10px var(--font); paint-order: stroke; stroke: var(--panel); stroke-width: 4px; stroke-linejoin: round; }
+.warntext { color: var(--warn, #b45309); }
+.badge.vm-access { background: var(--ok-bg); color: var(--ok); border-color: transparent; }
+.badge.vm-trunk { color: #7c3aed; }
 .mapsvg.far .addr, .mapsvg.far .lbl.port { display: none; }
 .mapsvg.very-far .lbl, .mapsvg.very-far .name { display: none; }
 /* side panel */
@@ -783,12 +791,13 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line-2)
 .maplayers .btn { justify-self: start; margin-top: 4px; }
 .mapsvg.hide-devices .node.n-device, .mapsvg.hide-racks .rack, .mapsvg.hide-items .node.n-item,
 .mapsvg.hide-submaps .node.n-submap, .mapsvg.hide-cables .link, .mapsvg.hide-ports .lbl.port,
-.mapsvg.hide-traffic .lbl.traffic, .mapsvg.hide-names .node .name, .mapsvg.hide-names .node .addr,
+.mapsvg.hide-vlans .lbl.vlan, .mapsvg.hide-tunnels .tunnel, .mapsvg.hide-traffic .lbl.traffic, .mapsvg.hide-names .node .name, .mapsvg.hide-names .node .addr,
 .mapsvg.hide-text .node.n-label, .mapsvg.hide-background .bg { display: none; }
 .mapsvg.pathmode .node:not(.onpath), .mapsvg.pathmode .rack:not(.onpath), .mapsvg.pathmode .link:not(.onpath) { display: none; }
 .mapsvg.pathmode .bg { opacity: .25; }
 .mapsvg.pathmode .link.onpath .wire { stroke-width: 4px; }
 .maptools .mapvlan { width: auto; min-width: 140px; padding: 5px 30px 5px 10px; font-size: 13px; }
+.mapsvg.vlanmode .tunnel, .mapsvg.pathmode .tunnel { display: none; }
 .mapsvg.vlanmode .link:not(.invlan) { display: none; }
 .mapsvg.vlanmode .node.n-device:not(.invlan) { opacity: .25; }
 .mapsvg.vlanmode .link.invlan .wire { stroke: var(--accent); }

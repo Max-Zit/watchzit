@@ -65,3 +65,20 @@ func TestParseProcVLAN(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+func TestParseVXLAN(t *testing.T) {
+	ip := []byte(`[{"ifindex":7,"ifname":"vxlan100","linkinfo":{"info_kind":"vxlan","info_data":{"id":100,"remote":"10.0.0.2","local":"10.0.0.1","port":4789}}},
+		{"ifindex":8,"ifname":"vx200","linkinfo":{"info_kind":"vxlan","info_data":{"id":200,"local":"10.0.0.1","port":4789}}},
+		{"ifindex":9,"ifname":"br0","linkinfo":{"info_kind":"bridge"}}]`)
+	xs := parseIPVXLAN(ip)
+	if got := fmt.Sprint(xs); got != "[{100 vxlan100 10.0.0.1 [10.0.0.2] 4789} {200 vx200 10.0.0.1 [] 4789}]" {
+		t.Fatal(got)
+	}
+	fdb := []byte(`[{"mac":"00:00:00:00:00:00","ifname":"vx200","dst":"10.0.0.3","flags":["self"]},{"mac":"00:00:00:00:00:00","dst":"10.0.0.4"},{"mac":"aa:bb:cc:dd:ee:ff","dst":"10.0.0.3"},{"mac":"02:00:00:00:00:01","master":"br0"}]`)
+	if got := fmt.Sprint(mergeRemotes([]string{"10.0.0.4"}, parseFDBRemotes(fdb))); got != "[10.0.0.4 10.0.0.3]" {
+		t.Fatal(got)
+	}
+	if parseIPVXLAN([]byte("garbage")) != nil || !ifNameRE.MatchString("vxlan100") || ifNameRE.MatchString("-x") {
+		t.Fatal("bad input accepted")
+	}
+}

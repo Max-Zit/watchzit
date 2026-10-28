@@ -518,8 +518,9 @@ func (p *Poller) runService(ctx context.Context, c *store.Check, o *outcome, sam
 	}
 }
 
-// routerVLANs reads the bridge VLANs of a RouterOS device, at most every
-// ten minutes, and keeps them with the ports matched by interface name.
+// routerVLANs reads the bridge VLANs and the VXLANs of a RouterOS device,
+// at most every ten minutes, and keeps the VLANs with the ports matched by
+// interface name.
 func (p *Poller) routerVLANs(ctx context.Context, c *store.Check, t checks.Target) {
 	p.mu.Lock()
 	due := p.now().Sub(p.vlanSync[c.DeviceID]) >= 10*time.Minute
@@ -552,5 +553,13 @@ func (p *Poller) routerVLANs(ctx context.Context, c *store.Check, t checks.Targe
 	}
 	if err := p.store.SetDeviceVLANs(ctx, c.DeviceID, store.VLANFromRouterOS, out); err != nil {
 		p.log.Warn("poller: cannot save the VLANs", "device", c.DeviceID, "err", err)
+	}
+	xs, err := checks.RouterOSVXLANs(ctx, c.Params, t)
+	if err != nil {
+		p.log.Debug("poller: RouterOS VXLANs not read", "device", c.DeviceID, "err", err)
+		return
+	}
+	if err := p.store.SetDeviceVXLANs(ctx, c.DeviceID, store.VLANFromRouterOS, xs); err != nil {
+		p.log.Warn("poller: cannot save the VXLANs", "device", c.DeviceID, "err", err)
 	}
 }
