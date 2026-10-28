@@ -274,7 +274,7 @@ func (s *Server) retention(ctx context.Context) tsdb.Retention {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	sub, _ := fs.Sub(staticFS, "static")
-	mux.Handle("GET /static/", http.StripPrefix("/static/", cacheStatic(http.FileServer(http.FS(sub)))))
+	mux.Handle("GET /static/", http.StripPrefix("/static/", cacheStatic(gzipStatic(sub, http.FileServer(http.FS(sub))))))
 	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/static/favicon.svg", http.StatusMovedPermanently)
 	})

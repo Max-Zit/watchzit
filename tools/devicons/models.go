@@ -23,6 +23,8 @@ type model struct {
 var vendorAccent = map[string]string{
 	"Fortinet": "#da291c", "HPE": "#01a982", "MikroTik": "#9aa5b5", "Dell": "#0076ce", "Lenovo": "#e2231a",
 	"Supermicro": "#1e64c8", "Cisco": "#049fd9", "Fujitsu": "#e60012", "Huawei": "#c7000b", "xFusion": "#c7000b", "Inspur": "#0055a5",
+	"Synology": "#2f3b4c", "QNAP": "#1d6fb8", "Cisco Meraki": "#67b346", "HPE Aruba": "#ff8300", "Juniper": "#84b135", "Ubiquiti": "#006fff",
+	"Netgear": "#5b2d90", "TP-Link": "#4acbd6", "Palo Alto": "#fa582d", "Sophos": "#005bc8", "NetApp": "#0067c5", "Pure Storage": "#fe5000", "IBM": "#0f62fe",
 }
 
 func catalog() []model {
@@ -261,5 +263,5 @@ func catalog() []model {
 		model{vendor: "Inspur", name: "NF5280M7", kind: "server", form: "rack", u: 2, bays: 24, nic: 2},
 		model{vendor: "Inspur", name: "NF5466M6", kind: "server", form: "rack", u: 4, bays: 24, lff: true, nic: 2},
 	)
-	return ms
+	return append(ms, catalogMore()...)
 }

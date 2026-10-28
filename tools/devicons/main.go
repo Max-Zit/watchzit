@@ -246,6 +246,51 @@ func patchPanel(n int) *pic {
 	return p
 }
 
+// fiberPanel draws a fibre patch panel: n adapters (LC duplex or SC) in rows
+// of 24, rows per U, the adapter colour telling the fibre (blue single-mode,
+// aqua multimode, green APC).
+func fiberPanel(n, perU int, conn, colour string) *pic {
+	u := (n + perU - 1) / perU
+	p := newPic(rackW, float64(u)*uH)
+	p.chassis(u, colour)
+	p.text(24, 16, 6, "#c9d2df", "FIBRE")
+	p.text(24, 26, 6, colour, conn)
+	rowsPerU := perU / 24
+	for i := 0; i < n; i++ {
+		row := i / 24
+		col := i % 24
+		x := 70 + float64(col)*16 + float64(col/6)*8
+		y := 22.0 + float64(row/rowsPerU)*uH
+		if rowsPerU == 2 {
+			y += float64(row%2)*18 - 9
+		}
+		if conn == "SC" {
+			p.add(`<rect x="%g" y="%g" width="11" height="11" rx="1" fill="%s" stroke="#59616e" stroke-width=".6"/><rect x="%g" y="%g" width="5" height="7" fill="#0c0f14"/>`, x-5.5, y-5.5, colour, x-2.5, y-3.5)
+		} else {
+			p.add(`<rect x="%g" y="%g" width="13" height="8" rx="1" fill="%s" stroke="#59616e" stroke-width=".6"/><rect x="%g" y="%g" width="4" height="4" fill="#0c0f14"/><rect x="%g" y="%g" width="4" height="4" fill="#0c0f14"/>`, x-6.5, y-4, colour, x-5, y-2, x+1, y-2)
+		}
+		if rowsPerU == 1 {
+			p.text(x-3, y-8, 5, "#e6ebf2", fmt.Sprint(i+1))
+		}
+		p.ports = append(p.ports, [2]float64{x, y})
+	}
+	return p
+}
+
+// fiberBox draws a wall fibre termination box with n SC adapters.
+func fiberBox(n int) *pic {
+	w := 40 + float64(n)*15
+	p := newPic(w, 90)
+	p.add(`<rect x="2" y="2" width="%g" height="86" rx="6" fill="url(#l)" stroke="#9aa5b5"/>`, w-4)
+	p.text(12, 18, 6, "#4a5466", "FIBRE")
+	for i := 0; i < n; i++ {
+		x := 27 + float64(i)*15
+		p.add(`<rect x="%g" y="56" width="11" height="11" rx="1" fill="#22c55e" stroke="#59616e" stroke-width=".6"/><rect x="%g" y="58" width="5" height="7" fill="#0c0f14"/>`, x-5.5, x-2.5)
+		p.ports = append(p.ports, [2]float64{x, 61.5})
+	}
+	return p
+}
+
 func pdu() *pic {
 	p := newPic(rackW, uH)
 	p.chassis(1, "#ef4444")
@@ -666,6 +711,14 @@ func main() {
 	addRack("console-server", "Console server 1U", "network", "other", rackRouter("CONSOLE", "#c9a227", 8, 0), 0)
 	addRack("patch-24", "Patch panel 24", "rack", "other", patchPanel(24), 0)
 	addRack("patch-48", "Patch panel 48 (2U)", "rack", "other", patchPanel(48), 0)
+	addRack("fiber-patch-12-lc", "Fibre patch panel 12 LC duplex (single-mode)", "rack", "other", fiberPanel(12, 24, "LC", "#3b82f6"), 12)
+	addRack("fiber-patch-24-lc", "Fibre patch panel 24 LC duplex (single-mode)", "rack", "other", fiberPanel(24, 24, "LC", "#3b82f6"), 24)
+	addRack("fiber-patch-24-lc-mm", "Fibre patch panel 24 LC duplex (multimode OM3/OM4)", "rack", "other", fiberPanel(24, 24, "LC", "#22d3ee"), 24)
+	addRack("fiber-patch-48-lc", "Fibre patch panel 48 LC duplex 1U (high density)", "rack", "other", fiberPanel(48, 48, "LC", "#3b82f6"), 48)
+	addRack("fiber-patch-96-lc", "Fibre patch panel 96 LC duplex 2U", "rack", "other", fiberPanel(96, 48, "LC", "#3b82f6"), 96)
+	addRack("fiber-patch-12-sc", "Fibre patch panel 12 SC/APC", "rack", "other", fiberPanel(12, 24, "SC", "#22c55e"), 12)
+	addRack("fiber-patch-24-sc", "Fibre patch panel 24 SC/APC", "rack", "other", fiberPanel(24, 24, "SC", "#22c55e"), 24)
+	addRack("fiber-patch-24-sc-upc", "Fibre patch panel 24 SC/UPC", "rack", "other", fiberPanel(24, 24, "SC", "#3b82f6"), 24)
 	addRack("server-1u", "Server 1U", "server", "server", server(1, 8), 0)
 	addRack("server-2u", "Server 2U", "server", "server", server(2, 12), 0)
 	addRack("server-4u", "Server 4U", "server", "server", server(4, 24), 0)
@@ -686,6 +739,9 @@ func main() {
 	add("firewall-box", "Firewall (desktop)", "security", "firewall", boxDevice("FIREWALL", "#ef4444", 6, 0), 140)
 	add("modem", "Modem / ONT", "network", "router", boxDevice("ONT", "#22c55e", 2, 1), 100)
 	add("media-converter", "Media converter", "network", "other", boxDevice("MC", "#f59e0b", 1, 1), 80)
+	add("fiber-box-4", "Fibre termination box 4 SC (wall)", "rack", "other", fiberBox(4), 60)
+	add("fiber-box-8", "Fibre termination box 8 SC (wall)", "rack", "other", fiberBox(8), 80)
+	add("fiber-box-12", "Fibre termination box 12 SC (wall)", "rack", "other", fiberBox(12), 100)
 	add("voip-gateway", "VoIP gateway", "network", "other", boxDevice("VOIP", "#8b5cf6", 4, 0), 120)
 	add("nvr", "NVR (video recorder)", "security", "camera", boxDevice("NVR", "#ef4444", 4, 0), 120)
 	add("ap-ceiling", "Access point (ceiling)", "wireless", "accesspoint", apCeiling(), 80)

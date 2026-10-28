@@ -216,12 +216,15 @@ func TestDeviceLibrary(t *testing.T) {
 		byName[ic.Name] = i
 		vendors[ic.Vendor]++
 	}
-	if len(icons) < 500 || vendors["Fortinet"] < 60 || vendors["HPE"] < 80 || vendors["MikroTik"] < 80 || vendors["Dell"] < 80 {
+	if len(icons) < 500 || vendors["Fortinet"] < 60 || vendors["HPE"] < 80 || vendors["MikroTik"] < 80 || vendors["Dell"] < 80 ||
+		vendors["Synology"] < 40 || vendors["TP-Link"] < 150 || vendors["NetApp"] < 20 {
 		t.Fatalf("%d pictures, by vendor %v", len(icons), vendors)
 	}
 	for name, want := range map[string]struct{ ports, u int }{
 		"fortinet-fortigate-100f": {28, 1}, "mikrotik-crs354-48g-4splus2qplusrm": {54, 1},
 		"hpe-proliant-dl380-gen10": {5, 2}, "dell-poweredge-r940": {5, 3},
+		"fortinet-fortigate-30g": {5, 0}, "synology-ds920plus": {2, 0}, "hpe-msa-2060-lff": {5, 2},
+		"tp-link-archer-c6": {5, 0}, "brocade-g620": {65, 1}, "fiber-patch-48-lc": {48, 1},
 	} {
 		i, ok := byName[name]
 		if !ok {

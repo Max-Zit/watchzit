@@ -16,7 +16,7 @@ var mgmtName = map[string]string{"HPE": "iLO", "Dell": "iDRAC", "Lenovo": "XCC",
 func drawModel(m model) *pic {
 	switch m.form {
 	case "rack":
-		if m.kind == "server" {
+		if m.kind == "server" || m.kind == "storage" {
 			return serverModel(m)
 		}
 		return rackModel(m)
@@ -29,6 +29,12 @@ func drawModel(m model) *pic {
 		return outdoorModel(m)
 	case "wifi":
 		return deskModel(m, true, false)
+	case "nas":
+		return nasModel(m)
+	case "ceiling":
+		return ceilingModel(m)
+	case "mesh":
+		return meshModel(m)
 	}
 	return deskModel(m, false, false)
 }
@@ -156,8 +162,10 @@ func serverModel(m model) *pic {
 	}
 	p.mport(px, py, 13, true)
 	p.add(`<rect x="%g" y="%g" width="16" height="13" rx="1.5" fill="none" stroke="#c9a227" stroke-width=".9"/>`, px-8, py-6.5)
-	if n := mgmtName[m.vendor]; n != "" {
+	if n := mgmtName[m.vendor]; n != "" && m.kind == "server" {
 		p.text(px-7, py-9, 4.5, "#c9a227", n)
+	} else if m.kind == "storage" {
+		p.text(px-9, py-9, 4.5, "#c9a227", "MGMT")
 	}
 	// drive bays between the label and the ports
 	x0, x1 := 106.0, right-nicW-6
@@ -165,7 +173,7 @@ func serverModel(m model) *pic {
 		return p
 	}
 	if m.lff {
-		cols := 4
+		cols := max(4, int(math.Ceil(float64(m.bays)/(float64(u)*1.5))))
 		if m.bays < 4 {
 			cols = m.bays
 		}
@@ -290,7 +298,7 @@ func slug(s string) string {
 
 // modelIcons draws the catalog and returns its index entries.
 func modelIcons(out string) []Icon {
-	cats := map[string]string{"server": "server", "switch": "network", "router": "network", "firewall": "security", "accesspoint": "wireless"}
+	cats := map[string]string{"server": "server", "switch": "network", "router": "network", "firewall": "security", "accesspoint": "wireless", "storage": "server", "ups": "power", "camera": "security"}
 	seen := map[string]bool{}
 	var icons []Icon
 	for _, m := range catalog() {
@@ -300,15 +308,19 @@ func modelIcons(out string) []Icon {
 		}
 		seen[name] = true
 		p := drawModel(m)
-		ic := Icon{Name: name, Label: m.vendor + " " + m.name, Cat: cats[m.kind], Kind: m.kind, Vendor: m.vendor, W: p.w, H: p.h, Ports: p.ports}
+		ic := Icon{Name: name, Label: m.vendor + " " + m.name, Cat: cats[m.kind], Kind: deviceKind(m.kind), Vendor: m.vendor, W: p.w, H: p.h, Ports: p.ports}
 		switch m.form {
 		case "rack":
 			ic.U, ic.Show = max(m.u, 1), 240
-			if m.kind != "server" {
+			if m.kind != "server" && m.kind != "storage" {
 				ic.Fiber = m.sfp
 			}
 		case "tower":
 			ic.Show = 55
+		case "nas", "mesh":
+			ic.Show = math.Max(45, p.w*0.55)
+		case "ceiling":
+			ic.Show = 80
 		case "outdoor":
 			ic.Show = math.Min(150, p.w*0.6)
 		default:
@@ -320,4 +332,58 @@ func modelIcons(out string) []Icon {
 	}
 	fmt.Println(len(icons), "model pictures")
 	return icons
+}
+
+// nasModel: a desktop NAS, its bays side by side and the network ports
+// below them.
+func nasModel(m model) *pic {
+	bays := max(m.bays, 1)
+	n := m.copper + m.sfp
+	w := math.Max(30+float64(bays)*26, 24+float64(n)*16)
+	h := 128.0
+	p := newPic(w, h)
+	p.add(`<rect x="2" y="2" width="%g" height="%g" rx="8" fill="url(#m)" stroke="#59616e"/>`, r1(w-4), h-4)
+	p.label(12, 13, w-24, m.vendor, m.name, "#e6ebf2", "#9aa5b5")
+	bx := (w - float64(bays)*26) / 2
+	for i := 0; i < bays; i++ {
+		x := bx + 2 + float64(i)*26
+		p.add(`<rect x="%g" y="28" width="22" height="66" rx="2" fill="#20262f" stroke="#59616e"/>`, r1(x))
+		p.led(r1(x+11), 88, "#36d27a")
+	}
+	p.portGrid(m.copper, m.sfp, 1, 12, w-12, h-20, h-20)
+	return p
+}
+
+// ceilingModel: a ceiling access point, seen from below, its ports at the
+// edge.
+func ceilingModel(m model) *pic {
+	w, h := 120.0, 92.0
+	p := newPic(w, h)
+	p.add(`<ellipse cx="60" cy="44" rx="56" ry="40" fill="url(#l)" stroke="#9aa5b5"/><ellipse cx="60" cy="40" rx="48" ry="30" fill="#f8fafc"/>`)
+	p.add(`<circle cx="60" cy="52" r="3.5" fill="#4ea1ff"/>`)
+	p.label(22, 26, 76, m.vendor, m.name, "#1b2330", "#4a5466")
+	p.portGrid(max(m.copper, 1), m.sfp, 1, 60-float64(max(m.copper, 1)+m.sfp)*8, 60+float64(max(m.copper, 1)+m.sfp)*8, h-9, h-9)
+	return p
+}
+
+// meshModel: a mesh Wi-Fi unit (tall rounded box), its ports at the bottom.
+func meshModel(m model) *pic {
+	n := max(m.copper+m.sfp, 1)
+	w := math.Max(70, 20+float64(n)*16)
+	h := 120.0
+	p := newPic(w, h)
+	p.add(`<rect x="2" y="2" width="%g" height="%g" rx="16" fill="url(#l)" stroke="#9aa5b5"/>`, r1(w-4), h-4)
+	p.label(10, 22, w-20, m.vendor, m.name, "#1b2330", "#4a5466")
+	p.add(`<circle cx="%g" cy="62" r="4" fill="#4ea1ff"/>`, r1(w/2))
+	p.portGrid(m.copper, m.sfp, 1, 10, w-10, h-18, h-18)
+	return p
+}
+
+// deviceKind maps a catalog kind to the console's device kinds: storage
+// systems are servers there.
+func deviceKind(k string) string {
+	if k == "storage" {
+		return "server"
+	}
+	return k
 }
