@@ -9,6 +9,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -651,6 +652,37 @@ func vm() *pic {
 	return p
 }
 
+// hvBadge is the header badge of a hypervisor host on a map: its name on a
+// coloured plate (own drawing, no product logos).
+func hvBadge(name, colour string) *pic {
+	p := newPic(150, 40)
+	p.add(`<rect x="1" y="1" width="148" height="38" rx="8" fill="url(#m)" stroke="#59616e"/><rect x="1" y="1" width="10" height="38" rx="4" fill="%s"/>`, colour)
+	p.add(`<rect x="20" y="10" width="22" height="20" rx="3" fill="none" stroke="%s" stroke-width="2"/><rect x="25" y="15" width="12" height="10" rx="1.5" fill="%s"/>`, colour, colour)
+	p.text(50, 26, 13, "#e6ebf2", name)
+	return p
+}
+
+// vmTile draws a virtual machine with its operating system: a window with
+// the system's name and colour, a dashed frame behind it (virtual).
+func vmTile(osName, colour string, container bool) *pic {
+	p := newPic(110, 90)
+	if container {
+		p.add(`<rect x="4" y="14" width="102" height="70" rx="4" fill="url(#m)" stroke="%s" stroke-width="2"/>`, colour)
+		for i := 0; i < 5; i++ {
+			p.add(`<rect x="%g" y="20" width="3" height="58" fill="#2a303b"/>`, 16+float64(i)*20)
+		}
+	} else {
+		p.add(`<rect x="20" y="4" width="86" height="60" rx="6" fill="none" stroke="#9aa5b5" stroke-width="2.5" stroke-dasharray="7 5"/>`)
+		p.add(`<rect x="4" y="18" width="88" height="66" rx="6" fill="url(#m)" stroke="#59616e"/><rect x="4" y="18" width="88" height="12" rx="6" fill="%s"/>`, colour)
+		p.add(`<circle cx="12" cy="24" r="2" fill="#f8fafc"/><circle cx="19" cy="24" r="2" fill="#f8fafc"/>`)
+	}
+	size := math.Min(13, 160/float64(len(osName)+2))
+	p.text(10, 56, size, "#e6ebf2", osName)
+	p.add(`<rect x="10" y="64" width="40" height="4" rx="2" fill="%s"/><rect x="10" y="72" width="60" height="4" rx="2" fill="#3a424f"/>`, colour)
+	p.ports = append(p.ports, [2]float64{48, 84})
+	return p
+}
+
 func hypervisor() *pic {
 	p := server(2, 8)
 	p.add(`<rect x="300" y="60" width="0" height="0"/>`)
@@ -820,12 +852,38 @@ func main() {
 	add("building", "Building / site", "logical", "other", building(), 80)
 	add("database", "Database", "logical", "server", database(), 60)
 	add("vm", "Virtual machine", "logical", "server", vm(), 70)
+	// hypervisors (the badge of a host box) and virtual machines by system
+	for _, h := range [][3]string{{"esxi", "VMware ESXi", "#3d8b37"}, {"vcenter", "VMware vCenter", "#3d8b37"}, {"proxmox", "Proxmox VE", "#e57000"},
+		{"hyperv", "Hyper-V", "#2f74c0"}, {"xcpng", "XCP-ng", "#1b6ca8"}, {"xenserver", "Citrix Hypervisor", "#452170"}, {"kvm", "KVM / libvirt", "#cc2229"},
+		{"nutanix", "Nutanix AHV", "#7855fa"}, {"ovirt", "oVirt / RHV", "#51a2da"}, {"openstack", "OpenStack", "#da1a32"}, {"virtualbox", "VirtualBox", "#183a61"},
+		{"docker", "Docker host", "#1d63ed"}, {"kubernetes", "Kubernetes", "#326ce5"}, {"lxd", "LXD / Incus", "#e95420"}, {"truenas", "TrueNAS apps", "#0095d5"}, {"unraid", "Unraid", "#f15a2c"}} {
+		add("hv-"+h[0], h[1], "logical", "server", hvBadge(h[1], h[2]), 150)
+	}
+	for _, v := range [][3]string{{"windows-server", "Windows Server", "#0078d4"}, {"windows", "Windows 10/11", "#0078d4"}, {"linux", "Linux", "#f2b21b"},
+		{"ubuntu", "Ubuntu", "#e95420"}, {"debian", "Debian", "#a80030"}, {"rhel", "Red Hat Enterprise Linux", "#ee0000"}, {"rocky", "Rocky Linux", "#10b981"},
+		{"almalinux", "AlmaLinux", "#0f4266"}, {"centos", "CentOS", "#932279"}, {"oracle-linux", "Oracle Linux", "#c74634"}, {"suse", "SUSE Linux", "#30ba78"},
+		{"fedora", "Fedora", "#51a2da"}, {"alpine", "Alpine Linux", "#0d597f"}, {"arch", "Arch Linux", "#1793d1"}, {"freebsd", "FreeBSD", "#ab2b28"},
+		{"pfsense", "pfSense", "#212121"}, {"opnsense", "OPNsense", "#d94f00"}, {"mikrotik-chr", "MikroTik CHR", "#293239"}, {"fortigate-vm", "FortiGate VM", "#da291c"},
+		{"vcsa", "vCenter appliance", "#3d8b37"}, {"truenas", "TrueNAS", "#0095d5"}, {"home-assistant", "Home Assistant", "#18bcf2"}, {"macos", "macOS", "#6e6e73"},
+		{"database", "Database server", "#336791"}, {"web", "Web server", "#009639"}, {"mail", "Mail server", "#7c3aed"}, {"dc", "Domain controller", "#0078d4"},
+		{"backup", "Backup server", "#0f766e"}, {"watchzit", "WatchZit", "#4ea1ff"}} {
+		add("vm-"+v[0], v[1]+" (VM)", "logical", "server", vmTile(v[1], v[2], false), 70)
+	}
+	for _, c := range [][3]string{{"lxc", "LXC container", "#e57000"}, {"docker", "Docker container", "#1d63ed"}, {"pod", "Kubernetes pod", "#326ce5"}} {
+		add("ct-"+c[0], c[1], "logical", "server", vmTile(c[1], c[2], true), 70)
+	}
 	add("user", "User", "logical", "pc", users(false), 50)
 	add("users", "Users / department", "logical", "pc", users(true), 60)
 	for i := range icons {
 		switch icons[i].Name {
 		case "storage-2u", "nas-rack", "nas-2", "nas-4":
 			icons[i].Type = "storage"
+		}
+		switch {
+		case strings.HasPrefix(icons[i].Name, "hv-"):
+			icons[i].Type = "hypervisor"
+		case strings.HasPrefix(icons[i].Name, "vm-") || strings.HasPrefix(icons[i].Name, "ct-") || icons[i].Name == "vm":
+			icons[i].Type = "vm"
 		}
 	}
 	icons = append(icons, modelIcons(out)...)

@@ -123,7 +123,7 @@
       if (path && !path.nodes[n.id]) return; // showing a path: fit it
       var b = box(n);
       x0 = Math.min(x0, n.x - b.w / 2 - 20); y0 = Math.min(y0, n.y - b.h / 2 - 30);
-      x1 = Math.max(x1, n.x + b.w / 2 + (n.parent ? 110 : 20)); y1 = Math.max(y1, n.y + b.h / 2 + 50); // mounted: name on the right
+      x1 = Math.max(x1, n.x + b.w / 2 + (rackOf(n) ? 110 : 20)); y1 = Math.max(y1, n.y + b.h / 2 + 50); // mounted: name on the right
     });
     var bg = layout.background;
     if (bg && bg.asset && !layout.nodes.length) { x0 = bg.x; y0 = bg.y; x1 = bg.x + bg.w; y1 = bg.y + bgHeight(); }
@@ -166,20 +166,40 @@
   // box is the drawn size of a node in world units
   function box(n) {
     if (n.kind === "rack") return { w: RACK_W + 34, h: n.u * UH + 40 };
+    if (n.kind === "host") {
+      var c = guestsOf(n).length, cols = hostCols(c), rows = Math.max(1, Math.ceil(c / cols));
+      return { w: Math.max(280, cols * HOST_TILE_W + 20), h: HOST_HEAD + rows * HOST_TILE_H + 12 };
+    }
     var p = picOf(n);
-    if (n.parent) return { w: RACK_W, h: unitsOf(n) * UH, pic: p && p.u ? p : null };
+    if (rackOf(n)) return { w: RACK_W, h: unitsOf(n) * UH, pic: p && p.u ? p : null };
+    if (p && hostOf(n)) { var s0 = Math.min(90 / p.w, 70 / p.h); return { w: p.w * s0, h: p.h * s0, pic: p }; }
     if (n.kind === "label") return { w: Math.max(40, (n.label || "").length * 9), h: 20 };
     if (p) { var w = n.size || p.show || 80; return { w: w, h: w * p.h / p.w, pic: p }; }
     var s = n.size || 48;
     return { w: s, h: s };
   }
   function rackTop(r) { return r.y - r.u * UH / 2; }
-  // place puts mounted nodes into their rack slots
+  // hypervisor hosts: a box with the virtual machines (and devices) that
+  // run on it laid out in a grid, in the order of their place (u)
+  var HOST_TILE_W = 130, HOST_TILE_H = 115, HOST_HEAD = 56;
+  function rackOf(n) { var r = n.parent && nodeByID(n.parent); return r && r.kind === "rack" ? r : null; }
+  function hostOf(n) { var r = n.parent && nodeByID(n.parent); return r && r.kind === "host" ? r : null; }
+  function guestsOf(h) {
+    return layout.nodes.filter(function (c) { return c.parent === h.id; }).sort(function (a, b) { return (a.u || 0) - (b.u || 0) || a.id - b.id; });
+  }
+  function hostCols(n) { return n <= 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : 4; }
+  // place puts mounted nodes into their rack slots and guests into their host
   function place() {
     layout.nodes.forEach(function (n) {
       if (!n.parent) return;
       var r = nodeByID(n.parent);
       if (!r) { n.parent = 0; return; }
+      if (r.kind === "host") {
+        var gs = guestsOf(r), i = gs.indexOf(n), cols = hostCols(gs.length), b = box(r);
+        n.x = r.x - b.w / 2 + 10 + (i % cols) * HOST_TILE_W + HOST_TILE_W / 2;
+        n.y = r.y - b.h / 2 + HOST_HEAD + Math.floor(i / cols) * HOST_TILE_H + 42;
+        return;
+      }
       var u = unitsOf(n);
       n.x = r.x;
       n.y = rackTop(r) + (r.u - (n.u + u - 1)) * UH + u * UH / 2;
@@ -205,9 +225,10 @@
   function nodeStatus(n) {
     if (n.kind === "device") { var d = live.devices[n.device]; return d ? d.status : "unknown"; }
     if (n.kind === "submap") return live.maps[n.submap] || "unknown";
-    if (n.kind === "rack") {
+    if (n.kind === "rack" || n.kind === "host") {
       var w = "";
       layout.nodes.forEach(function (c) { if (c.parent === n.id && c.kind === "device") w = worse(w, nodeStatus(c)); });
+      if (n.kind === "host" && n.host_device) { var hd = live.devices[n.host_device]; w = worse(w, hd ? hd.status : "unknown"); }
       return w;
     }
     return "";
@@ -218,6 +239,12 @@
     if (n.kind === "device") { var d = live.devices[n.device] || deviceMeta(n.device); return n.label || (d ? d.name : "?"); }
     if (n.kind === "submap") { var m = mapMeta(n.submap); return n.label || (m ? m.name : "?"); }
     if (n.kind === "item" && !n.label) { var p = picOf(n); return p && p.label ? p.label : ""; }
+    if (n.kind === "host" && !n.label) {
+      var hd = n.host_device && (live.devices[n.host_device] || deviceMeta(n.host_device));
+      if (hd) return hd.name;
+      var hp = picOf(n);
+      return hp && hp.label ? hp.label : T("Hypervisor");
+    }
     return n.label || "";
   }
   function port(n, ifIndex) {
@@ -340,10 +367,10 @@
     [gBg, gRacks, gLinks, gNodes].forEach(clear);
     if (gHandles !== gNodes) clear(gHandles);
     drawBackground();
-    layout.nodes.forEach(function (n) { if (n.kind === "rack") drawRack(n); });
+    layout.nodes.forEach(function (n) { if (n.kind === "rack") drawRack(n); else if (n.kind === "host") drawHost(n); });
     layout.links.forEach(drawLink);
     drawTunnels();
-    layout.nodes.forEach(function (n) { if (n.kind !== "rack") drawNode(n); });
+    layout.nodes.forEach(function (n) { if (n.kind !== "rack" && n.kind !== "host") drawNode(n); });
     drawHandles();
     svg.classList.toggle("pathmode", !!path);
     svg.classList.toggle("vlanmode", !!vlan);
@@ -372,17 +399,32 @@
     el("text", { "class": "rname", x: n.x, y: top - 12, "text-anchor": "middle" }, g).textContent = (n.label || T("Rack")) + " · " + n.u + "U";
   }
 
+  // drawHost: a hypervisor host — its type and name on top, the virtual
+  // machines inside (drawn as nodes of their own)
+  function drawHost(n) {
+    var st = nodeStatus(n), b = box(n), x0 = n.x - b.w / 2, y0 = n.y - b.h / 2;
+    var sel = selected && selected.type === "node" && selected.id === n.id;
+    var g = el("g", { "class": "host" + (st ? " s-" + st : "") + (sel ? " sel" : "") + onPath("nodes", n.id), "data-node": n.id }, gRacks);
+    el("rect", { "class": "hostbox", x: x0, y: y0, width: b.w, height: b.h, rx: 10 }, g);
+    var p = picOf(n);
+    if (p) el("image", { href: picURL(p), x: x0 + 10, y: y0 + 8, width: 120, height: 32 }, g);
+    el("text", { "class": "hname", x: x0 + (p ? 140 : 14), y: y0 + 29 }, g).textContent = nodeName(n);
+    if (st) el("circle", { "class": "dot", cx: x0 + b.w - 14, cy: y0 + 24, r: 6 }, g);
+    if (!guestsOf(n).length) el("text", { "class": "hhint", x: n.x, y: y0 + HOST_HEAD + 50, "text-anchor": "middle" }, g).textContent = editing ? T("Drag virtual machines here.") : T("No virtual machines yet.");
+    el("title", {}, g).textContent = nodeName(n) + (st ? " — " + T(cap(st)) : "");
+  }
+
   function drawNode(n) {
     var st = nodeStatus(n), b = box(n);
     var sel = selected && selected.type === "node" && selected.id === n.id;
-    var g = el("g", { "class": "node n-" + n.kind + (st ? " s-" + st : "") + (sel ? " sel" : "") + (connectFrom === n.id ? " from" : "") + (n.parent ? " mounted" : "") + onPath("nodes", n.id) + (vlan && deviceInVLAN(n, vlan) ? " invlan" : ""),
+    var g = el("g", { "class": "node n-" + n.kind + (st ? " s-" + st : "") + (sel ? " sel" : "") + (connectFrom === n.id ? " from" : "") + (rackOf(n) ? " mounted" : "") + (hostOf(n) ? " guest" : "") + onPath("nodes", n.id) + (vlan && deviceInVLAN(n, vlan) ? " invlan" : ""),
       transform: "translate(" + n.x + " " + n.y + ")", "data-node": n.id }, gNodes);
     if (n.kind === "label") {
       el("text", { "class": "maplabel", y: 6, "text-anchor": "middle" }, g).textContent = n.label;
       return;
     }
     var p = picOf(n), name = nodeName(n);
-    if (n.parent) {
+    if (rackOf(n)) {
       // mounted: the front panel fills its units; a state stripe on the left
       if (b.pic) el("image", { href: picURL(b.pic), x: -b.w / 2, y: -b.h / 2, width: b.w, height: b.h, preserveAspectRatio: "none" }, g);
       else {
@@ -407,7 +449,7 @@
       el("text", { "class": "name", y: 44, "text-anchor": "middle" }, g).textContent = name;
     }
     var d = n.kind === "device" ? live.devices[n.device] || deviceMeta(n.device) : null;
-    if (d && !n.parent) {
+    if (d && !rackOf(n)) {
       el("text", { "class": "addr", y: (p ? b.h / 2 + 35 : 60), "text-anchor": "middle" }, g).textContent = d.address + (d.down ? "  · " + d.down + " " + T("down") : "");
     }
     el("title", {}, g).textContent = name + (st ? " — " + T(cap(st)) : "");
@@ -466,7 +508,7 @@
       // visible between devices in the same rack)
       var pa = anchor(a), pb = anchor(b), dx = pb.x - pa.x, dy = pb.y - pa.y, d = Math.max(1, Math.hypot(dx, dy)), off = 40 + d * 0.15;
       var c = { x: (pa.x + pb.x) / 2 - dy / d * off, y: (pa.y + pb.y) / 2 + dx / d * off };
-      if (a.parent && a.parent === b.parent) { // the same rack: out of its right side
+      if (rackOf(a) && a.parent === b.parent) { // the same rack: out of its right side
         var right = Math.max(a.x + box(a).w / 2, b.x + box(b).w / 2);
         pa = { x: a.x + box(a).w / 2, y: a.y };
         pb = { x: b.x + box(b).w / 2, y: b.y };
@@ -546,6 +588,7 @@
       return;
     }
     if (n.kind === "rack") { showRack(n); return; }
+    if (n.kind === "host") { showHost(n); return; }
     var p = openPanel(nodeName(n) || T("Item"), st);
     var dl = h("dl", { "class": "facts" });
     if (n.kind === "device") {
@@ -613,9 +656,20 @@
     }));
     p.appendChild(prow);
     if (!n.parent) field(p, T("Size"), range(20, 600, 2, box(n).w, function (v) { n.size = v; render(); changed(); }));
+    // the hypervisor host it runs on (virtual machines and devices)
+    var hosts = layout.nodes.filter(function (x) { return x.kind === "host"; });
+    if (hosts.length && (n.kind === "device" || n.kind === "item")) {
+      var hopts = [["0", T("None")]].concat(hosts.map(function (x) { return [String(x.id), nodeName(x)]; }));
+      field(p, T("Runs on hypervisor"), select(hopts, hostOf(n) ? n.parent : 0, function (v) {
+        var id = +v, was = hostOf(n);
+        if (!id) { n.parent = 0; n.u = 0; if (was) { var wb = box(was); n.x = was.x + wb.w / 2 + 80; } }
+        else { n.parent = id; n.u = guestsOf(nodeByID(id)).length + 1; }
+        render(); changed(); showSelection();
+      }));
+    }
     // rack mounting
     var racks = layout.nodes.filter(function (r) { return r.kind === "rack"; });
-    if (racks.length) {
+    if (racks.length && !hostOf(n)) {
       p.appendChild(h("h3", {}, T("Rack")));
       var opts = [["0", T("Not in a rack")]].concat(racks.map(function (r) { return [String(r.id), (r.label || T("Rack")) + " · " + r.u + "U"]; }));
       field(p, T("Rack"), select(opts, n.parent || 0, function (v) {
@@ -633,7 +687,7 @@
     }
   }
   function fixMount(n) {
-    if (!n.parent) return;
+    if (!rackOf(n)) return;
     var r = nodeByID(n.parent);
     if (r && n.u + unitsOf(n) - 1 > r.u) n.u = Math.max(1, r.u - unitsOf(n) + 1);
   }
@@ -672,6 +726,54 @@
     inside.forEach(function (c) { used = Math.max(used, c.u + unitsOf(c) - 1); });
     field(p, T("Units"), select(rackSizes.filter(function (u) { return u >= used; }).map(function (u) { return [u, u + "U"]; }), n.u, function (v) { n.u = +v; render(); changed(); }));
     p.appendChild(h("p", { "class": "muted small" }, T("Drag devices into the rack; they snap to the units.")));
+  }
+
+  // ---- hypervisor hosts
+  function hvList() {
+    return libList.filter(function (i) { return i.type === "hypervisor"; }).map(function (i) { return ["lib:" + i.name, i.label]; });
+  }
+  function hostFields(p, n) {
+    field(p, T("Hypervisor"), select(hvList(), n.icon || "lib:hv-esxi", function (v) { n.icon = v; render(); changed(); }));
+    var ds = ((meta && meta.devices) || []).slice().sort(function (a, b) { return a.name.localeCompare(b.name); });
+    field(p, T("Physical server"), select([["0", T("Not set")]].concat(ds.map(function (d) { return [String(d.id), d.name + " · " + d.address]; })), n.host_device || 0, function (v) {
+      n.host_device = +v || 0; render(); changed();
+    }));
+  }
+  function showHost(n) {
+    var p = openPanel(nodeName(n), nodeStatus(n));
+    var hp = picOf(n), dl = h("dl", { "class": "facts" });
+    if (hp) row(dl, T("Hypervisor"), hp.label);
+    var hd = n.host_device && (live.devices[n.host_device] || deviceMeta(n.host_device));
+    if (hd) row(dl, T("Physical server"), hd.name + " · " + hd.address);
+    p.appendChild(dl);
+    var inside = guestsOf(n), list = h("ul", { "class": "mp-ports" });
+    inside.forEach(function (c) {
+      var st = nodeStatus(c);
+      var li = h("li", { "class": st === "down" ? "down" : st === "up" ? "up" : "" });
+      li.appendChild(h("b", {}, nodeName(c) || "—"));
+      var cp = picOf(c);
+      li.appendChild(h("span", {}, cp && cp.label ? cp.label.replace(/ \(VM\)$/, "") : ""));
+      list.appendChild(li);
+    });
+    p.appendChild(h("h3", {}, T("Virtual machines")));
+    p.appendChild(inside.length ? list : h("p", { "class": "muted small" }, "—"));
+    if (hd && !kioskBase) {
+      var acts = h("div", { "class": "row mt" });
+      acts.appendChild(btn(T("Metrics") + " · " + hd.name, "/devices/" + n.host_device + fromMap(), "secondary"));
+      p.appendChild(acts);
+    }
+    if (!editing) return;
+    var nm = field(p, T("Name"), h("input", { value: n.label || "", maxlength: "200", placeholder: nodeName(n) }));
+    nm.addEventListener("input", function () { n.label = nm.value; render(); changed(); });
+    hostFields(p, n);
+    p.appendChild(h("p", { "class": "muted small" }, T("Drag virtual machines and devices into the box; drag them within it to change the order. Add a VM as a device of the console to see its state, or as an item with a picture of its system.")));
+  }
+  function addHost() {
+    var p = openPanel(T("Add hypervisor"));
+    var n = { kind: "host", label: "", icon: "lib:hv-esxi", host_device: 0 };
+    var nm = field(p, T("Name"), h("input", { maxlength: "200", placeholder: "esx01" }));
+    hostFields(p, n);
+    p.appendChild(button(T("Add"), "primary", function () { n.label = nm.value; addNode(n); }));
   }
 
   function interfaceSelect(n, value, onChange) {
@@ -743,7 +845,7 @@
 
   // ---- pictures: built-in library and uploads
   // picture types: device kinds, storage, and the categories of the rest
-  var picTypes = [["", "All types"], ["switch", "Switch"], ["router", "Router"], ["firewall", "Firewall"], ["server", "Server"], ["storage", "Storage / NAS"],
+  var picTypes = [["", "All types"], ["switch", "Switch"], ["router", "Router"], ["firewall", "Firewall"], ["server", "Server"], ["storage", "Storage / NAS"], ["hypervisor", "Hypervisor"], ["vm", "Virtual machine"],
     ["accesspoint", "Access point"], ["ups", "UPS"], ["power", "Power"], ["camera", "Camera"], ["pc", "Computer"], ["printer", "Printer"],
     ["rack", "Rack"], ["logical", "Logical"], ["other", "Other"], ["uploaded", "Uploaded"]];
   function picType(i) {
@@ -1202,7 +1304,7 @@
   }
 
   // ---- layers: what the map shows (kept per browser)
-  var LAYERS = [["devices", "Devices"], ["racks", "Racks"], ["items", "Items"], ["submaps", "Submaps"], ["cables", "Cables"],
+  var LAYERS = [["devices", "Devices"], ["racks", "Racks"], ["hosts", "Hypervisors"], ["items", "Items"], ["submaps", "Submaps"], ["cables", "Cables"],
     ["ports", "Port names"], ["traffic", "Traffic"], ["vlans", "VLAN labels"], ["tunnels", "VXLAN tunnels"], ["names", "Names and addresses"], ["text", "Text"], ["background", "Background"]];
   var hidden = load("wz-map-layers") || {};
   var layersBox = root.querySelector("[data-layers]");
@@ -1327,6 +1429,16 @@
 
   // ---- pointer handling: drag nodes, racks, bends, background; pan; pinch
   var pointers = {}, drag = null, pinch = null, moved = false, lastTap = null;
+  // hostAt finds the hypervisor host box under a point
+  function hostAt(x, y, self) {
+    for (var i = 0; i < layout.nodes.length; i++) {
+      var r = layout.nodes[i];
+      if (r.kind !== "host" || r === self) continue;
+      var b = box(r);
+      if (Math.abs(x - r.x) <= b.w / 2 && Math.abs(y - r.y) <= b.h / 2) return r;
+    }
+    return null;
+  }
   function rackAt(x, y, self) {
     for (var i = 0; i < layout.nodes.length; i++) {
       var r = layout.nodes[i];
@@ -1429,8 +1541,22 @@
     if (!d) return;
     if (d.type === "node" && d.changed) {
       // dropped on a rack: mounted on the units under it (or the nearest free)
-      var n = d.n, r = n.kind !== "rack" && n.kind !== "label" ? rackAt(n.x, n.y, n) : null;
-      if (r) {
+      var n = d.n, guest = n.kind === "device" || n.kind === "item", r = n.kind !== "rack" && n.kind !== "label" && n.kind !== "host" ? rackAt(n.x, n.y, n) : null;
+      var hv = guest && !r ? hostAt(n.x, n.y, n) : null;
+      if (hv) {
+        // dropped on a hypervisor host: runs on it, at the place it was dropped
+        var gs = guestsOf(hv).filter(function (c) { return c !== n; });
+        n.parent = hv.id; n.u = 1e6; // counted while measuring the box
+        var cols = hostCols(gs.length + 1), hb = box(hv), best = gs.length, bestD = Infinity;
+        for (var k = 0; k <= gs.length; k++) { // the nearest place
+          var sx = hv.x - hb.w / 2 + 10 + (k % cols) * HOST_TILE_W + HOST_TILE_W / 2, sy = hv.y - hb.h / 2 + HOST_HEAD + Math.floor(k / cols) * HOST_TILE_H + 42;
+          var dd = Math.hypot(n.x - sx, n.y - sy);
+          if (dd < bestD) { bestD = dd; best = k; }
+        }
+        gs.splice(best, 0, n);
+        n.parent = hv.id;
+        gs.forEach(function (c, i) { c.u = i + 1; });
+      } else if (r) {
         var hgt = unitsOf(n), top = rackTop(r);
         var want = Math.max(1, Math.min(r.u - hgt + 1, Math.round(r.u - (n.y - top) / UH - hgt / 2 + 1)));
         n.parent = r.id;
@@ -1512,6 +1638,7 @@
     else if (act === "add-device") { setConnect(false); pickDevice(); }
     else if (act === "add-item") { setConnect(false); pickPicture(function (icon) { var p = picOf({ icon: icon }); addNode({ kind: "item", icon: icon, label: p && p.label ? p.label : "" }); }, false); }
     else if (act === "add-rack") { setConnect(false); addRack(); }
+    else if (act === "add-host") { setConnect(false); addHost(); }
     else if (act === "add-submap") { setConnect(false); pickSubmap(); }
     else if (act === "add-text") { setConnect(false); addNode({ kind: "label", label: T("Text") }); }
     else if (act === "background") { setConnect(false); selected = null; render(); showBackground(); }

@@ -27,6 +27,7 @@ const (
 	NodeLabel  = "label"
 	NodeItem   = "item" // something not monitored: patch panel, internet, building …
 	NodeRack   = "rack"
+	NodeHost   = "host" // a hypervisor host with its virtual machines inside
 )
 
 // LinkKinds are the cable and connection kinds.
@@ -46,8 +47,10 @@ type MapNode struct {
 	Y        float64 `json:"y"`
 	Icon     string  `json:"icon,omitempty"`   // "lib:<name>", "asset:<id>" or "" (kind symbol)
 	Size     float64 `json:"size,omitempty"`   // shown width (0 = default)
-	Parent   int64   `json:"parent,omitempty"` // rack it is mounted in
-	U        int     `json:"u,omitempty"`      // rack: height in units; mounted: lowest unit
+	Parent   int64   `json:"parent,omitempty"` // rack it is mounted in, or hypervisor host it runs on
+	U        int     `json:"u,omitempty"`      // rack: height in units; mounted: lowest unit; on a host: its place
+	// HostDevice is the physical server a hypervisor host (kind host) runs on.
+	HostDevice int64 `json:"host_device,omitempty"`
 }
 
 // MapLink connects two nodes, optionally port to port (ifIndex for the
@@ -238,13 +241,13 @@ func (s *Store) MapLayout(ctx context.Context, id int64) (*MapLayout, error) {
 	if asset != nil {
 		bg.Asset = *asset
 	}
-	rows, err := s.db.Query(ctx, `SELECT id, kind, COALESCE(device_id,0), COALESCE(submap_id,0), label, x, y, icon, size, COALESCE(parent,0), u FROM map_nodes WHERE map_id=$1 ORDER BY id`, id)
+	rows, err := s.db.Query(ctx, `SELECT id, kind, COALESCE(device_id,0), COALESCE(submap_id,0), label, x, y, icon, size, COALESCE(parent,0), u, COALESCE(host_device,0) FROM map_nodes WHERE map_id=$1 ORDER BY id`, id)
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
 		var n MapNode
-		if err := rows.Scan(&n.ID, &n.Kind, &n.DeviceID, &n.SubmapID, &n.Label, &n.X, &n.Y, &n.Icon, &n.Size, &n.Parent, &n.U); err != nil {
+		if err := rows.Scan(&n.ID, &n.Kind, &n.DeviceID, &n.SubmapID, &n.Label, &n.X, &n.Y, &n.Icon, &n.Size, &n.Parent, &n.U, &n.HostDevice); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -366,7 +369,10 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 		if !iconRE.MatchString(n.Icon) {
 			return nil, errors.New("unknown picture")
 		}
-		var dev, sub *int64
+		var dev, sub, hostDev *int64
+		if n.Kind != NodeHost {
+			n.HostDevice = 0
+		}
 		switch n.Kind {
 		case NodeDevice:
 			if devices[n.DeviceID] {
@@ -388,11 +394,21 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 			if n.U < 1 || n.U > 60 {
 				return nil, errors.New("a rack has 1–60 units")
 			}
+		case NodeHost:
+			n.DeviceID, n.SubmapID, n.Parent, n.U = 0, 0, 0, 0
+			if n.HostDevice > 0 {
+				hostDev = &n.HostDevice
+			}
 		default:
 			return nil, errors.New("unknown node kind")
 		}
 		if n.Parent != 0 {
-			if kinds[n.Parent] != NodeRack || n.U < 1 || n.U > 60 {
+			switch {
+			case kinds[n.Parent] == NodeHost:
+				if n.Kind != NodeDevice && n.Kind != NodeItem || n.U < 0 || n.U > 1000 {
+					return nil, errors.New("only devices and items run on a hypervisor host")
+				}
+			case kinds[n.Parent] != NodeRack || n.U < 1 || n.U > 60:
 				return nil, errors.New("a mounted device needs a rack and a unit")
 			}
 		} else if n.Kind != NodeRack {
@@ -400,12 +416,12 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 		}
 		var real int64
 		if n.ID > 0 && old[n.ID] {
-			_, err = tx.Exec(ctx, `UPDATE map_nodes SET kind=$2, device_id=$3, submap_id=$4, label=$5, x=$6, y=$7, icon=$8, size=$9, u=$10 WHERE id=$1`,
-				n.ID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U)
+			_, err = tx.Exec(ctx, `UPDATE map_nodes SET kind=$2, device_id=$3, submap_id=$4, label=$5, x=$6, y=$7, icon=$8, size=$9, u=$10, host_device=$11 WHERE id=$1`,
+				n.ID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U, hostDev)
 			real = n.ID
 		} else {
-			err = tx.QueryRow(ctx, `INSERT INTO map_nodes(map_id, kind, device_id, submap_id, label, x, y, icon, size, u) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
-				mapID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U).Scan(&real)
+			err = tx.QueryRow(ctx, `INSERT INTO map_nodes(map_id, kind, device_id, submap_id, label, x, y, icon, size, u, host_device) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
+				mapID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U, hostDev).Scan(&real)
 		}
 		if isFK(err) {
 			return nil, errors.New("a device or map on the map no longer exists")
@@ -627,6 +643,8 @@ func (s *Store) MapLiveData(ctx context.Context, l *MapLayout) (*MapLive, error)
 	for _, n := range l.Nodes {
 		if n.Kind == NodeDevice {
 			ids = append(ids, n.DeviceID)
+		} else if n.Kind == NodeHost && n.HostDevice > 0 {
+			ids = append(ids, n.HostDevice)
 		}
 	}
 	if len(ids) > 0 {

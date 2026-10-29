@@ -42,7 +42,7 @@ type PictureMeta struct {
 }
 
 // PictureTypes are the types a picture can have.
-var PictureTypes = []string{"switch", "router", "firewall", "server", "storage", "accesspoint", "ups", "power", "camera", "pc", "printer", "rack", "logical", "other"}
+var PictureTypes = []string{"switch", "router", "firewall", "server", "storage", "hypervisor", "vm", "accesspoint", "ups", "power", "camera", "pc", "printer", "rack", "logical", "other"}
 
 // MaxAssetSize limits uploads (a floor plan photo stays well below).
 const MaxAssetSize = 8 << 20

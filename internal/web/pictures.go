@@ -31,7 +31,7 @@ type pictureData struct {
 }
 
 // pictureTypeNames name the picture types in the forms.
-var pictureTypeNames = map[string]string{"switch": "Switch", "router": "Router", "firewall": "Firewall", "server": "Server", "storage": "Storage / NAS",
+var pictureTypeNames = map[string]string{"switch": "Switch", "router": "Router", "firewall": "Firewall", "server": "Server", "storage": "Storage / NAS", "hypervisor": "Hypervisor", "vm": "Virtual machine",
 	"accesspoint": "Access point", "ups": "UPS", "power": "Power", "camera": "Camera", "pc": "Computer", "printer": "Printer", "rack": "Rack",
 	"logical": "Logical", "other": "Other"}
 
