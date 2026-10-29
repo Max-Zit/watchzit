@@ -20,6 +20,8 @@
   var vp = svg.querySelector("g.viewport");
   var gBg = svg.querySelector("g.bg"), gRacks = svg.querySelector("g.racks"), gLinks = svg.querySelector("g.links");
   var gNodes = svg.querySelector("g.nodes"), gHandles = svg.querySelector("g.handles") || svg.querySelector("g.nodes");
+  // cable labels (ports, traffic, VLANs) above all cables, so none hides them
+  var gLabels = svg.querySelector("g.labels") || gLinks;
   var panel = root.querySelector("[data-panel]");
   var hint = root.querySelector("[data-hint]");
   var saveState = root.querySelector("[data-save]");
@@ -365,11 +367,13 @@
   function render() {
     place();
     [gBg, gRacks, gLinks, gNodes].forEach(clear);
+    if (gLabels !== gLinks) clear(gLabels);
     if (gHandles !== gNodes) clear(gHandles);
     drawBackground();
     layout.nodes.forEach(function (n) { if (n.kind === "rack") drawRack(n); else if (n.kind === "host") drawHost(n); });
     layout.links.forEach(drawLink);
     drawTunnels();
+    drawHostLinks();
     layout.nodes.forEach(function (n) { if (n.kind !== "rack" && n.kind !== "host") drawNode(n); });
     drawHandles();
     svg.classList.toggle("pathmode", !!path);
@@ -465,6 +469,7 @@
     if (vlan && vlanMatch(linkVLANs(k, s))) cls += " invlan";
     if (vlanMismatch(k, s)) cls += " vlanwarn";
     var g = el("g", { "class": cls, "data-link": k.id }, gLinks);
+    var gl = gLabels === gLinks ? g : el("g", { "class": cls + " labels" }, gLabels);
     var d = pathD(pts), w = 2.2 + Math.min(7, s.util * 9);
     if (k.kind === "fiber" || k.kind === "fiber-sm") w += 0.6;
     el("path", { "class": "hit", d: d }, g);
@@ -479,19 +484,19 @@
     var nameA = s.a ? s.a.name : k.a_slot ? slotName(a, k.a_slot) : "";
     var nameB = s.b ? s.b.name : k.b_slot ? slotName(b, k.b_slot) : "";
     if (len < 70) nameA = nameB = ""; // a short patch cord: the panel names its ports
-    if (nameA) { var pa = pointAlong(pts, offA); label(g, "port", pa.x, pa.y, nameA); }
-    if (nameB) { var pb = pointAlong(pts, len - offB); label(g, "port", pb.x, pb.y, nameB); }
+    if (nameA) { var pa = pointAlong(pts, offA); label(gl, "port", pa.x, pa.y, nameA); }
+    if (nameB) { var pb = pointAlong(pts, len - offB); label(gl, "port", pb.x, pb.y, nameB); }
     var text = k.label || "";
     if (vlan) {
       var pv = findVLAN(linkVLANs(k, s), vlan);
       text = "VLAN " + vlan + (pv ? " · " + (pv.tagged ? T("tagged") : T("untagged")) : "");
     } else if (s.ab !== null && s.ab !== undefined && len > 190) text = (text ? text + "  " : "") + "→ " + bits(s.ab) + "  ← " + bits(s.ba);
     var mid = pointAlong(pts, len / 2);
-    if (text) label(g, "traffic", mid.x, mid.y, text);
+    if (text) label(gl, "traffic", mid.x, mid.y, text);
     // the VLAN mode (access / trunk, native VLAN) and the VXLAN VNI
     var vt = vlan ? "" : modeText(linkMode(k, s), 30);
     if (k.vni) vt = (vt ? vt + " · " : "") + "VNI " + k.vni;
-    if (vt && len > 120) label(g, "vlan", mid.x, mid.y + (text ? 13 : 0), vt);
+    if (vt && len > 120) label(gl, "vlan", mid.x, mid.y + (text ? 13 : 0), vt);
   }
   // VXLAN tunnels the devices report, between devices on the map (a cable
   // of kind VXLAN with the same VNI between them stands for it)
@@ -519,6 +524,26 @@
       el("title", {}, g).textContent = "VXLAN VNI " + t.vni + (t.name ? " (" + t.name + ")" : "") + " — " + nodeName(a) + " ↔ " + nodeName(b);
       label(g, "vlan", (pa.x + 2 * c.x + pb.x) / 4, (pa.y + 2 * c.y + pb.y) / 4, "VXLAN " + t.vni);
     });
+  }
+  // drawHostLinks: a dashed line from each hypervisor box to the physical
+  // server it runs on, edge to edge (not a cable; paths go along it)
+  function drawHostLinks() {
+    layout.nodes.forEach(function (h) {
+      if (h.kind !== "host") return;
+      var srv = hostServer(h);
+      if (!srv) return;
+      var a = edgePoint(h, srv), b = edgePoint(srv, h);
+      var g = el("g", { "class": "hostlink" + (path && path.hostlinks && path.hostlinks[h.id] ? " onpath" : "") }, gLinks);
+      el("path", { "class": "wire", d: "M" + a.x + " " + a.y + "L" + b.x + " " + b.y }, g);
+      el("title", {}, g).textContent = nodeName(h) + " — " + T("runs on") + " " + nodeName(srv);
+    });
+  }
+  // edgePoint: where the line from n towards o leaves the box of n
+  function edgePoint(n, o) {
+    var b = box(n), dx = o.x - n.x, dy = o.y - n.y;
+    if (!dx && !dy) return { x: n.x, y: n.y };
+    var t = Math.min(dx ? (b.w / 2 + 4) / Math.abs(dx) : Infinity, dy ? (b.h / 2 + 4) / Math.abs(dy) : Infinity, 1);
+    return { x: n.x + dx * t, y: n.y + dy * t };
   }
   function nodeOfDevice(id) {
     for (var i = 0; i < layout.nodes.length; i++) if (layout.nodes[i].kind === "device" && layout.nodes[i].device === id) return layout.nodes[i];
@@ -735,7 +760,7 @@
   function hostFields(p, n) {
     field(p, T("Hypervisor"), select(hvList(), n.icon || "lib:hv-esxi", function (v) { n.icon = v; render(); changed(); }));
     var ds = ((meta && meta.devices) || []).slice().sort(function (a, b) { return a.name.localeCompare(b.name); });
-    field(p, T("Physical server"), select([["0", T("Not set")]].concat(ds.map(function (d) { return [String(d.id), d.name + " · " + d.address]; })), n.host_device || 0, function (v) {
+    field(p, T("Physical server"), select([["0", T("Choose the server")]].concat(ds.map(function (d) { return [String(d.id), d.name + " · " + d.address]; })), n.host_device || 0, function (v) {
       n.host_device = +v || 0; render(); changed();
     }));
   }
@@ -773,21 +798,53 @@
     var n = { kind: "host", label: "", icon: "lib:hv-esxi", host_device: 0 };
     var nm = field(p, T("Name"), h("input", { maxlength: "200", placeholder: "esx01" }));
     hostFields(p, n);
-    p.appendChild(button(T("Add"), "primary", function () { n.label = nm.value; addNode(n); }));
+    var err = h("p", { "class": "small warntext", hidden: "" }, T("Choose the physical server the hypervisor runs on."));
+    p.appendChild(err);
+    p.appendChild(button(T("Add"), "primary", function () {
+      if (!n.host_device) { err.hidden = false; return; }
+      n.label = nm.value; addNode(n);
+    }));
   }
 
-  function interfaceSelect(n, value, onChange) {
+  // usedPorts: the interfaces and picture ports of a node that other cables
+  // than k already use, with the node at their other end
+  function usedPorts(n, k) {
+    var res = { ifs: {}, slots: {} };
+    layout.links.forEach(function (l) {
+      if (l === k) return;
+      [["a", "b"], ["b", "a"]].forEach(function (s) {
+        if (l[s[0]] !== n.id) return;
+        var other = nodeName(nodeByID(l[s[1]])) || T("Item");
+        if (l[s[0] + "_if"]) res.ifs[l[s[0] + "_if"]] = other;
+        var sl = slotOf(l, s[0]);
+        if (sl) res.slots[sl] = other;
+      });
+    });
+    return res;
+  }
+  // markUsed disables the options in use and says where their cable goes
+  function markUsed(s, used, value) {
+    Array.prototype.forEach.call(s.options, function (o) {
+      if (o.value !== "0" && used[o.value] !== undefined && String(value) !== o.value) {
+        o.disabled = true;
+        o.textContent += " — " + T("connected to") + " " + used[o.value];
+      }
+    });
+  }
+  function interfaceSelect(n, value, k, onChange) {
     var ps = n && n.kind === "device" ? live.ports[n.device] || {} : {};
     var opts = [["0", T("Not set")]];
     Object.keys(ps).sort(function (x, y) { return x - y; }).forEach(function (idx) { opts.push([idx, ps[idx].name + (ps[idx].alias ? " · " + ps[idx].alias : "")]); });
     var s = select(opts, value || 0, function (v) { onChange(+v, ps[v] ? ps[v].name : ""); });
+    markUsed(s, usedPorts(n, k).ifs, value || 0);
     s.disabled = !editing;
     return s;
   }
-  function slotSelect(n, value, onChange) {
+  function slotSelect(n, value, k, onChange) {
     var p = box(n).pic, opts = [["0", T("Automatic")]];
     for (var i = 1; p && i <= p.ports.length; i++) opts.push([i, T("Port") + " " + slotName(n, i)]);
     var s = select(opts, value || 0, function (v) { onChange(+v); });
+    markUsed(s, usedPorts(n, k).slots, value || 0);
     s.disabled = !editing;
     return s;
   }
@@ -798,12 +855,12 @@
       var n = end[0], side = end[1];
       p.appendChild(h("h3", {}, nodeName(n) || T("Item")));
       var dl = h("dl", { "class": "facts" });
-      if (n.kind === "device") row(dl, T("Interface"), interfaceSelect(n, k[side + "_if"], function (v, name) {
+      if (n.kind === "device") row(dl, T("Interface"), interfaceSelect(n, k[side + "_if"], k, function (v, name) {
         k[side + "_if"] = v;
         if (!k[side + "_slot"]) k[side + "_slot"] = guessSlot(n, name);
         render(); changed(); showSelection();
       }));
-      if (box(n).pic && box(n).pic.ports && box(n).pic.ports.length) row(dl, T("Port on picture"), slotSelect(n, k[side + "_slot"], function (v) { k[side + "_slot"] = v; render(); changed(); }));
+      if (box(n).pic && box(n).pic.ports && box(n).pic.ports.length) row(dl, T("Port on picture"), slotSelect(n, k[side + "_slot"], k, function (v) { k[side + "_slot"] = v; render(); changed(); }));
       p.appendChild(dl);
     });
     var dl2 = h("dl", { "class": "facts" });
@@ -1134,19 +1191,47 @@
   }
   // findPath: the shortest chain of cables (breadth first), with the racks
   // the devices on it are mounted in
+  // neighbours of a node for paths: over cables, and a virtual machine to its
+  // hypervisor host to the physical server the host runs on
+  function neighbours(x) {
+    var out = [], n = nodeByID(x);
+    layout.links.forEach(function (k) {
+      var y = k.a === x ? k.b : k.b === x ? k.a : null;
+      if (y !== null) out.push({ n: y, k: k.id });
+    });
+    if (!n) return out;
+    var h = hostOf(n);
+    if (h) out.push({ n: h.id });
+    if (n.kind === "host") {
+      guestsOf(n).forEach(function (c) { out.push({ n: c.id }); });
+      var srv = hostServer(n);
+      if (srv) out.push({ n: srv.id, s: n.id });
+    }
+    if (n.kind === "device") layout.nodes.forEach(function (o) { if (o.kind === "host" && o.host_device === n.device) out.push({ n: o.id, s: o.id }); });
+    return out;
+  }
+  // hostServer: the node of the physical server a hypervisor runs on
+  function hostServer(h) {
+    if (!h.host_device) return null;
+    for (var i = 0; i < layout.nodes.length; i++) if (layout.nodes[i].kind === "device" && layout.nodes[i].device === h.host_device) return layout.nodes[i];
+    return null;
+  }
   function findPath(from, to) {
     var prev = {}, queue = [from];
     prev[from] = null;
     while (queue.length && !(to in prev)) {
       var x = queue.shift();
-      layout.links.forEach(function (k) {
-        var y = k.a === x ? k.b : k.b === x ? k.a : null;
-        if (y !== null && !(y in prev)) { prev[y] = { n: x, k: k.id }; queue.push(y); }
+      neighbours(x).forEach(function (e) {
+        if (!(e.n in prev)) { prev[e.n] = { n: x, k: e.k, s: e.s }; queue.push(e.n); }
       });
     }
     if (!(to in prev)) return null;
-    var res = { nodes: {}, links: {}, hops: 0 };
-    for (var c = to; c !== from; c = prev[c].n) { res.nodes[c] = true; res.links[prev[c].k] = true; res.hops++; }
+    var res = { nodes: {}, links: {}, hostlinks: {}, hops: 0 };
+    for (var c = to; c !== from; c = prev[c].n) {
+      res.nodes[c] = true;
+      if (prev[c].k !== undefined) { res.links[prev[c].k] = true; res.hops++; }
+      if (prev[c].s !== undefined) res.hostlinks[prev[c].s] = true;
+    }
     res.nodes[from] = true;
     layout.nodes.forEach(function (n) { if (res.nodes[n.id] && n.parent) res.nodes[n.parent] = true; });
     return res;

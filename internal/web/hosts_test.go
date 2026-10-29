@@ -35,6 +35,11 @@ func TestHypervisorHosts(t *testing.T) {
 	if r := c.get("/maps/1/layout"); !strings.Contains(r.body, `"host_device":1`) || !strings.Contains(r.body, `"kind":"host"`) {
 		t.Fatalf("layout: %s", r.body)
 	}
+	// a hypervisor needs its physical server
+	noServer := store.MapLayout{Nodes: []store.MapNode{{ID: -1, Kind: "host", Label: "lonely", Icon: "lib:hv-proxmox"}}}
+	if r := c.postJSON("/maps/1/layout", noServer); r.code != http.StatusBadRequest || !strings.Contains(r.body, "physical server") {
+		t.Fatalf("hypervisor without server: %d %s", r.code, r.body)
+	}
 	// the live data knows the physical server's state
 	r = c.get("/maps/1/live")
 	var live store.MapLive

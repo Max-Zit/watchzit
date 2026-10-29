@@ -396,9 +396,10 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 			}
 		case NodeHost:
 			n.DeviceID, n.SubmapID, n.Parent, n.U = 0, 0, 0, 0
-			if n.HostDevice > 0 {
-				hostDev = &n.HostDevice
+			if n.HostDevice <= 0 {
+				return nil, errors.New("choose the physical server of each hypervisor")
 			}
+			hostDev = &n.HostDevice
 		default:
 			return nil, errors.New("unknown node kind")
 		}

@@ -577,6 +577,7 @@ main:has(.mapview) { max-width: none; padding-bottom: 12px; }
 .node.n-label.sel .maplabel { fill: var(--accent); }
 /* links */
 .link { cursor: pointer; }
+.link.labels { pointer-events: none; }
 .link .hit { stroke: transparent; stroke-width: 16; }
 .link.sel .wire { filter: drop-shadow(0 0 3px var(--accent)); }
 .link .lbl { font: 11px var(--font); fill: var(--muted); paint-order: stroke; stroke: var(--panel); stroke-width: 4px; stroke-linejoin: round; }
@@ -674,6 +675,9 @@ main:has(.mapview) { max-width: none; padding-bottom: 12px; }
 .host.s-warning .dot { fill: var(--warn); }
 .host.sel .hostbox { stroke: var(--accent); stroke-width: 3; }
 .host.s-down .hostbox { stroke: var(--bad); }
+.hostlink .wire { stroke: #7c3aed; stroke-width: 2; stroke-dasharray: 3 5; fill: none; opacity: .85; }
+.mapsvg.pathmode .hostlink:not(.onpath), .mapsvg.hide-hosts .hostlink, .mapsvg.vlanmode .hostlink { display: none; }
+.mapsvg.pathmode .hostlink.onpath .wire { stroke-width: 3.5; }
 .bgimg { pointer-events: none; }
 .bgimg.movable { pointer-events: auto; cursor: move; outline: 2px dashed var(--accent); }
 .mapsvg.far .rack .unum, .mapsvg.far .node.mounted .name.side { display: none; }
