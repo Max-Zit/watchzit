@@ -29,9 +29,9 @@
 
 <h2 id="ha">HA groups</h2>
 <ul>
-  <li>Devices that stand in for each other — a firewall HA pair, VRRP or HSRP routers, a switch stack or MLAG/vPC pair, a server or storage cluster — form a <b>HA group</b>: while editing, choose <b>HA group → New HA group</b> in the panel of the first device, then the same group in the panel of the others. The group is a dashed frame around its members; its panel sets the name and kind.</li>
+  <li>Devices that stand in for each other — a firewall HA pair, VRRP or HSRP routers, a switch stack or MLAG/vPC pair, a server or storage cluster — form a <b>HA group</b>: while editing, choose <b>HA group → New HA group</b> in the panel of the first device, then the same group in the panel of the others. The group is a dashed frame around its members; members mounted in a rack get only a thin outline and a small <b>⇅ HA</b> tag where one meets the next, so the units around stay clear (click the tag to open the group). The group panel sets the name and kind.</li>
   <li><b>Path</b> goes through every member of a group and shows every equal route (for example 2 routes through two firewalls). Mark the cable between the members (heartbeat, sync, stack, peer link) with the cable kind <b>HA link</b>; it is not a way for traffic.</li>
-  <li>The frame is green while all members are up, amber with <i>redundancy lost</i> when some are down and red when all are down. The trigger <b>HA group without redundancy</b> opens a problem then (see Alerts).</li>
+  <li>The frame (or tag) is green while all members are up, amber with <i>redundancy lost</i> when some are down and red when all are down. The trigger <b>HA group without redundancy</b> opens a problem then (see Alerts).</li>
   <li>Members that report VRRP show <b>ACTIVE</b> or <b>STANDBY</b>, and the group panel says since when.</li>
 </ul>
 

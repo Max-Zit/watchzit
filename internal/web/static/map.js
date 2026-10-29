@@ -890,6 +890,26 @@
     });
     var st = haStatus(g), sel = selected && selected.type === "ha" && selected.id === g.id;
     var on = path && ms.some(function (n) { return path.nodes[n.id]; });
+    var title = haKindName(g.kind) + ": " + haName(g) + (st === "warning" ? " — " + T("redundancy lost") : "");
+    if (ms.every(function (n) { return rackOf(n); })) {
+      // in a rack: a tight outline over the members and a small ⇅ HA tag
+      // where one meets the next, so the units around stay clear
+      var gt = el("g", { "class": "hagroup tight" + (st ? " s-" + st : "") + (sel ? " sel" : "") + (on ? " onpath" : ""), "data-ha": g.id }, gLabels);
+      el("rect", { "class": "haframe", x: x0 - 1, y: y0 - 1, width: x1 - x0 + 2, height: y1 - y0 + 2, rx: 3 }, gt);
+      var byY = ms.slice().sort(function (a, b) { return a.y - b.y; });
+      var tag = function (y) {
+        var t = el("g", { "class": "hatag", transform: "translate(" + (x1 - 30) + " " + y + ")" }, gt);
+        el("rect", { x: -22, y: -8, width: 44, height: 16, rx: 8 }, t);
+        el("text", { y: 4, "text-anchor": "middle" }, t).textContent = st === "warning" || st === "down" ? "⇅ HA !" : "⇅ HA";
+      };
+      if (byY.length < 2) tag(y0);
+      for (var i = 1; i < byY.length; i++) {
+        var a = byY[i - 1], c = byY[i];
+        tag(((a.y + box(a).h / 2) + (c.y - box(c).h / 2)) / 2);
+      }
+      el("title", {}, gt).textContent = title;
+      return;
+    }
     var gr = el("g", { "class": "hagroup" + (st ? " s-" + st : "") + (sel ? " sel" : "") + (on ? " onpath" : ""), "data-ha": g.id }, gRacks);
     el("rect", { "class": "haframe", x: x0 - 14, y: y0 - 26, width: x1 - x0 + 28, height: y1 - y0 + 40, rx: 12 }, gr);
     el("text", { "class": "haname", x: x0 - 6, y: y0 - 10 }, gr).textContent = "HA · " + haName(g) + (st === "warning" ? "  — " + T("redundancy lost") : "");

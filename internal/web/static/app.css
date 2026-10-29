@@ -884,3 +884,13 @@ body.graph-full { overflow: hidden; }
 .graph-query textarea { width: 100%; font-size: 12.5px; }
 .graph-try { margin: 0; overflow-wrap: anywhere; }
 .graph-err { margin: 0 0 6px; overflow-wrap: anywhere; }
+/* HA members in a rack: tight outline, a small tag between them */
+.hagroup.tight .haframe { stroke-width: 1.5; stroke-dasharray: 5 3; pointer-events: none; }
+.hagroup.tight.s-warning .haframe, .hagroup.tight.s-down .haframe, .hagroup.tight.sel .haframe { stroke-width: 2; }
+.hagroup .hatag { cursor: pointer; }
+.hagroup .hatag rect { fill: var(--panel); stroke: #f59e0b; stroke-width: 1.5; }
+.hagroup .hatag text { font: 700 9.5px var(--font); fill: #f59e0b; letter-spacing: .04em; }
+.hagroup.s-up .hatag rect { stroke: var(--ok); } .hagroup.s-up .hatag text { fill: var(--ok); }
+.hagroup.s-warning .hatag rect { stroke: var(--warn); } .hagroup.s-warning .hatag text { fill: var(--warn); }
+.hagroup.s-down .hatag rect { stroke: var(--bad); } .hagroup.s-down .hatag text { fill: var(--bad); }
+.hagroup.sel .hatag rect { stroke: var(--accent); stroke-width: 2; }
