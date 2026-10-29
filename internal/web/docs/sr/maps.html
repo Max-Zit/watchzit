@@ -29,7 +29,7 @@
 
 <h2 id="ha">HA grupe</h2>
 <ul>
-  <li>Uređaji koji zamenjuju jedan drugog — firewall HA par, VRRP ili HSRP ruteri, stack ili MLAG/vPC par svičeva, klaster servera ili storage-a — čine <b>HA grupu</b>: u izmeni mape izaberite <b>HA grupa → Nova HA grupa</b> u panelu prvog uređaja, pa istu grupu u panelu ostalih. Grupa je isprekidan okvir oko članova; članovi u racku dobijaju samo tanku ivicu i malu oznaku <b>⇅ HA</b> na spoju između njih, da ostali uređaji ostanu čisti (klik na oznaku otvara grupu). Panel grupe podešava ime i vrstu.</li>
+  <li>Uređaji koji zamenjuju jedan drugog — firewall HA par, VRRP ili HSRP ruteri, stack ili MLAG/vPC par svičeva, klaster servera ili storage-a — čine <b>HA grupu</b>: u izmeni mape izaberite <b>HA grupa → Nova HA grupa</b> u panelu prvog uređaja, pa istu grupu u panelu ostalih. Grupa je isprekidan okvir oko članova; članovi u racku dobijaju samo tanku ivicu i malu oznaku <b>⇅ HA</b> na spoju između njih, da ostali uređaji ostanu čisti (klik na oznaku otvara grupu); VRRP uloga stoji sitno pored oznake na svakom članu — ACTIVE zeleno, STANDBY žuto. Panel grupe podešava ime i vrstu.</li>
   <li><b>Putanja</b> ide kroz sve članove grupe i prikazuje sve jednake rute (npr. 2 rute kroz dva firewall-a). Kabl između članova (heartbeat, sync, stack, peer link) označite vrstom kabla <b>HA veza</b>; on nije put za saobraćaj.</li>
   <li>Okvir (ili oznaka) je zelen dok svi članovi rade, narandžast sa <i>redundansa izgubljena</i> kada neki ne rade i crven kada ne radi nijedan. Okidač <b>HA grupa bez redundanse</b> tada otvara problem (vidi Upozorenja).</li>
   <li>Članovi koji javljaju VRRP prikazuju <b>AKTIVAN</b> ili <b>REZERVA</b>, a panel grupe kaže od kada.</li>

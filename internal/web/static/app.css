@@ -894,3 +894,5 @@ body.graph-full { overflow: hidden; }
 .hagroup.s-warning .hatag rect { stroke: var(--warn); } .hagroup.s-warning .hatag text { fill: var(--warn); }
 .hagroup.s-down .hatag rect { stroke: var(--bad); } .hagroup.s-down .hatag text { fill: var(--bad); }
 .hagroup.sel .hatag rect { stroke: var(--accent); stroke-width: 2; }
+.harole.mini { font-size: 5px; letter-spacing: .05em; stroke-width: 1.5px; }
+.harole.mini.r-backup { fill: var(--warn); }

@@ -445,7 +445,8 @@
       el("rect", { "class": "stripe", x: -b.w / 2 - 7, y: -b.h / 2 + 1, width: 4, height: b.h - 2, rx: 2 }, g);
       el("rect", { "class": "ring", x: -b.w / 2 - 2, y: -b.h / 2 - 1, width: b.w + 4, height: b.h + 2, rx: 2 }, g);
       el("text", { "class": "name side", x: b.w / 2 + 10, y: 4 }, g).textContent = name;
-      haRole(g, n, b.w / 2 + 10, -10, "start");
+      var hg = haOf(n);
+      if (!hg || !haTight(hg)) haRole(g, n, b.w / 2 + 10, -10, "start"); // in a rack HA group the tag shows it
     } else if (p) {
       if (st === "down") el("rect", { "class": "pulse", x: -b.w / 2 - 8, y: -b.h / 2 - 8, width: b.w + 16, height: b.h + 16, rx: 12 }, g);
       el("rect", { "class": "frame", x: -b.w / 2 - 5, y: -b.h / 2 - 5, width: b.w + 10, height: b.h + 10, rx: 8 }, g);
@@ -878,6 +879,11 @@
     return up ? "up" : "";
   }
   function haKindName(k) { for (var i = 0; i < HA_KINDS.length; i++) if (HA_KINDS[i][0] === k) return T(HA_KINDS[i][1]); return k; }
+  // haTight: every member is mounted in a rack (drawn as a small tag)
+  function haTight(g) {
+    var ms = haMembers(g);
+    return ms.length > 0 && ms.every(function (n) { return rackOf(n); });
+  }
   // drawHA: a dashed frame around the members, its name on top
   function drawHA(g) {
     var ms = haMembers(g);
@@ -891,7 +897,7 @@
     var st = haStatus(g), sel = selected && selected.type === "ha" && selected.id === g.id;
     var on = path && ms.some(function (n) { return path.nodes[n.id]; });
     var title = haKindName(g.kind) + ": " + haName(g) + (st === "warning" ? " — " + T("redundancy lost") : "");
-    if (ms.every(function (n) { return rackOf(n); })) {
+    if (haTight(g)) {
       // in a rack: a tight outline over the members and a small ⇅ HA tag
       // where one meets the next, so the units around stay clear
       var gt = el("g", { "class": "hagroup tight" + (st ? " s-" + st : "") + (sel ? " sel" : "") + (on ? " onpath" : ""), "data-ha": g.id }, gLabels);
@@ -902,7 +908,18 @@
         el("rect", { x: -22, y: -8, width: 44, height: 16, rx: 8 }, t);
         el("text", { y: 4, "text-anchor": "middle" }, t).textContent = st === "warning" || st === "down" ? "⇅ HA !" : "⇅ HA";
       };
-      if (byY.length < 2) tag(y0);
+      // the VRRP role of each member, small beside the tag: on its own side
+      var role = function (n, y) {
+        var d = n.kind === "device" ? live.devices[n.device] : null;
+        if (!d || !d.ha) return;
+        el("text", { "class": "harole mini r-" + d.ha, x: x1 - 56, y: y, "text-anchor": "end" }, gt).textContent = d.ha === "master" ? T("ACTIVE") : T("STANDBY");
+      };
+      if (byY.length < 2) { tag(y0); role(byY[0], y0 + 7); }
+      for (var j = 1; j < byY.length; j++) {
+        var top = byY[j - 1], bot = byY[j], mid = ((top.y + box(top).h / 2) + (bot.y - box(bot).h / 2)) / 2;
+        if (j === 1) role(top, mid - 2.5);
+        role(bot, mid + 6.5);
+      }
       for (var i = 1; i < byY.length; i++) {
         var a = byY[i - 1], c = byY[i];
         tag(((a.y + box(a).h / 2) + (c.y - box(c).h / 2)) / 2);
