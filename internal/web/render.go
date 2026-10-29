@@ -236,6 +236,12 @@ var funcs = template.FuncMap{
 	"ranges":      vlanRanges,
 	"vlanmode":    func(m string) string { return vlanModeNames[m] },
 	"pictureType": func(t string) string { return pictureTypeNames[t] },
+	"fval": func(p *float64) string {
+		if p == nil {
+			return ""
+		}
+		return strconv.FormatFloat(*p, 'g', -1, 64)
+	},
 	"deref64": func(p *int64) int64 {
 		if p == nil {
 			return 0
@@ -384,7 +390,7 @@ func (s *Server) redirectErr(w http.ResponseWriter, r *http.Request, to, msg str
 // old app.css or app.js from their cache after an update.
 var assetVersion = func() string {
 	h := sha256.New()
-	for _, f := range []string{"static/app.css", "static/app.js", "static/chart.js", "static/map.js"} {
+	for _, f := range []string{"static/app.css", "static/app.js", "static/chart.js", "static/map.js", "static/graphedit.js", "static/pictures.js"} {
 		b, _ := staticFS.ReadFile(f)
 		h.Write(b)
 	}

@@ -66,6 +66,11 @@
     this.labels = (fig.getAttribute("data-labels") || "").split("|");
     this.range = fig.getAttribute("data-range") || "24h";
     this.unit = fig.getAttribute("data-unit") || "";
+    // how the user set the graph up: kind, stacking, fixed axis ends, thresholds
+    this.type = fig.getAttribute("data-type") || "line";
+    this.stack = fig.getAttribute("data-stack") === "1";
+    this.fixed = { min: numAttr(fig, "data-min"), max: numAttr(fig, "data-max"), warn: numAttr(fig, "data-warn"), crit: numAttr(fig, "data-crit") };
+    this.addExpand();
     this.zoom = null; // {from, to} in Unix seconds
     this.data = null; // one result per series
     this.drag = null;
@@ -73,6 +78,35 @@
     this.legend = this.makeLegend();
     this.bind();
   }
+
+  function numAttr(el, name) {
+    var v = el.getAttribute(name);
+    return v === null || v === "" || isNaN(+v) ? null : +v;
+  }
+
+  // addExpand: a button that shows the graph over the whole window (Esc or
+  // the button again goes back)
+  Graph.prototype.addExpand = function () {
+    var g = this, cap = this.fig.querySelector("figcaption");
+    if (!cap) return;
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "graph-expand";
+    b.title = b.textContent = "⤢";
+    b.setAttribute("aria-label", "⤢");
+    b.addEventListener("click", function () { g.setFull(!g.fig.classList.contains("full")); });
+    cap.appendChild(b);
+  };
+  Graph.prototype.setFull = function (on) {
+    this.fig.classList.toggle("full", on);
+    document.body.classList.toggle("graph-full", on);
+    var g = this;
+    setTimeout(function () { g.load(); }, 30); // more points for the wider canvas
+  };
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key !== "Escape") return;
+    graphs.forEach(function (g) { if (g.fig.classList.contains("full")) g.setFull(false); });
+  });
 
   Graph.prototype.makeLegend = function () {
     var heads = (this.fig.getAttribute("data-legend") || "Last|Min|Avg|Max").split("|");
@@ -160,6 +194,21 @@
     return segs;
   }
 
+  // stackTops: for stacked graphs, each series added to the ones before it
+  // (series of one check share their times; others are matched by index)
+  function stackTops(ds) {
+    var out = [], n = ds[0].t.length;
+    ds.forEach(function (d, si) {
+      var row = [];
+      for (var i = 0; i < n; i++) {
+        var v = d.avg[i] === null || d.avg[i] === undefined ? 0 : d.avg[i];
+        row.push((si ? out[si - 1][i] : 0) + v);
+      }
+      out.push(row);
+    });
+    return out;
+  }
+
   function nearest(d, t) {
     if (!d.t.length) return null;
     var lo = 0, hi = d.t.length - 1;
@@ -184,17 +233,21 @@
       return;
     }
     var from = ds[0].from, to = ds[0].to, span = Math.max(1, to - from);
-    var single = ds.length === 1;
+    var single = ds.length === 1 && this.type === "line";
+    var tops = this.stack ? stackTops(ds) : null, fx = this.fixed, kind = this.type;
+    var val = function (si, i) { return tops ? (tops[si][i] === undefined ? null : tops[si][i]) : ds[si].avg[i]; };
     var lo = Infinity, hi = -Infinity;
-    ds.forEach(function (d) {
+    ds.forEach(function (d, si) {
       var band = single && d.min && d.min.length === d.t.length && d.step > 0;
       for (var i = 0; i < d.t.length; i++) {
-        var a = band ? d.min[i] : d.avg[i], b = band ? d.max[i] : d.avg[i];
+        var a = band ? d.min[i] : val(si, i), b = band ? d.max[i] : val(si, i);
         if (a !== null && a < lo) lo = a;
         if (b !== null && b > hi) hi = b;
       }
     });
+    [fx.warn, fx.crit].forEach(function (v) { if (v !== null) { lo = Math.min(lo, v); hi = Math.max(hi, v); } });
     if (!isFinite(lo)) { lo = 0; hi = 1; }
+    if (kind !== "line" || tops) lo = Math.min(lo, 0);
     if (lo > 0 && lo < hi * 0.5) lo = 0; // start at zero when it is near
     if (this.unit === "%") { lo = Math.min(lo, 0); hi = Math.max(hi, lo + 1); }
     if (scaled[this.unit] && lo > 0) lo = 0;
@@ -202,6 +255,10 @@
     var step = niceStep(hi - lo, Math.max(2, Math.floor(ph / 40)), this.unit);
     lo = Math.floor(lo / step) * step;
     hi = Math.ceil(hi / step) * step;
+    if (fx.min !== null) lo = fx.min;
+    if (fx.max !== null) hi = fx.max;
+    if (hi <= lo) hi = lo + 1;
+    if (fx.min !== null || fx.max !== null) step = niceStep(hi - lo, Math.max(2, Math.floor(ph / 40)), this.unit);
     var X = function (t) { return L.l + (t - from) / span * pw; };
     var Y = function (v) { return L.t + ph - (v - lo) / (hi - lo) * ph; };
     this.from = from; this.to = to;
@@ -232,43 +289,73 @@
     ctx.beginPath();
     ctx.rect(L.l, L.t, pw, ph);
     ctx.clip();
-    ds.forEach(function (d, si) {
-      var col = g.color(si), segs = segments(d), half = d.step > 0 ? d.step / 2 : 0;
-      var band = single && d.min && d.min.length === d.t.length && d.step > 0;
-      if (band) {
-        ctx.fillStyle = col;
-        ctx.globalAlpha = 0.16;
-        segs.forEach(function (s) {
-          ctx.beginPath();
-          s.forEach(function (n, q) { var px = X(d.t[n] + half), py = Y(d.max[n]); if (q) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
-          for (var q = s.length - 1; q >= 0; q--) ctx.lineTo(X(d.t[s[q]] + half), Y(d.min[s[q]]));
-          ctx.closePath();
-          ctx.fill();
-        });
-        ctx.globalAlpha = 1;
-      } else if (!single) {
-        // a light fill under each line, like a stacked look without stacking
-        ctx.fillStyle = col;
-        ctx.globalAlpha = 0.08;
-        segs.forEach(function (s) {
-          ctx.beginPath();
-          ctx.moveTo(X(d.t[s[0]] + half), Y(lo));
-          s.forEach(function (n) { ctx.lineTo(X(d.t[n] + half), Y(d.avg[n])); });
-          ctx.lineTo(X(d.t[s[s.length - 1]] + half), Y(lo));
-          ctx.closePath();
-          ctx.fill();
-        });
-        ctx.globalAlpha = 1;
-      }
-      ctx.strokeStyle = col;
-      ctx.lineWidth = 1.6;
-      ctx.lineJoin = "round";
-      segs.forEach(function (s) {
-        ctx.beginPath();
-        s.forEach(function (n, q) { var px = X(d.t[n] + half), py = Y(d.avg[n]); if (q) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
-        if (s.length === 1) { ctx.arc(X(d.t[s[0]] + half), Y(d.avg[s[0]]), 1.5, 0, 7); }
-        ctx.stroke();
+    // series: lines (with the min–max band of a single series), areas or
+    // bars, stacked when asked (each on top of the ones before)
+    var under = function (si, i) { return tops && si > 0 ? tops[si - 1][i] : null; };
+    if (kind === "bar") {
+      var n = ds[0].t.length || 1, slot = pw / n, bw = Math.max(1, slot * 0.8 / (tops ? 1 : ds.length));
+      ds.forEach(function (d, si) {
+        var half = d.step > 0 ? d.step / 2 : 0;
+        ctx.fillStyle = g.color(si);
+        for (var i = 0; i < d.t.length; i++) {
+          if (d.avg[i] === null) continue;
+          var x = X(d.t[i] + half) - (tops ? bw / 2 : slot * 0.4 - si * bw);
+          var top = Y(val(si, i)), base = Y(under(si, i) !== null ? under(si, i) : Math.max(lo, 0));
+          ctx.fillRect(x, Math.min(top, base), bw, Math.abs(base - top) || 1);
+        }
       });
+    } else {
+      ds.forEach(function (d, si) {
+        var col = g.color(si), segs = segments(d), half = d.step > 0 ? d.step / 2 : 0;
+        var band = single && d.min && d.min.length === d.t.length && d.step > 0;
+        if (band) {
+          ctx.fillStyle = col;
+          ctx.globalAlpha = 0.16;
+          segs.forEach(function (s) {
+            ctx.beginPath();
+            s.forEach(function (n, q) { var px = X(d.t[n] + half), py = Y(d.max[n]); if (q) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
+            for (var q = s.length - 1; q >= 0; q--) ctx.lineTo(X(d.t[s[q]] + half), Y(d.min[s[q]]));
+            ctx.closePath();
+            ctx.fill();
+          });
+          ctx.globalAlpha = 1;
+        } else if (kind === "area" || tops || !single) {
+          // filled under the line (down to the series below when stacked);
+          // a plain line graph of several series gets only a light fill
+          ctx.fillStyle = col;
+          ctx.globalAlpha = kind === "area" || tops ? 0.28 : 0.08;
+          segs.forEach(function (s) {
+            ctx.beginPath();
+            s.forEach(function (n, q) { var px = X(d.t[n] + half), py = Y(val(si, n)); if (q) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
+            for (var q = s.length - 1; q >= 0; q--) {
+              var b0 = under(si, s[q]);
+              ctx.lineTo(X(d.t[s[q]] + half), Y(b0 !== null ? b0 : Math.max(lo, Math.min(0, hi))));
+            }
+            ctx.closePath();
+            ctx.fill();
+          });
+          ctx.globalAlpha = 1;
+        }
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 1.6;
+        ctx.lineJoin = "round";
+        segs.forEach(function (s) {
+          ctx.beginPath();
+          s.forEach(function (n, q) { var px = X(d.t[n] + half), py = Y(val(si, n)); if (q) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
+          if (s.length === 1) { ctx.arc(X(d.t[s[0]] + half), Y(val(si, s[0])), 1.5, 0, 7); }
+          ctx.stroke();
+        });
+      });
+    }
+    // threshold lines
+    [[fx.warn, css("--warn") || "#d97706"], [fx.crit, css("--bad") || "#dc2626"]].forEach(function (th) {
+      if (th[0] === null) return;
+      var ty = Math.round(Y(th[0])) + 0.5;
+      ctx.strokeStyle = th[1];
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath(); ctx.moveTo(L.l, ty); ctx.lineTo(L.l + pw, ty); ctx.stroke();
+      ctx.setLineDash([]);
     });
     // drag selection
     if (this.drag && this.drag.x1 !== undefined) {
@@ -287,7 +374,7 @@
         var i = nearest(d, g.hover - (d.step > 0 ? d.step / 2 : 0));
         if (i === null || d.avg[i] === null) return;
         ctx.fillStyle = g.color(si);
-        ctx.beginPath(); ctx.arc(X(d.t[i] + (d.step > 0 ? d.step / 2 : 0)), Y(d.avg[i]), 3, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.arc(X(d.t[i] + (d.step > 0 ? d.step / 2 : 0)), Y(val(si, i)), 3, 0, 7); ctx.fill();
       });
     }
     ctx.restore();

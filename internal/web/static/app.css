@@ -489,7 +489,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line-2)
 .graph figcaption { font-size: 13px; margin-bottom: 6px; color: var(--muted); }
 .graph figcaption b { color: var(--text); font-weight: 600; }
 .graph canvas { display: block; width: 100%; height: 190px; cursor: crosshair; touch-action: pan-y; }
-.graph-tip { position: absolute; top: 10px; right: 14px; font-size: 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 8px; color: var(--text); font-variant-numeric: tabular-nums; }
+.graph-tip { position: absolute; top: 10px; right: 40px; font-size: 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 8px; color: var(--text); font-variant-numeric: tabular-nums; }
 .graph.zoomed figcaption::after { content: " ⤢"; color: var(--accent); }
 .addcheck > summary { list-style: none; display: inline-flex; }
 .addcheck > summary::-webkit-details-marker { display: none; }
@@ -855,3 +855,20 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line-2)
 .pdot.sfp { background: rgba(245, 158, 11, .9); }
 input.w-sm { width: 80px; display: inline-block; }
 label.inline { display: inline-flex; align-items: center; gap: 6px; }
+
+/* graphs: sizes, full window, editing */
+.graph.w-full { grid-column: 1 / -1; }
+.graph.h-s canvas { height: 120px; }
+.graph.h-l canvas { height: 320px; }
+.graph-expand { float: right; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 4px; margin-left: 6px; }
+.graph-expand:hover { color: var(--accent); }
+.graph.full { position: fixed; inset: 16px; z-index: 60; overflow: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, .45); }
+.graph.full canvas { height: calc(100vh - 200px); }
+body.graph-full { overflow: hidden; }
+.graphs.editing .graph { outline: 2px dashed var(--line-2, #64748b); outline-offset: 2px; }
+.graph-tools { display: flex; gap: 2px; justify-content: flex-end; margin: -4px 0 4px; }
+.graph-tools button { min-width: 28px; }
+.graphbar { gap: 8px; margin: -8px 0 12px; }
+.graph-editor { width: min(560px, calc(100vw - 32px)); border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--text); padding: 18px; }
+.graph-editor::backdrop { background: rgba(0, 0, 0, .5); }
+.graph-series { max-height: 260px; overflow: auto; display: grid; gap: 4px; }

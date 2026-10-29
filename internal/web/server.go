@@ -301,6 +301,7 @@ func (s *Server) Handler() http.Handler {
 	write("GET /devices/{id}/edit", s.handleDeviceForm)
 	write("POST /devices/{id}/edit", s.handleDeviceUpdate)
 	write("POST /devices/{id}/delete", s.handleDeviceDelete)
+	write("POST /devices/{id}/graphs", s.handleDeviceGraphs)
 	write("POST /devices/{id}/checks", s.handleCheckCreate)
 	write("GET /devices/{id}/discover", s.handleDiscover)
 	write("POST /devices/{id}/discover", s.handleDiscoverSave)

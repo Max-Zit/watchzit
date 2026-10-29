@@ -123,11 +123,23 @@
 
 {{if .Data.Graphs}}
 <div class="titlebar"><h2>{{.T "Graphs"}}</h2>
+  <div class="row">
   <nav class="seg" aria-label="{{.T "Time range"}}">{{range .Data.Ranges}}<a href="?range={{.}}{{with $.BackMap}}&amp;map={{.ID}}{{end}}" class="{{if eq . $.Data.Range}}on{{end}}">{{.}}</a>{{end}}</nav>
+  {{if .Data.GraphEdit}}<button type="button" class="btn secondary sm" data-graph-edit>{{template "icon" "edit"}}<span>{{.T "Edit graphs"}}</span></button>{{end}}
+  </div>
 </div>
+{{if .Data.GraphEdit}}<div class="row graphbar" data-graph-bar hidden>
+  <button type="button" class="btn primary sm" data-graph-add>{{template "icon" "plus"}}<span>{{.T "Add graph"}}</span></button>
+  <button type="button" class="btn secondary sm" data-graph-done>{{.T "Done"}}</button>
+  <button type="button" class="btn ghost sm" data-graph-reset data-confirm-text="{{.T "Go back to the automatic graphs? Your arrangement is removed."}}">{{.T "Automatic graphs"}}</button>
+  <span class="small muted" data-graph-status></span>
+</div>
+<script type="application/json" id="graph-edit" data-device="{{.Data.D.ID}}">{{.Data.GraphEdit}}</script>
+<div id="graph-text" hidden data-title="{{.T "Title"}}" data-kind="{{.T "Kind"}}" data-line="{{.T "Line"}}" data-area="{{.T "Area"}}" data-bar="{{.T "Bars"}}" data-stack="{{.T "Stack the values"}}" data-values="{{.T "Values"}}" data-min="{{.T "Axis minimum"}}" data-max="{{.T "Axis maximum"}}" data-warn="{{.T "Warning line"}}" data-crit="{{.T "Critical line"}}" data-auto="{{.T "automatic"}}" data-save="{{.T "Save"}}" data-cancel="{{.T "Cancel"}}" data-edit="{{.T "Edit"}}" data-wider="{{.T "Width"}}" data-taller="{{.T "Height"}}" data-up="{{.T "Move up"}}" data-down="{{.T "Move down"}}" data-remove="{{.T "Remove"}}" data-pick="{{.T "Choose at least one value."}}" data-saving="{{.T "Saving…"}}" data-new="{{.T "New graph"}}"></div>{{end}}
 <div class="graphs">
 {{range $g := .Data.Graphs}}{{template "graphfig" (graphOf $ $g $.Data.Range)}}{{end}}
 </div>
+{{if .Data.GraphEdit}}<script src="/static/graphedit.js?v={{.Asset}}" defer></script>{{end}}
 {{end}}
 
 <section class="panel">

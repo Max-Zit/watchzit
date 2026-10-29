@@ -108,8 +108,8 @@
   <a href="/alerts/maintenance" class="{{if eq .Title "Maintenance"}}on{{end}}">{{template "icon" "wrench"}}{{.T "Maintenance"}}</a>
   {{if .User.IsAdmin}}<a href="/settings/notifications">{{template "icon" "mail"}}{{.T "Notifications"}}</a>{{end}}
 </nav>{{end}}
-{{define "graphfig"}}{{$p := .P}}{{$g := .G}}<figure class="panel graph" id="graph-{{$g.Check.ID}}" data-series="{{range $i, $s := $g.Series}}{{if $i}},{{end}}{{$s.ID}}{{end}}" data-labels="{{range $i, $s := $g.Series}}{{if $i}}|{{end}}{{$p.T (metricName $s.Metric)}}{{end}}" data-range="{{.Range}}" data-unit="{{$g.Unit}}" data-nodata="{{$p.T "No data in this time range yet."}}" data-legend="{{$p.T "Last"}}|{{$p.T "Min"}}|{{$p.T "Avg"}}|{{$p.T "Max"}}">
-    <figcaption><b>{{with .Title}}{{.}}{{else}}{{$g.Check.Name}}{{end}}</b>{{if not .Title}} · {{$p.T $g.Title}}{{else}} <span class="muted small">· {{$g.Check.Device}}</span>{{end}}</figcaption>
+{{define "graphfig"}}{{$p := .P}}{{$g := .G}}<figure class="panel graph{{with $g.Panel}}{{if eq .Width "full"}} w-full{{end}}{{with .Height}} h-{{.}}{{end}}{{end}}" id="graph-{{$g.Check.ID}}" data-panel="{{$g.ID}}" data-series="{{range $i, $s := $g.Series}}{{if $i}},{{end}}{{$s.ID}}{{end}}" data-labels="{{if $g.Labels}}{{join $g.Labels "|"}}{{else}}{{range $i, $s := $g.Series}}{{if $i}}|{{end}}{{$p.T (metricName $s.Metric)}}{{end}}{{end}}"{{with $g.Panel}} data-type="{{.Type}}"{{if .Stack}} data-stack="1"{{end}} data-min="{{fval .Min}}" data-max="{{fval .Max}}" data-warn="{{fval .Warn}}" data-crit="{{fval .Crit}}"{{end}} data-range="{{.Range}}" data-unit="{{$g.Unit}}" data-nodata="{{$p.T "No data in this time range yet."}}" data-legend="{{$p.T "Last"}}|{{$p.T "Min"}}|{{$p.T "Avg"}}|{{$p.T "Max"}}">
+    <figcaption><b>{{with .Title}}{{.}}{{else}}{{with $g.Name}}{{.}}{{else}}{{$g.Check.Name}}{{end}}{{end}}</b>{{if .Title}} <span class="muted small">· {{$g.Check.Device}}</span>{{else if not $g.Name}} · {{$p.T $g.Title}}{{end}}</figcaption>
     <canvas role="img" aria-label="{{$g.Check.Name}}: {{$p.T $g.Title}}"></canvas>
     <div class="graph-tip" hidden></div>
   </figure>{{end}}

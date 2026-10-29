@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"html/template"
 	"math"
 	"net/http"
 	"sort"
@@ -83,6 +84,7 @@ type deviceData struct {
 	D          *store.Device
 	Checks     []*store.Check
 	Graphs     []graphDef
+	GraphEdit  template.JS // JSON for the graph editor (HTML-safe, from json.Marshal): the graphs as panels and every series
 	Range      string
 	Ranges     []string
 	New        store.CheckInput // the add-check form after an error
@@ -110,6 +112,11 @@ type graphDef struct {
 	Title  string // metric name, translated in the template
 	Unit   string
 	Series []store.Series
+	// arranged by the user (empty for automatic graphs)
+	ID     string
+	Name   string   // the title the user gave
+	Labels []string // series labels when they come from several checks
+	Panel  *store.GraphPanel
 }
 
 // hiddenMetrics are kept but not drawn (they say little as a line).
@@ -197,8 +204,16 @@ func (s *Server) showDevice(w http.ResponseWriter, r *http.Request, status int, 
 	if !ok {
 		rg = "24h"
 	}
-	data := &deviceData{D: d, Checks: cs, Graphs: graphsOf(cs), Range: rg, Ranges: graphRanges, New: in, CheckTypes: store.CheckTypes, Traffic: map[int]*store.Check{}}
+	layout, err := s.store.DeviceGraphLayout(r.Context(), d.ID)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	data := &deviceData{D: d, Checks: cs, Graphs: arrangeGraphs(cs, layout), Range: rg, Ranges: graphRanges, New: in, CheckTypes: store.CheckTypes, Traffic: map[int]*store.Check{}}
 	data.Problems = s.deviceProblems(r.Context(), d.ID)
+	if u := userFrom(r); u != nil && u.CanWrite() {
+		data.GraphEdit = graphEditJSON(s.lang(r, u), cs, data.Graphs, layout)
+	}
 	data.Now = s.now()
 	if a, err := s.store.DeviceAccess(r.Context(), d.ID); err == nil {
 		data.Tools, data.AccessUser = s.toolsFor(r.Context(), d.Kind, a), a.User
@@ -692,4 +707,151 @@ func (s *Server) handleGroupDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	s.audit(r, "group.delete", "group:"+strconv.FormatInt(id, 10), "group deleted; its devices have no group now")
 	s.redirect(w, r, "/groups", "Group deleted. Its devices stay, without a group.")
+}
+
+// arrangeGraphs applies the user's arrangement to the graphs of a device:
+// the panels in their order, then automatic graphs of the series no panel
+// shows and that are not hidden.
+func arrangeGraphs(cs []*store.Check, l *store.GraphLayout) []graphDef {
+	auto := graphsOf(cs)
+	for i := range auto {
+		auto[i].ID = "a" + strconv.FormatInt(auto[i].Check.ID, 10) + "-" + strconv.Itoa(i)
+	}
+	if l == nil {
+		return auto
+	}
+	type owned struct {
+		c *store.Check
+		s store.Series
+	}
+	byID := map[int32]owned{}
+	for _, c := range cs {
+		for _, s := range c.Series {
+			byID[s.ID] = owned{c, s}
+		}
+	}
+	used := map[int32]bool{}
+	for _, id := range l.Hidden {
+		used[id] = true
+	}
+	var out []graphDef
+	for i := range l.Panels {
+		p := &l.Panels[i]
+		g := graphDef{ID: p.ID, Name: p.Title, Panel: p}
+		checks := map[int64]bool{}
+		for _, sid := range p.Series {
+			o, ok := byID[sid]
+			if !ok {
+				continue
+			}
+			used[sid] = true
+			if g.Check == nil {
+				g.Check, g.Unit, g.Title = o.c, o.s.Unit, metricNames[o.s.Metric]
+			}
+			checks[o.c.ID] = true
+			g.Series = append(g.Series, o.s)
+		}
+		if len(g.Series) == 0 {
+			continue
+		}
+		if len(checks) > 1 {
+			for _, sid := range p.Series {
+				if o, ok := byID[sid]; ok {
+					g.Labels = append(g.Labels, o.c.Name+" · "+metricNames[o.s.Metric])
+				}
+			}
+		} else if len(g.Series) > 1 && unitTitles[g.Unit] != "" {
+			g.Title = unitTitles[g.Unit]
+		}
+		out = append(out, g)
+	}
+	for _, a := range auto {
+		var rest []store.Series
+		for _, s := range a.Series {
+			if !used[s.ID] {
+				rest = append(rest, s)
+			}
+		}
+		if len(rest) == 0 {
+			continue
+		}
+		a.Series = rest
+		out = append(out, a)
+	}
+	return out
+}
+
+// graphEditJSON is what the graph editor of a device page works on: the
+// graphs as shown (automatic ones as panels too), the hidden series and
+// every series of the device with its name.
+func graphEditJSON(lang string, cs []*store.Check, gs []graphDef, l *store.GraphLayout) template.JS {
+	type series struct {
+		ID    int32  `json:"id"`
+		Label string `json:"label"`
+		Unit  string `json:"unit"`
+	}
+	out := struct {
+		Panels []store.GraphPanel `json:"panels"`
+		Hidden []int32            `json:"hidden"`
+		Series []series           `json:"series"`
+	}{Panels: []store.GraphPanel{}, Hidden: []int32{}, Series: []series{}}
+	for _, g := range gs {
+		p := store.GraphPanel{ID: g.ID}
+		if g.Panel != nil {
+			p = *g.Panel
+		}
+		p.Series = nil
+		for _, s := range g.Series {
+			p.Series = append(p.Series, s.ID)
+		}
+		out.Panels = append(out.Panels, p)
+	}
+	if l != nil {
+		out.Hidden = append(out.Hidden, l.Hidden...)
+	}
+	for _, c := range cs {
+		for _, s := range c.Series {
+			if hiddenMetrics[s.Metric] {
+				continue
+			}
+			out.Series = append(out.Series, series{s.ID, c.Name + " · " + translate(lang, metricNames[s.Metric]), s.Unit})
+		}
+	}
+	b, _ := json.Marshal(out) // escapes <, > and & for HTML
+	return template.JS(b)     // #nosec G203 -- JSON of our own data, HTML-escaped by json.Marshal
+}
+
+// handleDeviceGraphs stores how the graphs of a device are arranged (JSON),
+// or goes back to the automatic graphs (reset).
+func (s *Server) handleDeviceGraphs(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(r, "id")
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	if _, err := s.store.DeviceByID(r.Context(), id); err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	lang := s.lang(r, userFrom(r))
+	if r.URL.Query().Get("reset") == "1" {
+		if err := s.store.ResetDeviceGraphs(r.Context(), id); err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+		s.audit(r, "device.graphs", "device:"+strconv.FormatInt(id, 10), "graphs back to automatic")
+		writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+		return
+	}
+	var l store.GraphLayout
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 256<<10)).Decode(&l); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": translate(lang, "the graphs could not be read")})
+		return
+	}
+	if err := s.store.SetDeviceGraphLayout(r.Context(), id, &l); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": translate(lang, storeErr(err))})
+		return
+	}
+	s.audit(r, "device.graphs", "device:"+strconv.FormatInt(id, 10), "graphs arranged: %d", len(l.Panels))
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
