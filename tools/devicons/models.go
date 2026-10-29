@@ -265,5 +265,6 @@ func catalog() []model {
 	)
 	ms = append(ms, catalogMore()...)
 	ms = append(ms, catalogExtra()...)
-	return append(ms, catalogMisc()...)
+	ms = append(ms, catalogMisc()...)
+	return append(ms, catalogISP()...)
 }

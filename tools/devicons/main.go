@@ -320,6 +320,42 @@ func upsRack() *pic {
 	return p
 }
 
+// rackAccessory draws the passive rack parts: cable managers, brush panels,
+// shelves, fan trays, drawers and wider blanks.
+func rackAccessory(kind string, u int) *pic {
+	h := float64(u) * uH
+	p := newPic(rackW, h)
+	p.chassis(u, "")
+	switch kind {
+	case "rings":
+		for i := 0; i < 5; i++ {
+			x := 60 + float64(i)*90
+			p.add(`<path d="M%g %g h22 a8 8 0 0 1 8 8 v%g a8 8 0 0 1 -8 8 h-22" fill="none" stroke="#9aa5b5" stroke-width="3"/>`, x, 8.0, h-32)
+		}
+	case "brush":
+		p.add(`<rect x="40" y="%g" width="%g" height="12" rx="3" fill="#0c0f14"/>`, h/2-6, rackW-80)
+		for x := 44.0; x < rackW-44; x += 3 {
+			p.add(`<line x1="%g" y1="%g" x2="%g" y2="%g" stroke="#3a424f" stroke-width="1"/>`, x, h/2-6, x, h/2+6)
+		}
+	case "shelf":
+		p.add(`<rect x="24" y="%g" width="%g" height="5" fill="#59616e"/>`, h-9, rackW-48)
+		p.add(`<rect x="24" y="6" width="%g" height="%g" fill="none" stroke="#3a424f" stroke-dasharray="4 4"/>`, rackW-48, h-15)
+	case "fan":
+		for i := 0; i < 4; i++ {
+			cx := 90 + float64(i)*100
+			p.add(`<circle cx="%g" cy="%g" r="%g" fill="#0c0f14" stroke="#59616e"/><circle cx="%g" cy="%g" r="4" fill="#59616e"/>`, cx, h/2, h/2-6, cx, h/2)
+		}
+		p.led(rackW-40, h/2, "#36d27a")
+	case "drawer":
+		p.add(`<rect x="200" y="%g" width="82" height="8" rx="4" fill="#59616e"/>`, h/2-4)
+	case "vent":
+		for y := 8.0; y < h-6; y += 6 {
+			p.add(`<rect x="40" y="%g" width="%g" height="2.5" rx="1" fill="#0c0f14"/>`, y, rackW-80)
+		}
+	}
+	return p
+}
+
 func kvm() *pic {
 	p := newPic(rackW, uH)
 	p.chassis(1, "")
@@ -730,6 +766,15 @@ func main() {
 	addRack("ups-rack", "UPS 2U", "power", "ups", upsRack(), 0)
 	addRack("kvm", "KVM switch", "rack", "other", kvm(), 0)
 	addRack("blank-1u", "Blank panel 1U", "rack", "other", func() *pic { p := newPic(rackW, uH); p.chassis(1, ""); return p }(), 0)
+	addRack("blank-2u", "Blank panel 2U", "rack", "other", func() *pic { p := newPic(rackW, 2*uH); p.chassis(2, ""); return p }(), 0)
+	addRack("vent-1u", "Vented blank panel 1U", "rack", "other", rackAccessory("vent", 1), 0)
+	addRack("cable-manager-1u", "Cable manager 1U (rings)", "rack", "other", rackAccessory("rings", 1), 0)
+	addRack("cable-manager-2u", "Cable manager 2U (rings)", "rack", "other", rackAccessory("rings", 2), 0)
+	addRack("brush-panel-1u", "Brush panel 1U", "rack", "other", rackAccessory("brush", 1), 0)
+	addRack("shelf-1u", "Shelf 1U", "rack", "other", rackAccessory("shelf", 1), 0)
+	addRack("shelf-2u", "Shelf 2U", "rack", "other", rackAccessory("shelf", 2), 0)
+	addRack("fan-tray-1u", "Fan tray 1U", "rack", "other", rackAccessory("fan", 1), 0)
+	addRack("drawer-2u", "Drawer 2U", "rack", "other", rackAccessory("drawer", 2), 0)
 	// network, desktop and wall
 	for _, n := range []int{5, 8} {
 		add(fmt.Sprintf("switch-desk-%d", n), fmt.Sprintf("Desktop switch %d ports", n), "network", "switch", desktopSwitch(n), 50+float64(n)*12)
