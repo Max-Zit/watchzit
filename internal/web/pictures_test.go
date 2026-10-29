@@ -3,9 +3,11 @@ package web_test
 import (
 	"bytes"
 	"context"
+	"html"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -87,20 +89,33 @@ func TestPictureLibrary(t *testing.T) {
 		as[cp].Mime != "image/svg+xml" || len(as[cl].Meta.Ports) != 3 {
 		t.Fatalf("copies: %+v", as)
 	}
-	// the pencil of a built-in picture: one changed version that stands for
-	// it on the maps; asked again, the same one opens; its copy is its own
-	r = c.post("/pictures/copy", "name", "mikrotik-hex-rb750gr3", "mode", "edit")
-	changed := r.loc
-	if r.code != http.StatusSeeOther || !strings.HasPrefix(changed, "/pictures/") || changed == own {
-		t.Fatalf("edit built-in: %d %s", r.code, changed)
+	// the pencil of a built-in picture opens it without storing anything;
+	// saved unchanged, nothing is stored; saved with a change, one changed
+	// version stands for it on the maps and opens from then on
+	before, _ := e.st.Assets(ctx, "icon")
+	r = c.get("/pictures/builtin?lib=mikrotik-hex-rb750gr3")
+	if r.code != http.StatusOK || !strings.Contains(r.body, "data-piceditor") || !strings.Contains(r.body, `action="/pictures/builtin?lib=mikrotik-hex-rb750gr3"`) {
+		t.Fatalf("built-in editor: %d", r.code)
 	}
-	if r := c.post("/pictures/copy", "name", "mikrotik-hex-rb750gr3", "mode", "edit"); r.loc != changed {
-		t.Fatalf("second edit made another picture: %s", r.loc)
+	form := editorForm(r.body)
+	if r := c.post("/pictures/builtin?lib=mikrotik-hex-rb750gr3", form...); r.code != http.StatusSeeOther || r.loc != "/pictures" {
+		t.Fatalf("unchanged save: %d %s %q", r.code, r.loc, form)
+	}
+	if after, _ := e.st.Assets(ctx, "icon"); len(after) != len(before) {
+		t.Fatalf("opening and saving unchanged stored a picture: %d → %d", len(before), len(after))
+	}
+	form[len(form)-1] = "[[1,1]]" // ports
+	r = c.post("/pictures/builtin?lib=mikrotik-hex-rb750gr3", form...)
+	changed := r.loc
+	if r.code != http.StatusSeeOther || !strings.HasPrefix(changed, "/pictures/") || changed == "/pictures" {
+		t.Fatalf("changed save: %d %s", r.code, changed)
+	}
+	if r := c.get("/pictures/builtin?lib=mikrotik-hex-rb750gr3"); r.loc != changed {
+		t.Fatalf("the changed version does not open: %s", r.loc)
 	}
 	if r := c.get(changed); !strings.Contains(r.body, "notice-ok") {
 		t.Fatal("changed built-in picture not marked")
 	}
-	c.post(changed, "name", "hEX", "ports", "[[1,1]]")
 	r = c.post(changed + "/clone")
 	as, _ = e.st.Assets(ctx, "icon")
 	repl := 0
@@ -125,4 +140,30 @@ func TestPictureLibrary(t *testing.T) {
 	if r := c.get(own); r.code != http.StatusNotFound {
 		t.Fatalf("deleted picture still there: %d", r.code)
 	}
+}
+
+var fieldRE = regexp.MustCompile(`name="(name|vendor|u|show|fiber)" value="([^"]*)"`)
+var typeRE = regexp.MustCompile(`option value="(\w+)" selected`)
+var portsRE = regexp.MustCompile(`name="ports" value="([^"]*)"`)
+
+// editorForm reads the fields of the picture editor as the browser sends
+// them; the ports come last.
+func editorForm(body string) []string {
+	if i := strings.Index(body, "data-piceditor"); i >= 0 {
+		body = body[i:]
+	}
+	if i := strings.Index(body, "</form>"); i >= 0 {
+		body = body[:i]
+	}
+	var kv []string
+	for _, m := range fieldRE.FindAllStringSubmatch(body, -1) {
+		kv = append(kv, m[1], html.UnescapeString(m[2]))
+	}
+	if m := typeRE.FindStringSubmatch(body); m != nil {
+		kv = append(kv, "type", m[1])
+	}
+	if m := portsRE.FindStringSubmatch(body); m != nil {
+		kv = append(kv, "ports", html.UnescapeString(m[1]))
+	}
+	return kv
 }

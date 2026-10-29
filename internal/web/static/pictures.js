@@ -39,11 +39,13 @@
         form.appendChild(h("small", {}, i.label));
         var acts = h("div", { "class": "row" });
         if (replaced.indexOf(i.name) >= 0) acts.appendChild(h("span", { "class": "badge" }, grid.getAttribute("data-changed-text")));
-        [["edit", "data-edit-text", editIcon], ["copy", "data-copy-text", copyIcon]].forEach(function (b) {
-          var btn = h("button", { "class": "ghost sm", name: "mode", value: b[0], title: grid.getAttribute(b[1]), "aria-label": grid.getAttribute(b[1]) });
-          btn.innerHTML = b[2];
-          acts.appendChild(btn);
-        });
+        // the pencil only opens the editor; a change is stored when saved
+        var edit = h("a", { "class": "btn ghost sm", href: "/pictures/builtin?lib=" + encodeURIComponent(i.name), title: grid.getAttribute("data-edit-text"), "aria-label": grid.getAttribute("data-edit-text") });
+        edit.innerHTML = editIcon;
+        acts.appendChild(edit);
+        var copy = h("button", { "class": "ghost sm", title: grid.getAttribute("data-copy-text"), "aria-label": grid.getAttribute("data-copy-text") });
+        copy.innerHTML = copyIcon;
+        acts.appendChild(copy);
         form.appendChild(acts);
         grid.appendChild(form);
       });

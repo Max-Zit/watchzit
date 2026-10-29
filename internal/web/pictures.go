@@ -22,9 +22,12 @@ type picturesData struct {
 }
 
 type pictureData struct {
-	Pic   *store.Asset
-	Ports string // the ports as JSON for the editor
-	Types []string
+	Pic     *store.Asset
+	Ports   string // the ports as JSON for the editor
+	Types   []string
+	Src     string // the picture
+	Action  string // where the form is saved
+	Builtin bool   // a built-in picture not changed yet
 }
 
 // pictureTypeNames name the picture types in the forms.
@@ -126,25 +129,20 @@ func libType(ic *libIcon) string {
 	return "other"
 }
 
-// handlePictureCopy copies a built-in picture into the library: to change
-// the built-in picture itself (mode=edit) or as a new picture.
+// libMeta is the description of a built-in picture.
+func libMeta(ic *libIcon) store.PictureMeta {
+	return store.PictureMeta{Vendor: ic.Vendor, Type: libType(ic), U: ic.U, Show: ic.Show, Ports: ic.Ports, Fiber: ic.Fiber}
+}
+
+// handlePictureCopy copies a built-in picture into the library as a new
+// picture of its own and opens it in the editor.
 func (s *Server) handlePictureCopy(w http.ResponseWriter, r *http.Request) {
 	ic, svg, err := libPicture(r.FormValue("name"))
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
-	m := store.PictureMeta{Vendor: ic.Vendor, Type: libType(ic), U: ic.U, Show: ic.Show, Ports: ic.Ports, Fiber: ic.Fiber}
-	// "edit": the copy stands for the built-in picture on every map (opened
-	// again when it exists); otherwise it is a picture of its own
-	if r.FormValue("mode") == "edit" {
-		if id, err := s.store.ReplacementOf(r.Context(), ic.Name); err == nil {
-			http.Redirect(w, r, "/pictures/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
-			return
-		}
-		m.Replaces = ic.Name
-	}
-	id, err := s.store.CreatePicture(r.Context(), ic.Label, "image/svg+xml", svg, int(ic.W), int(ic.H), m)
+	id, err := s.store.CreatePicture(r.Context(), ic.Label, "image/svg+xml", svg, int(ic.W), int(ic.H), libMeta(ic))
 	if err != nil {
 		s.redirectErr(w, r, "/pictures", storeErr(err))
 		return
@@ -177,12 +175,95 @@ func (s *Server) handlePicture(w http.ResponseWriter, r *http.Request) {
 	if a == nil {
 		return
 	}
+	id := strconv.FormatInt(a.ID, 10)
+	s.showPicture(w, r, a, "/assets/"+id, "/pictures/"+id, false)
+}
+
+// showPicture renders the editor for a picture shown from src and saved to
+// action; builtin: a built-in picture not changed yet.
+func (s *Server) showPicture(w http.ResponseWriter, r *http.Request, a *store.Asset, src, action string, builtin bool) {
 	ports, _ := json.Marshal(a.Meta.Ports)
 	if a.Meta.Ports == nil {
 		ports = []byte("[]")
 	}
 	s.render(w, r, http.StatusOK, "picture", &Page{Title: "Picture library", Nav: "pictures", Flash: s.takeFlash(w, r),
-		Data: &pictureData{Pic: a, Ports: string(ports), Types: store.PictureTypes}})
+		Data: &pictureData{Pic: a, Ports: string(ports), Types: store.PictureTypes, Src: src, Action: action, Builtin: builtin}})
+}
+
+// pictureForm reads the editor form.
+func pictureForm(r *http.Request) (name string, m store.PictureMeta, err error) {
+	m = store.PictureMeta{Vendor: r.FormValue("vendor"), Type: r.FormValue("type"), U: formInt(r, "u"), Fiber: formInt(r, "fiber")}
+	if v, err := strconv.ParseFloat(r.FormValue("show"), 64); err == nil {
+		m.Show = v
+	}
+	if err := json.Unmarshal([]byte(r.FormValue("ports")), &m.Ports); err != nil && r.FormValue("ports") != "" {
+		return "", m, errors.New("the ports could not be read")
+	}
+	return r.FormValue("name"), m, nil
+}
+
+// handleBuiltinPicture opens a built-in picture in the editor (its changed
+// version when there is one); nothing is stored until it is saved.
+func (s *Server) handleBuiltinPicture(w http.ResponseWriter, r *http.Request) {
+	ic, _, err := libPicture(r.URL.Query().Get("lib"))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if id, err := s.store.ReplacementOf(r.Context(), ic.Name); err == nil {
+		http.Redirect(w, r, "/pictures/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+		return
+	}
+	m := libMeta(ic)
+	m.Replaces = ic.Name
+	a := &store.Asset{Kind: "icon", Name: ic.Label, Width: int(ic.W), Height: int(ic.H), Meta: m}
+	s.showPicture(w, r, a, "/static/devices/"+ic.Name+".svg?v="+assetVersion, "/pictures/builtin?lib="+ic.Name, true)
+}
+
+// sameMeta tells whether two descriptions show the same.
+func sameMeta(a, b store.PictureMeta) bool {
+	if len(a.Ports) == 0 {
+		a.Ports = nil
+	}
+	if len(b.Ports) == 0 {
+		b.Ports = nil
+	}
+	x, _ := json.Marshal(a)
+	y, _ := json.Marshal(b)
+	return string(x) == string(y)
+}
+
+// handleBuiltinPictureSave stores the changed version of a built-in picture
+// — only when something was changed.
+func (s *Server) handleBuiltinPictureSave(w http.ResponseWriter, r *http.Request) {
+	ic, svg, err := libPicture(r.URL.Query().Get("lib"))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	to := "/pictures/builtin?lib=" + ic.Name
+	if id, err := s.store.ReplacementOf(r.Context(), ic.Name); err == nil {
+		to = "/pictures/" + strconv.FormatInt(id, 10) // saved meanwhile in another tab
+		s.redirectErr(w, r, to, "this built-in picture was already changed; here is the changed version")
+		return
+	}
+	name, m, err := pictureForm(r)
+	if err != nil {
+		s.redirectErr(w, r, to, err.Error())
+		return
+	}
+	if strings.TrimSpace(name) == ic.Label && sameMeta(m, libMeta(ic)) {
+		s.redirect(w, r, "/pictures", "Nothing was changed.")
+		return
+	}
+	m.Replaces = ic.Name
+	id, err := s.store.CreatePicture(r.Context(), name, "image/svg+xml", svg, int(ic.W), int(ic.H), m)
+	if err != nil {
+		s.redirectErr(w, r, to, storeErr(err))
+		return
+	}
+	s.audit(r, "asset.create", "asset:"+strconv.FormatInt(id, 10), "built-in picture %s changed: %d ports, %dU", ic.Name, len(m.Ports), m.U)
+	s.redirect(w, r, "/pictures/"+strconv.FormatInt(id, 10), "Saved.")
 }
 
 func (s *Server) handlePictureSave(w http.ResponseWriter, r *http.Request) {
@@ -191,16 +272,13 @@ func (s *Server) handlePictureSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	to := "/pictures/" + strconv.FormatInt(a.ID, 10)
-	m := store.PictureMeta{Vendor: r.FormValue("vendor"), Type: r.FormValue("type"), U: formInt(r, "u"), Fiber: formInt(r, "fiber")}
-	m.Replaces = a.Meta.Replaces
-	if v, err := strconv.ParseFloat(r.FormValue("show"), 64); err == nil {
-		m.Show = v
-	}
-	if err := json.Unmarshal([]byte(r.FormValue("ports")), &m.Ports); err != nil && r.FormValue("ports") != "" {
-		s.redirectErr(w, r, to, "the ports could not be read")
+	name, m, err := pictureForm(r)
+	if err != nil {
+		s.redirectErr(w, r, to, err.Error())
 		return
 	}
-	if err := s.store.UpdatePicture(r.Context(), a.ID, r.FormValue("name"), m); err != nil {
+	m.Replaces = a.Meta.Replaces
+	if err := s.store.UpdatePicture(r.Context(), a.ID, name, m); err != nil {
 		s.redirectErr(w, r, to, storeErr(err))
 		return
 	}

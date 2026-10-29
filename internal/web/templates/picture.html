@@ -4,8 +4,9 @@
 <div class="titlebar"><h1>{{$p.Name}}</h1>
   <div class="row"><a class="btn secondary" href="/pictures">{{template "icon" "chevl"}}{{.T "Picture library"}}</a></div>
 </div>
-{{if $p.Meta.Replaces}}<section class="panel notice-ok"><p>{{.T "This picture stands for the built-in picture on every map where it is used. Delete it to go back to the built-in one."}}</p></section>{{end}}
-<form method="post" action="/pictures/{{$p.ID}}" class="stack" data-piceditor>
+{{if .Data.Builtin}}<section class="panel notice-ok"><p>{{.T "A built-in picture. Nothing is stored until you save a change; then the changed picture stands for it on every map where it is used."}}</p></section>
+{{else if $p.Meta.Replaces}}<section class="panel notice-ok"><p>{{.T "This picture stands for the built-in picture on every map where it is used. Delete it to go back to the built-in one."}}</p></section>{{end}}
+<form method="post" action="{{.Data.Action}}" class="stack" data-piceditor>
   <section class="panel">
     <div class="cols">
       <label>{{.T "Name"}}<input name="name" value="{{$p.Name}}" required maxlength="100"></label>
@@ -28,7 +29,7 @@
     </div>
     <p class="small hint" data-hint hidden data-first="{{.T "Click the first port of the row."}}" data-last="{{.T "Click the last port of the row (for two lines: the last port of the bottom line)."}}"></p>
     <div class="piccanvas" data-canvas data-w="{{$p.Width}}" data-h="{{$p.Height}}">
-      <img src="/assets/{{$p.ID}}" alt="" draggable="false">
+      <img src="{{.Data.Src}}" alt="" draggable="false">
     </div>
     <input type="hidden" name="ports" value="{{.Data.Ports}}" data-ports>
   </section>
@@ -36,9 +37,12 @@
     <button class="btn primary">{{.T "Save"}}</button>
   </div>
 </form>
-<div class="row mt">
+{{if .Data.Builtin}}<div class="row mt">
+  <form method="post" action="/pictures/copy" class="inline"><input type="hidden" name="name" value="{{$p.Meta.Replaces}}"><button class="secondary">{{template "icon" "copy"}}{{.T "Copy"}}</button></form>
+</div>
+{{else}}<div class="row mt">
   <form method="post" action="/pictures/{{$p.ID}}/clone" class="inline"><button class="secondary">{{template "icon" "copy"}}{{.T "Copy"}}</button></form>
   <form method="post" action="/pictures/{{$p.ID}}/delete" class="inline"><button class="ghost" data-confirm="{{.T "Delete this picture?"}}">{{template "icon" "trash"}}{{.T "Delete"}}</button></form>
-</div>
+</div>{{end}}
 <script src="/static/pictures.js?v={{.Asset}}" defer></script>
 {{end}}

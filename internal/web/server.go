@@ -322,6 +322,8 @@ func (s *Server) Handler() http.Handler {
 	write("GET /pictures", s.handlePictures)
 	write("POST /pictures/upload", s.handlePictureUpload)
 	write("POST /pictures/copy", s.handlePictureCopy)
+	write("GET /pictures/builtin", s.handleBuiltinPicture)
+	write("POST /pictures/builtin", s.handleBuiltinPictureSave)
 	write("GET /pictures/{id}", s.handlePicture)
 	write("POST /pictures/{id}", s.handlePictureSave)
 	write("POST /pictures/{id}/clone", s.handlePictureClone)
