@@ -17,6 +17,8 @@
   if (lib) {
     var q = lib.querySelector("[data-lib-q]"), vend = lib.querySelector("[data-lib-vendor]"), type = lib.querySelector("[data-lib-type]");
     var grid = document.querySelector("[data-lib-grid]"), list = [];
+    var replaced = (grid.getAttribute("data-replaced") || "").split(",");
+    var editIcon = document.querySelector("template[data-icon-edit]").innerHTML, copyIcon = document.querySelector("template[data-icon-copy]").innerHTML;
     var typeOf = function (i) {
       if (i.type) return i.type;
       if (i.kind && i.kind !== "other") return i.kind;
@@ -30,11 +32,19 @@
         if (type.value && typeOf(i) !== type.value) return;
         if (f.some(function (w) { return i.label.toLowerCase().indexOf(w) < 0; })) return;
         if (++n > max) return;
+        // pencil: change the built-in picture itself; copy: a new picture
         var form = h("form", { method: "post", action: "/pictures/copy", "class": "libitem" });
         form.appendChild(h("input", { type: "hidden", name: "name", value: i.name }));
         form.appendChild(h("img", { src: "/static/devices/" + i.name + ".svg?v=" + v, alt: "", loading: "lazy" }));
         form.appendChild(h("small", {}, i.label));
-        form.appendChild(h("button", { "class": "secondary sm" }, grid.getAttribute("data-copy-text")));
+        var acts = h("div", { "class": "row" });
+        if (replaced.indexOf(i.name) >= 0) acts.appendChild(h("span", { "class": "badge" }, grid.getAttribute("data-changed-text")));
+        [["edit", "data-edit-text", editIcon], ["copy", "data-copy-text", copyIcon]].forEach(function (b) {
+          var btn = h("button", { "class": "ghost sm", name: "mode", value: b[0], title: grid.getAttribute(b[1]), "aria-label": grid.getAttribute(b[1]) });
+          btn.innerHTML = b[2];
+          acts.appendChild(btn);
+        });
+        form.appendChild(acts);
         grid.appendChild(form);
       });
       if (n > max) grid.appendChild(h("p", { "class": "muted small" }, grid.getAttribute("data-more-text") + " (" + n + ")"));

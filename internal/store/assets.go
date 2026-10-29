@@ -36,6 +36,9 @@ type PictureMeta struct {
 	Show   float64      `json:"show,omitempty"`
 	Ports  [][2]float64 `json:"ports,omitempty"`
 	Fiber  int          `json:"fiber,omitempty"`
+	// Replaces names the built-in picture this one stands for on every map
+	// (an edited built-in picture); empty for pictures of their own.
+	Replaces string `json:"replaces,omitempty"`
 }
 
 // PictureTypes are the types a picture can have.

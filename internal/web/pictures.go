@@ -18,6 +18,7 @@ import (
 type picturesData struct {
 	Pictures []store.Asset
 	Types    []string
+	Replaced string // built-in pictures that were changed, comma-separated
 }
 
 type pictureData struct {
@@ -37,7 +38,13 @@ func (s *Server) handlePictures(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	s.render(w, r, http.StatusOK, "pictures", &Page{Title: "Picture library", Nav: "pictures", Flash: s.takeFlash(w, r), Data: &picturesData{Pictures: as, Types: store.PictureTypes}})
+	var replaced []string
+	for _, a := range as {
+		if a.Meta.Replaces != "" {
+			replaced = append(replaced, a.Meta.Replaces)
+		}
+	}
+	s.render(w, r, http.StatusOK, "pictures", &Page{Title: "Picture library", Nav: "pictures", Flash: s.takeFlash(w, r), Data: &picturesData{Pictures: as, Types: store.PictureTypes, Replaced: strings.Join(replaced, ",")}})
 }
 
 // handlePictureUpload stores an uploaded device picture and opens it in
@@ -119,7 +126,8 @@ func libType(ic *libIcon) string {
 	return "other"
 }
 
-// handlePictureCopy copies a built-in picture into the library, to change it.
+// handlePictureCopy copies a built-in picture into the library: to change
+// the built-in picture itself (mode=edit) or as a new picture.
 func (s *Server) handlePictureCopy(w http.ResponseWriter, r *http.Request) {
 	ic, svg, err := libPicture(r.FormValue("name"))
 	if err != nil {
@@ -127,6 +135,15 @@ func (s *Server) handlePictureCopy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	m := store.PictureMeta{Vendor: ic.Vendor, Type: libType(ic), U: ic.U, Show: ic.Show, Ports: ic.Ports, Fiber: ic.Fiber}
+	// "edit": the copy stands for the built-in picture on every map (opened
+	// again when it exists); otherwise it is a picture of its own
+	if r.FormValue("mode") == "edit" {
+		if id, err := s.store.ReplacementOf(r.Context(), ic.Name); err == nil {
+			http.Redirect(w, r, "/pictures/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+			return
+		}
+		m.Replaces = ic.Name
+	}
 	id, err := s.store.CreatePicture(r.Context(), ic.Label, "image/svg+xml", svg, int(ic.W), int(ic.H), m)
 	if err != nil {
 		s.redirectErr(w, r, "/pictures", storeErr(err))
@@ -175,6 +192,7 @@ func (s *Server) handlePictureSave(w http.ResponseWriter, r *http.Request) {
 	}
 	to := "/pictures/" + strconv.FormatInt(a.ID, 10)
 	m := store.PictureMeta{Vendor: r.FormValue("vendor"), Type: r.FormValue("type"), U: formInt(r, "u"), Fiber: formInt(r, "fiber")}
+	m.Replaces = a.Meta.Replaces
 	if v, err := strconv.ParseFloat(r.FormValue("show"), 64); err == nil {
 		m.Show = v
 	}

@@ -207,8 +207,8 @@ func (s *Server) writeMapJSON(w http.ResponseWriter, r *http.Request, m *store.M
 				used[x] = true
 			}
 		}
-		for id := range out.Assets {
-			if !used[id] {
+		for id, a := range out.Assets {
+			if !used[id] && a.Meta.Replaces == "" { // a changed built-in picture may be on the map
 				delete(out.Assets, id)
 			}
 		}

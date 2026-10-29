@@ -87,6 +87,37 @@ func TestPictureLibrary(t *testing.T) {
 		as[cp].Mime != "image/svg+xml" || len(as[cl].Meta.Ports) != 3 {
 		t.Fatalf("copies: %+v", as)
 	}
+	// the pencil of a built-in picture: one changed version that stands for
+	// it on the maps; asked again, the same one opens; its copy is its own
+	r = c.post("/pictures/copy", "name", "mikrotik-hex-rb750gr3", "mode", "edit")
+	changed := r.loc
+	if r.code != http.StatusSeeOther || !strings.HasPrefix(changed, "/pictures/") || changed == own {
+		t.Fatalf("edit built-in: %d %s", r.code, changed)
+	}
+	if r := c.post("/pictures/copy", "name", "mikrotik-hex-rb750gr3", "mode", "edit"); r.loc != changed {
+		t.Fatalf("second edit made another picture: %s", r.loc)
+	}
+	if r := c.get(changed); !strings.Contains(r.body, "notice-ok") {
+		t.Fatal("changed built-in picture not marked")
+	}
+	c.post(changed, "name", "hEX", "ports", "[[1,1]]")
+	r = c.post(changed + "/clone")
+	as, _ = e.st.Assets(ctx, "icon")
+	repl := 0
+	for _, a := range as {
+		if a.Meta.Replaces == "mikrotik-hex-rb750gr3" {
+			repl++
+			if len(a.Meta.Ports) != 1 {
+				t.Fatalf("changed picture lost its ports: %+v", a.Meta)
+			}
+		}
+	}
+	if repl != 1 {
+		t.Fatalf("%d pictures stand for the built-in one", repl)
+	}
+	if r := c.get("/pictures"); !strings.Contains(r.body, `data-replaced="mikrotik-hex-rb750gr3"`) {
+		t.Fatal("list does not know the changed built-in picture")
+	}
 	// deleting
 	if r := c.post(own + "/delete"); r.code != http.StatusSeeOther || r.loc != "/pictures" {
 		t.Fatalf("delete: %d %s", r.code, r.loc)

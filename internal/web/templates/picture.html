@@ -4,6 +4,7 @@
 <div class="titlebar"><h1>{{$p.Name}}</h1>
   <div class="row"><a class="btn secondary" href="/pictures">{{template "icon" "chevl"}}{{.T "Picture library"}}</a></div>
 </div>
+{{if $p.Meta.Replaces}}<section class="panel notice-ok"><p>{{.T "This picture stands for the built-in picture on every map where it is used. Delete it to go back to the built-in one."}}</p></section>{{end}}
 <form method="post" action="/pictures/{{$p.ID}}" class="stack" data-piceditor>
   <section class="panel">
     <div class="cols">

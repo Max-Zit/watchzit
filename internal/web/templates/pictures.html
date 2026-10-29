@@ -20,6 +20,7 @@
       <a href="/pictures/{{.ID}}" class="picthumb"><img src="/assets/{{.ID}}" alt="" loading="lazy"></a>
       <div class="picinfo">
         <b>{{.Name}}</b>
+        {{if .Meta.Replaces}}<span class="badge">{{$.T "Changed built-in picture"}}</span>{{end}}
         <span class="small muted">{{with .Meta.Vendor}}{{.}} · {{end}}{{with .Meta.Type}}{{$.T (pictureType .)}} · {{end}}{{$.T "%d ports" (len .Meta.Ports)}}{{if .Meta.U}} · {{.Meta.U}}U{{end}}</span>
       </div>
       <div class="row">
@@ -34,13 +35,14 @@
 
 <section class="panel">
   <h2>{{.T "Built-in pictures"}}</h2>
-  <p class="small muted">{{.T "Copy a built-in picture to change its ports or name, or to start a similar model from it."}}</p>
+  <p class="small muted">{{.T "The pencil changes a built-in picture on every map where it is used; copy makes a new picture of your own from it, for a similar model."}}</p>
   <div class="row picfilters" data-lib>
     <input type="search" data-lib-q placeholder="{{.T "Search, e.g. DL380 or CRS326"}}" aria-label="{{.T "Search"}}">
     <select data-lib-vendor aria-label="{{.T "Manufacturer"}}"><option value="">{{.T "All manufacturers"}}</option></select>
     <select data-lib-type aria-label="{{.T "Type"}}"><option value="">{{.T "All types"}}</option>{{range $k := .Data.Types}}<option value="{{$k}}">{{$.T (pictureType $k)}}</option>{{end}}</select>
   </div>
-  <div class="libgrid" data-lib-grid data-copy-text="{{.T "Copy and edit"}}" data-more-text="{{.T "Narrow the search to see more."}}"></div>
+  <div class="libgrid" data-lib-grid data-edit-text="{{.T "Edit"}}" data-copy-text="{{.T "Copy"}}" data-changed-text="{{.T "changed"}}" data-replaced="{{.Data.Replaced}}" data-more-text="{{.T "Narrow the search to see more."}}"></div>
+  <template data-icon-edit>{{template "icon" "edit"}}</template><template data-icon-copy>{{template "icon" "copy"}}</template>
 </section>
 <script src="/static/pictures.js?v={{.Asset}}" defer></script>
 {{end}}

@@ -143,13 +143,23 @@
   // ---- pictures and sizes
   function picOf(n) {
     if (!n.icon) return null;
-    if (n.icon.indexOf("lib:") === 0) return lib[n.icon.slice(4)] || null;
-    if (n.icon.indexOf("asset:") === 0) {
-      // an uploaded picture with what the picture library says about it
-      var a = meta && meta.assets[n.icon.slice(6)], m = (a && a.meta) || {};
-      return { url: url("assets", n.icon.slice(6)), w: (a && a.w) || 100, h: (a && a.h) || 100, show: m.show || 80, ports: m.ports || [], u: m.u || 0, fiber: m.fiber || 0, label: a ? a.name : "" };
+    if (n.icon.indexOf("lib:") === 0) {
+      // a built-in picture, or the version of it changed in the picture library
+      var rid = replacement(n.icon.slice(4));
+      return rid ? assetPic(rid) : lib[n.icon.slice(4)] || null;
     }
+    if (n.icon.indexOf("asset:") === 0) return assetPic(n.icon.slice(6));
     return null;
+  }
+  // assetPic: an uploaded picture with what the picture library says about it
+  function assetPic(id) {
+    var a = meta && meta.assets[id], m = (a && a.meta) || {};
+    return { url: url("assets", id), w: (a && a.w) || 100, h: (a && a.h) || 100, show: m.show || 80, ports: m.ports || [], u: m.u || 0, fiber: m.fiber || 0, label: a ? a.name : "" };
+  }
+  function replacement(name) {
+    var as = (meta && meta.assets) || {};
+    for (var id in as) if (as[id].meta && as[id].meta.replaces === name) return id;
+    return "";
   }
   function picURL(p) { return p.url || "/static/devices/" + p.name + ".svg?v=" + assetV; }
   function unitsOf(n) { var p = picOf(n); return p && p.u ? p.u : 1; }

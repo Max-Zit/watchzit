@@ -205,6 +205,10 @@ func (s *Server) handleKioskAsset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ref := "asset:" + strconv.FormatInt(id, 10)
+	libRef := "" // a changed built-in picture shows wherever the built-in one is used
+	if a, _, err := s.store.AssetData(r.Context(), id); err == nil && a.Meta.Replaces != "" {
+		libRef = "lib:" + a.Meta.Replaces
+	}
 	for _, mid := range k.Maps {
 		l, err := s.store.MapLayout(r.Context(), mid)
 		if err != nil {
@@ -212,7 +216,7 @@ func (s *Server) handleKioskAsset(w http.ResponseWriter, r *http.Request) {
 		}
 		used := l.Background != nil && l.Background.Asset == id
 		for _, n := range l.Nodes {
-			used = used || n.Icon == ref
+			used = used || n.Icon == ref || (libRef != "" && n.Icon == libRef)
 		}
 		if used {
 			s.serveAsset(w, r, id)

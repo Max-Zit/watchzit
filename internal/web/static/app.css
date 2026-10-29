@@ -822,6 +822,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line-2)
 .libitem { display: grid; gap: 4px; justify-items: center; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px; background: var(--panel-2); }
 .libitem img { max-width: 100%; height: 56px; object-fit: contain; }
 .libitem small { text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.libitem .row { gap: 4px; justify-content: center; align-items: center; }
 .piccanvas { position: relative; display: inline-block; max-width: 100%; margin-top: 8px; background: repeating-conic-gradient(var(--panel-2) 0 25%, var(--panel) 0 50%) 0 0 / 16px 16px; border: 1px solid var(--line); border-radius: 6px; user-select: none; touch-action: none; }
 .piccanvas img { display: block; max-width: 100%; min-width: min(100%, 480px); cursor: crosshair; }
 .pdot { position: absolute; transform: translate(-50%, -50%); border-radius: 50%; background: rgba(78, 161, 255, .85); color: #fff; border: 1.5px solid #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; cursor: move; box-shadow: 0 1px 3px rgba(0, 0, 0, .5); }

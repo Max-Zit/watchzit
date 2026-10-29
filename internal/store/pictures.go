@@ -4,11 +4,15 @@ import (
 	"context"
 	"errors"
 	"math"
+	"regexp"
 	"strings"
 )
 
 // Pictures of the library: uploaded device pictures (assets of kind
 // "icon") with what they show, set in the picture editor.
+
+// libNameRE is the name of a built-in picture.
+var libNameRE = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,120}$`)
 
 // cleanMeta checks the description of a picture w×h (0: size unknown).
 func cleanMeta(m PictureMeta, w, h int) (PictureMeta, error) {
@@ -35,6 +39,9 @@ func cleanMeta(m PictureMeta, w, h int) (PictureMeta, error) {
 	}
 	if m.Fiber < 0 || m.Fiber > len(m.Ports) {
 		return m, errors.New("more SFP ports than ports")
+	}
+	if m.Replaces != "" && !libNameRE.MatchString(m.Replaces) {
+		m.Replaces = ""
 	}
 	return m, nil
 }
@@ -82,5 +89,17 @@ func (s *Store) ClonePicture(ctx context.Context, id int64, name string) (int64,
 	if a.Kind != "icon" {
 		return 0, ErrNotFound
 	}
-	return s.CreatePicture(ctx, name, a.Mime, data, a.Width, a.Height, a.Meta)
+	m := a.Meta
+	m.Replaces = "" // a copy is a picture of its own
+	return s.CreatePicture(ctx, name, a.Mime, data, a.Width, a.Height, m)
+}
+
+// ReplacementOf finds the picture that stands for a built-in one (0: none).
+func (s *Store) ReplacementOf(ctx context.Context, lib string) (int64, error) {
+	var id int64
+	err := s.db.QueryRow(ctx, `SELECT id FROM map_assets WHERE kind='icon' AND meta->>'replaces'=$1 ORDER BY id LIMIT 1`, lib).Scan(&id)
+	if err != nil {
+		return 0, notFound(err)
+	}
+	return id, nil
 }
