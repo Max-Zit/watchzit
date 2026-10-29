@@ -54,6 +54,42 @@
         save();
       });
       fig.insertBefore(t, fig.firstChild);
+      sizer(fig, id);
+    });
+  }
+
+  // sizer: drag the lower right corner to set the width in columns and the
+  // height in pixels, as on a dashboard
+  function sizer(fig, id) {
+    var grip = h("span", { "class": "graph-resize", title: tx.resize, "aria-hidden": "true" });
+    fig.appendChild(grip);
+    grip.addEventListener("pointerdown", function (ev) {
+      var i = panelOf(id), canvas = fig.querySelector("canvas");
+      if (i < 0 || !canvas) return;
+      ev.preventDefault();
+      grip.setPointerCapture(ev.pointerId);
+      var gs = getComputedStyle(grid), n = (gs.gridTemplateColumns || "").split(" ").filter(Boolean).length || 1;
+      var gap = parseFloat(gs.columnGap) || 0, colW = (grid.clientWidth - gap * (n - 1)) / n;
+      var x0 = ev.clientX, y0 = ev.clientY, w0 = fig.getBoundingClientRect().width, h0 = canvas.clientHeight;
+      var cols = 0, hh = 0;
+      var move = function (e) {
+        cols = Math.max(1, Math.min(4, n, Math.round((w0 + e.clientX - x0 + gap) / (colW + gap))));
+        hh = Math.max(80, Math.min(900, Math.round(h0 + e.clientY - y0)));
+        fig.setAttribute("data-cols", String(cols));
+        fig.setAttribute("data-h", String(hh));
+        fig.classList.remove("w-full", "h-s", "h-l");
+        window.dispatchEvent(new Event("resize"));
+      };
+      var up = function () {
+        grip.removeEventListener("pointermove", move);
+        grip.removeEventListener("pointerup", up);
+        if (!cols) return;
+        var p = st.panels[i];
+        p.cols = cols; p.h = hh; p.width = ""; p.height = "";
+        save();
+      };
+      grip.addEventListener("pointermove", move);
+      grip.addEventListener("pointerup", up);
     });
   }
 
@@ -73,11 +109,16 @@
     form.appendChild(stackL);
     var box = h("fieldset", { "class": "box graph-series" });
     box.appendChild(h("legend", {}, tx.values));
-    var checks = [];
+    var checks = [], colors = {};
+    p.colors = p.colors || {};
     st.series.forEach(function (s) {
       var l = h("label", { "class": "check" }), c = h("input", { type: "checkbox", value: String(s.id) });
       c.checked = p.series.indexOf(s.id) >= 0;
       l.appendChild(c); l.appendChild(document.createTextNode(" " + s.label + (s.unit ? " (" + s.unit + ")" : "")));
+      var col = h("input", { type: "color", "class": "graph-color", title: tx.color, "aria-label": tx.color, value: p.colors[String(s.id)] || "#4f46e5" });
+      col.addEventListener("input", function () { colors[String(s.id)] = col.value; });
+      if (p.colors[String(s.id)]) colors[String(s.id)] = p.colors[String(s.id)];
+      l.appendChild(col);
       box.appendChild(l); checks.push(c);
     });
     form.appendChild(box);
@@ -100,6 +141,8 @@
       if (!series.length) { err.textContent = tx.pick; err.hidden = false; return; }
       p.title = title.value.trim(); p.type = kind.value; p.stack = stack.checked; p.series = series;
       p.min = numOf(min); p.max = numOf(max); p.warn = numOf(warn); p.crit = numOf(crit);
+      p.colors = {};
+      series.forEach(function (sid) { if (colors[String(sid)]) p.colors[String(sid)] = colors[String(sid)]; });
       st.hidden = st.hidden.filter(function (sid) { return series.indexOf(sid) < 0; });
       if (isNew) st.panels.push(p);
       dlg.close();

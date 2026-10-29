@@ -70,6 +70,8 @@
     this.type = fig.getAttribute("data-type") || "line";
     this.stack = fig.getAttribute("data-stack") === "1";
     this.fixed = { min: numAttr(fig, "data-min"), max: numAttr(fig, "data-max"), warn: numAttr(fig, "data-warn"), crit: numAttr(fig, "data-crit") };
+    this.colors = (fig.getAttribute("data-colors") || "").split("|");
+    this.applySize();
     this.addExpand();
     this.zoom = null; // {from, to} in Unix seconds
     this.data = null; // one result per series
@@ -119,7 +121,18 @@
     return t;
   };
 
-  Graph.prototype.color = function (i) { return css("--series-" + (i % 4 + 1)) || css("--accent") || "#4f46e5"; };
+  Graph.prototype.color = function (i) {
+    var c = this.colors && this.colors[i];
+    if (c && /^#[0-9a-fA-F]{6}$/.test(c)) return c;
+    return css("--series-" + (i % 4 + 1)) || css("--accent") || "#4f46e5";
+  };
+  // applySize: the columns and height set by dragging the corner
+  Graph.prototype.applySize = function () {
+    var cols = numAttr(this.fig, "data-cols"), hh = numAttr(this.fig, "data-h");
+    var n = this.fig.parentNode ? (getComputedStyle(this.fig.parentNode).gridTemplateColumns || "").split(" ").filter(Boolean).length : 1;
+    this.fig.style.gridColumn = cols ? "span " + Math.max(1, Math.min(cols, n || 1)) : "";
+    this.canvas.style.height = hh ? hh + "px" : "";
+  };
 
   Graph.prototype.url = function (id) {
     var w = Math.max(100, Math.round(this.canvas.clientWidth || 600));
@@ -440,7 +453,7 @@
   var resizeTimer;
   window.addEventListener("resize", function () {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(function () { graphs.forEach(function (g) { g.draw(); }); }, 150);
+    resizeTimer = setTimeout(function () { graphs.forEach(function (g) { g.applySize(); g.draw(); }); }, 150);
   });
   // Light/dark switch: redraw with the new colours.
   function redrawAll() { graphs.forEach(function (g) { g.draw(); g.fillLegend(); }); }

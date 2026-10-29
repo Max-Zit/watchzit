@@ -3,6 +3,7 @@ package web_test
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -33,19 +34,21 @@ func TestDeviceGraphs(t *testing.T) {
 		t.Fatal("no graph editor on the device page")
 	}
 	max, warn := 50.0, 20.0
-	l := store.GraphLayout{Panels: []store.GraphPanel{{ID: "p1", Title: "Latency and loss", Series: []int32{mine[0].ID, mine[1].ID}, Type: "bar", Stack: true, Width: "full", Height: "l", Max: &max, Warn: &warn}}}
+	l := store.GraphLayout{Panels: []store.GraphPanel{{ID: "p1", Title: "Latency and loss", Series: []int32{mine[0].ID, mine[1].ID}, Type: "bar", Stack: true, Width: "full", Height: "l", Max: &max, Warn: &warn,
+		Cols: 2, H: 240, Colors: map[string]string{strconv.Itoa(int(mine[1].ID)): "#ff8800"}}}}
 	if r := c.postJSON("/devices/1/graphs", l); r.code != http.StatusOK {
 		t.Fatalf("save: %d %s", r.code, r.body)
 	}
 	r = c.get("/devices/1")
-	for _, want := range []string{`data-panel="p1"`, `data-type="bar"`, `data-stack="1"`, `data-max="50"`, `data-warn="20"`, "w-full", "h-l", "Latency and loss"} {
+	for _, want := range []string{`data-panel="p1"`, `data-type="bar"`, `data-stack="1"`, `data-max="50"`, `data-warn="20"`, "w-full", "h-l", "Latency and loss", `data-cols="2"`, `data-h="240"`, `data-colors="|#ff8800"`} {
 		if !strings.Contains(r.body, want) {
 			t.Fatalf("arranged graph lacks %s", want)
 		}
 	}
 	// refused: another device's series, no series, a bad kind, min above max
 	for _, bad := range []store.GraphPanel{{ID: "x", Series: []int32{theirs[0].ID}}, {ID: "x"}, {ID: "x", Series: []int32{mine[0].ID}, Type: "pie"},
-		{ID: "x", Series: []int32{mine[0].ID}, Min: &max, Max: &warn}, {ID: "../x", Series: []int32{mine[0].ID}}} {
+		{ID: "x", Series: []int32{mine[0].ID}, Min: &max, Max: &warn}, {ID: "../x", Series: []int32{mine[0].ID}},
+		{ID: "x", Series: []int32{mine[0].ID}, H: 20}} {
 		if r := c.postJSON("/devices/1/graphs", store.GraphLayout{Panels: []store.GraphPanel{bad}}); r.code != http.StatusBadRequest {
 			t.Fatalf("bad graph %+v accepted: %d", bad, r.code)
 		}

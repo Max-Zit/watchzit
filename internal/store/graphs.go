@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -29,7 +31,16 @@ type GraphPanel struct {
 	Max    *float64 `json:"max,omitempty"`
 	Warn   *float64 `json:"warn,omitempty"` // threshold lines
 	Crit   *float64 `json:"crit,omitempty"`
+	// set by dragging the corner: columns spanned (1–4; 0 = by Width) and
+	// the drawing height in pixels (0 = by Height)
+	Cols int `json:"cols,omitempty"`
+	H    int `json:"h,omitempty"`
+	// Colors gives series their own colour (series ID → #rrggbb).
+	Colors map[string]string `json:"colors,omitempty"`
 }
+
+// colorRE is a colour as #rrggbb.
+var colorRE = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 
 // GraphTypes are the kinds of graphs.
 var GraphTypes = []string{"line", "area", "bar"}
@@ -112,6 +123,18 @@ func (s *Store) SetDeviceGraphLayout(ctx context.Context, deviceID int64, l *Gra
 		}
 		if p.Min != nil && p.Max != nil && *p.Min >= *p.Max {
 			return errors.New("the axis minimum must be below its maximum")
+		}
+		if p.Cols < 0 || p.Cols > 4 {
+			p.Cols = 0
+		}
+		if p.H != 0 && (p.H < 80 || p.H > 900) {
+			return errors.New("a graph is 80–900 pixels high")
+		}
+		for k, c := range p.Colors {
+			id, err := strconv.ParseInt(k, 10, 32)
+			if err != nil || !slices.Contains(p.Series, int32(id)) || !colorRE.MatchString(c) {
+				delete(p.Colors, k)
+			}
 		}
 	}
 	hidden := []int32{}
