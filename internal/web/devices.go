@@ -117,6 +117,9 @@ type graphDef struct {
 	Name   string   // the title the user gave
 	Labels []string // series labels when they come from several checks
 	Panel  *store.GraphPanel
+	// data source queries: their addresses and the colours of their first series
+	Queries []string
+	QColors []string
 }
 
 // hiddenMetrics are kept but not drawn (they say little as a line).
@@ -209,10 +212,11 @@ func (s *Server) showDevice(w http.ResponseWriter, r *http.Request, status int, 
 		s.serverError(w, r, err)
 		return
 	}
-	data := &deviceData{D: d, Checks: cs, Graphs: arrangeGraphs(cs, layout), Range: rg, Ranges: graphRanges, New: in, CheckTypes: store.CheckTypes, Traffic: map[int]*store.Check{}}
+	data := &deviceData{D: d, Checks: cs, Graphs: arrangeGraphs(d.ID, cs, layout), Range: rg, Ranges: graphRanges, New: in, CheckTypes: store.CheckTypes, Traffic: map[int]*store.Check{}}
 	data.Problems = s.deviceProblems(r.Context(), d.ID)
 	if u := userFrom(r); u != nil && u.CanWrite() {
-		data.GraphEdit = graphEditJSON(s.lang(r, u), cs, data.Graphs, layout)
+		srcs, _ := s.store.DataSources(r.Context())
+		data.GraphEdit = graphEditJSON(s.lang(r, u), cs, data.Graphs, layout, srcs)
 	}
 	data.Now = s.now()
 	if a, err := s.store.DeviceAccess(r.Context(), d.ID); err == nil {
@@ -579,14 +583,15 @@ func (s *Server) handleCheckRun(w http.ResponseWriter, r *http.Request) {
 // ---- series data for the graphs (JSON)
 
 type seriesJSON struct {
-	Step int64      `json:"step"`
-	From int64      `json:"from"`
-	To   int64      `json:"to"`
-	T    []int64    `json:"t"`
-	Min  []*float64 `json:"min"`
-	Avg  []*float64 `json:"avg"`
-	Max  []*float64 `json:"max"`
-	Unit string     `json:"unit"`
+	Step  int64      `json:"step"`
+	From  int64      `json:"from"`
+	To    int64      `json:"to"`
+	T     []int64    `json:"t"`
+	Min   []*float64 `json:"min"`
+	Avg   []*float64 `json:"avg"`
+	Max   []*float64 `json:"max"`
+	Unit  string     `json:"unit"`
+	Label string     `json:"label,omitempty"` // series of a data source
 }
 
 func num(v float64) *float64 {
@@ -712,7 +717,7 @@ func (s *Server) handleGroupDelete(w http.ResponseWriter, r *http.Request) {
 // arrangeGraphs applies the user's arrangement to the graphs of a device:
 // the panels in their order, then automatic graphs of the series no panel
 // shows and that are not hidden.
-func arrangeGraphs(cs []*store.Check, l *store.GraphLayout) []graphDef {
+func arrangeGraphs(devID int64, cs []*store.Check, l *store.GraphLayout) []graphDef {
 	auto := graphsOf(cs)
 	for i := range auto {
 		auto[i].ID = "a" + strconv.FormatInt(auto[i].Check.ID, 10) + "-" + strconv.Itoa(i)
@@ -751,7 +756,14 @@ func arrangeGraphs(cs []*store.Check, l *store.GraphLayout) []graphDef {
 			checks[o.c.ID] = true
 			g.Series = append(g.Series, o.s)
 		}
-		if len(g.Series) == 0 {
+		for qi, q := range p.Queries {
+			g.Queries = append(g.Queries, "/devices/"+strconv.FormatInt(devID, 10)+"/graphs/"+p.ID+"/q/"+strconv.Itoa(qi))
+			g.QColors = append(g.QColors, p.Colors["q"+strconv.Itoa(qi)])
+			if g.Unit == "" {
+				g.Unit = q.Unit
+			}
+		}
+		if len(g.Series)+len(g.Queries) == 0 {
 			continue
 		}
 		if len(checks) > 1 {
@@ -784,23 +796,32 @@ func arrangeGraphs(cs []*store.Check, l *store.GraphLayout) []graphDef {
 // graphEditJSON is what the graph editor of a device page works on: the
 // graphs as shown (automatic ones as panels too), the hidden series and
 // every series of the device with its name.
-func graphEditJSON(lang string, cs []*store.Check, gs []graphDef, l *store.GraphLayout) template.JS {
+func graphEditJSON(lang string, cs []*store.Check, gs []graphDef, l *store.GraphLayout, srcs []*store.DataSource) template.JS {
 	type series struct {
 		ID    int32  `json:"id"`
 		Label string `json:"label"`
 		Unit  string `json:"unit"`
 	}
+	type source struct {
+		ID   int64  `json:"id"`
+		Name string `json:"name"`
+		Kind string `json:"kind"`
+	}
 	out := struct {
-		Panels []store.GraphPanel `json:"panels"`
-		Hidden []int32            `json:"hidden"`
-		Series []series           `json:"series"`
-	}{Panels: []store.GraphPanel{}, Hidden: []int32{}, Series: []series{}}
+		Panels  []store.GraphPanel `json:"panels"`
+		Hidden  []int32            `json:"hidden"`
+		Series  []series           `json:"series"`
+		Sources []source           `json:"sources"`
+	}{Panels: []store.GraphPanel{}, Hidden: []int32{}, Series: []series{}, Sources: []source{}}
+	for _, d := range srcs {
+		out.Sources = append(out.Sources, source{d.ID, d.Name, d.Kind})
+	}
 	for _, g := range gs {
 		p := store.GraphPanel{ID: g.ID}
 		if g.Panel != nil {
 			p = *g.Panel
 		}
-		p.Series = nil
+		p.Series = []int32{}
 		for _, s := range g.Series {
 			p.Series = append(p.Series, s.ID)
 		}

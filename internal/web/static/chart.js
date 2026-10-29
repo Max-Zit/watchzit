@@ -62,15 +62,20 @@
     this.fig = fig;
     this.canvas = fig.querySelector("canvas");
     this.tip = fig.querySelector(".graph-tip");
-    this.ids = fig.getAttribute("data-series").split(",");
-    this.labels = (fig.getAttribute("data-labels") || "").split("|");
+    this.ids = (fig.getAttribute("data-series") || "").split(",").filter(Boolean);
+    this.baseLabels = (fig.getAttribute("data-labels") || "").split("|");
+    this.labels = this.baseLabels;
+    // queries of data sources: each gives any number of series
+    this.queries = (fig.getAttribute("data-queries") || "").split("|").filter(Boolean);
+    this.qcolors = (fig.getAttribute("data-qcolors") || "").split("|");
     this.range = fig.getAttribute("data-range") || "24h";
     this.unit = fig.getAttribute("data-unit") || "";
     // how the user set the graph up: kind, stacking, fixed axis ends, thresholds
     this.type = fig.getAttribute("data-type") || "line";
     this.stack = fig.getAttribute("data-stack") === "1";
     this.fixed = { min: numAttr(fig, "data-min"), max: numAttr(fig, "data-max"), warn: numAttr(fig, "data-warn"), crit: numAttr(fig, "data-crit") };
-    this.colors = (fig.getAttribute("data-colors") || "").split("|");
+    this.baseColors = (fig.getAttribute("data-colors") || "").split("|");
+    this.colors = this.baseColors;
     this.applySize();
     this.addExpand();
     this.zoom = null; // {from, to} in Unix seconds
@@ -134,21 +139,48 @@
     this.canvas.style.height = hh ? hh + "px" : "";
   };
 
-  Graph.prototype.url = function (id) {
+  Graph.prototype.url = function (id, path) {
     var w = Math.max(100, Math.round(this.canvas.clientWidth || 600));
-    var u = "/series/" + encodeURIComponent(id) + "?points=" + Math.min(3000, w);
+    var u = (path || "/series/" + encodeURIComponent(id)) + "?points=" + Math.min(3000, w);
     if (this.zoom) return u + "&from=" + Math.floor(this.zoom.from) + "&to=" + Math.ceil(this.zoom.to);
     return u + "&range=" + encodeURIComponent(this.range);
   };
 
   Graph.prototype.load = function () {
-    var g = this;
-    Promise.all(this.ids.map(function (id) {
-      return fetch(g.url(id), { credentials: "same-origin", headers: { "Accept": "application/json" } })
+    var g = this, n = this.ids.length;
+    var get = function (u) {
+      return fetch(u, { credentials: "same-origin", headers: { "Accept": "application/json" } })
         .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
-    }))
-      .then(function (ds) { g.data = ds; g.draw(); g.fillLegend(); })
+    };
+    Promise.all(this.ids.map(function (id) { return get(g.url(id)); }).concat(this.queries.map(function (q) { return get(g.url(null, q)); })))
+      .then(function (res) {
+        var ds = res.slice(0, n), labels = g.baseLabels.slice(0, n), colors = g.baseColors.slice(0, n), errs = [];
+        while (labels.length < n) labels.push("");
+        while (colors.length < n) colors.push("");
+        res.slice(n).forEach(function (a, qi) {
+          if (a.error) errs.push(a.error);
+          (a.series || []).forEach(function (s, k) {
+            ds.push(s); labels.push(s.label || ""); colors.push(k === 0 ? g.qcolors[qi] || "" : "");
+          });
+        });
+        g.labels = labels; g.colors = colors;
+        g.data = ds.length ? ds : null;
+        g.showErrors(errs);
+        g.draw(); g.fillLegend();
+      })
       .catch(function () { g.data = null; g.draw(); g.fillLegend(); });
+  };
+
+  // showErrors tells what the data sources answered instead of values
+  Graph.prototype.showErrors = function (errs) {
+    var p = this.fig.querySelector(".graph-err");
+    if (!errs.length) { if (p) p.remove(); return; }
+    if (!p) {
+      p = document.createElement("p");
+      p.className = "graph-err small warntext";
+      this.fig.insertBefore(p, this.canvas);
+    }
+    p.textContent = (this.fig.getAttribute("data-qerror") || "") + " " + errs.join(" · ");
   };
 
   Graph.prototype.fillLegend = function () {

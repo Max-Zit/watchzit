@@ -35,8 +35,11 @@ type GraphPanel struct {
 	// the drawing height in pixels (0 = by Height)
 	Cols int `json:"cols,omitempty"`
 	H    int `json:"h,omitempty"`
-	// Colors gives series their own colour (series ID → #rrggbb).
+	// Colors gives series their own colour (series ID → #rrggbb; "q0"…
+	// for the first series of a query).
 	Colors map[string]string `json:"colors,omitempty"`
+	// Queries read series from data sources outside WatchZit.
+	Queries []GraphQuery `json:"queries,omitempty"`
 }
 
 // colorRE is a colour as #rrggbb.
@@ -82,6 +85,10 @@ func (s *Store) SetDeviceGraphLayout(ctx context.Context, deviceID int64, l *Gra
 	if err := rows.Err(); err != nil {
 		return err
 	}
+	known, err := s.dataSourceIDs(ctx)
+	if err != nil {
+		return err
+	}
 	if len(l.Panels) > 60 {
 		return errors.New("a device can have at most 60 graphs")
 	}
@@ -96,7 +103,10 @@ func (s *Store) SetDeviceGraphLayout(ctx context.Context, deviceID int64, l *Gra
 		if len([]rune(p.Title)) > 100 {
 			return errors.New("a graph title has at most 100 characters")
 		}
-		if len(p.Series) == 0 || len(p.Series) > 12 {
+		if err := cleanQueries(p.Queries, known); err != nil {
+			return err
+		}
+		if len(p.Series)+len(p.Queries) == 0 || len(p.Series) > 12 {
 			return errors.New("a graph shows 1–12 values")
 		}
 		for _, sid := range p.Series {
@@ -131,8 +141,13 @@ func (s *Store) SetDeviceGraphLayout(ctx context.Context, deviceID int64, l *Gra
 			return errors.New("a graph is 80–900 pixels high")
 		}
 		for k, c := range p.Colors {
-			id, err := strconv.ParseInt(k, 10, 32)
-			if err != nil || !slices.Contains(p.Series, int32(id)) || !colorRE.MatchString(c) {
+			ok := false
+			if qi, err := strconv.Atoi(strings.TrimPrefix(k, "q")); strings.HasPrefix(k, "q") && err == nil {
+				ok = qi >= 0 && qi < len(p.Queries)
+			} else if id, err := strconv.ParseInt(k, 10, 32); err == nil {
+				ok = slices.Contains(p.Series, int32(id))
+			}
+			if !ok || !colorRE.MatchString(c) {
 				delete(p.Colors, k)
 			}
 		}

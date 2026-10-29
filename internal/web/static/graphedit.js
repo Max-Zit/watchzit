@@ -122,6 +122,7 @@
       box.appendChild(l); checks.push(c);
     });
     form.appendChild(box);
+    var qbox = queriesBox(p, form);
     var nums = h("div", { "class": "cols" });
     form.appendChild(nums);
     var numField = function (label, v) {
@@ -138,11 +139,14 @@
     var numOf = function (i) { return i.value === "" || isNaN(+i.value) ? undefined : +i.value; };
     ok.addEventListener("click", function () {
       var series = checks.filter(function (c) { return c.checked; }).map(function (c) { return +c.value; });
-      if (!series.length) { err.textContent = tx.pick; err.hidden = false; return; }
+      var queries = qbox.read();
+      if (!series.length && !queries.length) { err.textContent = tx.pick; err.hidden = false; return; }
+      p.queries = queries;
       p.title = title.value.trim(); p.type = kind.value; p.stack = stack.checked; p.series = series;
       p.min = numOf(min); p.max = numOf(max); p.warn = numOf(warn); p.crit = numOf(crit);
       p.colors = {};
       series.forEach(function (sid) { if (colors[String(sid)]) p.colors[String(sid)] = colors[String(sid)]; });
+      queries.forEach(function (q, i) { if (q.color) p.colors["q" + i] = q.color; delete q.color; });
       st.hidden = st.hidden.filter(function (sid) { return series.indexOf(sid) < 0; });
       if (isNew) st.panels.push(p);
       dlg.close();
@@ -152,6 +156,59 @@
     dlg.addEventListener("close", function () { dlg.remove(); });
     document.body.appendChild(dlg);
     dlg.showModal();
+  }
+
+  // queriesBox: the queries of data sources a graph shows, each with a
+  // button that tries it
+  function queriesBox(p, form) {
+    var box = h("fieldset", { "class": "box graph-queries" }), rows = [];
+    box.appendChild(h("legend", {}, tx.queries));
+    form.appendChild(box);
+    var list = h("div", { "class": "stack" });
+    box.appendChild(list);
+    var srcs = st.sources || [];
+    if (!srcs.length) box.appendChild(h("p", { "class": "small muted" }, tx.nosources));
+    var add = function (q, color) {
+      var row = h("div", { "class": "graph-query stack" });
+      var src = h("select", { "aria-label": tx.source });
+      srcs.forEach(function (s) { var o = h("option", { value: String(s.id) }, s.name); if (q.source === s.id) o.selected = true; src.appendChild(o); });
+      var text = h("textarea", { rows: "4", maxlength: "8000", "class": "mono", "aria-label": tx.query, placeholder: tx.query });
+      text.value = q.query || "";
+      var label = h("input", { maxlength: "100", placeholder: tx.seriesname, "aria-label": tx.seriesname, value: q.label || "" });
+      var unit = h("input", { maxlength: "20", placeholder: tx.unit, "aria-label": tx.unit, value: q.unit || "", "class": "w-sm" });
+      var col = h("input", { type: "color", "class": "graph-color", title: tx.color, "aria-label": tx.color, value: color || "#4f46e5" });
+      var picked = color || "";
+      col.addEventListener("input", function () { picked = col.value; });
+      var top = h("div", { "class": "row" });
+      var tryB = h("button", { type: "button", "class": "btn secondary sm" }, tx.tryq);
+      var del = h("button", { type: "button", "class": "ghost sm", title: tx.remove, "aria-label": tx.remove }, "×");
+      [src, label, unit, col, tryB, del].forEach(function (e) { top.appendChild(e); });
+      var out = h("p", { "class": "small muted graph-try", hidden: "" });
+      row.appendChild(top); row.appendChild(text); row.appendChild(out);
+      list.appendChild(row);
+      var r = { read: function () { return { source: +src.value, query: text.value.trim(), label: label.value.trim(), unit: unit.value.trim(), color: picked }; } };
+      rows.push(r);
+      del.addEventListener("click", function () { rows.splice(rows.indexOf(r), 1); row.remove(); });
+      tryB.addEventListener("click", function () {
+        var fig = document.querySelector("figure.graph[data-range]"), rg = fig ? fig.getAttribute("data-range") : "24h";
+        out.hidden = false; out.className = "small muted graph-try"; out.textContent = tx.running;
+        var q = r.read(); delete q.color;
+        fetch("/datasources/try?range=" + encodeURIComponent(rg), { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(q) })
+          .then(function (x) { return x.json(); })
+          .then(function (j) {
+            if (j.error) { out.className = "small warntext graph-try"; out.textContent = j.error; return; }
+            out.textContent = j.series.length ? "✓ " + j.series.map(function (s) { return s.label + " (" + s.points + ")"; }).join(", ") : tx.noseries;
+          })
+          .catch(function (e) { out.className = "small warntext graph-try"; out.textContent = e.message; });
+      });
+    };
+    (p.queries || []).forEach(function (q, i) { add(q, (p.colors || {})["q" + i]); });
+    if (srcs.length) {
+      var more = h("button", { type: "button", "class": "btn secondary sm" }, "+ " + tx.addquery);
+      more.addEventListener("click", function () { if (rows.length < 6) add({ source: srcs[0].id }); });
+      box.appendChild(more);
+    }
+    return { read: function () { return rows.map(function (r) { return r.read(); }).filter(function (q) { return q.source; }); } };
   }
 
   function begin() {

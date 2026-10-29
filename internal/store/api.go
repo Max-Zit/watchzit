@@ -119,20 +119,22 @@ const (
 	WidgetStatus   = "status"   // devices of a group (or all) with their state
 	WidgetProblems = "problems" // open problems
 	WidgetMap      = "map"      // a link to a map with its worst state
+	WidgetQuery    = "query"    // a graph of a data source query
 )
 
 // WidgetKinds lists the widget kinds.
-var WidgetKinds = []string{WidgetGraph, WidgetValue, WidgetStatus, WidgetProblems, WidgetMap}
+var WidgetKinds = []string{WidgetGraph, WidgetValue, WidgetStatus, WidgetProblems, WidgetMap, WidgetQuery}
 
 // Widget is one tile of a dashboard.
 type Widget struct {
-	Kind    string `json:"kind"`
-	Title   string `json:"title,omitempty"`
-	Size    string `json:"size,omitempty"` // s, m, l (columns of the grid)
-	CheckID int64  `json:"check,omitempty"`
-	Metric  string `json:"metric,omitempty"`
-	GroupID int64  `json:"group,omitempty"`
-	MapID   int64  `json:"map,omitempty"`
+	Kind    string      `json:"kind"`
+	Title   string      `json:"title,omitempty"`
+	Size    string      `json:"size,omitempty"` // s, m, l (columns of the grid)
+	CheckID int64       `json:"check,omitempty"`
+	Metric  string      `json:"metric,omitempty"`
+	GroupID int64       `json:"group,omitempty"`
+	MapID   int64       `json:"map,omitempty"`
+	Query   *GraphQuery `json:"query,omitempty"` // of a query widget
 }
 
 // Dashboard is a page of widgets.
@@ -155,6 +157,9 @@ func (w *Widget) clean() error {
 	if w.Size != "s" && w.Size != "l" {
 		w.Size = "m"
 	}
+	if w.Kind != WidgetQuery {
+		w.Query = nil
+	}
 	switch w.Kind {
 	case WidgetGraph, WidgetValue:
 		if w.CheckID <= 0 {
@@ -173,6 +178,14 @@ func (w *Widget) clean() error {
 			return errors.New("choose a map")
 		}
 		w.CheckID, w.Metric, w.GroupID = 0, "", 0
+	case WidgetQuery:
+		if w.Query == nil {
+			return errors.New("choose a data source")
+		}
+		if err := cleanQueries([]GraphQuery{*w.Query}, map[int64]bool{w.Query.Source: w.Query.Source > 0}); err != nil {
+			return err
+		}
+		w.CheckID, w.Metric, w.GroupID, w.MapID = 0, "", 0, 0
 	}
 	return nil
 }

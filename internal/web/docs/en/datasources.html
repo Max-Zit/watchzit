@@ -1,0 +1,58 @@
+<h1>Data sources</h1>
+<p class="lead">Graphs and dashboards can show time series from outside WatchZit too: tables of your own databases, Prometheus, InfluxDB or any address that answers JSON — next to the values of agents and checks.</p>
+
+<h2 id="add">Adding a data source</h2>
+<p>Administrators add data sources in <a href="/settings/datasources">Settings → Data sources</a>:</p>
+<table>
+  <tr><th>Kind</th><th>Address</th><th>Sign-in</th></tr>
+  <tr><td>PostgreSQL</td><td>host or host:port (5432), and the database</td><td>user and password</td></tr>
+  <tr><td>MySQL / MariaDB</td><td>host or host:port (3306), and the database</td><td>user and password</td></tr>
+  <tr><td>Microsoft SQL Server</td><td>host or host:port (1433), and the database</td><td>SQL Server user and password</td></tr>
+  <tr><td>Prometheus</td><td>the URL, for example <code>http://prometheus:9090</code>; also Thanos, VictoriaMetrics, Mimir</td><td>none, user and password, or a bearer token</td></tr>
+  <tr><td>InfluxDB</td><td>the URL, for example <code>http://influx:8086</code>, and the database (InfluxDB 2/3: the bucket)</td><td>InfluxDB 1: user and password; 2 and 3: the token alone</td></tr>
+  <tr><td>JSON over HTTP</td><td>the base URL of your service</td><td>none, user and password, or a bearer token</td></tr>
+</table>
+<p><b>Test connection</b> tries the settings without saving them. The password or token is stored encrypted and never shown again; leave the field empty to keep it.</p>
+<p>For SQL databases choose the encryption: when the server offers it (default), always with any certificate, always with a trusted certificate, or never. For addresses with https:// a self-signed certificate can be accepted.</p>
+<p><b>Give the console a user that may only read</b> the tables it needs. WatchZit runs PostgreSQL and MySQL queries in a read-only transaction; SQL Server has no such thing, so there only the user's rights protect the data. Operators write queries; viewers only see the graphs.</p>
+
+<h2 id="graphs">Queries on graphs</h2>
+<p>On a device page click <b>Edit graphs</b>, then ✎ on a graph or <b>Add graph</b>. Under <b>Data sources</b> click <b>Add query</b>, choose the data source and write the query. <b>Try</b> runs it over the page's time range and tells the series it gives (with their number of points) or the error of the database. A graph can show up to 6 queries next to the values of the device, each with a series name, a unit and a colour.</p>
+<p>On dashboards add the widget <b>Graph from a data source</b>.</p>
+<p>The answers are kept 20 seconds, so a dashboard on several screens asks the database once. A query brings at most 200,000 rows and 50 series and may take 20 seconds; the values are thinned to the width of the graph.</p>
+
+<h2 id="sql">SQL (PostgreSQL, MySQL, SQL Server)</h2>
+<p>The query returns a <b>time column</b> (named <code>time</code>, or the first column that holds times; Unix seconds or milliseconds work too), one or more <b>numeric columns</b> (a series each) and, optionally, a <b>text column</b> that names the series (<code>metric</code>, or the first text column) for tables with one row per series and time. Order by time.</p>
+<p>Macros put the graph's time range into the query:</p>
+<table>
+  <tr><th>Macro</th><th>Becomes</th></tr>
+  <tr><td><code>$__timeFilter(col)</code></td><td><code>col</code> between the start and end of the range</td></tr>
+  <tr><td><code>$__timeGroup(col)</code></td><td><code>col</code> rounded down to the graph's interval; <code>$__timeGroup(col, 300)</code> to 5 minutes</td></tr>
+  <tr><td><code>$__timeFrom</code>, <code>$__timeTo</code></td><td>the start and end as a time</td></tr>
+  <tr><td><code>$__unixFrom</code>, <code>$__unixTo</code></td><td>the start and end in Unix seconds</td></tr>
+  <tr><td><code>$__interval_s</code></td><td>the graph's interval in seconds</td></tr>
+</table>
+<p>Examples:</p>
+<pre>-- orders per interval (PostgreSQL, MySQL, SQL Server alike)
+SELECT $__timeGroup(created_at) AS time, count(*) AS orders
+FROM orders WHERE $__timeFilter(created_at)
+GROUP BY 1 ORDER BY 1
+
+-- one series per warehouse
+SELECT $__timeGroup(ts) AS time, warehouse AS metric, avg(temp) AS value
+FROM sensor_readings WHERE $__timeFilter(ts)
+GROUP BY 1, 2 ORDER BY 1</pre>
+
+<h2 id="prometheus">Prometheus</h2>
+<p>Write PromQL, for example <code>rate(node_network_receive_bytes_total{device="eth0"}[5m]) * 8</code>. Each series is named as Prometheus writes it (<code>name{label="value"}</code>); a series name in the editor replaces it. The step follows the width of the graph.</p>
+
+<h2 id="influxdb">InfluxDB</h2>
+<p>Write InfluxQL with <code>$timeFilter</code> and <code>$__interval</code>:</p>
+<pre>SELECT mean("usage_idle") FROM "cpu" WHERE $timeFilter GROUP BY time($__interval), "host"</pre>
+<p>InfluxDB 2 and 3 answer InfluxQL through their 1.x API: map the bucket to a database there if it is not mapped yet.</p>
+
+<h2 id="json">JSON over HTTP</h2>
+<p>The query is a path or parameters added to the address (for example <code>/api/temps?room=server</code>); WatchZit adds <code>from</code>, <code>to</code> and <code>step</code> in Unix seconds and reads any of these answers (times in seconds or milliseconds):</p>
+<pre>[{"target": "temp", "datapoints": [[21.5, 1793268000000], ...]}, ...]
+{"temp": [[1793268000, 21.5], ...], "humidity": [[1793268000, 40], ...]}
+[[1793268000, 21.5], [1793268060, 21.7], ...]</pre>

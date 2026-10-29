@@ -869,7 +869,7 @@ body.graph-full { overflow: hidden; }
 .graph-tools { display: flex; gap: 2px; justify-content: flex-end; margin: -4px 0 4px; }
 .graph-tools button { min-width: 28px; }
 .graphbar { gap: 8px; margin: -8px 0 12px; }
-.graph-editor { width: min(560px, calc(100vw - 32px)); border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--text); padding: 18px; }
+.graph-editor { width: min(760px, calc(100vw - 32px)); border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--text); padding: 18px; }
 .graph-editor::backdrop { background: rgba(0, 0, 0, .5); }
 .graph-series { max-height: 260px; overflow: auto; display: grid; gap: 4px; }
 .graphs.editing .graph { position: relative; }
@@ -877,3 +877,10 @@ body.graph-full { overflow: hidden; }
 .graph-series .check { display: flex; align-items: center; gap: 6px; }
 .graph-color { margin-left: auto; width: 32px; height: 22px; padding: 0; border: 1px solid var(--line); background: none; cursor: pointer; }
 .graph.full canvas { height: calc(100vh - 200px) !important; }
+.graph-queries { display: grid; gap: 8px; }
+.graph-query { border-top: 1px solid var(--line); padding-top: 8px; gap: 6px; }
+.graph-query .row { gap: 6px; flex-wrap: wrap; align-items: center; }
+.graph-query select, .graph-query input:not([type=color]) { width: auto; flex: 1 1 120px; }
+.graph-query textarea { width: 100%; font-size: 12.5px; }
+.graph-try { margin: 0; overflow-wrap: anywhere; }
+.graph-err { margin: 0 0 6px; overflow-wrap: anywhere; }

@@ -33,6 +33,7 @@ var DocPages = []DocPage{
 	{"maps", "Network maps"},
 	{"alerts", "Problems, alerts and notifications"},
 	{"dashboards", "Dashboards and reports"},
+	{"datasources", "Data sources"},
 	{"tools", "Opening devices"},
 	{"api", "REST API"},
 	{"admin", "Users, settings and updates"},

@@ -1,0 +1,58 @@
+<h1>Izvori podataka</h1>
+<p class="lead">Grafici i dashboard-i mogu da prikažu i vremenske serije van WatchZit-a: tabele vaših baza, Prometheus, InfluxDB ili bilo koju adresu koja odgovara JSON-om — pored vrednosti agenata i provera.</p>
+
+<h2 id="add">Dodavanje izvora podataka</h2>
+<p>Administratori dodaju izvore u <a href="/settings/datasources">Podešavanja → Izvori podataka</a>:</p>
+<table>
+  <tr><th>Vrsta</th><th>Adresa</th><th>Prijava</th></tr>
+  <tr><td>PostgreSQL</td><td>host ili host:port (5432), i baza</td><td>korisnik i lozinka</td></tr>
+  <tr><td>MySQL / MariaDB</td><td>host ili host:port (3306), i baza</td><td>korisnik i lozinka</td></tr>
+  <tr><td>Microsoft SQL Server</td><td>host ili host:port (1433), i baza</td><td>SQL Server korisnik i lozinka</td></tr>
+  <tr><td>Prometheus</td><td>URL, npr. <code>http://prometheus:9090</code>; i Thanos, VictoriaMetrics, Mimir</td><td>bez prijave, korisnik i lozinka, ili bearer token</td></tr>
+  <tr><td>InfluxDB</td><td>URL, npr. <code>http://influx:8086</code>, i baza (InfluxDB 2/3: bucket)</td><td>InfluxDB 1: korisnik i lozinka; 2 i 3: samo token</td></tr>
+  <tr><td>JSON preko HTTP-a</td><td>osnovni URL vašeg servisa</td><td>bez prijave, korisnik i lozinka, ili bearer token</td></tr>
+</table>
+<p><b>Proveri vezu</b> isprobava podešavanja bez čuvanja. Lozinka ili token se čuvaju šifrovano i više se ne prikazuju; ostavite polje prazno da ostane sačuvana.</p>
+<p>Za SQL baze izaberite šifrovanje: kada ga server nudi (podrazumevano), uvek sa bilo kojim sertifikatom, uvek sa pouzdanim sertifikatom, ili nikad. Za adrese sa https:// može da se prihvati samopotpisan sertifikat.</p>
+<p><b>Dajte konzoli korisnika koji sme samo da čita</b> potrebne tabele. WatchZit izvršava PostgreSQL i MySQL upite u transakciji samo za čitanje; SQL Server to nema, pa tamo podatke štite samo prava korisnika. Upite pišu operateri; posmatrači samo vide grafike.</p>
+
+<h2 id="graphs">Upiti na graficima</h2>
+<p>Na stranici uređaja kliknite <b>Izmeni grafike</b>, pa ✎ na grafiku ili <b>Dodaj grafik</b>. Pod <b>Izvori podataka</b> kliknite <b>Dodaj upit</b>, izaberite izvor i napišite upit. <b>Probaj</b> ga izvršava za vremenski opseg stranice i kaže koje serije daje (sa brojem tačaka) ili grešku baze. Grafik može da prikaže do 6 upita pored vrednosti uređaja, svaki sa imenom serije, jedinicom i bojom.</p>
+<p>Na dashboard-ima dodajte widget <b>Grafik iz izvora podataka</b>.</p>
+<p>Odgovori se čuvaju 20 sekundi, pa dashboard na više ekrana pita bazu jednom. Upit vraća najviše 200.000 redova i 50 serija i može da traje 20 sekundi; vrednosti se proređuju na širinu grafika.</p>
+
+<h2 id="sql">SQL (PostgreSQL, MySQL, SQL Server)</h2>
+<p>Upit vraća <b>kolonu vremena</b> (nazvanu <code>time</code>, ili prvu kolonu sa vremenima; mogu i Unix sekunde ili milisekunde), jednu ili više <b>brojčanih kolona</b> (svaka je serija) i, po želji, <b>tekstualnu kolonu</b> koja imenuje seriju (<code>metric</code>, ili prva tekstualna) za tabele sa jednim redom po seriji i vremenu. Poređajte po vremenu.</p>
+<p>Makroi ubacuju vremenski opseg grafika u upit:</p>
+<table>
+  <tr><th>Makro</th><th>Postaje</th></tr>
+  <tr><td><code>$__timeFilter(col)</code></td><td><code>col</code> između početka i kraja opsega</td></tr>
+  <tr><td><code>$__timeGroup(col)</code></td><td><code>col</code> zaokruženo na interval grafika; <code>$__timeGroup(col, 300)</code> na 5 minuta</td></tr>
+  <tr><td><code>$__timeFrom</code>, <code>$__timeTo</code></td><td>početak i kraj kao vreme</td></tr>
+  <tr><td><code>$__unixFrom</code>, <code>$__unixTo</code></td><td>početak i kraj u Unix sekundama</td></tr>
+  <tr><td><code>$__interval_s</code></td><td>interval grafika u sekundama</td></tr>
+</table>
+<p>Primeri:</p>
+<pre>-- porudžbine po intervalu (PostgreSQL, MySQL, SQL Server isto)
+SELECT $__timeGroup(created_at) AS time, count(*) AS orders
+FROM orders WHERE $__timeFilter(created_at)
+GROUP BY 1 ORDER BY 1
+
+-- jedna serija po magacinu
+SELECT $__timeGroup(ts) AS time, warehouse AS metric, avg(temp) AS value
+FROM sensor_readings WHERE $__timeFilter(ts)
+GROUP BY 1, 2 ORDER BY 1</pre>
+
+<h2 id="prometheus">Prometheus</h2>
+<p>Pišite PromQL, npr. <code>rate(node_network_receive_bytes_total{device="eth0"}[5m]) * 8</code>. Svaka serija se zove kako je Prometheus piše (<code>ime{labela="vrednost"}</code>); ime serije u editoru ga zamenjuje. Korak prati širinu grafika.</p>
+
+<h2 id="influxdb">InfluxDB</h2>
+<p>Pišite InfluxQL sa <code>$timeFilter</code> i <code>$__interval</code>:</p>
+<pre>SELECT mean("usage_idle") FROM "cpu" WHERE $timeFilter GROUP BY time($__interval), "host"</pre>
+<p>InfluxDB 2 i 3 odgovaraju na InfluxQL preko 1.x API-ja: tamo mapirajte bucket na bazu ako već nije.</p>
+
+<h2 id="json">JSON preko HTTP-a</h2>
+<p>Upit je putanja ili parametri dodati na adresu (npr. <code>/api/temps?room=server</code>); WatchZit dodaje <code>from</code>, <code>to</code> i <code>step</code> u Unix sekundama i čita bilo koji od ovih odgovora (vremena u sekundama ili milisekundama):</p>
+<pre>[{"target": "temp", "datapoints": [[21.5, 1793268000000], ...]}, ...]
+{"temp": [[1793268000, 21.5], ...], "humidity": [[1793268000, 40], ...]}
+[[1793268000, 21.5], [1793268060, 21.7], ...]</pre>

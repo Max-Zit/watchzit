@@ -44,6 +44,7 @@ type dashboardData struct {
 	Groups  []store.Group
 	Maps    []*store.Map
 	Kinds   []string
+	Sources []*store.DataSource
 	Now     any
 	NewName string
 }
@@ -134,6 +135,16 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		case store.WidgetMap:
 			v.Map = mapByID[wd.MapID]
 			v.Missing = v.Map == nil
+		case store.WidgetQuery:
+			name := wd.Title
+			if name == "" {
+				if ds, err := s.store.DataSourceByID(ctx, wd.Query.Source); err == nil {
+					name = ds.Name
+				}
+			}
+			g := graphDef{ID: "w" + strconv.Itoa(i), Name: name, Unit: wd.Query.Unit,
+				Queries: []string{"/dashboards/" + strconv.FormatInt(d.ID, 10) + "/widgets/" + strconv.Itoa(i) + "/data"}, QColors: []string{""}}
+			v.Graph = &graphCtx{G: g, Range: data.Range}
 		}
 		data.Views = append(data.Views, v)
 	}
@@ -171,6 +182,9 @@ func (s *Server) dashboardChoices(r *http.Request, data *dashboardData, maps []*
 	if data.Groups, err = s.store.Groups(r.Context()); err != nil {
 		return err
 	}
+	if data.Sources, err = s.store.DataSources(r.Context()); err != nil {
+		return err
+	}
 	data.Maps = maps
 	data.Kinds = store.WidgetKinds
 	return nil
@@ -205,6 +219,12 @@ func (s *Server) handleWidgetAdd(w http.ResponseWriter, r *http.Request) {
 		wd.GroupID, _ = strconv.ParseInt(r.FormValue("group"), 10, 64)
 	case store.WidgetMap:
 		wd.MapID, _ = strconv.ParseInt(r.FormValue("map"), 10, 64)
+	case store.WidgetQuery:
+		src, _ := strconv.ParseInt(r.FormValue("source"), 10, 64)
+		if _, err := s.store.DataSourceByID(r.Context(), src); err != nil {
+			src = 0
+		}
+		wd.Query = &store.GraphQuery{Source: src, Query: r.FormValue("query"), Label: r.FormValue("label"), Unit: r.FormValue("unit")}
 	}
 	s.saveWidgets(w, r, d, append(d.Widgets, wd), "widget "+wd.Kind+" added")
 }

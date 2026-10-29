@@ -1,0 +1,61 @@
+{{template "app" .}}
+{{define "content"}}
+<h1>{{.T "Settings"}}</h1>
+<div class="settings">
+{{template "settingstabs" .}}
+<div class="settings-body">
+<section class="panel">
+  <h2>{{.T "Data sources"}}</h2>
+  <p class="muted">{{.T "Graphs and dashboards can show time series from outside WatchZit too: tables of your own databases, Prometheus, InfluxDB or any address that answers JSON. Operators write the queries in the graph editor; give the console a user that may only read."}}</p>
+  {{if .Data.Sources}}
+  <div class="table-wrap"><table>
+    <thead><tr><th>{{.T "Name"}}</th><th>{{.T "Kind"}}</th><th class="hide-sm">{{.T "Address"}}</th><th></th></tr></thead>
+    <tbody>{{range .Data.Sources}}<tr>
+      <td><b>{{.Name}}</b></td>
+      <td>{{dsKindName .Kind}}</td>
+      <td class="hide-sm mono small">{{.Address}}{{with .Database}} · {{.}}{{end}}</td>
+      <td class="actions nowrap"><a class="btn ghost sm" href="/settings/datasources/{{.ID}}" title="{{$.T "Edit"}}">{{template "icon" "edit"}}</a></td>
+    </tr>{{end}}</tbody>
+  </table></div>
+  {{else}}<p class="muted">{{.T "No data sources yet."}}</p>{{end}}
+</section>
+{{$e := .Data.Edit}}{{$in := .Data.In}}
+<section class="panel">
+  <h2>{{if $e}}{{.T "Edit %s" $e.Name}}{{else}}{{.T "Add a data source"}}{{end}}</h2>
+  {{if .Data.Tested}}{{if .Data.TestOK}}<p class="notice-ok">{{template "icon" "check"}} {{.T "The data source answers."}}</p>{{else}}<p class="warntext">{{template "icon" "alert"}} {{.T "The data source does not answer:"}} <span class="mono small">{{.Data.TestErr}}</span></p>{{end}}{{end}}
+  <form method="post" action="{{if $e}}/settings/datasources/{{$e.ID}}{{else}}/settings/datasources{{end}}" class="stack" autocomplete="off">
+    <div class="cols">
+      <label>{{.T "Name"}}<input name="name" value="{{$in.Name}}" required maxlength="100" placeholder="{{.T "Name, for example ERP database"}}"></label>
+      <label>{{.T "Kind"}}<select name="kind" data-switch="dskind">{{range .Data.Kinds}}<option value="{{.ID}}" {{if eq .ID $in.Kind}}selected{{end}}>{{.Name}}</option>{{end}}</select></label>
+    </div>
+    <label data-show="dskind" data-when="postgres mysql mssql">{{.T "Server"}} <small>{{.T "host or host:port"}}</small><input name="address" value="{{$in.Address}}" required maxlength="500" placeholder="db.example.lan:5432"></label>
+    <label data-show="dskind" data-when="prometheus influxdb json">{{.T "Address"}} <small>{{.T "the URL, from http:// or https://"}}</small><input name="address" value="{{$in.Address}}" required maxlength="500" placeholder="http://prometheus.example.lan:9090"></label>
+    <div class="cols">
+      <label data-show="dskind" data-when="postgres mysql mssql influxdb">{{.T "Database"}}<input name="database" value="{{$in.Database}}" maxlength="200"></label>
+      <label>{{.T "User"}} <small>{{.T "optional"}}</small><input name="user" value="{{$in.User}}" maxlength="200" autocomplete="off"></label>
+      <label>{{.T "Password or token"}} {{if and $e $e.HasSecret}}<small>{{.T "empty: keep the saved one"}}</small>{{end}}<input type="password" name="secret" maxlength="4000" autocomplete="new-password"></label>
+    </div>
+    {{if and $e $e.HasSecret}}<label class="check"><input type="checkbox" name="clear" value="1"> {{.T "Remove the saved password or token"}}</label>{{end}}
+    <label data-show="dskind" data-when="postgres mysql mssql">{{.T "Encryption (TLS)"}}<select name="tls">
+      <option value="" {{if eq $in.TLS ""}}selected{{end}}>{{.T "When the server offers it"}}</option>
+      <option value="require" {{if eq $in.TLS "require"}}selected{{end}}>{{.T "Always, any certificate"}}</option>
+      <option value="verify" {{if eq $in.TLS "verify"}}selected{{end}}>{{.T "Always, trusted certificate"}}</option>
+      <option value="disable" {{if eq $in.TLS "disable"}}selected{{end}}>{{.T "Never"}}</option>
+    </select></label>
+    <label data-show="dskind" data-when="prometheus influxdb json">{{.T "Certificate"}}<select name="tls">
+      <option value="" {{if eq $in.TLS ""}}selected{{end}}>{{.T "Must be trusted"}}</option>
+      <option value="insecure" {{if eq $in.TLS "insecure"}}selected{{end}}>{{.T "Accept any (self-signed)"}}</option>
+    </select></label>
+    <p class="small muted" data-show="dskind" data-when="prometheus json">{{.T "With a user the password goes as basic sign-in; a token alone goes as a bearer token."}}</p>
+    <p class="small muted" data-show="dskind" data-when="influxdb">{{.T "InfluxDB 1: user and password. InfluxDB 2 and 3: the token alone, and the bucket as the database (through its InfluxQL API)."}}</p>
+    <div class="row">
+      <button class="primary">{{if $e}}{{.T "Save"}}{{else}}{{template "icon" "plus"}}{{.T "Add data source"}}{{end}}</button>
+      <button class="secondary" name="do" value="test" formnovalidate>{{.T "Test connection"}}</button>
+      {{if $e}}<a class="btn secondary" href="/settings/datasources">{{.T "Cancel"}}</a>{{end}}
+    </div>
+  </form>
+  {{if $e}}<form method="post" action="/settings/datasources/{{$e.ID}}/delete" class="mt" data-confirm="{{.T "Delete the data source %s? Graphs that read it show an error." $e.Name}}"><button class="danger sm">{{template "icon" "trash"}}{{.T "Delete data source"}}</button></form>{{end}}
+</section>
+</div>
+</div>
+{{end}}

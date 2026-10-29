@@ -424,6 +424,7 @@ func init() {
 		return ""
 	}
 	funcs["isAgent"] = store.IsAgent
+	funcs["dsKindName"] = func(k string) string { return dsKindNames[k] }
 	funcs["withTitle"] = func(title string, g graphCtx) graphCtx { g.Title = title; return g }
 	funcs["widgetName"] = func(k string) string { return widgetNames[k] }
 	funcs["graphOf"] = func(p *Page, g graphDef, rng string) graphCtx { return graphCtx{P: p, G: g, Range: rng} }
@@ -546,7 +547,7 @@ type graphCtx struct {
 
 // widgetNames name the dashboard widget kinds.
 var widgetNames = map[string]string{store.WidgetGraph: "Graph", store.WidgetValue: "Current value", store.WidgetStatus: "Device states",
-	store.WidgetProblems: "Open problems", store.WidgetMap: "Map"}
+	store.WidgetProblems: "Open problems", store.WidgetMap: "Map", store.WidgetQuery: "Graph from a data source"}
 
 // vlanModeNames name the VLAN modes of ports.
 var vlanModeNames = map[string]string{"access": "Access", "trunk": "Trunk", "hybrid": "Hybrid"}

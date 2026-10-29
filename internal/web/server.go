@@ -64,8 +64,9 @@ type Server struct {
 	// LauncherKey signs the links that open devices with local tools.
 	LauncherKey ed25519.PrivateKey
 	// Alerts is the alert engine (kicked after changes; may be nil).
-	Alerts *alert.Engine
-	wg     sync.WaitGroup // notifications in flight
+	Alerts  *alert.Engine
+	wg      sync.WaitGroup // notifications in flight
+	queries queryCache     // answers of data source queries
 }
 
 // New creates the server; settings are loaded from the database.
@@ -329,6 +330,14 @@ func (s *Server) Handler() http.Handler {
 	write("POST /pictures/{id}", s.handlePictureSave)
 	write("POST /pictures/{id}/clone", s.handlePictureClone)
 	write("POST /pictures/{id}/delete", s.handlePictureDelete)
+	admin("GET /settings/datasources", s.handleDataSources)
+	admin("POST /settings/datasources", s.handleDataSourceCreate)
+	admin("GET /settings/datasources/{id}", s.handleDataSource)
+	admin("POST /settings/datasources/{id}", s.handleDataSourceUpdate)
+	admin("POST /settings/datasources/{id}/delete", s.handleDataSourceDelete)
+	write("POST /datasources/try", s.handleQueryTry)
+	app("GET /devices/{id}/graphs/{panel}/q/{n}", s.handlePanelQuery)
+	app("GET /dashboards/{id}/widgets/{n}/data", s.handleWidgetQuery)
 	admin("GET /settings/kiosks", s.handleKiosks)
 	admin("POST /settings/kiosks", s.handleKioskCreate)
 	admin("GET /settings/kiosks/{id}", s.handleKiosk)

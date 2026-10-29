@@ -54,6 +54,17 @@
     <label data-show="wkind" data-when="value">{{.T "Value"}}<select name="series">{{range $c := .Data.Checks}}{{range .Series}}<option value="{{$c.ID}}|{{.Metric}}">{{$c.Label}} · {{$.T (metricName .Metric)}}</option>{{end}}{{end}}</select></label>
     <label data-show="wkind" data-when="status problems">{{.T "Group"}}<select name="group"><option value="0">{{.T "All devices"}}</option>{{range .Data.Groups}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></label>
     <label data-show="wkind" data-when="map">{{.T "Map"}}<select name="map">{{range .Data.Maps}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></label>
+    <div data-show="wkind" data-when="query" class="stack">
+      {{if .Data.Sources}}
+      <label>{{.T "Data source"}}<select name="source">{{range .Data.Sources}}<option value="{{.ID}}">{{.Name}} ({{dsKindName .Kind}})</option>{{end}}</select></label>
+      <label>{{.T "Query"}}<textarea name="query" rows="5" maxlength="8000" class="mono" placeholder="SELECT $__timeGroup(created_at) AS time, count(*) AS orders FROM orders WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 1"></textarea></label>
+      <div class="cols">
+        <label>{{.T "Series name"}} <small>{{.T "optional"}}</small><input name="label" maxlength="100"></label>
+        <label>{{.T "Unit"}} <small>{{.T "optional"}}</small><input name="unit" maxlength="20" placeholder="ms, %, B"></label>
+      </div>
+      <p class="small muted">{{.T "How to write queries for each kind of data source is in the user guide."}} <a href="/docs/datasources">{{.T "Data sources"}}</a></p>
+      {{else}}<p class="muted">{{.T "Add a data source first (Settings → Data sources, administrators)."}}</p>{{end}}
+    </div>
     <div><button class="primary">{{template "icon" "plus"}}{{.T "Add widget"}}</button></div>
   </form>
 </section>
