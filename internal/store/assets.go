@@ -13,15 +13,33 @@ import (
 
 // Asset is an uploaded picture: a map background or a device icon.
 type Asset struct {
-	ID        int64     `json:"id"`
-	Kind      string    `json:"kind"`
-	Name      string    `json:"name"`
-	Mime      string    `json:"mime"`
-	Width     int       `json:"w"`
-	Height    int       `json:"h"`
-	Size      int       `json:"size"`
-	CreatedAt time.Time `json:"-"`
+	ID        int64       `json:"id"`
+	Kind      string      `json:"kind"`
+	Name      string      `json:"name"`
+	Mime      string      `json:"mime"`
+	Width     int         `json:"w"`
+	Height    int         `json:"h"`
+	Size      int         `json:"size"`
+	Meta      PictureMeta `json:"meta"`
+	CreatedAt time.Time   `json:"-"`
 }
+
+// PictureMeta is what a picture of the library shows: its manufacturer,
+// type (a device kind, "storage", "rack", "logical", "power" or "other"),
+// rack units (0: not rack-mounted), default width on a map and the port
+// positions in picture coordinates, port 1 first; the last Fiber ports are
+// SFP cages.
+type PictureMeta struct {
+	Vendor string       `json:"vendor,omitempty"`
+	Type   string       `json:"type,omitempty"`
+	U      int          `json:"u,omitempty"`
+	Show   float64      `json:"show,omitempty"`
+	Ports  [][2]float64 `json:"ports,omitempty"`
+	Fiber  int          `json:"fiber,omitempty"`
+}
+
+// PictureTypes are the types a picture can have.
+var PictureTypes = []string{"switch", "router", "firewall", "server", "storage", "accesspoint", "ups", "power", "camera", "pc", "printer", "rack", "logical", "other"}
 
 // MaxAssetSize limits uploads (a floor plan photo stays well below).
 const MaxAssetSize = 8 << 20
@@ -46,7 +64,7 @@ func (s *Store) CreateAsset(ctx context.Context, kind, name, mime string, data [
 
 // Assets lists the pictures of a kind (without their data).
 func (s *Store) Assets(ctx context.Context, kind string) ([]Asset, error) {
-	rows, err := s.db.Query(ctx, `SELECT id, kind, name, mime, width, height, length(data), created_at FROM map_assets WHERE kind=$1 ORDER BY lower(name), id`, kind)
+	rows, err := s.db.Query(ctx, `SELECT id, kind, name, mime, width, height, length(data), created_at, meta FROM map_assets WHERE kind=$1 ORDER BY lower(name), id`, kind)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +72,7 @@ func (s *Store) Assets(ctx context.Context, kind string) ([]Asset, error) {
 	out := []Asset{}
 	for rows.Next() {
 		var a Asset
-		if err := rows.Scan(&a.ID, &a.Kind, &a.Name, &a.Mime, &a.Width, &a.Height, &a.Size, &a.CreatedAt); err != nil {
+		if err := rows.Scan(&a.ID, &a.Kind, &a.Name, &a.Mime, &a.Width, &a.Height, &a.Size, &a.CreatedAt, &a.Meta); err != nil {
 			return nil, err
 		}
 		out = append(out, a)
@@ -66,8 +84,8 @@ func (s *Store) Assets(ctx context.Context, kind string) ([]Asset, error) {
 func (s *Store) AssetData(ctx context.Context, id int64) (*Asset, []byte, error) {
 	a := &Asset{}
 	var data []byte
-	err := s.db.QueryRow(ctx, `SELECT id, kind, name, mime, width, height, data, created_at FROM map_assets WHERE id=$1`, id).
-		Scan(&a.ID, &a.Kind, &a.Name, &a.Mime, &a.Width, &a.Height, &data, &a.CreatedAt)
+	err := s.db.QueryRow(ctx, `SELECT id, kind, name, mime, width, height, data, created_at, meta FROM map_assets WHERE id=$1`, id).
+		Scan(&a.ID, &a.Kind, &a.Name, &a.Mime, &a.Width, &a.Height, &data, &a.CreatedAt, &a.Meta)
 	if err != nil {
 		return nil, nil, notFound(err)
 	}

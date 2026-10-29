@@ -232,9 +232,10 @@ var funcs = template.FuncMap{
 		}
 		return "?"
 	},
-	"join":     strings.Join,
-	"ranges":   vlanRanges,
-	"vlanmode": func(m string) string { return vlanModeNames[m] },
+	"join":        strings.Join,
+	"ranges":      vlanRanges,
+	"vlanmode":    func(m string) string { return vlanModeNames[m] },
+	"pictureType": func(t string) string { return pictureTypeNames[t] },
 	"deref64": func(p *int64) int64 {
 		if p == nil {
 			return 0

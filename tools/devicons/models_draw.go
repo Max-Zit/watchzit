@@ -35,6 +35,18 @@ func drawModel(m model) *pic {
 		return ceilingModel(m)
 	case "mesh":
 		return meshModel(m)
+	case "bullet", "dome", "turret", "ptz":
+		return cameraModel(m)
+	case "dish", "omni", "sector", "panel":
+		return antennaModel(m)
+	case "upstower":
+		return upsTowerModel(m)
+	case "printer":
+		return printerModel(m)
+	case "phone":
+		return phoneModel(m)
+	case "mini":
+		return miniModel(m)
 	}
 	return deskModel(m, false, false)
 }
@@ -298,7 +310,20 @@ func slug(s string) string {
 
 // modelIcons draws the catalog and returns its index entries.
 func modelIcons(out string) []Icon {
-	cats := map[string]string{"server": "server", "switch": "network", "router": "network", "firewall": "security", "accesspoint": "wireless", "storage": "server", "ups": "power", "camera": "security"}
+	count := map[string]int{}
+	for _, m := range catalog() {
+		count[slug(m.vendor+" "+m.name)]++
+	}
+	var dups []string
+	for n, c := range count {
+		if c > 1 {
+			dups = append(dups, n)
+		}
+	}
+	if len(dups) > 0 {
+		panic("models named twice: " + strings.Join(dups, ", "))
+	}
+	cats := map[string]string{"server": "server", "switch": "network", "router": "network", "firewall": "security", "accesspoint": "wireless", "storage": "server", "ups": "power", "camera": "security", "printer": "end", "pc": "end", "other": "rack"}
 	seen := map[string]bool{}
 	var icons []Icon
 	for _, m := range catalog() {
@@ -319,6 +344,18 @@ func modelIcons(out string) []Icon {
 			ic.Show = 55
 		case "nas", "mesh":
 			ic.Show = math.Max(45, p.w*0.55)
+		case "bullet", "dome", "turret", "ptz":
+			ic.Show = 70
+		case "dish", "omni", "sector", "panel":
+			ic.Show = 60
+		case "upstower":
+			ic.Show = 50
+		case "printer":
+			ic.Show = 80
+		case "phone":
+			ic.Show = 45
+		case "mini":
+			ic.Show = 60
 		case "ceiling":
 			ic.Show = 80
 		case "outdoor":
@@ -386,4 +423,131 @@ func deviceKind(k string) string {
 		return "server"
 	}
 	return k
+}
+
+// cameraModel: IP cameras — bullet, dome, turret (eyeball) or PTZ — with
+// the model written below and the network port at the bottom.
+func cameraModel(m model) *pic {
+	w, h := 120.0, 110.0
+	p := newPic(w, h)
+	light, dark := "#1b2330", "#4a5466"
+	switch m.form {
+	case "bullet":
+		p.add(`<rect x="44" y="6" width="32" height="12" rx="3" fill="url(#l)" stroke="#9aa5b5"/><rect x="56" y="16" width="8" height="14" fill="#c4cad3"/>`)
+		p.add(`<rect x="10" y="28" width="98" height="30" rx="10" fill="url(#l)" stroke="#9aa5b5"/><rect x="92" y="30" width="22" height="26" rx="6" fill="#e6ebf2" stroke="#9aa5b5"/>`)
+		p.add(`<circle cx="100" cy="43" r="9" fill="#0c0f14"/><circle cx="100" cy="43" r="4" fill="#1f3a5f"/><circle cx="97" cy="40" r="1.5" fill="#9cc7ff"/>`)
+	case "dome":
+		p.add(`<ellipse cx="60" cy="40" rx="48" ry="12" fill="url(#l)" stroke="#9aa5b5"/><path d="M24 40a36 30 0 0 0 72 0Z" fill="#1b2330" opacity=".85"/>`)
+		p.add(`<circle cx="60" cy="52" r="9" fill="#0c0f14"/><circle cx="60" cy="52" r="4" fill="#1f3a5f"/><circle cx="57" cy="49" r="1.5" fill="#9cc7ff"/>`)
+	case "turret":
+		p.add(`<ellipse cx="60" cy="18" rx="44" ry="10" fill="url(#l)" stroke="#9aa5b5"/><circle cx="60" cy="42" r="24" fill="url(#l)" stroke="#9aa5b5"/>`)
+		p.add(`<circle cx="60" cy="44" r="13" fill="#0c0f14"/><circle cx="60" cy="44" r="6" fill="#1f3a5f"/><circle cx="56" cy="40" r="2" fill="#9cc7ff"/>`)
+	default: // ptz
+		p.add(`<rect x="38" y="4" width="44" height="10" rx="3" fill="url(#l)" stroke="#9aa5b5"/><rect x="54" y="12" width="12" height="10" fill="#c4cad3"/>`)
+		p.add(`<rect x="30" y="20" width="60" height="16" rx="6" fill="url(#l)" stroke="#9aa5b5"/><circle cx="60" cy="50" r="22" fill="#1b2330" stroke="#9aa5b5"/>`)
+		p.add(`<circle cx="60" cy="52" r="10" fill="#0c0f14"/><circle cx="60" cy="52" r="5" fill="#1f3a5f"/><circle cx="57" cy="49" r="1.6" fill="#9cc7ff"/>`)
+	}
+	if a := vendorAccent[m.vendor]; a != "" {
+		p.add(`<rect x="30" y="74" width="60" height="2" fill="%s"/>`, a)
+	}
+	p.label(8, 84, w-16, m.vendor, m.name, light, dark)
+	p.add(`<rect x="1" y="78" width="%g" height="31" rx="4" fill="none"/>`, w-2)
+	p.ports = append(p.ports, [2]float64{60, 106})
+	return p
+}
+
+// antennaModel: outdoor wireless — a dish for point to point, an omni
+// rod, a sector or a flat panel — on a mast, its port at the foot.
+func antennaModel(m model) *pic {
+	w, h := 100.0, 150.0
+	p := newPic(w, h)
+	p.add(`<rect x="47" y="60" width="6" height="88" fill="#59616e"/>`)
+	switch m.form {
+	case "dish":
+		p.add(`<ellipse cx="50" cy="44" rx="40" ry="40" fill="url(#l)" stroke="#9aa5b5"/><ellipse cx="50" cy="44" rx="28" ry="28" fill="#e2e7ee"/><rect x="43" y="36" width="14" height="16" rx="3" fill="#59616e"/>`)
+	case "omni":
+		p.add(`<rect x="42" y="4" width="16" height="76" rx="8" fill="url(#l)" stroke="#9aa5b5"/><path d="M30 24a28 28 0 0 0 0 30M70 24a28 28 0 0 1 0 30M22 18a38 38 0 0 0 0 42M78 18a38 38 0 0 1 0 42" stroke="#4ea1ff" stroke-width="2" fill="none" stroke-linecap="round"/>`)
+	case "sector":
+		p.add(`<rect x="34" y="4" width="32" height="78" rx="6" fill="url(#l)" stroke="#9aa5b5"/><path d="M70 30a24 24 0 0 1 0 26M78 24a34 34 0 0 1 0 38" stroke="#4ea1ff" stroke-width="2" fill="none" stroke-linecap="round"/>`)
+	default: // panel
+		p.add(`<rect x="22" y="10" width="56" height="64" rx="8" fill="url(#l)" stroke="#9aa5b5"/><circle cx="50" cy="42" r="4" fill="#4ea1ff"/>`)
+	}
+	p.add(`<rect x="2" y="96" width="%g" height="34" rx="4" fill="url(#m)" stroke="#59616e"/>`, w-4)
+	p.label(8, 106, w-16, m.vendor, m.name, "#e6ebf2", "#9aa5b5")
+	p.portGrid(max(m.copper, 1), m.sfp, 1, 50-float64(max(m.copper, 1)+m.sfp)*8, 50+float64(max(m.copper, 1)+m.sfp)*8, 140, 140)
+	return p
+}
+
+// upsTowerModel: a tower UPS with its display, power button and, if it has
+// one, the network card port.
+func upsTowerModel(m model) *pic {
+	w, h := 90.0, 160.0
+	p := newPic(w, h)
+	p.add(`<rect x="2" y="2" width="%g" height="%g" rx="6" fill="url(#m)" stroke="#59616e"/>`, w-4, h-4)
+	if a := vendorAccent[m.vendor]; a != "" {
+		p.add(`<rect x="8" y="8" width="%g" height="3" fill="%s"/>`, w-16, a)
+	}
+	p.label(10, 22, w-20, m.vendor, m.name, "#e6ebf2", "#9aa5b5")
+	p.add(`<rect x="14" y="44" width="%g" height="22" rx="2" fill="url(#s)"/>`, w-28)
+	p.text(20, 59, 8, "#7fe0a6", "100%")
+	p.add(`<circle cx="%g" cy="84" r="7" fill="#1f2530" stroke="#36d27a" stroke-width="2"/>`, w/2)
+	for i := 0; i < 5; i++ {
+		p.add(`<rect x="14" y="%g" width="%g" height="3" rx="1.5" fill="#2a303b"/>`, 100+float64(i)*7, w-28)
+	}
+	if m.copper > 0 {
+		p.mport(w/2, h-16, 12, true)
+	}
+	return p
+}
+
+// printerModel: an office printer or multifunction device (with a scanner
+// lid when it has "MFP" or a multifunction name).
+func printerModel(m model) *pic {
+	w, h := 130.0, 110.0
+	p := newPic(w, h)
+	mfp := m.bays > 0 // bays: 1 = scanner on top
+	top := 4.0
+	if mfp {
+		p.add(`<rect x="10" y="4" width="110" height="16" rx="3" fill="url(#l)" stroke="#9aa5b5"/>`)
+		top = 20
+	}
+	p.add(`<rect x="4" y="%g" width="122" height="%g" rx="6" fill="url(#l)" stroke="#9aa5b5"/>`, top, 80-top)
+	p.add(`<rect x="86" y="%g" width="30" height="12" rx="2" fill="url(#s)"/><rect x="18" y="62" width="94" height="8" rx="2" fill="#c4cad3"/>`, top+6)
+	if a := vendorAccent[m.vendor]; a != "" {
+		p.add(`<rect x="10" y="76" width="110" height="2" fill="%s"/>`, a)
+	}
+	p.label(10, top+12, 72, m.vendor, m.name, "#1b2330", "#4a5466")
+	p.add(`<rect x="2" y="82" width="126" height="26" rx="4" fill="url(#m)"/>`)
+	p.mport(w/2, 95, 12, true)
+	return p
+}
+
+// phoneModel: a desk IP phone with its display; LAN and PC ports below.
+func phoneModel(m model) *pic {
+	w, h := 110.0, 120.0
+	p := newPic(w, h)
+	p.add(`<rect x="4" y="4" width="102" height="82" rx="10" fill="url(#m)" stroke="#59616e"/><rect x="8" y="8" width="20" height="74" rx="8" fill="#2a303b"/>`)
+	p.add(`<rect x="34" y="10" width="66" height="30" rx="3" fill="url(#s)"/>`)
+	for i := 0; i < 9; i++ {
+		p.add(`<rect x="%g" y="%g" width="14" height="8" rx="2" fill="#3a424f"/>`, 40+float64(i%3)*20, 46+float64(i/3)*12)
+	}
+	p.add(`<rect x="2" y="88" width="106" height="30" rx="4" fill="url(#m)"/>`)
+	p.label(6, 96, 98, m.vendor, m.name, "#e6ebf2", "#9aa5b5")
+	p.portGrid(max(m.copper, 1), 0, 1, 70, 104, 112, 112)
+	return p
+}
+
+// miniModel: a mini PC or single-board computer, ports on the front.
+func miniModel(m model) *pic {
+	n := max(m.copper, 1)
+	w := math.Max(110, 60+float64(n)*16)
+	p := newPic(w, 70)
+	p.add(`<rect x="2" y="2" width="%g" height="66" rx="10" fill="url(#m)" stroke="#59616e"/>`, w-4)
+	if a := vendorAccent[m.vendor]; a != "" {
+		p.add(`<rect x="10" y="60" width="%g" height="2" fill="%s"/>`, w-20, a)
+	}
+	p.label(10, 14, w-20, m.vendor, m.name, "#e6ebf2", "#9aa5b5")
+	p.add(`<circle cx="%g" cy="46" r="4" fill="#1f2530" stroke="#4ea1ff" stroke-width="1.3"/>`, w-16)
+	p.portGrid(n, m.sfp, 1, 8, w-30, 46, 46)
+	return p
 }

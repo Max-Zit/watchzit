@@ -145,8 +145,9 @@
     if (!n.icon) return null;
     if (n.icon.indexOf("lib:") === 0) return lib[n.icon.slice(4)] || null;
     if (n.icon.indexOf("asset:") === 0) {
-      var a = meta && meta.assets[n.icon.slice(6)];
-      return { url: url("assets", n.icon.slice(6)), w: (a && a.w) || 100, h: (a && a.h) || 100, show: 80, ports: [], u: 0, label: a ? a.name : "" };
+      // an uploaded picture with what the picture library says about it
+      var a = meta && meta.assets[n.icon.slice(6)], m = (a && a.meta) || {};
+      return { url: url("assets", n.icon.slice(6)), w: (a && a.w) || 100, h: (a && a.h) || 100, show: m.show || 80, ports: m.ports || [], u: m.u || 0, fiber: m.fiber || 0, label: a ? a.name : "" };
     }
     return null;
   }
@@ -748,6 +749,7 @@
     // vendor: "" = the generic pictures, "*" = all; a search looks through all
     var vendors = [];
     libList.forEach(function (i) { if (i.vendor && vendors.indexOf(i.vendor) < 0) vendors.push(i.vendor); });
+    Object.keys(meta.assets || {}).forEach(function (id) { var m = meta.assets[id].meta || {}; if (m.vendor && vendors.indexOf(m.vendor) < 0) vendors.push(m.vendor); });
     vendors.sort();
     var vend = select([["", T("Generic pictures")], ["*", T("All manufacturers")]].concat(vendors.map(function (v) { return [v, v]; })), vendor || "", function () { fill(); });
     vend.setAttribute("aria-label", T("Manufacturer"));
@@ -760,7 +762,8 @@
         .map(function (i) { return { icon: "lib:" + i.name, src: "/static/devices/" + i.name + ".svg?v=" + assetV, label: i.label, type: picType(i) }; });
       Object.keys(meta.assets || {}).forEach(function (id) {
         var a = meta.assets[id];
-        if (a.kind === "icon") items.push({ icon: "asset:" + id, src: url("assets", id), label: a.name, type: "uploaded" });
+        var am = a.meta || {};
+        if (a.kind === "icon" && (!vend.value || vend.value === "*" || f || am.vendor === vend.value)) items.push({ icon: "asset:" + id, src: url("assets", id), label: a.name, type: am.type || "uploaded" });
       });
       items.forEach(function (it) {
         if (kind.value && it.type !== kind.value) return;
@@ -776,6 +779,7 @@
     q.addEventListener("input", fill);
     var acts = h("div", { "class": "row" });
     acts.appendChild(button(T("Upload picture"), "secondary", function () { uploadPicture("icon", function (a) { onPick("asset:" + a.id); }); }));
+    acts.appendChild(h("a", { href: "/pictures", target: "_blank", rel: "noopener", "class": "btn ghost sm" }, T("Picture library")));
     if (allowNone) acts.appendChild(button(T("Symbol (no picture)"), "ghost", function () { onPick(""); }));
     p.appendChild(acts);
     p.appendChild(q);

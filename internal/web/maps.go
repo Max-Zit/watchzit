@@ -119,7 +119,7 @@ var mapText = []string{"Edit", "Done", "Zoom in", "Zoom out", "Fit to screen", "
 	"Drag devices into the rack; they snap to the units.", "Port on picture", "Interface", "Cable", "Route", "Straight", "90° bends", "45° bends", "Curved",
 	"Drag the + points to bend the cable; drag the round points to move a bend; double-click a point to remove it.", "Background", "Remove background",
 	"Without a picture the map shows the dotted grid.", "Opacity", "Move background (drag it)", "The picture could not be uploaded.",
-	"Power", "Logical", "Uploaded", "All types", "Switch", "Router", "Firewall", "Server", "Storage / NAS", "Access point", "UPS", "Camera", "Computer", "Printer", "Other", "All manufacturers", "No pictures match.", "Type", "Add rack", "Port", "Automatic", "Monitored device", "None (picture only)"}
+	"Power", "Logical", "Uploaded", "All types", "Switch", "Router", "Firewall", "Server", "Storage / NAS", "Access point", "UPS", "Camera", "Computer", "Printer", "Other", "All manufacturers", "No pictures match.", "Type", "Picture library", "Add rack", "Port", "Automatic", "Monitored device", "None (picture only)"}
 
 type mapJSON struct {
 	ID      int64                 `json:"id"`

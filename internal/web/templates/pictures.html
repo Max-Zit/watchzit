@@ -1,0 +1,46 @@
+{{template "app" .}}
+{{define "content"}}
+<div class="titlebar"><h1>{{.T "Picture library"}}</h1></div>
+<p class="muted">{{.T "Your own device pictures for the maps: upload a picture or copy a built-in one, then mark its ports, rack units, manufacturer and type. Cables on a map then end in the right port."}}</p>
+
+<section class="panel">
+  <h2>{{.T "Upload a picture"}}</h2>
+  <form method="post" action="/pictures/upload" enctype="multipart/form-data" class="row">
+    <input type="file" name="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" required>
+    <button class="btn primary">{{template "icon" "upload"}}{{.T "Upload and set the ports"}}</button>
+  </form>
+  <p class="small muted">{{.T "PNG, JPEG, GIF, WebP or SVG, at most 8 MB. A front view of the device works best."}}</p>
+</section>
+
+<section class="panel">
+  <h2>{{.T "Your pictures"}}</h2>
+  {{if .Data.Pictures}}
+  <div class="piclist">{{range .Data.Pictures}}
+    <div class="picitem">
+      <a href="/pictures/{{.ID}}" class="picthumb"><img src="/assets/{{.ID}}" alt="" loading="lazy"></a>
+      <div class="picinfo">
+        <b>{{.Name}}</b>
+        <span class="small muted">{{with .Meta.Vendor}}{{.}} · {{end}}{{with .Meta.Type}}{{$.T (pictureType .)}} · {{end}}{{$.T "%d ports" (len .Meta.Ports)}}{{if .Meta.U}} · {{.Meta.U}}U{{end}}</span>
+      </div>
+      <div class="row">
+        <a class="btn ghost sm" href="/pictures/{{.ID}}" title="{{$.T "Edit"}}">{{template "icon" "edit"}}</a>
+        <form method="post" action="/pictures/{{.ID}}/clone" class="inline"><button class="ghost sm" title="{{$.T "Copy"}}">{{template "icon" "copy"}}</button></form>
+        <form method="post" action="/pictures/{{.ID}}/delete" class="inline"><button class="ghost sm" title="{{$.T "Delete"}}" data-confirm="{{$.T "Delete this picture?"}}">{{template "icon" "trash"}}</button></form>
+      </div>
+    </div>{{end}}
+  </div>
+  {{else}}<p class="muted">{{.T "No pictures of your own yet."}}</p>{{end}}
+</section>
+
+<section class="panel">
+  <h2>{{.T "Built-in pictures"}}</h2>
+  <p class="small muted">{{.T "Copy a built-in picture to change its ports or name, or to start a similar model from it."}}</p>
+  <div class="row picfilters" data-lib>
+    <input type="search" data-lib-q placeholder="{{.T "Search, e.g. DL380 or CRS326"}}" aria-label="{{.T "Search"}}">
+    <select data-lib-vendor aria-label="{{.T "Manufacturer"}}"><option value="">{{.T "All manufacturers"}}</option></select>
+    <select data-lib-type aria-label="{{.T "Type"}}"><option value="">{{.T "All types"}}</option>{{range $k := .Data.Types}}<option value="{{$k}}">{{$.T (pictureType $k)}}</option>{{end}}</select>
+  </div>
+  <div class="libgrid" data-lib-grid data-copy-text="{{.T "Copy and edit"}}" data-more-text="{{.T "Narrow the search to see more."}}"></div>
+</section>
+<script src="/static/pictures.js?v={{.Asset}}" defer></script>
+{{end}}

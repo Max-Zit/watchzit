@@ -263,5 +263,7 @@ func catalog() []model {
 		model{vendor: "Inspur", name: "NF5280M7", kind: "server", form: "rack", u: 2, bays: 24, nic: 2},
 		model{vendor: "Inspur", name: "NF5466M6", kind: "server", form: "rack", u: 4, bays: 24, lff: true, nic: 2},
 	)
-	return append(ms, catalogMore()...)
+	ms = append(ms, catalogMore()...)
+	ms = append(ms, catalogExtra()...)
+	return append(ms, catalogMisc()...)
 }

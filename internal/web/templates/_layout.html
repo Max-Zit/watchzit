@@ -19,6 +19,7 @@
     <a href="/" class="{{if eq .Nav "overview"}}on{{end}}">{{template "icon" "overview"}}{{.T "Overview"}}</a>
     <a href="/problems" class="{{if eq .Nav "problems"}}on{{end}}">{{template "icon" "bell"}}{{.T "Problems"}}{{if .Problems}} <span class="navcount{{if not .ProblemsCritical}} warn{{end}}">{{.Problems}}</span>{{end}}</a>
     <a href="/maps" class="{{if eq .Nav "maps"}}on{{end}}">{{template "icon" "map"}}{{.T "Maps"}}</a>
+    {{if .User.CanWrite}}<a href="/pictures" class="{{if eq .Nav "pictures"}}on{{end}}">{{template "icon" "image"}}{{.T "Picture library"}}</a>{{end}}
     <a href="/dashboards" class="{{if eq .Nav "dashboards"}}on{{end}}">{{template "icon" "overview"}}{{.T "Dashboards"}}</a>
     <a href="/reports" class="{{if eq .Nav "reports"}}on{{end}}">{{template "icon" "file"}}{{.T "Reports"}}</a>
     <a href="/devices" class="{{if eq .Nav "devices"}}on{{end}}">{{template "icon" "devices"}}{{.T "Devices"}}</a>

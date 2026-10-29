@@ -1,0 +1,43 @@
+{{template "app" .}}
+{{define "content"}}
+{{$p := .Data.Pic}}
+<div class="titlebar"><h1>{{$p.Name}}</h1>
+  <div class="row"><a class="btn secondary" href="/pictures">{{template "icon" "chevl"}}{{.T "Picture library"}}</a></div>
+</div>
+<form method="post" action="/pictures/{{$p.ID}}" class="stack" data-piceditor>
+  <section class="panel">
+    <div class="cols">
+      <label>{{.T "Name"}}<input name="name" value="{{$p.Name}}" required maxlength="100"></label>
+      <label>{{.T "Manufacturer"}}<input name="vendor" value="{{$p.Meta.Vendor}}" maxlength="60" placeholder="{{.T "for example Cisco"}}"></label>
+      <label>{{.T "Type"}}<select name="type"><option value="">—</option>{{range $k := .Data.Types}}<option value="{{$k}}" {{if eq $k $p.Meta.Type}}selected{{end}}>{{$.T (pictureType $k)}}</option>{{end}}</select></label>
+      <label>{{.T "Rack units"}}<input type="number" name="u" value="{{$p.Meta.U}}" min="0" max="12"><span class="small muted">{{.T "0: not mounted in a rack"}}</span></label>
+      <label>{{.T "Width on the map"}}<input type="number" name="show" value="{{if $p.Meta.Show}}{{$p.Meta.Show}}{{end}}" min="10" max="1200" placeholder="80"></label>
+      <label>{{.T "SFP ports (the last ones)"}}<input type="number" name="fiber" value="{{$p.Meta.Fiber}}" min="0" max="512" data-fiber></label>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>{{.T "Ports"}} <span class="muted small" data-portcount></span></h2>
+    <p class="small muted">{{.T "Click on the picture to add a port; port 1 first. Drag a port to move it; double-click it to remove it. For a row of ports, enter how many and click the first and the last one."}}</p>
+    <div class="row">
+      <label class="inline">{{.T "Row of"}} <input type="number" data-row-n min="2" max="96" value="24" class="w-sm"> {{.T "ports"}}</label>
+      <label class="inline"><select data-row-lines><option value="1">{{.T "in one line"}}</option><option value="2">{{.T "in two lines (1 above 2)"}}</option></select></label>
+      <button type="button" class="secondary sm" data-row>{{.T "Add a row"}}</button>
+      <button type="button" class="ghost sm" data-undo>{{.T "Remove the last port"}}</button>
+      <button type="button" class="ghost sm" data-clear data-confirm-text="{{.T "Remove all ports?"}}">{{.T "Remove all"}}</button>
+    </div>
+    <p class="small hint" data-hint hidden data-first="{{.T "Click the first port of the row."}}" data-last="{{.T "Click the last port of the row (for two lines: the last port of the bottom line)."}}"></p>
+    <div class="piccanvas" data-canvas data-w="{{$p.Width}}" data-h="{{$p.Height}}">
+      <img src="/assets/{{$p.ID}}" alt="" draggable="false">
+    </div>
+    <input type="hidden" name="ports" value="{{.Data.Ports}}" data-ports>
+  </section>
+  <div class="row">
+    <button class="btn primary">{{.T "Save"}}</button>
+  </div>
+</form>
+<div class="row mt">
+  <form method="post" action="/pictures/{{$p.ID}}/clone" class="inline"><button class="secondary">{{template "icon" "copy"}}{{.T "Copy"}}</button></form>
+  <form method="post" action="/pictures/{{$p.ID}}/delete" class="inline"><button class="ghost" data-confirm="{{.T "Delete this picture?"}}">{{template "icon" "trash"}}{{.T "Delete"}}</button></form>
+</div>
+<script src="/static/pictures.js?v={{.Asset}}" defer></script>
+{{end}}
