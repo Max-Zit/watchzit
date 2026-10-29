@@ -476,11 +476,11 @@
     if (k.kind === "dac") el("path", { "class": "casing", d: d, "stroke-width": (w + 2.5).toFixed(1) }, g);
     el("path", { "class": "wire", d: d, "stroke-width": w.toFixed(1) }, g);
     var len = lengthOf(pts);
-    // port names near both ends, traffic in the middle (cables are drawn over
-  // the pictures, like patch cords in front of a rack)
-    var endA = box(a), endB = box(b);
-    var offA = anchor(a, slotOf(k, "a")).port ? 9 : Math.min(len * 0.4, Math.max(endA.w, endA.h) / 2 + 22);
-    var offB = anchor(b, slotOf(k, "b")).port ? 9 : Math.min(len * 0.4, Math.max(endB.w, endB.h) / 2 + 22);
+    // port names exactly where the cable ends: on the port of the picture, or
+    // where it leaves the picture; traffic in the middle (cables are drawn
+    // over the pictures, like patch cords in front of a rack)
+    var offA = anchor(a, slotOf(k, "a")).port ? 0 : Math.min(len * 0.4, edgeDist(a, pts[0], pts[1]));
+    var offB = anchor(b, slotOf(k, "b")).port ? 0 : Math.min(len * 0.4, edgeDist(b, pts[pts.length - 1], pts[pts.length - 2]));
     var nameA = s.a ? s.a.name : k.a_slot ? slotName(a, k.a_slot) : "";
     var nameB = s.b ? s.b.name : k.b_slot ? slotName(b, k.b_slot) : "";
     if (len < 70) nameA = nameB = ""; // a short patch cord: the panel names its ports
@@ -549,8 +549,16 @@
     for (var i = 0; i < layout.nodes.length; i++) if (layout.nodes[i].kind === "device" && layout.nodes[i].device === id) return layout.nodes[i];
     return null;
   }
+  // edgeDist: how far along the segment p0→p1 (p0 the centre of n) the
+  // cable leaves the picture of n
+  function edgeDist(n, p0, p1) {
+    var b = box(n), dx = p1.x - p0.x, dy = p1.y - p0.y, l = Math.hypot(dx, dy);
+    if (!l) return 0;
+    var t = Math.min(dx ? b.w / 2 / Math.abs(dx) : Infinity, dy ? b.h / 2 / Math.abs(dy) : Infinity);
+    return Math.min(l, t * l);
+  }
   function label(g, cls, x, y, text) {
-    el("text", { "class": "lbl " + cls, x: x, y: y + 4, "text-anchor": "middle" }, g).textContent = text;
+    el("text", { "class": "lbl " + cls, x: x, y: cls === "port" ? y : y + 4, "text-anchor": "middle", "dominant-baseline": cls === "port" ? "central" : "auto" }, g).textContent = text;
   }
   // bend handles of the selected cable (editing)
   function drawHandles() {
