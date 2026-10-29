@@ -31,6 +31,7 @@ const (
 	TriggerDeviceDown = "device_down"
 	TriggerCheckDown  = "check_down"
 	TriggerMetric     = "metric"
+	TriggerHADegraded = "ha_degraded" // a HA group of a map runs on fewer members than it has
 )
 
 // checkParent refuses a parent that is the device itself or depends on it.
@@ -130,9 +131,9 @@ func (in *TriggerInput) clean() error {
 		return errors.New("choose a group or a device, not both")
 	}
 	switch in.Kind {
-	case TriggerDeviceDown, TriggerCheckDown:
+	case TriggerDeviceDown, TriggerCheckDown, TriggerHADegraded:
 		in.Metric, in.Op, in.Threshold = "", ">", 0
-		if in.Kind == TriggerDeviceDown {
+		if in.Kind != TriggerCheckDown {
 			in.CheckTypes = nil
 		}
 	case TriggerMetric:

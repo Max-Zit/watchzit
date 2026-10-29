@@ -98,9 +98,13 @@ type condition struct {
 	check    *store.AlertCheck // nil for device_down
 	detail   string
 	suppress string
+	ha       int64 // HA group of an ha_degraded problem
 }
 
 func (c *condition) key() string {
+	if c.ha != 0 {
+		return "t" + strconv.FormatInt(c.trigger.ID, 10) + ":ha" + strconv.FormatInt(c.ha, 10)
+	}
 	k := "t" + strconv.FormatInt(c.trigger.ID, 10) + ":d" + strconv.FormatInt(c.device.ID, 10)
 	if c.check != nil {
 		k += ":c" + strconv.FormatInt(c.check.ID, 10)
@@ -147,6 +151,12 @@ func (e *Engine) Evaluate(ctx context.Context) error {
 	seenPending := map[string]bool{}
 	for _, t := range triggers {
 		if !t.Enabled {
+			continue
+		}
+		if t.Kind == store.TriggerHADegraded {
+			for _, c := range e.matchHA(ctx, t, byID, now, openByKey, seenPending) {
+				active[c.key()] = c
+			}
 			continue
 		}
 		for i := range devs {
@@ -378,4 +388,63 @@ func round(v float64) float64 {
 		return math.Round(v)
 	}
 	return math.Round(v*100) / 100
+}
+
+// matchHA returns the HA groups that run on fewer members than they have:
+// some member devices down, not all (all down is the devices' own problem).
+// The problem belongs to the first member that is down.
+func (e *Engine) matchHA(ctx context.Context, t *store.Trigger, byID map[int64]*store.AlertDevice, now time.Time, open map[string]*store.Problem, seen map[string]bool) []*condition {
+	groups, err := e.st.HAGroups(ctx)
+	if err != nil {
+		e.log.Warn("alerts: HA groups not read", "err", err)
+		return nil
+	}
+	var out []*condition
+	for _, g := range groups {
+		var down, up []*store.AlertDevice
+		scoped := t.DeviceID == 0 && t.GroupID == 0
+		for _, id := range g.Members {
+			d := byID[id]
+			if d == nil || d.Paused {
+				continue
+			}
+			if t.DeviceID == d.ID || (t.GroupID != 0 && t.GroupID == d.GroupID) {
+				scoped = true
+			}
+			if d.Status == store.StatusDown {
+				down = append(down, d)
+			} else {
+				up = append(up, d)
+			}
+		}
+		if !scoped || len(down) == 0 || len(up) == 0 {
+			continue
+		}
+		c := &condition{trigger: t, device: down[0], ha: g.ID}
+		k := c.key()
+		seen[k] = true
+		first, ok := e.pending[k]
+		if !ok {
+			first = now
+			e.pending[k] = now
+		}
+		if open[k] == nil && now.Sub(first) < time.Duration(t.ForS)*time.Second {
+			continue
+		}
+		name := g.Name
+		if name == "" {
+			name = g.Map
+		}
+		c.detail = fmt.Sprintf("%s: %s down, %s still up", name, deviceNames(down), deviceNames(up))
+		out = append(out, c)
+	}
+	return out
+}
+
+func deviceNames(ds []*store.AlertDevice) string {
+	names := make([]string, len(ds))
+	for i, d := range ds {
+		names[i] = d.Name
+	}
+	return strings.Join(names, ", ")
 }

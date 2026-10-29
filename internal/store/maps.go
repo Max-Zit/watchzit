@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 )
@@ -31,7 +32,7 @@ const (
 )
 
 // LinkKinds are the cable and connection kinds.
-var LinkKinds = []string{"ethernet", "fiber", "fiber-sm", "dac", "wireless", "vpn", "vxlan", "wan", "serial", "power"}
+var LinkKinds = []string{"ethernet", "fiber", "fiber-sm", "dac", "wireless", "vpn", "vxlan", "ha", "wan", "serial", "power"}
 
 // LinkRoutes are the ways a link is drawn through its bend points.
 var LinkRoutes = []string{"straight", "ortho", "diagonal", "curve"}
@@ -51,6 +52,8 @@ type MapNode struct {
 	U        int     `json:"u,omitempty"`      // rack: height in units; mounted: lowest unit; on a host: its place
 	// HostDevice is the physical server a hypervisor host (kind host) runs on.
 	HostDevice int64 `json:"host_device,omitempty"`
+	// HostDevices are more physical servers of a hypervisor cluster.
+	HostDevices []int64 `json:"host_devices,omitempty"`
 }
 
 // MapLink connects two nodes, optionally port to port (ifIndex for the
@@ -86,7 +89,19 @@ type MapLayout struct {
 	Nodes      []MapNode      `json:"nodes"`
 	Links      []MapLink      `json:"links"`
 	Background *MapBackground `json:"background,omitempty"`
+	HA         []MapHA        `json:"ha,omitempty"`
 }
+
+// MapHA is a HA group on a map: nodes that stand in for each other.
+type MapHA struct {
+	ID    int64   `json:"id"`
+	Name  string  `json:"name,omitempty"`
+	Kind  string  `json:"kind"`
+	Nodes []int64 `json:"nodes"`
+}
+
+// HAKinds are the kinds of HA groups.
+var HAKinds = []string{"firewall", "router", "switch", "server", "storage", "other"}
 
 // statusRank orders statuses for "worst of" (higher is worse).
 var statusRank = map[string]int{StatusPaused: 0, StatusUp: 1, StatusUnknown: 2, StatusWarning: 3, StatusDown: 4}
@@ -241,13 +256,14 @@ func (s *Store) MapLayout(ctx context.Context, id int64) (*MapLayout, error) {
 	if asset != nil {
 		bg.Asset = *asset
 	}
-	rows, err := s.db.Query(ctx, `SELECT id, kind, COALESCE(device_id,0), COALESCE(submap_id,0), label, x, y, icon, size, COALESCE(parent,0), u, COALESCE(host_device,0) FROM map_nodes WHERE map_id=$1 ORDER BY id`, id)
+	rows, err := s.db.Query(ctx, `SELECT id, kind, COALESCE(device_id,0), COALESCE(submap_id,0), label, x, y, icon, size, COALESCE(parent,0), u, COALESCE(host_device,0),
+		COALESCE((SELECT array_agg(x) FROM unnest(host_devices) x WHERE EXISTS (SELECT 1 FROM devices WHERE devices.id=x)), '{}') FROM map_nodes WHERE map_id=$1 ORDER BY id`, id)
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
 		var n MapNode
-		if err := rows.Scan(&n.ID, &n.Kind, &n.DeviceID, &n.SubmapID, &n.Label, &n.X, &n.Y, &n.Icon, &n.Size, &n.Parent, &n.U, &n.HostDevice); err != nil {
+		if err := rows.Scan(&n.ID, &n.Kind, &n.DeviceID, &n.SubmapID, &n.Label, &n.X, &n.Y, &n.Icon, &n.Size, &n.Parent, &n.U, &n.HostDevice, &n.HostDevices); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -272,7 +288,23 @@ func (s *Store) MapLayout(ctx context.Context, id int64) (*MapLayout, error) {
 		_ = json.Unmarshal(vls, &k.VLANs)
 		l.Links = append(l.Links, k)
 	}
-	return l, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	rows.Close()
+	has, err := s.db.Query(ctx, `SELECT id, name, kind, nodes FROM map_ha WHERE map_id=$1 ORDER BY id`, id)
+	if err != nil {
+		return nil, err
+	}
+	defer has.Close()
+	for has.Next() {
+		var g MapHA
+		if err := has.Scan(&g.ID, &g.Name, &g.Kind, &g.Nodes); err != nil {
+			return nil, err
+		}
+		l.HA = append(l.HA, g)
+	}
+	return l, has.Err()
 }
 
 func cleanLabel(s string, n int) (string, error) {
@@ -371,7 +403,7 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 		}
 		var dev, sub, hostDev *int64
 		if n.Kind != NodeHost {
-			n.HostDevice = 0
+			n.HostDevice, n.HostDevices = 0, nil
 		}
 		switch n.Kind {
 		case NodeDevice:
@@ -400,6 +432,14 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 				return nil, errors.New("choose the physical server of each hypervisor")
 			}
 			hostDev = &n.HostDevice
+			// more servers of a cluster: each once, not the first, at most 32
+			var more []int64
+			for _, d := range n.HostDevices {
+				if d > 0 && d != n.HostDevice && !slices.Contains(more, d) && len(more) < 32 {
+					more = append(more, d)
+				}
+			}
+			n.HostDevices = more
 		default:
 			return nil, errors.New("unknown node kind")
 		}
@@ -417,12 +457,12 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 		}
 		var real int64
 		if n.ID > 0 && old[n.ID] {
-			_, err = tx.Exec(ctx, `UPDATE map_nodes SET kind=$2, device_id=$3, submap_id=$4, label=$5, x=$6, y=$7, icon=$8, size=$9, u=$10, host_device=$11 WHERE id=$1`,
-				n.ID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U, hostDev)
+			_, err = tx.Exec(ctx, `UPDATE map_nodes SET kind=$2, device_id=$3, submap_id=$4, label=$5, x=$6, y=$7, icon=$8, size=$9, u=$10, host_device=$11, host_devices=$12 WHERE id=$1`,
+				n.ID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U, hostDev, hostDevs(n.HostDevices))
 			real = n.ID
 		} else {
-			err = tx.QueryRow(ctx, `INSERT INTO map_nodes(map_id, kind, device_id, submap_id, label, x, y, icon, size, u, host_device) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
-				mapID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U, hostDev).Scan(&real)
+			err = tx.QueryRow(ctx, `INSERT INTO map_nodes(map_id, kind, device_id, submap_id, label, x, y, icon, size, u, host_device, host_devices) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,
+				mapID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U, hostDev, hostDevs(n.HostDevices)).Scan(&real)
 		}
 		if isFK(err) {
 			return nil, errors.New("a device or map on the map no longer exists")
@@ -496,6 +536,43 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 		}
 		out.Links = append(out.Links, k)
 	}
+	// HA groups: two or more devices, items or hypervisors, each in one group
+	if _, err := tx.Exec(ctx, `DELETE FROM map_ha WHERE map_id=$1`, mapID); err != nil {
+		return nil, err
+	}
+	if len(in.HA) > 100 {
+		return nil, errors.New("a map can have at most 100 HA groups")
+	}
+	inGroup := map[int64]bool{}
+	for _, g := range in.HA {
+		if g.Name, err = cleanLabel(g.Name, 100); err != nil {
+			return nil, err
+		}
+		if !slices.Contains(HAKinds, g.Kind) {
+			return nil, errors.New("unknown kind of HA group")
+		}
+		var nodes []int64
+		for _, c := range g.Nodes {
+			real, ok := ids[c]
+			k := kinds[c]
+			if !ok || (k != NodeDevice && k != NodeItem && k != NodeHost) {
+				return nil, errors.New("a HA group holds devices, items or hypervisors of the map")
+			}
+			if inGroup[real] {
+				return nil, errors.New("a device can be in one HA group only")
+			}
+			inGroup[real] = true
+			nodes = append(nodes, real)
+		}
+		if len(nodes) < 2 || len(nodes) > 16 {
+			return nil, errors.New("a HA group has 2–16 members")
+		}
+		g.Nodes = nodes
+		if err := tx.QueryRow(ctx, `INSERT INTO map_ha(map_id, name, kind, nodes) VALUES($1,$2,$3,$4) RETURNING id`, mapID, g.Name, g.Kind, nodes).Scan(&g.ID); err != nil {
+			return nil, err
+		}
+		out.HA = append(out.HA, g)
+	}
 	if bg := in.Background; bg != nil {
 		if badCoord(bg.X, bg.Y, bg.W) || bg.W < 10 || bg.Opacity < 0 || bg.Opacity > 1 {
 			return nil, errors.New("invalid background")
@@ -535,6 +612,8 @@ type LiveDevice struct {
 	Checks     int        `json:"checks"`
 	Vendor     string     `json:"vendor,omitempty"`
 	Tools      []LiveTool `json:"tools,omitempty"` // filled by the console, not for kiosks
+	HAState    string     `json:"ha,omitempty"`    // master or backup (VRRP), when the device reports it
+	HASince    *time.Time `json:"ha_since,omitempty"`
 }
 
 // LiveTool is a tool that opens a device from the map.
@@ -646,11 +725,12 @@ func (s *Store) MapLiveData(ctx context.Context, l *MapLayout) (*MapLive, error)
 			ids = append(ids, n.DeviceID)
 		} else if n.Kind == NodeHost && n.HostDevice > 0 {
 			ids = append(ids, n.HostDevice)
+			ids = append(ids, n.HostDevices...)
 		}
 	}
 	if len(ids) > 0 {
 		rows, err := s.db.Query(ctx, `SELECT d.id, d.name, d.address, d.kind, d.status, d.web_url, d.web_name, d.web_links, COALESCE(d.facts->>'vendor',''),
-			(SELECT count(*) FROM checks c WHERE c.device_id=d.id), (SELECT count(*) FROM checks c WHERE c.device_id=d.id AND c.status='down' AND NOT c.paused)
+			(SELECT count(*) FROM checks c WHERE c.device_id=d.id), (SELECT count(*) FROM checks c WHERE c.device_id=d.id AND c.status='down' AND NOT c.paused), d.ha_state, d.ha_changed
 			FROM devices d WHERE d.id = ANY($1)`, ids)
 		if err != nil {
 			return nil, err
@@ -658,7 +738,7 @@ func (s *Store) MapLiveData(ctx context.Context, l *MapLayout) (*MapLive, error)
 		for rows.Next() {
 			d := &LiveDevice{}
 			var links []byte
-			if err := rows.Scan(&d.ID, &d.Name, &d.Address, &d.Kind, &d.Status, &d.WebURL, &d.WebName, &links, &d.Vendor, &d.Checks, &d.ChecksDown); err != nil {
+			if err := rows.Scan(&d.ID, &d.Name, &d.Address, &d.Kind, &d.Status, &d.WebURL, &d.WebName, &links, &d.Vendor, &d.Checks, &d.ChecksDown, &d.HAState, &d.HASince); err != nil {
 				rows.Close()
 				return nil, err
 			}
@@ -690,4 +770,12 @@ func (s *Store) MapLiveData(ctx context.Context, l *MapLayout) (*MapLive, error)
 		}
 	}
 	return live, nil
+}
+
+// hostDevs is the cluster servers as stored (never NULL).
+func hostDevs(ids []int64) []int64 {
+	if ids == nil {
+		return []int64{}
+	}
+	return ids
 }

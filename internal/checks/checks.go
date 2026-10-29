@@ -713,3 +713,26 @@ func Lookup(doc any, path string) (float64, error) {
 	}
 	return f, nil
 }
+
+// RouterOSVRRP returns the HA role of a RouterOS device from its VRRP
+// interfaces: master when it is master of any, backup when it is backup of
+// some, "" when it has none.
+func RouterOSVRRP(ctx context.Context, p store.CheckParams, t Target) (string, error) {
+	var rows []map[string]any
+	if err := rosGetter(ctx, p, t)("interface/vrrp", &rows); err != nil {
+		return "", err
+	}
+	state := ""
+	for _, r := range rows {
+		if d, _ := r["disabled"].(string); d == "true" {
+			continue
+		}
+		if m, _ := r["master"].(string); m == "true" {
+			return store.HAMaster, nil
+		}
+		if b, _ := r["backup"].(string); b == "true" {
+			state = store.HABackup
+		}
+	}
+	return state, nil
+}

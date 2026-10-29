@@ -246,6 +246,34 @@ func TestRouterOSVXLANs(t *testing.T) {
 	}
 }
 
+func TestRouterOSVRRP(t *testing.T) {
+	state := "backup"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch state {
+		case "none":
+			_, _ = w.Write([]byte(`[]`))
+		case "backup":
+			_ = json.NewEncoder(w).Encode([]map[string]string{{"name": "vrrp1", "backup": "true", "running": "false", "disabled": "false"}, {"name": "vrrp2", "master": "true", "disabled": "true"}})
+		default:
+			_ = json.NewEncoder(w).Encode([]map[string]string{{"name": "vrrp1", "backup": "true", "disabled": "false"}, {"name": "vrrp2", "master": "true", "running": "true", "disabled": "false"}})
+		}
+	}))
+	defer srv.Close()
+	u, _ := url.Parse(srv.URL)
+	port, _ := strconv.Atoi(u.Port())
+	p, tg := store.CheckParams{Port: port, User: "monitor"}, Target{Host: "127.0.0.1", Secret: "s"}
+	for _, want := range []string{"backup", "master", "none"} {
+		state = want
+		st, err := RouterOSVRRP(context.Background(), p, tg)
+		if want == "none" {
+			want = ""
+		}
+		if err != nil || st != want {
+			t.Fatalf("%s: %q %v", want, st, err)
+		}
+	}
+}
+
 func TestJSONValue(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer tok" {

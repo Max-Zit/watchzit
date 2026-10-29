@@ -12,6 +12,7 @@
   <tr><td>Packet loss</td><td>above 20 % for 5 minutes</td><td>warning</td></tr>
   <tr><td>Certificate expires soon / expires</td><td>fewer than 21 / 7 days</td><td>warning / critical</td></tr>
   <tr><td>High temperature</td><td>RouterOS above 70 °C for 5 minutes</td><td>warning</td></tr>
+  <tr><td>HA group without redundancy</td><td>a HA group of a map has members down but not all, for 1 minute (the problem belongs to the member that is down)</td><td>warning</td></tr>
 </table>
 <p>Add your own: a <b>value</b> (CPU load, response time, traffic, connections …), <b>above</b> or <b>below</b> a threshold, <b>for at least</b> some minutes (a short dip does not open a problem), a severity, and whether it applies to all devices, a group or one device.</p>
 

@@ -91,6 +91,7 @@ type deviceData struct {
 	Interfaces []store.Interface
 	VLANs      []store.VLANSummary
 	PortModes  []store.PortMode
+	HA         *store.HARole
 	VXLANs     []store.VXLANInfo
 	Traffic    map[int]*store.Check // interface checks by ifIndex
 	Agent      *store.AgentInfo
@@ -221,6 +222,10 @@ func (s *Server) showDevice(w http.ResponseWriter, r *http.Request, status int, 
 		return
 	}
 	if data.PortModes, err = s.store.DevicePortModes(r.Context(), d.ID); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	if data.HA, err = s.store.DeviceHA(r.Context(), d.ID); err != nil {
 		s.serverError(w, r, err)
 		return
 	}

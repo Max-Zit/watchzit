@@ -39,6 +39,7 @@ type Poller struct {
 	profiles map[int64]*store.SNMPProfile
 	counters map[int64]*counterState // last raw counters per check
 	vlanSync map[int64]time.Time     // last read of a router's VLANs per device
+	haLast   map[int64][2]string     // HA role and its source last stored per device
 }
 
 type counterState struct {
@@ -54,7 +55,7 @@ type entry struct {
 
 // New creates a poller.
 func New(st *store.Store, db *tsdb.DB, log *slog.Logger) *Poller {
-	return &Poller{store: st, db: db, log: log, now: time.Now, Workers: 64, entries: map[int64]*entry{}, reload: make(chan struct{}, 1), profiles: map[int64]*store.SNMPProfile{}, counters: map[int64]*counterState{}, vlanSync: map[int64]time.Time{}}
+	return &Poller{store: st, db: db, log: log, now: time.Now, Workers: 64, entries: map[int64]*entry{}, reload: make(chan struct{}, 1), profiles: map[int64]*store.SNMPProfile{}, counters: map[int64]*counterState{}, vlanSync: map[int64]time.Time{}, haLast: map[int64][2]string{}}
 }
 
 // Reload makes the poller read the checks again (after a change).
@@ -360,6 +361,9 @@ func (p *Poller) runSNMP(ctx context.Context, c *store.Check, addr netip.Addr, t
 	}
 	if c.Type == store.CheckSNMP {
 		sample("response_ms", ms(time.Since(start)))
+		if st, err := snmpmon.VRRP(ctx, cl); err == nil {
+			p.haState(ctx, c.DeviceID, st, "vrrp")
+		}
 	}
 	if r.Params != nil {
 		if err := p.store.UpdateCheckParams(ctx, c.ID, *r.Params); err != nil {
@@ -514,6 +518,9 @@ func (p *Poller) runService(ctx context.Context, c *store.Check, o *outcome, sam
 		o.res.Status = store.StatusUp
 		if c.Type == store.CheckRouterOS {
 			p.routerVLANs(ctx, c, t)
+			if st, err := checks.RouterOSVRRP(ctx, c.Params, t); err == nil {
+				p.haState(ctx, c.DeviceID, st, "routeros")
+			}
 		}
 	}
 }
@@ -561,5 +568,25 @@ func (p *Poller) routerVLANs(ctx context.Context, c *store.Check, t checks.Targe
 	}
 	if err := p.store.SetDeviceVXLANs(ctx, c.DeviceID, store.VLANFromRouterOS, xs); err != nil {
 		p.log.Warn("poller: cannot save the VXLANs", "device", c.DeviceID, "err", err)
+	}
+}
+
+// haState stores the HA role a device reports when it changed. A source
+// that finds nothing does not clear what another source found.
+func (p *Poller) haState(ctx context.Context, deviceID int64, state, source string) {
+	p.mu.Lock()
+	last, seen := p.haLast[deviceID]
+	if state == "" && (!seen || last[1] != source) {
+		p.mu.Unlock()
+		return
+	}
+	if seen && last == [2]string{state, source} {
+		p.mu.Unlock()
+		return
+	}
+	p.haLast[deviceID] = [2]string{state, source}
+	p.mu.Unlock()
+	if err := p.store.SetHAState(ctx, deviceID, state, source); err != nil {
+		p.log.Warn("poller: cannot save the HA role", "device", deviceID, "err", err)
 	}
 }

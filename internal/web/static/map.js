@@ -31,7 +31,7 @@
   var RACK_W = 240, UH = RACK_W * 44 / 482; // a 19" unit at the drawing's scale
   var meta = null;          // name, devices, maps, words, uploaded pictures
   var lib = {}, libList = []; // built-in pictures (static/devices/index.json)
-  var layout = { nodes: [], links: [], background: null };
+  var layout = { nodes: [], links: [], background: null, ha: [] };
   var live = { devices: {}, ports: {}, maps: {} };
   var view = { x: 0, y: 0, k: 1 };
   var editing = !kioskBase && root.getAttribute("data-edit") === "1";
@@ -230,7 +230,7 @@
     if (n.kind === "rack" || n.kind === "host") {
       var w = "";
       layout.nodes.forEach(function (c) { if (c.parent === n.id && c.kind === "device") w = worse(w, nodeStatus(c)); });
-      if (n.kind === "host" && n.host_device) { var hd = live.devices[n.host_device]; w = worse(w, hd ? hd.status : "unknown"); }
+      if (n.kind === "host") [n.host_device].concat(n.host_devices || []).forEach(function (id) { if (id) { var hd = live.devices[id]; w = worse(w, hd ? hd.status : "unknown"); } });
       return w;
     }
     return "";
@@ -371,6 +371,7 @@
     if (gHandles !== gNodes) clear(gHandles);
     drawBackground();
     layout.nodes.forEach(function (n) { if (n.kind === "rack") drawRack(n); else if (n.kind === "host") drawHost(n); });
+    layout.ha.forEach(drawHA);
     layout.links.forEach(drawLink);
     drawTunnels();
     drawHostLinks();
@@ -418,6 +419,12 @@
     el("title", {}, g).textContent = nodeName(n) + (st ? " — " + T(cap(st)) : "");
   }
 
+  // haRole: ACTIVE or STANDBY over a device that reports its HA role (VRRP)
+  function haRole(g, n, x, y, anchor) {
+    var d = n.kind === "device" ? live.devices[n.device] : null;
+    if (!d || !d.ha) return;
+    el("text", { "class": "harole r-" + d.ha, x: x, y: y, "text-anchor": anchor }, g).textContent = d.ha === "master" ? T("ACTIVE") : T("STANDBY");
+  }
   function drawNode(n) {
     var st = nodeStatus(n), b = box(n);
     var sel = selected && selected.type === "node" && selected.id === n.id;
@@ -438,12 +445,14 @@
       el("rect", { "class": "stripe", x: -b.w / 2 - 7, y: -b.h / 2 + 1, width: 4, height: b.h - 2, rx: 2 }, g);
       el("rect", { "class": "ring", x: -b.w / 2 - 2, y: -b.h / 2 - 1, width: b.w + 4, height: b.h + 2, rx: 2 }, g);
       el("text", { "class": "name side", x: b.w / 2 + 10, y: 4 }, g).textContent = name;
+      haRole(g, n, b.w / 2 + 10, -10, "start");
     } else if (p) {
       if (st === "down") el("rect", { "class": "pulse", x: -b.w / 2 - 8, y: -b.h / 2 - 8, width: b.w + 16, height: b.h + 16, rx: 12 }, g);
       el("rect", { "class": "frame", x: -b.w / 2 - 5, y: -b.h / 2 - 5, width: b.w + 10, height: b.h + 10, rx: 8 }, g);
       el("image", { href: picURL(p), x: -b.w / 2, y: -b.h / 2, width: b.w, height: b.h }, g);
       if (st) el("circle", { "class": "dot", cx: b.w / 2 + 2, cy: -b.h / 2 - 2, r: 6 }, g);
       el("text", { "class": "name", y: b.h / 2 + 20, "text-anchor": "middle" }, g).textContent = name;
+      haRole(g, n, b.w / 2 + 8, -b.h / 2 + 10, "start");
     } else {
       if (st === "down") el("circle", { "class": "pulse", r: 34 }, g);
       el("rect", { "class": "ring", x: -30, y: -30, width: 60, height: 60, rx: 18 }, g);
@@ -530,12 +539,12 @@
   function drawHostLinks() {
     layout.nodes.forEach(function (h) {
       if (h.kind !== "host") return;
-      var srv = hostServer(h);
-      if (!srv) return;
-      var a = edgePoint(h, srv), b = edgePoint(srv, h);
-      var g = el("g", { "class": "hostlink" + (path && path.hostlinks && path.hostlinks[h.id] ? " onpath" : "") }, gLinks);
-      el("path", { "class": "wire", d: "M" + a.x + " " + a.y + "L" + b.x + " " + b.y }, g);
-      el("title", {}, g).textContent = nodeName(h) + " — " + T("runs on") + " " + nodeName(srv);
+      hostServers(h).forEach(function (srv) {
+        var a = edgePoint(h, srv), b = edgePoint(srv, h);
+        var g = el("g", { "class": "hostlink" + (path && path.hostlinks && path.hostlinks[h.id + ":" + srv.id] ? " onpath" : "") }, gLinks);
+        el("path", { "class": "wire", d: "M" + a.x + " " + a.y + "L" + b.x + " " + b.y }, g);
+        el("title", {}, g).textContent = nodeName(h) + " — " + T("runs on") + " " + nodeName(srv);
+      });
     });
   }
   // edgePoint: where the line from n towards o leaves the box of n
@@ -689,6 +698,7 @@
     }));
     p.appendChild(prow);
     if (!n.parent) field(p, T("Size"), range(20, 600, 2, box(n).w, function (v) { n.size = v; render(); changed(); }));
+    if (n.kind === "device" || n.kind === "item") haField(p, n);
     // the hypervisor host it runs on (virtual machines and devices)
     var hosts = layout.nodes.filter(function (x) { return x.kind === "host"; });
     if (hosts.length && (n.kind === "device" || n.kind === "item")) {
@@ -799,6 +809,9 @@
     var nm = field(p, T("Name"), h("input", { value: n.label || "", maxlength: "200", placeholder: nodeName(n) }));
     nm.addEventListener("input", function () { n.label = nm.value; render(); changed(); });
     hostFields(p, n);
+    clusterFields(p, n);
+    haField(p, n);
+    hostFields(p, n);
     p.appendChild(h("p", { "class": "muted small" }, T("Drag virtual machines and devices into the box; drag them within it to change the order. Add a VM as a device of the console to see its state, or as an item with a picture of its system.")));
   }
   function addHost() {
@@ -811,6 +824,119 @@
     p.appendChild(button(T("Add"), "primary", function () {
       if (!n.host_device) { err.hidden = false; return; }
       n.label = nm.value; addNode(n);
+    }));
+  }
+  // hostServers: the nodes of the physical servers a hypervisor (cluster)
+  // runs on, those that are on the map
+  function hostServers(h) {
+    var ids = [h.host_device].concat(h.host_devices || []), out = [];
+    layout.nodes.forEach(function (o) { if (o.kind === "device" && ids.indexOf(o.device) >= 0) out.push(o); });
+    return out;
+  }
+  // clusterFields: more physical servers of a hypervisor cluster
+  function clusterFields(p, n) {
+    var ds = (meta && meta.devices) || [], wrap = h("div", { "class": "stack" });
+    p.appendChild(h("h3", {}, T("Cluster")));
+    p.appendChild(wrap);
+    function fill() {
+      wrap.innerHTML = "";
+      (n.host_devices || []).forEach(function (id) {
+        var d = deviceMeta(id), li = h("div", { "class": "row" });
+        li.appendChild(h("span", {}, d ? d.name + " · " + d.address : "#" + id));
+        li.appendChild(button("×", "ghost", function () { n.host_devices = n.host_devices.filter(function (x) { return x !== id; }); render(); changed(); fill(); }));
+        wrap.appendChild(li);
+      });
+      var taken = [n.host_device].concat(n.host_devices || []);
+      var free = ds.filter(function (d) { return taken.indexOf(d.id) < 0; }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+      if (free.length) wrap.appendChild(select([["0", T("Add a server of the cluster")]].concat(free.map(function (d) { return [String(d.id), d.name + " · " + d.address]; })), 0, function (v) {
+        if (+v) { n.host_devices = (n.host_devices || []).concat([+v]); render(); changed(); fill(); }
+      }));
+    }
+    fill();
+  }
+
+  // ---- HA groups: devices that stand in for each other
+  var HA_KINDS = [["firewall", "Firewall HA"], ["router", "Routers (VRRP / HSRP)"], ["switch", "Switch stack / MLAG / vPC"], ["server", "Server cluster"], ["storage", "Storage HA"], ["other", "Other"]];
+  var nextHA = -1;
+  function haOf(n) {
+    for (var i = 0; i < layout.ha.length; i++) if (layout.ha[i].nodes.indexOf(n.id) >= 0) return layout.ha[i];
+    return null;
+  }
+  function haByID(id) { for (var i = 0; i < layout.ha.length; i++) if (layout.ha[i].id === id) return layout.ha[i]; return null; }
+  function haMembers(g) { return g.nodes.map(nodeByID).filter(Boolean); }
+  function haName(g) { return g.name || haMembers(g).map(nodeName).join(" / ") || T("HA group"); }
+  // haStatus: all members up — up; some down — warning (redundancy lost);
+  // all down — down
+  function haStatus(g) {
+    var up = 0, down = 0;
+    haMembers(g).forEach(function (n) {
+      var st = nodeStatus(n);
+      if (st === "down") down++; else if (st === "up" || st === "warning") up++;
+    });
+    if (down && !up) return "down";
+    if (down) return "warning";
+    return up ? "up" : "";
+  }
+  function haKindName(k) { for (var i = 0; i < HA_KINDS.length; i++) if (HA_KINDS[i][0] === k) return T(HA_KINDS[i][1]); return k; }
+  // drawHA: a dashed frame around the members, its name on top
+  function drawHA(g) {
+    var ms = haMembers(g);
+    if (!ms.length) return;
+    var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    ms.forEach(function (n) {
+      var b = box(n);
+      x0 = Math.min(x0, n.x - b.w / 2); y0 = Math.min(y0, n.y - b.h / 2);
+      x1 = Math.max(x1, n.x + b.w / 2); y1 = Math.max(y1, n.y + b.h / 2 + (rackOf(n) ? 0 : 26));
+    });
+    var st = haStatus(g), sel = selected && selected.type === "ha" && selected.id === g.id;
+    var on = path && ms.some(function (n) { return path.nodes[n.id]; });
+    var gr = el("g", { "class": "hagroup" + (st ? " s-" + st : "") + (sel ? " sel" : "") + (on ? " onpath" : ""), "data-ha": g.id }, gRacks);
+    el("rect", { "class": "haframe", x: x0 - 14, y: y0 - 26, width: x1 - x0 + 28, height: y1 - y0 + 40, rx: 12 }, gr);
+    el("text", { "class": "haname", x: x0 - 6, y: y0 - 10 }, gr).textContent = "HA · " + haName(g) + (st === "warning" ? "  — " + T("redundancy lost") : "");
+    el("title", {}, gr).textContent = haKindName(g.kind) + ": " + haName(g);
+  }
+  function showHA(g) {
+    var p = openPanel("HA · " + haName(g), haStatus(g));
+    var dl = h("dl", { "class": "facts" });
+    row(dl, T("Kind"), haKindName(g.kind));
+    var st = haStatus(g);
+    row(dl, T("Redundancy"), st === "warning" ? T("lost: some members are down") : st === "down" ? T("all members are down") : st === "up" ? T("all members are up") : "—");
+    p.appendChild(dl);
+    var list = h("ul", { "class": "mp-ports" });
+    haMembers(g).forEach(function (n) {
+      var s2 = nodeStatus(n), li = h("li", { "class": s2 === "down" ? "down" : s2 === "up" ? "up" : "" });
+      li.appendChild(h("b", {}, nodeName(n) || "—"));
+      var hd2 = n.kind === "device" ? live.devices[n.device] : null;
+      li.appendChild(h("span", {}, T(cap(s2 || "unknown")) + (hd2 && hd2.ha ? " · " + (hd2.ha === "master" ? T("active") : T("standby")) + (hd2.ha_since ? " " + T("since") + " " + new Date(hd2.ha_since).toLocaleString() : "") : "")));
+      list.appendChild(li);
+    });
+    p.appendChild(h("h3", {}, T("Members")));
+    p.appendChild(list);
+    if (g.nodes.length < 2) p.appendChild(h("p", { "class": "small warntext" }, T("Add a second member: open another device and choose this group under HA group.")));
+    if (!editing) return;
+    var nm = field(p, T("Name"), h("input", { value: g.name || "", maxlength: "100", placeholder: "fw-ha" }));
+    nm.addEventListener("input", function () { g.name = nm.value; render(); changed(); });
+    field(p, T("Kind"), select(HA_KINDS.map(function (k) { return [k[0], T(k[1])]; }), g.kind, function (v) { g.kind = v; render(); changed(); }));
+    p.appendChild(h("p", { "class": "muted small" }, T("Paths go through every member of the group. Mark the cable between the members (heartbeat, sync, stack, peer link) as an HA link; it is not a way for traffic.")));
+    p.appendChild(button(T("Delete group"), "ghost", function () { layout.ha = layout.ha.filter(function (x) { return x !== g; }); selected = null; closePanel(); render(); changed(); }));
+  }
+  // haField: the HA group of a node, in its panel
+  function haField(p, n) {
+    var g = haOf(n);
+    var opts = [["0", T("None")]].concat(layout.ha.map(function (x) { return [String(x.id), haName(x) + " (" + x.nodes.length + ")"]; })).concat([["new", T("New HA group")]]);
+    field(p, T("HA group"), select(opts, g ? g.id : 0, function (v) {
+      if (g) g.nodes = g.nodes.filter(function (id) { return id !== n.id; });
+      layout.ha = layout.ha.filter(function (x) { return x.nodes.length; });
+      if (v === "new") {
+        var kind = { firewall: "firewall", router: "router", "switch": "switch", server: "server" }[(live.devices[n.device] || deviceMeta(n.device) || {}).kind] || (n.kind === "host" ? "server" : "other");
+        var ng = { id: nextHA--, name: "", kind: kind, nodes: [n.id] };
+        layout.ha.push(ng);
+        selected = { type: "ha", id: ng.id };
+      } else if (+v) {
+        var t = haByID(+v);
+        if (t) t.nodes.push(n.id);
+      }
+      render(); changed(); showSelection();
     }));
   }
 
@@ -886,7 +1012,7 @@
     if (warn) row(dl2, T("Warning"), h("span", { "class": "warntext" }, warn));
     p.appendChild(dl2);
     if (editing) {
-      field(p, T("Cable"), select(["ethernet", "fiber", "fiber-sm", "dac", "wireless", "vpn", "vxlan", "wan", "serial", "power"].map(function (x) { return [x, T("cable:" + x)]; }), k.kind || "ethernet", function (v) { k.kind = v; render(); changed(); showSelection(); }));
+      field(p, T("Cable"), select(["ethernet", "fiber", "fiber-sm", "dac", "wireless", "vpn", "vxlan", "ha", "wan", "serial", "power"].map(function (x) { return [x, T("cable:" + x)]; }), k.kind || "ethernet", function (v) { k.kind = v; render(); changed(); showSelection(); }));
       field(p, T("Route"), select([["straight", T("Straight")], ["ortho", T("90° bends")], ["diagonal", T("45° bends")], ["curve", T("Curved")]], k.route || "straight", function (v) { k.route = v; render(); changed(); }));
       p.appendChild(h("p", { "class": "muted small" }, T("Drag the + points to bend the cable; drag the round points to move a bend; double-click a point to remove it.")));
       var ll = field(p, T("Label"), h("input", { value: k.label || "", maxlength: "100" }));
@@ -905,6 +1031,7 @@
   function showSelection() {
     if (!selected) { closePanel(); return; }
     if (selected.type === "node") { var n = nodeByID(selected.id); if (n) showNode(n); else closePanel(); }
+    else if (selected.type === "ha") { var g = haByID(selected.id); if (g) showHA(g); else closePanel(); }
     else { var k = linkByID(selected.id); if (k) showLink(k); else closePanel(); }
   }
 
@@ -1062,6 +1189,11 @@
       layout.nodes.forEach(function (n) { if (n.parent === id) { n.parent = 0; n.u = 0; n.x += RACK_W + 60; } });
       layout.nodes = layout.nodes.filter(function (n) { return n.id !== id; });
       layout.links = layout.links.filter(function (k) { return k.a !== id && k.b !== id; });
+      layout.ha.forEach(function (g) { g.nodes = g.nodes.filter(function (x) { return x !== id; }); });
+      layout.ha = layout.ha.filter(function (g) { return g.nodes.length; });
+    } else if (selected.type === "ha") {
+      var hid = selected.id;
+      layout.ha = layout.ha.filter(function (g) { return g.id !== hid; });
     } else {
       var lid = selected.id;
       layout.links = layout.links.filter(function (k) { return k.id !== lid; });
@@ -1193,54 +1325,83 @@
     if (!found) { showHint(T("These two are not connected on this map.")); return; }
     path = found;
     if (b) b.classList.add("on");
-    showHint(nodeName(a) + " → " + nodeName(n) + ": " + found.hops + " " + (found.hops === 1 ? T("cable") : T("cables")) + ". " + T("Click Path or press Esc to show the whole map."));
+    showHint(nodeName(a) + " → " + nodeName(n) + ": " + found.hops + " " + (found.hops === 1 ? T("cable") : T("cables")) + (found.routes > 1 ? ", " + found.routes + " " + T("equal routes") : "") + ". " + T("Click Path or press Esc to show the whole map."));
     selected = null; closePanel();
     render(); fit(true);
   }
-  // findPath: the shortest chain of cables (breadth first), with the racks
-  // the devices on it are mounted in
-  // neighbours of a node for paths: over cables, and a virtual machine to its
-  // hypervisor host to the physical server the host runs on
-  function neighbours(x) {
-    var out = [], n = nodeByID(x);
-    layout.links.forEach(function (k) {
-      var y = k.a === x ? k.b : k.b === x ? k.a : null;
-      if (y !== null) out.push({ n: y, k: k.id });
+  // Paths work on places: a HA group is one place, so the way goes through
+  // every member; cables between members of a group (and HA links) are no
+  // way. Besides cables, a virtual machine reaches its hypervisor and the
+  // hypervisor its physical servers.
+  function placeOf(id) { var n = nodeByID(id), g = n && haOf(n); return g ? "g" + g.id : "n" + id; }
+  function pathEdges() {
+    var out = [];
+    layout.links.forEach(function (k) { if (k.kind !== "ha") out.push({ a: k.a, b: k.b, k: k.id }); });
+    layout.nodes.forEach(function (n) {
+      var h = hostOf(n);
+      if (h) out.push({ a: n.id, b: h.id });
+      if (n.kind === "host") hostServers(n).forEach(function (s) { out.push({ a: n.id, b: s.id, s: n.id + ":" + s.id }); });
     });
-    if (!n) return out;
-    var h = hostOf(n);
-    if (h) out.push({ n: h.id });
-    if (n.kind === "host") {
-      guestsOf(n).forEach(function (c) { out.push({ n: c.id }); });
-      var srv = hostServer(n);
-      if (srv) out.push({ n: srv.id, s: n.id });
-    }
-    if (n.kind === "device") layout.nodes.forEach(function (o) { if (o.kind === "host" && o.host_device === n.device) out.push({ n: o.id, s: o.id }); });
     return out;
   }
-  // hostServer: the node of the physical server a hypervisor runs on
-  function hostServer(h) {
-    if (!h.host_device) return null;
-    for (var i = 0; i < layout.nodes.length; i++) if (layout.nodes[i].kind === "device" && layout.nodes[i].device === h.host_device) return layout.nodes[i];
-    return null;
-  }
+  // findPath: every shortest way between two nodes (breadth first from both
+  // ends: a step lies on a shortest way when it joins two places one step
+  // apart on it), with the racks, hosts and HA groups along it
   function findPath(from, to) {
-    var prev = {}, queue = [from];
-    prev[from] = null;
-    while (queue.length && !(to in prev)) {
-      var x = queue.shift();
-      neighbours(x).forEach(function (e) {
-        if (!(e.n in prev)) { prev[e.n] = { n: x, k: e.k, s: e.s }; queue.push(e.n); }
+    var E = pathEdges(), adj = {};
+    E.forEach(function (e) {
+      e.pa = placeOf(e.a); e.pb = placeOf(e.b);
+      if (e.pa === e.pb) return;
+      (adj[e.pa] = adj[e.pa] || []).push({ p: e.pb, e: e });
+      (adj[e.pb] = adj[e.pb] || []).push({ p: e.pa, e: e });
+    });
+    function bfs(src) {
+      var d = {}, q = [src];
+      d[src] = 0;
+      while (q.length) {
+        var x = q.shift();
+        (adj[x] || []).forEach(function (o) { if (!(o.p in d)) { d[o.p] = d[x] + 1; q.push(o.p); } });
+      }
+      return d;
+    }
+    var A = placeOf(from), B = placeOf(to), res = { nodes: {}, links: {}, hostlinks: {}, hops: 0, routes: 1 };
+    res.nodes[from] = res.nodes[to] = true;
+    if (A !== B) {
+      var da = bfs(A), db = bfs(B);
+      if (!(B in da)) return null;
+      var D = da[B], on = {}, cnt = {};
+      E.forEach(function (e) {
+        if (e.pa === e.pb) return;
+        var fwd = da[e.pa] + 1 + db[e.pb] === D, back = da[e.pb] + 1 + db[e.pa] === D;
+        if (!fwd && !back) return;
+        e.from = fwd ? e.pa : e.pb; e.to = fwd ? e.pb : e.pa;
+        res.nodes[e.a] = res.nodes[e.b] = true;
+        if (e.k !== undefined) res.links[e.k] = true;
+        if (e.s) res.hostlinks[e.s] = true;
+        on[e.pa] = on[e.pb] = true;
+        (cnt[e.from] = cnt[e.from] || []).push(e);
       });
+      // routes: the number of shortest ways from device to device — the way
+      // leaves a group through the member it came in by; cables: along one
+      var ways = {}, order = Object.keys(on).sort(function (x, y) { return da[x] - da[y]; });
+      ways[from] = 1;
+      order.forEach(function (p) {
+        (cnt[p] || []).forEach(function (e) {
+          var a = e.pa === p ? e.a : e.b, b = e.pa === p ? e.b : e.a;
+          if (ways[a]) ways[b] = (ways[b] || 0) + ways[a];
+        });
+      });
+      var total = 0;
+      Object.keys(ways).forEach(function (id) { if (placeOf(+id) === B) total += ways[id]; });
+      res.routes = total || 1;
+      for (var p = A; p !== B;) {
+        var e = cnt[p][0];
+        if (e.k !== undefined) res.hops++;
+        p = e.to;
+      }
+      // every member of a HA group on the way
+      layout.ha.forEach(function (g) { if (on["g" + g.id]) g.nodes.forEach(function (id) { res.nodes[id] = true; }); });
     }
-    if (!(to in prev)) return null;
-    var res = { nodes: {}, links: {}, hostlinks: {}, hops: 0 };
-    for (var c = to; c !== from; c = prev[c].n) {
-      res.nodes[c] = true;
-      if (prev[c].k !== undefined) { res.links[prev[c].k] = true; res.hops++; }
-      if (prev[c].s !== undefined) res.hostlinks[prev[c].s] = true;
-    }
-    res.nodes[from] = true;
     layout.nodes.forEach(function (n) { if (res.nodes[n.id] && n.parent) res.nodes[n.parent] = true; });
     return res;
   }
@@ -1397,7 +1558,7 @@
   }
 
   // ---- layers: what the map shows (kept per browser)
-  var LAYERS = [["devices", "Devices"], ["racks", "Racks"], ["hosts", "Hypervisors"], ["items", "Items"], ["submaps", "Submaps"], ["cables", "Cables"],
+  var LAYERS = [["devices", "Devices"], ["racks", "Racks"], ["hosts", "Hypervisors"], ["ha", "HA groups"], ["items", "Items"], ["submaps", "Submaps"], ["cables", "Cables"],
     ["ports", "Port names"], ["traffic", "Traffic"], ["vlans", "VLAN labels"], ["tunnels", "VXLAN tunnels"], ["names", "Names and addresses"], ["text", "Text"], ["background", "Background"]];
   var hidden = load("wz-map-layers") || {};
   var layersBox = root.querySelector("[data-layers]");
@@ -1497,19 +1658,26 @@
     syncSaveButtons();
     layout.nodes = layout.nodes.filter(function (n) { return n.kind !== "label" || (n.label && n.label.trim()); });
     var sent = JSON.parse(JSON.stringify(layout));
+    sent.ha = (sent.ha || []).filter(function (g) { return g.nodes.length >= 2; }); // a group being made waits for its second member
     fetch("/maps/" + mapID + "/layout", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(sent) })
       .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.status); return j; }); })
       .then(function (out) {
         var ids = {}, lids = {};
         sent.nodes.forEach(function (n, i) { if (out.nodes[i]) ids[n.id] = out.nodes[i].id; });
         sent.links.forEach(function (k, i) { if (out.links[i]) lids[k.id] = out.links[i].id; });
+        var hids = {};
+        sent.ha.forEach(function (g, i) { if (out.ha && out.ha[i]) hids[g.id] = out.ha[i].id; });
+        layout.ha.forEach(function (g) {
+          g.nodes = g.nodes.map(function (id) { return ids[id] !== undefined ? ids[id] : id; });
+          if (hids[g.id] !== undefined) g.id = hids[g.id];
+        });
         layout.nodes.forEach(function (n) { if (ids[n.id] !== undefined) n.id = ids[n.id]; if (n.parent && ids[n.parent] !== undefined) n.parent = ids[n.parent]; });
         layout.links.forEach(function (k) {
           if (ids[k.a] !== undefined) k.a = ids[k.a];
           if (ids[k.b] !== undefined) k.b = ids[k.b];
           if (lids[k.id] !== undefined) k.id = lids[k.id];
         });
-        if (selected) { var m = selected.type === "node" ? ids : lids; if (m[selected.id] !== undefined) selected.id = m[selected.id]; }
+        if (selected) { var m = selected.type === "node" ? ids : selected.type === "ha" ? hids : lids; if (m[selected.id] !== undefined) selected.id = m[selected.id]; }
         if (connectFrom !== null && ids[connectFrom] !== undefined) connectFrom = ids[connectFrom];
         saving = false;
         if (changeGen === gen) { dirty = false; setSave(T("Saved")); } else setSave(T("Unsaved changes"));
@@ -1577,6 +1745,8 @@
       drag = { type: "node", n: n, dx: n.x - w.x, dy: n.y - w.y, sx: p.x, sy: p.y, vx: view.x, vy: view.y };
     } else if (linkEl) {
       drag = { type: "link", id: +linkEl.getAttribute("data-link"), sx: p.x, sy: p.y };
+    } else if (t.closest && t.closest("[data-ha]")) {
+      drag = { type: "ha", id: +t.closest("[data-ha]").getAttribute("data-ha"), sx: p.x, sy: p.y, vx: view.x, vy: view.y };
     } else if (editing && moveBg && t.classList && t.classList.contains("bgimg")) {
       drag = { type: "bg", dx: layout.background.x - w.x, dy: layout.background.y - w.y, sx: p.x, sy: p.y };
     } else {
@@ -1669,6 +1839,8 @@
       selected = { type: "node", id: d.n.id };
     } else if (d.type === "link") {
       selected = { type: "link", id: d.id };
+    } else if (d.type === "ha") {
+      selected = { type: "ha", id: d.id };
     } else {
       selected = null;
     }
@@ -1773,6 +1945,7 @@
         meta = d;
         meta.assets = meta.assets || {};
         layout = d.layout || { nodes: [], links: [] };
+        layout.ha = layout.ha || [];
         layout.links.forEach(function (k) { k.points = k.points || []; });
         selected = null; closePanel();
         var saved = restoreView ? load("wz-map-view-" + mapID) : null;

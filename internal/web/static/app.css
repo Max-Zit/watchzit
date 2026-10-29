@@ -675,6 +675,17 @@ main:has(.mapview) { max-width: none; padding-bottom: 12px; }
 .host.s-warning .dot { fill: var(--warn); }
 .host.sel .hostbox { stroke: var(--accent); stroke-width: 3; }
 .host.s-down .hostbox { stroke: var(--bad); }
+.link.k-ha .wire { stroke: #f59e0b; stroke-dasharray: 2 3; }
+.hagroup .haframe { fill: none; stroke: #f59e0b; stroke-width: 2; stroke-dasharray: 10 6; pointer-events: stroke; cursor: pointer; }
+.hagroup .haname { font: 600 12px var(--font); fill: #f59e0b; cursor: pointer; }
+.hagroup.s-up .haframe { stroke: var(--ok); } .hagroup.s-up .haname { fill: var(--ok); }
+.hagroup.s-warning .haframe { stroke: var(--warn); stroke-width: 3; } .hagroup.s-warning .haname { fill: var(--warn); }
+.hagroup.s-down .haframe { stroke: var(--bad); stroke-width: 3; } .hagroup.s-down .haname { fill: var(--bad); }
+.hagroup.sel .haframe { stroke: var(--accent); stroke-width: 3; }
+.harole { font: 700 10px var(--font); letter-spacing: .06em; paint-order: stroke; stroke: var(--panel); stroke-width: 3px; }
+.harole.r-master { fill: var(--ok); }
+.harole.r-backup { fill: var(--muted); }
+.mapsvg.pathmode .hagroup:not(.onpath), .mapsvg.hide-ha .hagroup { display: none; }
 .hostlink .wire { stroke: #7c3aed; stroke-width: 2; stroke-dasharray: 3 5; fill: none; opacity: .85; }
 .mapsvg.pathmode .hostlink:not(.onpath), .mapsvg.hide-hosts .hostlink, .mapsvg.vlanmode .hostlink { display: none; }
 .mapsvg.pathmode .hostlink.onpath .wire { stroke-width: 3.5; }

@@ -40,6 +40,9 @@
 <h2 id="vlans">VLANs</h2>
 <p>WatchZit reads the VLANs of switches over SNMP once an hour (Q-BRIDGE-MIB: HP/Aruba, Cisco small business, Ubiquiti, Netgear, D-Link and most managed switches; CISCO-VTP-MIB: Cisco Catalyst access and trunk ports), from agents (Linux VLAN interfaces such as eth0.10, the VLAN ID of Windows network adapters) and of MikroTik bridges over the RouterOS API (with the device's <b>MikroTik RouterOS (API)</b> check) every ten minutes. The device page lists each VLAN with its tagged and untagged ports, and each port with its <b>mode</b>: <b>Access</b> (one untagged VLAN), <b>Trunk</b> (tagged VLANs; the untagged one is the <b>native VLAN</b>) or <b>Hybrid</b> (several untagged VLANs). Maps can show one VLAN at a time.</p>
 
+<h2 id="ha-role">HA role</h2>
+<p>Devices that run VRRP report whether they are <b>active</b> (master) or <b>standby</b> (backup): read over SNMP (VRRP-MIB and VRRPv3-MIB, with the SNMP availability check) and from MikroTik RouterOS over the API (with the RouterOS API check). The device page shows the role and since when; maps show ACTIVE or STANDBY next to the device.</p>
+
 <h2 id="vxlan">VXLAN</h2>
 <p>VXLAN interfaces (VTEPs) are read from MikroTik RouterOS 7 (with the RouterOS API check, every ten minutes) and from Linux agents (with iproute2, every five minutes): VNI, interface, own address, UDP port and remote VTEPs, also those in the forwarding table. The device page lists them; a remote VTEP that is the address of another device links to it. A VXLAN with no remote addresses uses multicast or EVPN. Maps draw a tunnel between two devices of the map that are each other's VTEPs.</p>
 

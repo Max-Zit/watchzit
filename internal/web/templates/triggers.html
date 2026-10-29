@@ -25,7 +25,7 @@
   <form method="post" action="{{if $e}}/alerts/triggers/{{$e.ID}}{{else}}/alerts/triggers{{end}}" class="stack">
     <div class="cols">
       <label>{{.T "Name"}}<input name="name" value="{{$in.Name}}" required maxlength="100" placeholder="{{.T "Name, for example Disk almost full"}}"></label>
-      <label>{{.T "Kind"}}<select name="kind" data-switch="tkind">{{range $k := (list "device_down" "check_down" "metric")}}<option value="{{$k}}" {{if eq $k $in.Kind}}selected{{end}}>{{$.T (triggerKind $k)}}</option>{{end}}</select></label>
+      <label>{{.T "Kind"}}<select name="kind" data-switch="tkind">{{range $k := (list "device_down" "check_down" "metric" "ha_degraded")}}<option value="{{$k}}" {{if eq $k $in.Kind}}selected{{end}}>{{$.T (triggerKind $k)}}</option>{{end}}</select></label>
     </div>
     <div class="cols" data-show="tkind" data-when="metric">
       <label>{{.T "Value"}}<select name="metric">{{range .Data.Metrics}}<option value="{{.Metric}}" {{if eq .Metric $in.Metric}}selected{{end}}>{{$.T .Name}}{{with .Unit}} ({{.}}){{end}}</option>{{end}}</select></label>

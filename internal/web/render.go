@@ -514,7 +514,7 @@ func init() {
 }
 
 // triggerKinds and channelKinds name the kinds (translated in templates).
-var triggerKinds = map[string]string{store.TriggerDeviceDown: "Device down", store.TriggerCheckDown: "Check down", store.TriggerMetric: "Value out of range"}
+var triggerKinds = map[string]string{store.TriggerDeviceDown: "Device down", store.TriggerCheckDown: "Check down", store.TriggerMetric: "Value out of range", store.TriggerHADegraded: "HA group without redundancy"}
 var channelKinds = map[string]string{store.ChannelEmail: "Email", store.ChannelWebhook: "Webhook (JSON)", store.ChannelSlack: "Slack", store.ChannelTeams: "Microsoft Teams"}
 
 // sevCtx is the argument of the sev template.

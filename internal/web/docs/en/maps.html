@@ -27,9 +27,17 @@
   <li>Zoom with the wheel or two fingers; names and port labels appear when you are close enough. Click a device for its panel with checks, ports and tools; double-click to open it.</li>
 </ul>
 
+<h2 id="ha">HA groups</h2>
+<ul>
+  <li>Devices that stand in for each other — a firewall HA pair, VRRP or HSRP routers, a switch stack or MLAG/vPC pair, a server or storage cluster — form a <b>HA group</b>: while editing, choose <b>HA group → New HA group</b> in the panel of the first device, then the same group in the panel of the others. The group is a dashed frame around its members; its panel sets the name and kind.</li>
+  <li><b>Path</b> goes through every member of a group and shows every equal route (for example 2 routes through two firewalls). Mark the cable between the members (heartbeat, sync, stack, peer link) with the cable kind <b>HA link</b>; it is not a way for traffic.</li>
+  <li>The frame is green while all members are up, amber with <i>redundancy lost</i> when some are down and red when all are down. The trigger <b>HA group without redundancy</b> opens a problem then (see Alerts).</li>
+  <li>Members that report VRRP show <b>ACTIVE</b> or <b>STANDBY</b>, and the group panel says since when.</li>
+</ul>
+
 <h2 id="hypervisors">Hypervisors and virtual machines</h2>
 <ul>
-  <li><b>Add hypervisor</b> (while editing) adds a box for a virtualisation host: choose the <b>hypervisor</b> (VMware ESXi, Proxmox VE, Hyper-V, XCP-ng, KVM, Nutanix AHV, Docker, Kubernetes and others) and the <b>physical server</b> it runs on (required); the server's state is shown on the box, its metrics open from the panel and, when the server is on the map, a dashed line joins them. <b>Path</b> goes from a virtual machine through its hypervisor and the physical server on along the cables.</li>
+  <li><b>Add hypervisor</b> (while editing) adds a box for a virtualisation host: choose the <b>hypervisor</b> (VMware ESXi, Proxmox VE, Hyper-V, XCP-ng, KVM, Nutanix AHV, Docker, Kubernetes and others) and the <b>physical server</b> it runs on (required; for a cluster, add the other servers under <b>Cluster</b>, and paths can go through any of them); the server's state is shown on the box, its metrics open from the panel and, when the server is on the map, a dashed line joins them. <b>Path</b> goes from a virtual machine through its hypervisor and the physical server on along the cables.</li>
   <li>Drag virtual machines into the box: devices of the console (to see their state) or items with a picture of their system (Windows Server, Ubuntu, Debian, Red Hat, MikroTik CHR, pfSense, containers and more, type <b>Virtual machine</b> in the picture panel). Inside the box they line up in a grid; drag them within it to change the order, out of it to take them off the host. A device's panel also has <b>Runs on hypervisor</b>.</li>
   <li>The box shows the worst state of its virtual machines and of the physical server; the layer <b>Hypervisors</b> hides the boxes.</li>
 </ul>

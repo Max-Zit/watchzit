@@ -27,6 +27,7 @@
     {{with .Data.Facts.SysLocation}}<dt>{{$.T "Location"}}</dt><dd>{{.}}</dd>{{end}}
     {{with .Data.Profile}}<dt>SNMP</dt><dd>{{.Name}} <span class="muted">· {{.VersionName}}{{with .Security}}, {{.}}{{end}}</span></dd>{{end}}
     {{if $d.Parent}}<dt>{{$.T "Depends on"}}</dt><dd><a href="/devices/{{$d.Parent}}">{{$d.ParentName}}</a></dd>{{end}}
+    {{with .Data.HA}}<dt>{{$.T "HA role"}}</dt><dd><span class="badge {{if eq .State "master"}}ok{{end}}">{{if eq .State "master"}}{{$.T "active"}}{{else}}{{$.T "standby"}}{{end}}</span> <span class="muted small">{{if eq .Source "routeros"}}RouterOS VRRP{{else}}VRRP{{end}}{{with .Since}} · {{$.Ago .}}{{end}}</span></dd>{{end}}
     {{with $d.Notes}}<dt>{{$.T "Notes"}}</dt><dd class="pre">{{.}}</dd>{{end}}
   </dl>
   {{if and .User.CanWrite .Data.Profile}}<div class="row mt"><a class="btn secondary" href="/devices/{{$d.ID}}/discover">{{template "icon" "refresh"}}{{.T "SNMP discovery"}}</a></div>{{end}}
