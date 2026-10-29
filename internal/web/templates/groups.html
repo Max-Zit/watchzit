@@ -9,7 +9,7 @@
       <td><a href="/devices?group={{.ID}}">{{.Name}}</a>{{with .Notes}}<br><small class="muted">{{.}}</small>{{end}}</td>
       <td class="num">{{.Devices}}</td>
       {{if $.User.CanWrite}}<td class="actions nowrap">
-        <details class="pop right"><summary class="btn ghost sm" title="{{$.T "Edit"}}">{{template "icon" "settings"}}</summary>
+        <details class="pop right"><summary class="btn ghost sm" title="{{$.T "Edit"}}">{{template "icon" "edit"}}</summary>
           <div class="pop-body">
             <form method="post" action="/groups/{{.ID}}" class="stack">
               <label>{{$.T "Name"}}<input name="name" value="{{.Name}}" required maxlength="100"></label>

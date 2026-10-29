@@ -21,7 +21,7 @@
       <td><b>{{.Name}}</b></td>
       <td class="num">{{len .Maps}}</td>
       <td class="hide-sm muted">{{if .LastSeen}}{{$.Ago .LastSeen}}{{with .LastIP}} · <span class="mono">{{.}}</span>{{end}}{{else}}{{$.T "never"}}{{end}}</td>
-      <td class="actions nowrap"><a class="btn ghost sm" href="/settings/kiosks/{{.ID}}" title="{{$.T "Edit"}}">{{template "icon" "settings"}}</a></td>
+      <td class="actions nowrap"><a class="btn ghost sm" href="/settings/kiosks/{{.ID}}" title="{{$.T "Edit"}}">{{template "icon" "edit"}}</a></td>
     </tr>{{end}}</tbody>
   </table></div>
   {{else}}<p class="muted">{{.T "No kiosk displays yet."}}</p>{{end}}

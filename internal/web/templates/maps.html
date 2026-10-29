@@ -28,7 +28,7 @@
     <tbody>{{range .Data.Maps}}<tr>
       <td><b>{{.Name}}</b></td>
       <td class="actions nowrap">
-        <details class="pop right"><summary class="btn ghost sm" title="{{$.T "Edit"}}">{{template "icon" "settings"}}</summary>
+        <details class="pop right"><summary class="btn ghost sm" title="{{$.T "Edit"}}">{{template "icon" "edit"}}</summary>
           <div class="pop-body">
             <form method="post" action="/maps/{{.ID}}" class="stack">
               <label>{{$.T "Name"}}<input name="name" value="{{.Name}}" required maxlength="100"></label>

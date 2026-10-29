@@ -15,7 +15,7 @@
       <td>{{.VersionName}}</td>
       <td class="hide-sm small">{{if eq .Version 3}}<span class="mono">{{.User}}</span> · {{.Security}}{{else}}{{$.T "community"}}{{end}}</td>
       <td class="num">{{.Devices}}</td>
-      <td class="actions nowrap"><a class="btn ghost sm" href="/settings/snmp/{{.ID}}" title="{{$.T "Edit"}}">{{template "icon" "settings"}}</a></td>
+      <td class="actions nowrap"><a class="btn ghost sm" href="/settings/snmp/{{.ID}}" title="{{$.T "Edit"}}">{{template "icon" "edit"}}</a></td>
     </tr>{{end}}</tbody>
   </table></div>
   {{else}}<p class="muted">{{.T "No SNMP profiles yet."}}</p>{{end}}

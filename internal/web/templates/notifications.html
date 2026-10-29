@@ -17,7 +17,7 @@
       <td class="hide-sm small">{{if .LastError}}<span class="badge bad" title="{{.LastError}}"><i></i>{{$.T "Failed"}}</span><br><span class="muted">{{.LastError}}</span>{{else if .LastSent}}{{$.Ago .LastSent}}{{else}}<span class="muted">{{$.T "never"}}</span>{{end}}</td>
       <td class="actions nowrap">
         <form method="post" action="/settings/notifications/channels/{{.ID}}/test" class="inline"><button class="ghost sm">{{$.T "Send test"}}</button></form>
-        <details class="pop right"><summary class="btn ghost sm" title="{{$.T "Settings"}}">{{template "icon" "settings"}}</summary>
+        <details class="pop right"><summary class="btn ghost sm" title="{{$.T "Settings"}}">{{template "icon" "edit"}}</summary>
           <div class="pop-body">
             <form method="post" action="/settings/notifications/channels/{{.ID}}" class="stack">
               <label>{{$.T "Name"}}<input name="name" value="{{.Name}}" required maxlength="100"></label>

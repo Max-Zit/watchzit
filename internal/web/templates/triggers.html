@@ -13,7 +13,7 @@
         {{if .CheckTypes}}<br><span class="muted">{{range $i, $t := .CheckTypes}}{{if $i}}, {{end}}{{$.T (checkKind $t)}}{{end}}</span>{{end}}</td>
       <td class="hide-sm small">{{if .Device}}{{.Device}}{{else if .Group}}{{$.T "Group"}} {{.Group}}{{else}}<span class="muted">{{$.T "All devices"}}</span>{{end}}</td>
       <td>{{template "sev" (sevOf $ .Severity)}}</td>
-      {{if $.User.CanWrite}}<td class="actions nowrap"><a class="btn ghost sm" href="/alerts/triggers/{{.ID}}" title="{{$.T "Edit"}}">{{template "icon" "settings"}}</a></td>{{end}}
+      {{if $.User.CanWrite}}<td class="actions nowrap"><a class="btn ghost sm" href="/alerts/triggers/{{.ID}}" title="{{$.T "Edit"}}">{{template "icon" "edit"}}</a></td>{{end}}
     </tr>{{end}}</tbody>
   </table></div>
 </section>

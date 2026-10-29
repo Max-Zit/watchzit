@@ -13,7 +13,7 @@
       <td>{{template "icon" (toolIcon .Builtin)}} <b>{{.Name}}</b>{{if not .Enabled}} <span class="badge muted">{{$.T "Off"}}</span>{{end}}{{if .Builtin}} <span class="small muted">{{$.T "built in"}}</span>{{else}}<br><span class="small muted mono">{{.Program}}</span>{{end}}</td>
       <td class="num">{{.Port}}</td>
       <td class="hide-sm small">{{if .Kinds}}{{range $i, $k := .Kinds}}{{if $i}}, {{end}}{{$.KindName $k}}{{end}}{{else}}<span class="muted">{{$.T "All"}}</span>{{end}}</td>
-      <td class="actions"><a class="btn ghost sm" href="/settings/tools/{{.ID}}#form" title="{{$.T "Edit"}}">{{template "icon" "settings"}}</a></td>
+      <td class="actions"><a class="btn ghost sm" href="/settings/tools/{{.ID}}#form" title="{{$.T "Edit"}}">{{template "icon" "edit"}}</a></td>
     </tr>{{end}}</tbody>
   </table></div>
 </section>
