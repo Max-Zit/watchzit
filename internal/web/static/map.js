@@ -502,11 +502,11 @@
       text = "VLAN " + vlan + (pv ? " · " + (pv.tagged ? T("tagged") : T("untagged")) : "");
     } else if (s.ab !== null && s.ab !== undefined && len > 190) text = (text ? text + "  " : "") + "→ " + bits(s.ab) + "  ← " + bits(s.ba);
     var mid = pointAlong(pts, len / 2);
-    if (text) label(gl, "traffic", mid.x, mid.y, text);
+    if (text) label(gl, vlan ? "vlanpick" : "traffic", mid.x, mid.y, text);
     // the VLAN mode (access / trunk, native VLAN) and the VXLAN VNI
     var vt = vlan ? "" : modeText(linkMode(k, s), 30);
     if (k.vni) vt = (vt ? vt + " · " : "") + "VNI " + k.vni;
-    if (vt && len > 120) label(gl, "vlan", mid.x, mid.y + (text ? 13 : 0), vt);
+    if (vt && len > 120) label(gl, "vlan", mid.x, mid.y + (text ? 8 : 0), vt);
   }
   // VXLAN tunnels the devices report, between devices on the map (a cable
   // of kind VXLAN with the same VNI between them stands for it)
@@ -568,7 +568,7 @@
     return Math.min(l, t * l);
   }
   function label(g, cls, x, y, text) {
-    el("text", { "class": "lbl " + cls, x: x, y: cls === "port" ? y : y + 4, "text-anchor": "middle", "dominant-baseline": cls === "port" ? "central" : "auto" }, g).textContent = text;
+    el("text", { "class": "lbl " + cls, x: x, y: cls === "traffic" ? y + 4 : y, "text-anchor": "middle", "dominant-baseline": cls === "traffic" ? "auto" : "central" }, g).textContent = text;
   }
   // bend handles of the selected cable (editing)
   function drawHandles() {

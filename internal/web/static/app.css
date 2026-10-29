@@ -896,3 +896,6 @@ body.graph-full { overflow: hidden; }
 .hagroup.sel .hatag rect { stroke: var(--accent); stroke-width: 2; }
 .harole.mini { font-size: 5px; letter-spacing: .05em; stroke-width: 1.5px; }
 .harole.mini.r-backup { fill: var(--warn); }
+/* VLAN texts on cables: small, like the port numbers */
+.link .lbl.vlanpick { font-size: 4.2px; font-weight: 600; fill: #a78bfa; stroke-width: 1.3px; }
+.link .lbl.vlan, .tunnel .lbl.vlan { font-size: 4.2px; stroke-width: 1.3px; }
