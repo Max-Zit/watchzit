@@ -90,6 +90,9 @@ type Page struct {
 	Path     string
 	Host     string // the console host as the browser sees it
 	Refresh  int    // seconds until the page reloads itself (0 = never)
+	// Device is the address of the device the page shows; a password
+	// manager extension (PassZit) offers the logins saved for it.
+	Device string
 	// BackMap is the map this page was opened from (?map=ID): a button
 	// leads back to it.
 	BackMap *store.Map

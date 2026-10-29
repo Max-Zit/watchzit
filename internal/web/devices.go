@@ -264,7 +264,7 @@ func (s *Server) showDevice(w http.ResponseWriter, r *http.Request, status int, 
 			data.Watched[c.Params.Descr] = true
 		}
 	}
-	p := &Page{Title: d.Name, Nav: "devices", Data: data}
+	p := &Page{Title: d.Name, Nav: "devices", Data: data, Device: d.Address}
 	if errMsg != "" {
 		p.Error = translate(s.lang(r, userFrom(r)), errMsg)
 	}

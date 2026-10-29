@@ -162,7 +162,7 @@ func TestAgentEnrollAndReport(t *testing.T) {
 
 	// the device page shows the agent; watching a service tells the agent
 	r = c.get("/devices/1")
-	for _, want := range []string{"Debian GNU/Linux 12", "Test CPU", "nginx web server", "Watch services"} {
+	for _, want := range []string{"Debian GNU/Linux 12", "Test CPU", "nginx web server", "Watch services", `<meta name="passzit-device" content="10.9.8.7">`} {
 		if !strings.Contains(r.body, want) {
 			t.Fatalf("device page lacks %q", want)
 		}
