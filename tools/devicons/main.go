@@ -21,6 +21,7 @@ type Icon struct {
 	Cat    string       `json:"cat"`              // network, server, rack, end, wireless, security, power, logical
 	Kind   string       `json:"kind"`             // the device kind it suits
 	Vendor string       `json:"vendor,omitempty"` // catalog models: the manufacturer
+	Type   string       `json:"type,omitempty"`   // "storage" for storage systems and NAS (their kind is server)
 	W      float64      `json:"w"`                // picture size (viewBox)
 	H      float64      `json:"h"`
 	U      int          `json:"u,omitempty"`     // rack units (0 = not rack-mounted)
@@ -776,6 +777,12 @@ func main() {
 	add("vm", "Virtual machine", "logical", "server", vm(), 70)
 	add("user", "User", "logical", "pc", users(false), 50)
 	add("users", "Users / department", "logical", "pc", users(true), 60)
+	for i := range icons {
+		switch icons[i].Name {
+		case "storage-2u", "nas-rack", "nas-2", "nas-4":
+			icons[i].Type = "storage"
+		}
+	}
 	icons = append(icons, modelIcons(out)...)
 	b, _ := json.Marshal(icons)
 	if err := os.WriteFile(filepath.Join(out, "index.json"), append(b, '\n'), 0o600); err != nil {

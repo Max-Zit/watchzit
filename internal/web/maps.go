@@ -118,8 +118,8 @@ var mapText = []string{"Edit", "Done", "Zoom in", "Zoom out", "Fit to screen", "
 	"Item", "Picture", "Change picture", "Symbol (no picture)", "Upload picture", "Size", "Rack", "Not in a rack", "Mounted at unit", "Devices in rack", "Rack name", "Units",
 	"Drag devices into the rack; they snap to the units.", "Port on picture", "Interface", "Cable", "Route", "Straight", "90° bends", "45° bends", "Curved",
 	"Drag the + points to bend the cable; drag the round points to move a bend; double-click a point to remove it.", "Background", "Remove background",
-	"Without a picture the map shows the dotted grid.", "Opacity", "Move background (drag it)", "The picture could not be uploaded.", "All", "Network", "Servers",
-	"Security", "Power", "End devices", "Logical", "Uploaded", "Add rack", "Port", "Automatic"}
+	"Without a picture the map shows the dotted grid.", "Opacity", "Move background (drag it)", "The picture could not be uploaded.",
+	"Power", "Logical", "Uploaded", "All types", "Switch", "Router", "Firewall", "Server", "Storage / NAS", "Access point", "UPS", "Camera", "Computer", "Printer", "Other", "All manufacturers", "No pictures match.", "Type", "Add rack", "Port", "Automatic", "Monitored device", "None (picture only)"}
 
 type mapJSON struct {
 	ID      int64                 `json:"id"`
@@ -137,6 +137,8 @@ type mapDevice struct {
 	Name    string `json:"name"`
 	Address string `json:"address"`
 	Kind    string `json:"kind"`
+	Descr   string `json:"descr,omitempty"` // SNMP system description
+	Vendor  string `json:"vendor,omitempty"`
 }
 
 type mapRef struct {
@@ -217,8 +219,13 @@ func (s *Server) writeMapJSON(w http.ResponseWriter, r *http.Request, m *store.M
 			s.serverError(w, r, err)
 			return
 		}
+		descrs, err := s.store.DeviceDescrs(ctx)
+		if err != nil {
+			s.serverError(w, r, err)
+			return
+		}
 		for _, d := range ds {
-			out.Devices = append(out.Devices, mapDevice{d.ID, d.Name, d.Address, d.Kind})
+			out.Devices = append(out.Devices, mapDevice{d.ID, d.Name, d.Address, d.Kind, descrs[d.ID][0], descrs[d.ID][1]})
 		}
 	}
 	writeJSON(w, http.StatusOK, out)

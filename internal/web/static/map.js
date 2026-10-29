@@ -577,6 +577,19 @@
       p.appendChild(acts2);
     }
     if (!editing) return;
+    // an item becomes a monitored device (picture, place and cables kept),
+    // and a device can go back to being a plain item
+    if (n.kind === "item" || n.kind === "device") {
+      var on = {};
+      layout.nodes.forEach(function (x) { if (x.kind === "device" && x !== n) on[x.device] = true; });
+      var devs = (meta.devices || []).filter(function (d) { return !on[d.id]; }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+      field(p, T("Monitored device"), select([["0", T("None (picture only)")]].concat(devs.map(function (d) { return [String(d.id), d.name + " · " + d.address]; })), n.kind === "device" ? n.device : 0, function (v) {
+        var id = +v;
+        if (id) { n.kind = "device"; n.device = id; }
+        else { n.kind = "item"; delete n.device; }
+        render(); changed(); showSelection();
+      }));
+    }
     var lab = field(p, T("Label"), h("input", { value: n.label || "", maxlength: "200", placeholder: nodeName(n) }));
     lab.addEventListener("input", function () { n.label = lab.value; render(); changed(); });
     // picture
@@ -585,7 +598,7 @@
     if (pic) prow.appendChild(h("img", { src: picURL(pic), alt: "" }));
     prow.appendChild(button(T("Change picture"), "secondary", function () {
       var id = n.id;
-      pickPicture(function (icon) { var x = nodeByID(id); x.icon = icon; x.size = 0; fixMount(x); selected = { type: "node", id: id }; render(); changed(); showSelection(); }, n.kind !== "item");
+      pickPicture(function (icon) { var x = nodeByID(id); x.icon = icon; x.size = 0; fixMount(x); selected = { type: "node", id: id }; render(); changed(); showSelection(); }, n.kind !== "item", pictureVendor(n));
     }));
     p.appendChild(prow);
     if (!n.parent) field(p, T("Size"), range(20, 600, 2, box(n).w, function (v) { n.size = v; render(); changed(); }));
@@ -718,30 +731,39 @@
   }
 
   // ---- pictures: built-in library and uploads
-  var cats = [["all", "All"], ["network", "Network"], ["server", "Servers"], ["rack", "Rack"], ["wireless", "Wireless"], ["security", "Security"], ["power", "Power"], ["end", "End devices"], ["logical", "Logical"], ["uploaded", "Uploaded"]];
-  function pickPicture(onPick, allowNone) {
+  // picture types: device kinds, storage, and the categories of the rest
+  var picTypes = [["", "All types"], ["switch", "Switch"], ["router", "Router"], ["firewall", "Firewall"], ["server", "Server"], ["storage", "Storage / NAS"],
+    ["accesspoint", "Access point"], ["ups", "UPS"], ["power", "Power"], ["camera", "Camera"], ["pc", "Computer"], ["printer", "Printer"],
+    ["rack", "Rack"], ["logical", "Logical"], ["other", "Other"], ["uploaded", "Uploaded"]];
+  function picType(i) {
+    if (i.type) return i.type;
+    if (i.kind && i.kind !== "other") return i.kind;
+    return ["rack", "logical", "power", "uploaded"].indexOf(i.cat) >= 0 ? i.cat : "other";
+  }
+  // pickPicture shows the pictures; vendor preselects a manufacturer
+  function pickPicture(onPick, allowNone, vendor) {
     var p = openPanel(T("Picture"));
-    var cat = "all";
-    var tabs = h("div", { "class": "mp-tabs" });
     var q = h("input", { type: "search", placeholder: T("Search, e.g. DL380 or CRS326"), "aria-label": T("Search") });
     var grid = h("div", { "class": "mp-grid" });
-    // vendor: "" = the generic pictures; a search looks through all vendors
+    // vendor: "" = the generic pictures, "*" = all; a search looks through all
     var vendors = [];
     libList.forEach(function (i) { if (i.vendor && vendors.indexOf(i.vendor) < 0) vendors.push(i.vendor); });
     vendors.sort();
-    var vend = select([["", T("Generic pictures")]].concat(vendors.map(function (v) { return [v, v]; })), "", function () { fill(); });
+    var vend = select([["", T("Generic pictures")], ["*", T("All manufacturers")]].concat(vendors.map(function (v) { return [v, v]; })), vendor || "", function () { fill(); });
     vend.setAttribute("aria-label", T("Manufacturer"));
+    var kind = select(picTypes.map(function (t) { return [t[0], T(t[1])]; }), "", function () { fill(); });
+    kind.setAttribute("aria-label", T("Type"));
     function fill() {
       grid.innerHTML = "";
       var f = q.value.toLowerCase().trim();
-      var items = libList.filter(function (i) { return f || (i.vendor || "") === vend.value; })
-        .map(function (i) { return { icon: "lib:" + i.name, src: "/static/devices/" + i.name + ".svg?v=" + assetV, label: i.label, cat: i.cat }; });
+      var items = libList.filter(function (i) { return f || vend.value === "*" || (i.vendor || "") === vend.value; })
+        .map(function (i) { return { icon: "lib:" + i.name, src: "/static/devices/" + i.name + ".svg?v=" + assetV, label: i.label, type: picType(i) }; });
       Object.keys(meta.assets || {}).forEach(function (id) {
         var a = meta.assets[id];
-        if (a.kind === "icon") items.push({ icon: "asset:" + id, src: url("assets", id), label: a.name, cat: "uploaded" });
+        if (a.kind === "icon") items.push({ icon: "asset:" + id, src: url("assets", id), label: a.name, type: "uploaded" });
       });
       items.forEach(function (it) {
-        if (cat !== "all" && it.cat !== cat) return;
+        if (kind.value && it.type !== kind.value) return;
         if (f && f.split(/\s+/).some(function (w) { return it.label.toLowerCase().indexOf(w) < 0; })) return;
         var b = h("button", { type: "button", title: it.label });
         b.appendChild(h("img", { src: it.src, alt: "", loading: "lazy" }));
@@ -749,20 +771,18 @@
         b.addEventListener("click", function () { onPick(it.icon); });
         grid.appendChild(b);
       });
+      if (!grid.firstChild) grid.appendChild(h("p", { "class": "muted small" }, T("No pictures match.")));
     }
-    cats.forEach(function (c) {
-      var t = h("button", { type: "button", "class": c[0] === cat ? "on" : "" }, T(c[1]));
-      t.addEventListener("click", function () { cat = c[0]; Array.prototype.forEach.call(tabs.children, function (x) { x.className = ""; }); t.className = "on"; fill(); });
-      tabs.appendChild(t);
-    });
     q.addEventListener("input", fill);
     var acts = h("div", { "class": "row" });
     acts.appendChild(button(T("Upload picture"), "secondary", function () { uploadPicture("icon", function (a) { onPick("asset:" + a.id); }); }));
     if (allowNone) acts.appendChild(button(T("Symbol (no picture)"), "ghost", function () { onPick(""); }));
     p.appendChild(acts);
     p.appendChild(q);
-    p.appendChild(vend);
-    p.appendChild(tabs);
+    var filters = h("div", { "class": "mp-filters" });
+    filters.appendChild(vend);
+    filters.appendChild(kind);
+    p.appendChild(filters);
     p.appendChild(grid);
     fill();
   }
@@ -894,6 +914,39 @@
     fill();
     q.focus();
   }
+  // modelPicture finds the model picture whose model the device names in
+  // its SNMP description ("RouterOS RB5009UG+S+IN"), the longest match
+  function modelPicture(d) {
+    if (!d || !d.descr) return "";
+    var norm = function (s) { return s.toLowerCase().replace(/[^a-z0-9+]/g, ""); };
+    var descr = norm(d.descr), best = "", bestLen = 0;
+    libList.forEach(function (i) {
+      if (!i.vendor) return;
+      var key = norm(i.label.slice(i.vendor.length));
+      if (key.length >= 5 && key.length > bestLen && descr.indexOf(key) >= 0) { best = i.name; bestLen = key.length; }
+    });
+    return best;
+  }
+  // libVendor: the picture library's manufacturer for a vendor SNMP names
+  function libVendor(v) {
+    if (!v) return "";
+    v = v.toLowerCase();
+    var best = "";
+    libList.forEach(function (i) {
+      var x = (i.vendor || "").toLowerCase();
+      if (x && (x === v || x.indexOf(v) === 0 || v.indexOf(x) === 0) && (!best || i.vendor.length < best.length)) best = i.vendor;
+    });
+    return best;
+  }
+  // pictureVendor: the manufacturer the picture panel opens with — that of
+  // the current model picture, or the vendor SNMP reports for the device
+  function pictureVendor(n) {
+    var cur = n.icon && n.icon.indexOf("lib:") === 0 ? lib[n.icon.slice(4)] : null;
+    if (cur && cur.vendor) return cur.vendor;
+    if (n.kind !== "device") return "";
+    var d = live.devices[n.device] || deviceMeta(n.device) || {};
+    return libVendor(d.vendor || (deviceMeta(n.device) || {}).vendor);
+  }
   // a device gets a built-in picture fitting its kind when added
   var kindPicture = { router: "router-box", "switch": "switch-24", firewall: "firewall-box", server: "server-tower", pc: "pc-tower", printer: "printer", ups: "ups-tower", accesspoint: "ap-ceiling", camera: "camera-bullet" };
   function pickDevice() {
@@ -901,7 +954,7 @@
     layout.nodes.forEach(function (n) { if (n.kind === "device") on[n.device] = true; });
     var items = (meta.devices || []).filter(function (d) { return !on[d.id]; }).map(function (d) { return { id: d.id, kind: d.kind, name: d.name, sub: d.address + " · " + T("kind:" + d.kind) }; });
     pickList(T("Add device"), items, T("All devices are on this map."), function (it) {
-      var pic = kindPicture[it.kind];
+      var pic = modelPicture(deviceMeta(it.id)) || kindPicture[it.kind];
       addNode({ kind: "device", device: it.id, label: "", icon: pic && lib[pic] ? "lib:" + pic : "" }, true);
       pickDevice();
     });

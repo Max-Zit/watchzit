@@ -329,3 +329,23 @@ func (s *Store) Interfaces(ctx context.Context, deviceID int64) ([]Interface, er
 	}
 	return out, rows.Err()
 }
+
+// DeviceDescrs returns what SNMP told about each device: the system
+// description and the vendor (the map picks a model picture by them).
+func (s *Store) DeviceDescrs(ctx context.Context) (map[int64][2]string, error) {
+	rows, err := s.db.Query(ctx, `SELECT id, COALESCE(facts->>'sys_descr',''), COALESCE(facts->>'vendor','') FROM devices`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[int64][2]string{}
+	for rows.Next() {
+		var id int64
+		var d [2]string
+		if err := rows.Scan(&id, &d[0], &d[1]); err != nil {
+			return nil, err
+		}
+		out[id] = d
+	}
+	return out, rows.Err()
+}

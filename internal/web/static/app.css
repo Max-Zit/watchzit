@@ -672,9 +672,7 @@ main:has(.mapview) { max-width: none; padding-bottom: 12px; }
 .mapsvg:not(.close) .lbl.port { display: none; }
 .mp-pic { display: flex; align-items: center; gap: 10px; }
 .mp-pic img { max-width: 120px; max-height: 48px; }
-.mp-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
-.mp-tabs button { border: 1px solid var(--line); background: var(--panel-2); color: var(--text); border-radius: 999px; padding: 2px 10px; font: inherit; font-size: 12px; cursor: pointer; }
-.mp-tabs button.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.mp-filters { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .mp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 6px; }
 .mp-grid.wide { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
 .mp-grid button { display: grid; gap: 4px; justify-items: center; align-content: start; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); color: var(--text); cursor: pointer; font: inherit; min-height: 74px; min-width: 0; }

@@ -308,7 +308,7 @@ func modelIcons(out string) []Icon {
 		}
 		seen[name] = true
 		p := drawModel(m)
-		ic := Icon{Name: name, Label: m.vendor + " " + m.name, Cat: cats[m.kind], Kind: deviceKind(m.kind), Vendor: m.vendor, W: p.w, H: p.h, Ports: p.ports}
+		ic := Icon{Name: name, Label: m.vendor + " " + m.name, Cat: cats[m.kind], Kind: deviceKind(m.kind), Vendor: m.vendor, Type: map[bool]string{true: "storage"}[m.kind == "storage"], W: p.w, H: p.h, Ports: p.ports}
 		switch m.form {
 		case "rack":
 			ic.U, ic.Show = max(m.u, 1), 240
