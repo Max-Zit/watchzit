@@ -435,17 +435,13 @@ func (s *Server) channelFromForm(r *http.Request) (store.Channel, string, string
 	c := store.Channel{Name: r.FormValue("name"), Kind: r.FormValue("kind"), MinSeverity: r.FormValue("min_severity"),
 		OnResolve: r.FormValue("on_resolve") == "1", Enabled: r.FormValue("enabled") == "1"}
 	target := strings.TrimSpace(r.FormValue("target"))
-	secret := r.FormValue("secret")
 	if target != "" {
-		if c.Kind == store.ChannelEmail {
-			if _, err := parseRecipients(target); err != nil {
-				return c, "", "", err
-			}
-		} else if err := checkChannelURL(target); err != nil {
+		if err := checkTarget(c.Kind, target); err != nil {
 			return c, "", "", err
 		}
 	}
-	return c, target, secret, nil
+	secret, err := channelSecret(c.Kind, r)
+	return c, target, secret, err
 }
 
 func (s *Server) handleChannelCreate(w http.ResponseWriter, r *http.Request) {
@@ -454,8 +450,11 @@ func (s *Server) handleChannelCreate(w http.ResponseWriter, r *http.Request) {
 	if err == nil && target == "" {
 		err = uiErr("enter the recipients or the address")
 	}
-	if err == nil && c.Kind != store.ChannelEmail && c.Kind != store.ChannelWebhook && c.Kind != store.ChannelSlack && c.Kind != store.ChannelTeams {
+	if err == nil && channelKinds[c.Kind] == "" {
 		err = uiErr("unknown channel type")
+	}
+	if err == nil && secret == "" && needsSecret(c.Kind) {
+		err = uiErr("enter the token or account of the channel")
 	}
 	if err != nil {
 		s.redirectErr(w, r, back, err.Error())
@@ -476,7 +475,7 @@ func (s *Server) handleChannelCreate(w http.ResponseWriter, r *http.Request) {
 		// the sealing purpose names the channel, so the row id comes first
 		c.ID = id
 		c.Target = s.store.SealSecret("channel.url."+strconv.FormatInt(id, 10), target)
-		if secret != "" && c.Kind == store.ChannelWebhook {
+		if secret != "" {
 			c.Secret = s.store.SealSecret("channel.secret."+strconv.FormatInt(id, 10), secret)
 		}
 		if err := s.store.UpdateChannel(r.Context(), c); err != nil {
@@ -512,6 +511,9 @@ func (s *Server) handleChannelUpdate(w http.ResponseWriter, r *http.Request) {
 		s.notFound(w, r)
 		return
 	}
+	// the kind of a channel stays: its form fields are read as that kind
+	_ = r.ParseForm()
+	r.Form.Set("kind", old.Kind)
 	c, target, secret, err := s.channelFromForm(r)
 	if err != nil {
 		s.redirectErr(w, r, back, err.Error())
@@ -520,17 +522,17 @@ func (s *Server) handleChannelUpdate(w http.ResponseWriter, r *http.Request) {
 	c.ID, c.Kind = old.ID, old.Kind
 	id := strconv.FormatInt(c.ID, 10)
 	if target != "" {
+		if err := checkTarget(c.Kind, target); err != nil {
+			s.redirectErr(w, r, back, err.Error())
+			return
+		}
 		if c.Kind == store.ChannelEmail {
-			if _, err := parseRecipients(target); err != nil {
-				s.redirectErr(w, r, back, err.Error())
-				return
-			}
 			c.Target = target
 		} else {
 			c.Target = s.store.SealSecret("channel.url."+id, target)
 		}
 	}
-	if secret != "" && c.Kind == store.ChannelWebhook {
+	if secret != "" {
 		c.Secret = s.store.SealSecret("channel.secret."+id, secret)
 	}
 	if err := s.store.UpdateChannel(r.Context(), c); err != nil {

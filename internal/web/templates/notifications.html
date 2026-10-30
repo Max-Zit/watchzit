@@ -21,8 +21,11 @@
           <div class="pop-body">
             <form method="post" action="/settings/notifications/channels/{{.ID}}" class="stack">
               <label>{{$.T "Name"}}<input name="name" value="{{.Name}}" required maxlength="100"></label>
-              <label>{{if eq .Kind "email"}}{{$.T "Recipients"}}<input name="target" value="{{.Target}}" maxlength="2000">{{else}}{{$.T "New address"}} <small>{{$.T "empty keeps the saved one"}}</small><input name="target" type="url" maxlength="2000" autocomplete="off">{{end}}</label>
+              <label>{{if eq .Kind "email"}}{{$.T "Recipients"}}<input name="target" value="{{.Target}}" maxlength="2000">{{else}}{{if eq .Kind "telegram"}}{{$.T "New chat ID"}}{{else if eq .Kind "pagerduty"}}{{$.T "New integration key"}}{{else if eq .Kind "twilio"}}{{$.T "New phone numbers"}}{{else}}{{$.T "New address"}}{{end}} <small>{{$.T "empty keeps the saved one"}}</small><input name="target" maxlength="2000" autocomplete="off">{{end}}</label>
               {{if eq .Kind "webhook"}}<label>{{$.T "New signing key"}} <small>{{$.T "empty keeps the saved one"}}</small><input name="secret" type="password" maxlength="200" autocomplete="new-password"></label>{{end}}
+              {{if eq .Kind "ntfy"}}<label>{{$.T "New access token"}} <small>{{$.T "empty keeps the saved one"}}</small><input name="secret" type="password" maxlength="200" autocomplete="new-password"></label>{{end}}
+              {{if eq .Kind "telegram"}}<label>{{$.T "New bot token"}} <small>{{$.T "empty keeps the saved one"}}</small><input name="bot_token" type="password" maxlength="100" autocomplete="new-password"></label>{{end}}
+              {{if eq .Kind "twilio"}}<details><summary class="small">{{$.T "New Twilio account"}}</summary><label>Account SID<input name="tw_sid" maxlength="40" autocomplete="off"></label><label>Auth token<input name="tw_token" type="password" maxlength="64" autocomplete="new-password"></label><label>{{$.T "Sender"}}<input name="tw_from" maxlength="40" placeholder="+15551234567"></label></details>{{end}}
               <label>{{$.T "From severity"}}<select name="min_severity">{{$m := .MinSeverity}}{{range severities}}<option value="{{.}}" {{if eq . $m}}selected{{end}}>{{$.T (severityName .)}}</option>{{end}}</select></label>
               <label class="check"><input type="checkbox" name="on_resolve" value="1" {{if .OnResolve}}checked{{end}}>{{$.T "Also when resolved"}}</label>
               <label class="check"><input type="checkbox" name="enabled" value="1" {{if .Enabled}}checked{{end}}>{{$.T "Enabled"}}</label>
@@ -40,12 +43,27 @@
   <form method="post" action="/settings/notifications/channels" class="stack">
     <div class="cols">
       <label>{{.T "Name"}}<input name="name" required maxlength="100" placeholder="{{.T "Name, for example On-call team"}}"></label>
-      <label>{{.T "Type"}}<select name="kind" data-switch="chkind">{{range (list "email" "webhook" "slack" "teams")}}<option value="{{.}}" {{if eq . $.Data.Kind}}selected{{end}}>{{$.T (channelKind .)}}</option>{{end}}</select></label>
+      <label>{{.T "Type"}}<select name="kind" data-switch="chkind">{{range (list "email" "webhook" "slack" "teams" "discord" "telegram" "ntfy" "pagerduty" "twilio" "smsgw")}}<option value="{{.}}" {{if eq . $.Data.Kind}}selected{{end}}>{{$.T (channelKind .)}}</option>{{end}}</select></label>
       <label>{{.T "From severity"}}<select name="min_severity">{{range severities}}<option value="{{.}}" {{if eq . "warning"}}selected{{end}}>{{$.T (severityName .)}}</option>{{end}}</select></label>
     </div>
     <label data-show="chkind" data-when="email">{{.T "Recipients"}}<input name="target" maxlength="2000" placeholder="noc@example.com, admin@example.com" required><small>{{.T "Email addresses, separated by commas. Set up the SMTP server below."}}</small></label>
-    <label data-show="chkind" data-when="webhook slack teams">{{.T "Address"}}<input name="target" type="url" maxlength="2000" placeholder="https://" required autocomplete="off"><small data-show="chkind" data-when="slack">{{.T "A Slack incoming webhook address."}}</small><small data-show="chkind" data-when="teams">{{.T "The address of a Teams workflow \"When a Teams webhook request is received\"."}}</small><small data-show="chkind" data-when="webhook">{{.T "WatchZit posts JSON with the problems to this address."}}</small></label>
+    <label data-show="chkind" data-when="webhook slack teams discord ntfy">{{.T "Address"}}<input name="target" type="url" maxlength="2000" placeholder="https://" required autocomplete="off"><small data-show="chkind" data-when="slack">{{.T "A Slack incoming webhook address."}}</small><small data-show="chkind" data-when="teams">{{.T "The address of a Teams workflow \"When a Teams webhook request is received\"."}}</small><small data-show="chkind" data-when="webhook">{{.T "WatchZit posts JSON with the problems to this address."}}</small><small data-show="chkind" data-when="discord">{{.T "A Discord webhook address (channel settings → Integrations → Webhooks)."}}</small><small data-show="chkind" data-when="ntfy">{{.T "The topic address, e.g. https://ntfy.sh/your-secret-topic or your own ntfy server; the ntfy app on phones shows the problems."}}</small></label>
     <label data-show="chkind" data-when="webhook">{{.T "Signing key"}} <small>{{.T "optional"}}</small><input name="secret" type="password" maxlength="200" autocomplete="new-password"><small>{{.T "With a key, the header X-WatchZit-Signature carries sha256=HMAC of the body."}}</small></label>
+    <label data-show="chkind" data-when="ntfy">{{.T "Access token"}} <small>{{.T "optional"}}</small><input name="secret" type="password" maxlength="200" autocomplete="new-password"><small>{{.T "For a protected topic."}}</small></label>
+    <div data-show="chkind" data-when="telegram" class="cols">
+      <label>{{.T "Bot token"}}<input name="bot_token" type="password" maxlength="100" autocomplete="new-password" required><small>{{.T "Create a bot with @BotFather and add it to the group or channel."}}</small></label>
+      <label>{{.T "Chat ID"}}<input name="target" maxlength="40" required placeholder="-1001234567890"><small>{{.T "The group or user ID (a number), or @channelname."}}</small></label>
+    </div>
+    <label data-show="chkind" data-when="pagerduty">{{.T "Integration key"}}<input name="target" maxlength="40" required autocomplete="off" class="mono"><small>{{.T "Of a PagerDuty service with the Events API v2 integration; problems open and resolve incidents."}}</small></label>
+    <div data-show="chkind" data-when="twilio" class="stack">
+      <label>{{.T "Phone numbers"}}<input name="target" maxlength="400" required placeholder="+381601234567, +381641234567"><small>{{.T "In international form, separated by commas."}}</small></label>
+      <div class="cols">
+        <label>Account SID<input name="tw_sid" maxlength="40" required autocomplete="off" class="mono"></label>
+        <label>Auth token<input name="tw_token" type="password" maxlength="64" required autocomplete="new-password"></label>
+        <label>{{.T "Sender"}}<input name="tw_from" maxlength="40" required placeholder="+15551234567"><small>{{.T "A Twilio number or a messaging service SID (MG…)."}}</small></label>
+      </div>
+    </div>
+    <label data-show="chkind" data-when="smsgw">{{.T "Gateway address"}}<input name="target" maxlength="2000" required placeholder="https://sms.example.com/send?to=+381601234567&amp;key=…&amp;text={text}" autocomplete="off"><small>{{.T "WatchZit calls this address (GET) and puts the message where {text} is; the number and key are the gateway's own parameters."}}</small></label>
     <label class="check"><input type="checkbox" name="on_resolve" value="1" checked>{{.T "Also when resolved"}}</label>
     <div><button class="primary">{{template "icon" "plus"}}{{.T "Add channel"}}</button></div>
   </form>

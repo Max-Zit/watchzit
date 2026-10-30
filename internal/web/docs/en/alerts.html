@@ -29,6 +29,6 @@
 <p>Under <a href="/settings/notifications">Settings → Notifications</a> (administrators):</p>
 <ul>
   <li><b>Email server</b> — SMTP with STARTTLS, TLS or none; the password is stored encrypted. Send a test email.</li>
-  <li><b>Channels</b> — email recipients, a <b>webhook</b> (JSON, signed with HMAC-SHA256 in <code>X-WatchZit-Signature</code> when you set a key), <b>Slack</b> or <b>Microsoft Teams</b>. Each channel has a lowest severity and can also report when problems are resolved.</li>
+  <li><b>Channels</b> — email recipients, a <b>webhook</b> (JSON, signed with HMAC-SHA256 in <code>X-WatchZit-Signature</code> when you set a key), <b>Slack</b>, <b>Microsoft Teams</b>, <b>Discord</b>, <b>Telegram</b> (a bot token from @BotFather and the chat ID), <b>ntfy</b> (push to phones through ntfy.sh or your own ntfy server), <b>PagerDuty</b> (an Events API v2 integration key; problems open and resolve incidents), <b>SMS through Twilio</b> (account SID, auth token, sender, phone numbers) or <b>SMS through your own gateway</b> (any HTTP address with <code>{text}</code> where the message goes). Each channel has a lowest severity and can also report when problems are resolved.</li>
   <li><b>Language</b> of notifications and the <b>console address</b> used for links in them.</li>
 </ul>

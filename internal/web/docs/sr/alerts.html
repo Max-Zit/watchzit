@@ -29,6 +29,6 @@
 <p>U <a href="/settings/notifications">Podešavanja → Obaveštenja</a> (administratori):</p>
 <ul>
   <li><b>Email server</b> — SMTP sa STARTTLS-om, TLS-om ili bez; lozinka se čuva šifrovana. Pošaljite probni email.</li>
-  <li><b>Kanali</b> — email primaoci, <b>webhook</b> (JSON, potpisan HMAC-SHA256 u <code>X-WatchZit-Signature</code> kada podesite ključ), <b>Slack</b> ili <b>Microsoft Teams</b>. Svaki kanal ima najnižu ozbiljnost i može da javlja i kada se problemi reše.</li>
+  <li><b>Kanali</b> — email primaoci, <b>webhook</b> (JSON, potpisan HMAC-SHA256 u <code>X-WatchZit-Signature</code> kada podesite ključ), <b>Slack</b>, <b>Microsoft Teams</b>, <b>Discord</b>, <b>Telegram</b> (token bota od @BotFather i ID četa), <b>ntfy</b> (obaveštenja na telefon preko ntfy.sh ili vašeg ntfy servera), <b>PagerDuty</b> (integracioni ključ Events API v2; problemi otvaraju i zatvaraju incidente), <b>SMS preko Twilio-a</b> (account SID, auth token, pošiljalac, brojevi) ili <b>SMS preko vašeg gateway-a</b> (bilo koja HTTP adresa sa <code>{text}</code> na mestu poruke). Svaki kanal ima najnižu ozbiljnost i može da javlja i kada se problemi reše.</li>
   <li><b>Jezik</b> obaveštenja i <b>adresa konzole</b> za linkove u njima.</li>
 </ul>

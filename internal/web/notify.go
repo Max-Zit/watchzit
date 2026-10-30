@@ -381,6 +381,9 @@ func (s *Server) deliver(ctx context.Context, c *store.Channel, n NotifySettings
 	if lang == "" {
 		lang = "en"
 	}
+	if handled, err := s.deliverMore(ctx, c, lang, events); handled {
+		return err
+	}
 	if c.Kind == store.ChannelEmail {
 		to, err := parseRecipients(c.Target)
 		if err != nil {

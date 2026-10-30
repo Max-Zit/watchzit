@@ -576,10 +576,16 @@ func (s *Store) EndMaintenance(ctx context.Context, id int64) (*Maintenance, err
 
 // Channel kinds.
 const (
-	ChannelEmail   = "email"
-	ChannelWebhook = "webhook"
-	ChannelSlack   = "slack"
-	ChannelTeams   = "teams"
+	ChannelEmail      = "email"
+	ChannelWebhook    = "webhook"
+	ChannelSlack      = "slack"
+	ChannelTeams      = "teams"
+	ChannelDiscord    = "discord"
+	ChannelTelegram   = "telegram"
+	ChannelNtfy       = "ntfy"
+	ChannelPagerDuty  = "pagerduty"
+	ChannelTwilio     = "twilio"
+	ChannelSMSGateway = "smsgw"
 )
 
 // Channel is where problems are sent.
