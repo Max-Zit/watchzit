@@ -443,6 +443,18 @@ func init() {
 	}
 	funcs["severityName"] = severityName
 	funcs["list"] = func(xs ...string) []string { return xs }
+	funcs["dutyOf"] = func(p *Page, c *store.Channel) dutyCtx { return dutyCtx{P: p, C: c} }
+	funcs["weekdays"] = func(p *Page) []string {
+		return []string{p.T("Mon"), p.T("Tue"), p.T("Wed"), p.T("Thu"), p.T("Fri"), p.T("Sat"), p.T("Sun")}
+	}
+	funcs["dayOn"] = func(days, i int) bool { return days&(1<<i) != 0 }
+	funcs["hours"] = func() []int {
+		h := make([]int, 25)
+		for i := range h {
+			h[i] = i
+		}
+		return h
+	}
 	funcs["minutes"] = minutesText
 	funcs["sevOf"] = func(p *Page, sev string) sevCtx { return sevCtx{P: p, Sev: sev} }
 	funcs["severities"] = func() []string { return store.Severities }
@@ -572,4 +584,10 @@ func vlanRanges(ids []int) string {
 		i = j + 1
 	}
 	return b.String()
+}
+
+// dutyCtx is the escalation part of a channel form (C nil: a new channel).
+type dutyCtx struct {
+	P *Page
+	C *store.Channel
 }

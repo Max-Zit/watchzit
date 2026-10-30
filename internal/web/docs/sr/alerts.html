@@ -32,3 +32,12 @@
   <li><b>Kanali</b> — email primaoci, <b>webhook</b> (JSON, potpisan HMAC-SHA256 u <code>X-WatchZit-Signature</code> kada podesite ključ), <b>Slack</b>, <b>Microsoft Teams</b>, <b>Discord</b>, <b>Telegram</b> (token bota od @BotFather i ID četa), <b>ntfy</b> (obaveštenja na telefon preko ntfy.sh ili vašeg ntfy servera), <b>PagerDuty</b> (integracioni ključ Events API v2; problemi otvaraju i zatvaraju incidente), <b>SMS preko Twilio-a</b> (account SID, auth token, pošiljalac, brojevi) ili <b>SMS preko vašeg gateway-a</b> (bilo koja HTTP adresa sa <code>{text}</code> na mestu poruke). Svaki kanal ima najnižu ozbiljnost i može da javlja i kada se problemi reše.</li>
   <li><b>Jezik</b> obaveštenja i <b>adresa konzole</b> za linkove u njima.</li>
 </ul>
+
+<h2 id="escalation">Eskalacija i dežurstvo</h2>
+<p>Pod <b>Eskalacija i dežurstvo</b> kanala:</p>
+<ul>
+  <li><b>Javi posle (minuta)</b> — kanal saznaje samo za probleme koji su posle tog vremena i dalje otvoreni, npr. šef tima posle 15 minuta kada prva linija nije reagovala. <b>Ponavljaj na</b> mu javlja ponovo dok je problem otvoren.</li>
+  <li>Potvrđeni problemi se ne eskaliraju niti ponavljaju, osim kada je uključeno <b>I probleme koje je neko potvrdio</b>.</li>
+  <li><b>Samo nekih dana i sati</b> pretvara kanal u dežurstvo: npr. SMS noćnoj smeni od ponedeljka do petka od 18 do 08 i ceo vikend. Problemi koji počnu van njegovih sati stižu mu kada dežurstvo počne, ako su još otvoreni. Za rotaciju dodajte po jedan kanal za svaku osobu ili tim sa svojim danima i satima.</li>
+  <li>Kanal kome je javljen problem dobija i poruku kada je rešen; ostali ne.</li>
+</ul>

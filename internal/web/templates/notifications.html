@@ -29,6 +29,7 @@
               <label>{{$.T "From severity"}}<select name="min_severity">{{$m := .MinSeverity}}{{range severities}}<option value="{{.}}" {{if eq . $m}}selected{{end}}>{{$.T (severityName .)}}</option>{{end}}</select></label>
               <label class="check"><input type="checkbox" name="on_resolve" value="1" {{if .OnResolve}}checked{{end}}>{{$.T "Also when resolved"}}</label>
               <label class="check"><input type="checkbox" name="enabled" value="1" {{if .Enabled}}checked{{end}}>{{$.T "Enabled"}}</label>
+              {{template "duty" (dutyOf $ .)}}
               <button class="primary sm">{{$.T "Save"}}</button>
             </form>
             <form method="post" action="/settings/notifications/channels/{{.ID}}/delete" class="mt" data-confirm="{{$.T "Delete the channel %s?" .Name}}"><button class="danger sm">{{template "icon" "trash"}}{{$.T "Delete"}}</button></form>
@@ -65,6 +66,7 @@
     </div>
     <label data-show="chkind" data-when="smsgw">{{.T "Gateway address"}}<input name="target" maxlength="2000" required placeholder="https://sms.example.com/send?to=+381601234567&amp;key=…&amp;text={text}" autocomplete="off"><small>{{.T "WatchZit calls this address (GET) and puts the message where {text} is; the number and key are the gateway's own parameters."}}</small></label>
     <label class="check"><input type="checkbox" name="on_resolve" value="1" checked>{{.T "Also when resolved"}}</label>
+    {{template "duty" (dutyOf $ nil)}}
     <div><button class="primary">{{template "icon" "plus"}}{{.T "Add channel"}}</button></div>
   </form>
 </section>
@@ -100,3 +102,20 @@
 </div>
 </div>
 {{end}}
+{{define "duty"}}{{$p := .P}}{{$c := .C}}<details class="box duty"{{if and $c $c.Escalates}} open{{end}}>
+  <summary>{{$p.T "Escalation and hours of duty"}}{{if and $c $c.Escalates}} <span class="small muted">· {{$p.T "on"}}</span>{{end}}</summary>
+  <div class="stack">
+    <div class="cols">
+      <label>{{$p.T "Tell after (minutes)"}}<input type="number" name="delay_min" min="0" max="1440" value="{{if $c}}{{$c.DelayMin}}{{else}}0{{end}}"><small>{{$p.T "0 = at once. Otherwise only problems still open then, e.g. 15 for the second line."}}</small></label>
+      <label>{{$p.T "Repeat every (minutes)"}}<input type="number" name="repeat_min" min="0" max="1440" value="{{if $c}}{{$c.RepeatMin}}{{else}}0{{end}}"><small>{{$p.T "0 = once. Otherwise again while the problem is open."}}</small></label>
+    </div>
+    <label class="check"><input type="checkbox" name="with_acked" value="1" {{if and $c (not $c.SkipAcked)}}checked{{end}}>{{$p.T "Also problems someone acknowledged"}}</label>
+    <label class="check"><input type="checkbox" name="duty" value="1" {{if and $c (or (ne $c.Days 127) (ne $c.FromHour 0) (ne $c.ToHour 24))}}checked{{end}}>{{$p.T "Only on some days and hours (on-call)"}}</label>
+    <div class="row wrap">{{range $i, $d := weekdays $p}}<label class="check"><input type="checkbox" name="day" value="{{$i}}" {{if or (not $c) (dayOn $c.Days $i)}}checked{{end}}>{{$d}}</label>{{end}}</div>
+    <div class="cols">
+      <label>{{$p.T "From hour"}}<select name="from_hour">{{range hours}}{{if lt . 24}}<option value="{{.}}" {{if and $c (eq . $c.FromHour)}}selected{{end}}>{{printf "%02d:00" .}}</option>{{end}}{{end}}</select></label>
+      <label>{{$p.T "To hour"}}<select name="to_hour">{{range hours}}{{if gt . 0}}<option value="{{.}}" {{if or (and $c (eq . $c.ToHour)) (and (not $c) (eq . 24))}}selected{{end}}>{{printf "%02d:00" .}}</option>{{end}}{{end}}</select><small>{{$p.T "Server time. From 18 to 08 covers the night."}}</small></label>
+    </div>
+    <p class="small muted">{{$p.T "On-call rotation: add a channel per person or team, each with its days and hours; escalation: a second channel that waits 15 or 30 minutes."}}</p>
+  </div>
+</details>{{end}}

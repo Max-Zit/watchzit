@@ -32,3 +32,12 @@
   <li><b>Channels</b> — email recipients, a <b>webhook</b> (JSON, signed with HMAC-SHA256 in <code>X-WatchZit-Signature</code> when you set a key), <b>Slack</b>, <b>Microsoft Teams</b>, <b>Discord</b>, <b>Telegram</b> (a bot token from @BotFather and the chat ID), <b>ntfy</b> (push to phones through ntfy.sh or your own ntfy server), <b>PagerDuty</b> (an Events API v2 integration key; problems open and resolve incidents), <b>SMS through Twilio</b> (account SID, auth token, sender, phone numbers) or <b>SMS through your own gateway</b> (any HTTP address with <code>{text}</code> where the message goes). Each channel has a lowest severity and can also report when problems are resolved.</li>
   <li><b>Language</b> of notifications and the <b>console address</b> used for links in them.</li>
 </ul>
+
+<h2 id="escalation">Escalation and on-call</h2>
+<p>Under <b>Escalation and hours of duty</b> of a channel:</p>
+<ul>
+  <li><b>Tell after (minutes)</b> — the channel hears only of problems still open after that time, e.g. the team lead after 15 minutes when the first line has not reacted. <b>Repeat every</b> tells it again while the problem stays open.</li>
+  <li>Acknowledged problems are not escalated or repeated, unless <b>Also problems someone acknowledged</b> is on.</li>
+  <li><b>Only on some days and hours</b> makes the channel an on-call duty: e.g. SMS to the night shift Monday–Friday from 18 to 08 and all weekend. Problems that start outside its hours reach it when its duty starts, if they are still open. For a rotation add one channel per person or team with its own days and hours.</li>
+  <li>A channel that was told about a problem is also told when it is resolved; the others are not.</li>
+</ul>

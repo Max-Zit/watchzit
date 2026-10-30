@@ -36,11 +36,12 @@ type Group struct {
 	Name    string
 	Notes   string
 	Devices int
+	SLA     float64 // availability target in percent (0 = none)
 }
 
 // Groups lists the groups with their device counts.
 func (s *Store) Groups(ctx context.Context) ([]Group, error) {
-	rows, err := s.db.Query(ctx, `SELECT g.id, g.name, g.notes, (SELECT count(*) FROM devices d WHERE d.group_id=g.id) FROM device_groups g ORDER BY lower(g.name)`)
+	rows, err := s.db.Query(ctx, `SELECT g.id, g.name, g.notes, (SELECT count(*) FROM devices d WHERE d.group_id=g.id), g.sla_target::float8 FROM device_groups g ORDER BY lower(g.name)`)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +49,7 @@ func (s *Store) Groups(ctx context.Context) ([]Group, error) {
 	var out []Group
 	for rows.Next() {
 		var g Group
-		if err := rows.Scan(&g.ID, &g.Name, &g.Notes, &g.Devices); err != nil {
+		if err := rows.Scan(&g.ID, &g.Name, &g.Notes, &g.Devices, &g.SLA); err != nil {
 			return nil, err
 		}
 		out = append(out, g)
@@ -912,4 +913,16 @@ func webLinksJSON(l []WebLink) []byte {
 	}
 	b, _ := json.Marshal(l)
 	return b
+}
+
+// SetGroupSLA sets the availability target of a group (0 = none).
+func (s *Store) SetGroupSLA(ctx context.Context, id int64, target float64) error {
+	if target != 0 && (target < 50 || target > 100) {
+		return errors.New("the SLA target is a percentage between 50 and 100")
+	}
+	tag, err := s.db.Exec(ctx, `UPDATE device_groups SET sla_target=$2 WHERE id=$1`, id, target)
+	if err == nil && tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return err
 }

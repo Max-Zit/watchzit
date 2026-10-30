@@ -434,6 +434,18 @@ func (e uiErr) Error() string { return string(e) }
 func (s *Server) channelFromForm(r *http.Request) (store.Channel, string, string, error) {
 	c := store.Channel{Name: r.FormValue("name"), Kind: r.FormValue("kind"), MinSeverity: r.FormValue("min_severity"),
 		OnResolve: r.FormValue("on_resolve") == "1", Enabled: r.FormValue("enabled") == "1"}
+	// escalation and hours of duty (a form without them: always, at once)
+	c.DelayMin, c.RepeatMin, c.SkipAcked = formInt(r, "delay_min"), formInt(r, "repeat_min"), r.FormValue("with_acked") != "1"
+	c.Days, c.FromHour, c.ToHour = 127, 0, 24
+	if r.FormValue("duty") == "1" {
+		c.Days = 0
+		for _, d := range r.Form["day"] {
+			if i, err := strconv.Atoi(d); err == nil && i >= 0 && i < 7 {
+				c.Days |= 1 << i
+			}
+		}
+		c.FromHour, c.ToHour = formInt(r, "from_hour"), formInt(r, "to_hour")
+	}
 	target := strings.TrimSpace(r.FormValue("target"))
 	if target != "" {
 		if err := checkTarget(c.Kind, target); err != nil {

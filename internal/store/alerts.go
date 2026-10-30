@@ -601,12 +601,38 @@ type Channel struct {
 	LastSent    *time.Time
 	LastError   string
 	CreatedAt   time.Time
+	// escalation and on-call
+	DelayMin  int  // tell only about problems still open after this many minutes
+	RepeatMin int  // tell again every this many minutes while open (0: once)
+	Days      int  // bit 0 = Monday … bit 6 = Sunday
+	FromHour  int  // on duty from this hour (server time) …
+	ToHour    int  // … until this hour (24 = midnight; from > to spans midnight)
+	SkipAcked bool // acknowledged problems are not escalated
+}
+
+// OnDuty reports whether the channel is on duty at t (server time).
+func (c *Channel) OnDuty(t time.Time) bool {
+	day := (int(t.Weekday()) + 6) % 7
+	h := t.Hour()
+	if c.FromHour > c.ToHour { // over midnight: the night belongs to the day it started
+		if h < c.ToHour {
+			day = (day + 6) % 7
+			return c.Days&(1<<day) != 0
+		}
+		return h >= c.FromHour && c.Days&(1<<day) != 0
+	}
+	return c.Days&(1<<day) != 0 && h >= c.FromHour && h < c.ToHour
+}
+
+// Escalates reports whether the channel waits, repeats or keeps hours.
+func (c *Channel) Escalates() bool {
+	return c.DelayMin > 0 || c.RepeatMin > 0 || c.Days&127 != 127 || c.FromHour != 0 || c.ToHour != 24
 }
 
 // Channels lists the channels.
 func (s *Store) Channels(ctx context.Context) ([]*Channel, error) {
-	rows, err := s.db.Query(ctx, `SELECT id, name, kind, target, secret, min_severity, on_resolve, enabled, last_sent, last_error, created_at
-		FROM notify_channels ORDER BY lower(name)`)
+	rows, err := s.db.Query(ctx, `SELECT id, name, kind, target, secret, min_severity, on_resolve, enabled, last_sent, last_error, created_at,
+		delay_min, repeat_min, days, from_hour, to_hour, skip_acked FROM notify_channels ORDER BY lower(name)`)
 	if err != nil {
 		return nil, err
 	}
@@ -614,7 +640,8 @@ func (s *Store) Channels(ctx context.Context) ([]*Channel, error) {
 	var out []*Channel
 	for rows.Next() {
 		c := &Channel{}
-		if err := rows.Scan(&c.ID, &c.Name, &c.Kind, &c.Target, &c.Secret, &c.MinSeverity, &c.OnResolve, &c.Enabled, &c.LastSent, &c.LastError, &c.CreatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Kind, &c.Target, &c.Secret, &c.MinSeverity, &c.OnResolve, &c.Enabled, &c.LastSent, &c.LastError, &c.CreatedAt,
+			&c.DelayMin, &c.RepeatMin, &c.Days, &c.FromHour, &c.ToHour, &c.SkipAcked); err != nil {
 			return nil, err
 		}
 		out = append(out, c)
@@ -629,12 +656,16 @@ func (s *Store) CreateChannel(ctx context.Context, c Channel) (int64, error) {
 	if c.Name, err = cleanName(c.Name); err != nil {
 		return 0, err
 	}
+	if err := c.cleanDuty(); err != nil {
+		return 0, err
+	}
 	if SeverityRank(c.MinSeverity) < 0 {
 		return 0, errors.New("unknown severity")
 	}
 	var id int64
-	err = s.db.QueryRow(ctx, `INSERT INTO notify_channels(name, kind, target, secret, min_severity, on_resolve, enabled) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
-		c.Name, c.Kind, c.Target, c.Secret, c.MinSeverity, c.OnResolve, c.Enabled).Scan(&id)
+	err = s.db.QueryRow(ctx, `INSERT INTO notify_channels(name, kind, target, secret, min_severity, on_resolve, enabled, delay_min, repeat_min, days, from_hour, to_hour, skip_acked)
+		VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
+		c.Name, c.Kind, c.Target, c.Secret, c.MinSeverity, c.OnResolve, c.Enabled, c.DelayMin, c.RepeatMin, c.Days, c.FromHour, c.ToHour, c.SkipAcked).Scan(&id)
 	if isUnique(err) {
 		return 0, ErrConflict
 	}
@@ -648,12 +679,16 @@ func (s *Store) UpdateChannel(ctx context.Context, c Channel) error {
 	if c.Name, err = cleanName(c.Name); err != nil {
 		return err
 	}
+	if err := c.cleanDuty(); err != nil {
+		return err
+	}
 	if SeverityRank(c.MinSeverity) < 0 {
 		return errors.New("unknown severity")
 	}
 	tag, err := s.db.Exec(ctx, `UPDATE notify_channels SET name=$2, min_severity=$3, on_resolve=$4, enabled=$5,
-		target=CASE WHEN $6='' THEN target ELSE $6 END, secret=CASE WHEN $7='' THEN secret ELSE $7 END WHERE id=$1`,
-		c.ID, c.Name, c.MinSeverity, c.OnResolve, c.Enabled, c.Target, c.Secret)
+		target=CASE WHEN $6='' THEN target ELSE $6 END, secret=CASE WHEN $7='' THEN secret ELSE $7 END,
+		delay_min=$8, repeat_min=$9, days=$10, from_hour=$11, to_hour=$12, skip_acked=$13 WHERE id=$1`,
+		c.ID, c.Name, c.MinSeverity, c.OnResolve, c.Enabled, c.Target, c.Secret, c.DelayMin, c.RepeatMin, c.Days, c.FromHour, c.ToHour, c.SkipAcked)
 	if isUnique(err) {
 		return ErrConflict
 	}
@@ -680,4 +715,56 @@ func (s *Store) ChannelResult(ctx context.Context, id int64, at time.Time, sendE
 	}
 	_, err := s.db.Exec(ctx, `UPDATE notify_channels SET last_sent=CASE WHEN $3='' THEN $2 ELSE last_sent END, last_error=$3 WHERE id=$1`, id, at, msg)
 	return err
+}
+
+// cleanDuty checks the escalation and on-call settings of a channel.
+func (c *Channel) cleanDuty() error {
+	if c.Days == 0 && c.FromHour == 0 && c.ToHour == 0 {
+		c.Days, c.ToHour = 127, 24
+	}
+	switch {
+	case c.DelayMin < 0 || c.DelayMin > 1440:
+		return errors.New("wait 0–1440 minutes before telling the channel")
+	case c.RepeatMin != 0 && (c.RepeatMin < 5 || c.RepeatMin > 1440):
+		return errors.New("repeat every 5–1440 minutes, or not at all")
+	case c.Days < 1 || c.Days > 127:
+		return errors.New("choose at least one day")
+	case c.FromHour < 0 || c.FromHour > 23 || c.ToHour < 1 || c.ToHour > 24 || c.FromHour == c.ToHour:
+		return errors.New("the hours of duty are wrong")
+	}
+	return nil
+}
+
+// MarkSent records that a channel was told about problems.
+func (s *Store) MarkSent(ctx context.Context, channelID int64, problems []int64, at time.Time) error {
+	if len(problems) == 0 {
+		return nil
+	}
+	_, err := s.db.Exec(ctx, `INSERT INTO channel_sent(problem_id, channel_id, sent_at)
+		SELECT p, $2, $3 FROM unnest($1::bigint[]) p WHERE EXISTS (SELECT 1 FROM problems WHERE id=p)
+		ON CONFLICT (problem_id, channel_id) DO UPDATE SET sent_at=EXCLUDED.sent_at, times=channel_sent.times+1`, problems, channelID, at)
+	return err
+}
+
+// Sent returns when each channel was last told about open problems
+// (channel ID → problem ID → time).
+func (s *Store) Sent(ctx context.Context, now time.Time) (map[int64]map[int64]time.Time, error) {
+	rows, err := s.db.Query(ctx, `SELECT cs.channel_id, cs.problem_id, cs.sent_at FROM channel_sent cs JOIN problems p ON p.id=cs.problem_id WHERE p.resolved_at IS NULL OR p.resolved_at > $1::timestamptz - interval '1 day'`, now)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[int64]map[int64]time.Time{}
+	for rows.Next() {
+		var ch, p int64
+		var at time.Time
+		if err := rows.Scan(&ch, &p, &at); err != nil {
+			return nil, err
+		}
+		if out[ch] == nil {
+			out[ch] = map[int64]time.Time{}
+		}
+		out[ch][p] = at
+	}
+	return out, rows.Err()
 }

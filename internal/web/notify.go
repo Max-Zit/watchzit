@@ -6,6 +6,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -147,6 +148,11 @@ func headerSafe(s string) string { return strings.NewReplacer("\r", " ", "\n", "
 
 // sendMail sends a plain-text message.
 func sendMail(ctx context.Context, e EmailSettings, to []string, subject, body string) error {
+	return sendMailFile(ctx, e, to, subject, body, "", nil)
+}
+
+// sendMailFile sends a plain-text message with an optional attachment.
+func sendMailFile(ctx context.Context, e EmailSettings, to []string, subject, body, fileName string, file []byte) error {
 	if !e.Configured() {
 		return errors.New("email is not set up")
 	}
@@ -210,8 +216,23 @@ func sendMail(ctx context.Context, e EmailSettings, to []string, subject, body s
 	b.WriteString("Subject: " + mime.QEncoding.Encode("utf-8", headerSafe(subject)) + "\r\n")
 	b.WriteString("Date: " + time.Now().Format(time.RFC1123Z) + "\r\n")
 	b.WriteString("MIME-Version: 1.0\r\nAuto-Submitted: auto-generated\r\n")
-	b.WriteString("Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n")
-	b.WriteString(strings.ReplaceAll(strings.ReplaceAll(body, "\r\n", "\n"), "\n", "\r\n"))
+	text := strings.ReplaceAll(strings.ReplaceAll(body, "\r\n", "\n"), "\n", "\r\n")
+	if file == nil {
+		b.WriteString("Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n")
+		b.WriteString(text)
+	} else {
+		boundary := "wz-" + strconv.FormatInt(time.Now().UnixNano(), 36)
+		b.WriteString("Content-Type: multipart/mixed; boundary=\"" + boundary + "\"\r\n\r\n")
+		b.WriteString("--" + boundary + "\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n" + text + "\r\n")
+		b.WriteString("--" + boundary + "\r\nContent-Type: text/csv; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n")
+		b.WriteString("Content-Disposition: attachment; filename=\"" + headerSafe(strings.ReplaceAll(fileName, "\"", "")) + "\"\r\n\r\n")
+		enc := base64.StdEncoding.EncodeToString(file)
+		for len(enc) > 76 {
+			b.WriteString(enc[:76] + "\r\n")
+			enc = enc[76:]
+		}
+		b.WriteString(enc + "\r\n--" + boundary + "--\r\n")
+	}
 	if _, err := w.Write([]byte(b.String())); err != nil {
 		return err
 	}
@@ -434,6 +455,8 @@ func (s *Server) Notify(ctx context.Context, events []alert.Event) {
 		return
 	}
 	n := s.notifySettings(ctx)
+	sent, _ := s.store.Sent(ctx, s.now())
+	now := s.now()
 	for _, c := range chans {
 		if !c.Enabled {
 			continue
@@ -443,27 +466,51 @@ func (s *Server) Notify(ctx context.Context, events []alert.Event) {
 			if store.SeverityRank(e.Problem.Severity) < store.SeverityRank(c.MinSeverity) || (e.Kind == alert.EventResolved && !c.OnResolve) {
 				continue
 			}
+			if c.Escalates() {
+				// new problems wait for the escalation round (delay, hours of
+				// duty); "resolved" goes only where the problem was told
+				if e.Kind != alert.EventResolved && (c.DelayMin > 0 || !c.OnDuty(now)) {
+					continue
+				}
+				if _, told := sent[c.ID][e.Problem.ID]; e.Kind == alert.EventResolved && !told {
+					continue
+				}
+			}
 			list = append(list, toNotifyEvent(e, n.ConsoleURL))
 		}
-		if len(list) == 0 {
-			continue
-		}
-		if len(list) > 50 {
-			list = list[:50]
-		}
-		s.wg.Add(1)
-		go func(c *store.Channel, list []notifyEvent) { // #nosec G118 -- delivery outlives the evaluation; own timeout
-			defer s.wg.Done()
-			cctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-			defer cancel()
-			err := s.deliver(cctx, c, n, list)
-			_ = s.store.ChannelResult(cctx, c.ID, s.now(), err)
-			if err != nil {
-				s.log.Warn("notification failed", "channel", c.Name, "err", err)
-				_ = s.store.Audit(cctx, "-", "server", "notify.failed", "channel:"+strconv.FormatInt(c.ID, 10), "notification to "+c.Name+" failed: "+err.Error())
-			}
-		}(c, list)
+		s.send(c, n, list)
 	}
+}
+
+// send delivers events to a channel in the background and records which
+// problems it was told about.
+func (s *Server) send(c *store.Channel, n NotifySettings, list []notifyEvent) {
+	if len(list) == 0 {
+		return
+	}
+	if len(list) > 50 {
+		list = list[:50]
+	}
+	s.wg.Add(1)
+	go func() { // #nosec G118 -- delivery outlives the evaluation; own timeout
+		defer s.wg.Done()
+		cctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer cancel()
+		err := s.deliver(cctx, c, n, list)
+		_ = s.store.ChannelResult(cctx, c.ID, s.now(), err)
+		if err != nil {
+			s.log.Warn("notification failed", "channel", c.Name, "err", err)
+			_ = s.store.Audit(cctx, "-", "server", "notify.failed", "channel:"+strconv.FormatInt(c.ID, 10), "notification to "+c.Name+" failed: "+err.Error())
+			return
+		}
+		var told []int64
+		for _, e := range list {
+			if e.Event != alert.EventResolved && e.ID > 0 {
+				told = append(told, e.ID)
+			}
+		}
+		_ = s.store.MarkSent(cctx, c.ID, told, s.now())
+	}()
 }
 
 // WaitNotifications waits for deliveries in flight (shutdown, tests).

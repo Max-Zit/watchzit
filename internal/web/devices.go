@@ -696,6 +696,11 @@ func (s *Server) handleGroupUpdate(w http.ResponseWriter, r *http.Request) {
 		s.redirectErr(w, r, "/groups", storeErr(err))
 		return
 	}
+	sla, _ := strconv.ParseFloat(strings.Replace(strings.TrimSpace(r.FormValue("sla")), ",", ".", 1), 64)
+	if err := s.store.SetGroupSLA(r.Context(), id, sla); err != nil {
+		s.redirectErr(w, r, "/groups", storeErr(err))
+		return
+	}
 	s.audit(r, "group.update", "group:"+strconv.FormatInt(id, 10), "group renamed to %q", strings.TrimSpace(name))
 	s.redirect(w, r, "/groups", "Saved.")
 }

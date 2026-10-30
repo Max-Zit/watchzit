@@ -6,7 +6,7 @@
   <div class="table-wrap"><table>
     <thead><tr><th>{{.T "Name"}}</th><th class="num">{{.T "Devices"}}</th>{{if .User.CanWrite}}<th></th>{{end}}</tr></thead>
     <tbody>{{range .Data.Groups}}<tr>
-      <td><a href="/devices?group={{.ID}}">{{.Name}}</a>{{with .Notes}}<br><small class="muted">{{.}}</small>{{end}}</td>
+      <td><a href="/devices?group={{.ID}}">{{.Name}}</a>{{if .SLA}} <span class="badge muted">SLA {{.SLA}}%</span>{{end}}{{with .Notes}}<br><small class="muted">{{.}}</small>{{end}}</td>
       <td class="num">{{.Devices}}</td>
       {{if $.User.CanWrite}}<td class="actions nowrap">
         <details class="pop right"><summary class="btn ghost sm" title="{{$.T "Edit"}}">{{template "icon" "edit"}}</summary>
@@ -14,6 +14,7 @@
             <form method="post" action="/groups/{{.ID}}" class="stack">
               <label>{{$.T "Name"}}<input name="name" value="{{.Name}}" required maxlength="100"></label>
               <label>{{$.T "Notes"}}<input name="notes" value="{{.Notes}}" maxlength="4000"></label>
+              <label>{{$.T "SLA target (%)"}}<input name="sla" value="{{if .SLA}}{{.SLA}}{{end}}" placeholder="99.9" inputmode="decimal" maxlength="7"><small>{{$.T "Availability the devices of the group should reach; the report shows whether they did. Empty: none."}}</small></label>
               <div><button class="primary sm">{{$.T "Save"}}</button></div>
             </form>
             <form method="post" action="/groups/{{.ID}}/delete" class="mt" data-confirm="{{$.T "Delete the group %s? Its devices stay, without a group." .Name}}"><button class="danger sm">{{template "icon" "trash"}}{{$.T "Delete group"}}</button></form>

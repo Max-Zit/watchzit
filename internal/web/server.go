@@ -372,6 +372,7 @@ func (s *Server) Handler() http.Handler {
 	app("GET /docs/{page}", s.handleDocs)
 	app("GET /reports", s.handleReports)
 	app("GET /reports.csv", s.handleReportCSV)
+	admin("POST /reports/mail", s.handleReportMail)
 	app("GET /problems", s.handleProblems)
 	write("POST /problems/{id}/ack", s.handleProblemAck)
 	app("GET /alerts/triggers", s.handleTriggers)
