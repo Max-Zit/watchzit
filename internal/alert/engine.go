@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -99,6 +100,7 @@ type condition struct {
 	detail   string
 	suppress string
 	ha       int64 // HA group of an ha_degraded problem
+	log      bool  // a log trigger's problem
 }
 
 func (c *condition) key() string {
@@ -106,6 +108,9 @@ func (c *condition) key() string {
 		return "t" + strconv.FormatInt(c.trigger.ID, 10) + ":ha" + strconv.FormatInt(c.ha, 10)
 	}
 	k := "t" + strconv.FormatInt(c.trigger.ID, 10) + ":d" + strconv.FormatInt(c.device.ID, 10)
+	if c.log {
+		return k + ":log"
+	}
 	if c.check != nil {
 		k += ":c" + strconv.FormatInt(c.check.ID, 10)
 	}
@@ -147,6 +152,26 @@ func (e *Engine) Evaluate(ctx context.Context) error {
 		openByKey[p.Key] = p
 	}
 
+	// messages for log triggers: as far back as the longest of them looks
+	var logs []*store.LogMessage
+	logWindow := time.Duration(0)
+	for _, t := range triggers {
+		if t.Enabled && t.Kind == store.TriggerLog && time.Duration(t.ForS)*time.Second > logWindow {
+			logWindow = time.Duration(t.ForS) * time.Second
+		}
+	}
+	if logWindow > 0 {
+		if logs, err = e.st.Logs(ctx, store.LogFilter{Since: now.Add(-logWindow), Limit: 5000}); err != nil {
+			return err
+		}
+	}
+	logsOf := map[int64][]*store.LogMessage{}
+	for _, m := range logs {
+		if m.DeviceID != 0 {
+			logsOf[m.DeviceID] = append(logsOf[m.DeviceID], m)
+		}
+	}
+
 	active := map[string]*condition{}
 	seenPending := map[string]bool{}
 	for _, t := range triggers {
@@ -162,6 +187,12 @@ func (e *Engine) Evaluate(ctx context.Context) error {
 		for i := range devs {
 			d := &devs[i]
 			if d.Paused || (t.DeviceID != 0 && t.DeviceID != d.ID) || (t.GroupID != 0 && t.GroupID != d.GroupID) {
+				continue
+			}
+			if t.Kind == store.TriggerLog {
+				if c := matchLog(t, d, logsOf[d.ID], now); c != nil {
+					active[c.key()] = c
+				}
 				continue
 			}
 			for _, c := range e.match(t, d, checksOf[d.ID], now, openByKey, seenPending) {
@@ -447,4 +478,51 @@ func deviceNames(ds []*store.AlertDevice) string {
 		names[i] = d.Name
 	}
 	return strings.Join(names, ", ")
+}
+
+// matchLog: the newest message of a device that a log trigger looks for,
+// within its window; the problem stays open while such messages keep coming.
+func matchLog(t *store.Trigger, d *store.AlertDevice, ms []*store.LogMessage, now time.Time) *condition {
+	re := logPattern(t.Metric)
+	for _, m := range ms { // newest first
+		if now.Sub(m.At) > time.Duration(t.ForS)*time.Second {
+			break
+		}
+		if m.Severity > int(t.Threshold) || (len(t.CheckTypes) > 0 && !typeIn(t.CheckTypes, m.Kind)) {
+			continue
+		}
+		text := m.Tag + " " + m.Message
+		if re != nil && re.MatchString(text) || re == nil && strings.Contains(strings.ToLower(text), strings.ToLower(t.Metric)) {
+			detail := m.Message
+			if len(detail) > 300 {
+				detail = detail[:300] + "…"
+			}
+			return &condition{trigger: t, device: d, detail: detail, log: true}
+		}
+	}
+	return nil
+}
+
+var (
+	patMu    sync.Mutex
+	patCache = map[string]*regexp.Regexp{}
+)
+
+// logPattern is the regular expression of a pattern written as /…/ (nil:
+// look for the text itself).
+func logPattern(p string) *regexp.Regexp {
+	if len(p) < 3 || p[0] != '/' || p[len(p)-1] != '/' {
+		return nil
+	}
+	patMu.Lock()
+	defer patMu.Unlock()
+	if re, ok := patCache[p]; ok {
+		return re
+	}
+	re, err := regexp.Compile("(?i)" + p[1:len(p)-1])
+	if err != nil {
+		re = regexp.MustCompile(regexp.QuoteMeta(p))
+	}
+	patCache[p] = re
+	return re
 }

@@ -31,6 +31,7 @@ WatchZit is made by [MaxZit](https://maxzit.com), like [BackupZit](https://githu
 - **Checks:** ping, TCP, HTTP(S) with text and certificate expiry, DNS, SNMP v1/v2c/v3 (interfaces, CPU, memory, disks, temperatures, UPS, printers), MikroTik RouterOS, FortiGate, PostgreSQL, MySQL/MariaDB, SQL Server, JSON APIs, VRRP roles.
 - **Agent** for Windows and Linux: CPU, memory, disks, interfaces, services — one outbound connection, enrolled with a one-time code.
 - **Graphs and dashboards:** years of history (raw, 5-minute and hourly), zoom, graphs you arrange, resize and colour like dashboard panels, and **data sources** — PostgreSQL, MySQL, SQL Server, Prometheus, InfluxDB and JSON — next to WatchZit's own measurements.
+- **Syslog and SNMP traps:** received from devices, searchable under Logs, with triggers that open problems from them.
 - **Alerts:** thresholds, dependencies (a router down hides the alarms behind it), maintenance windows, email, Slack, Microsoft Teams, Discord, Telegram, ntfy, PagerDuty, SMS and webhooks; availability reports.
 - **Open a device** from the map: its web interface, SSH/PuTTY, RDP, WinBox, VNC or your own tools.
 - **Secure by default:** HTTPS, two-factor sign-in, roles, allowed networks, brute-force blocking, audit log, encrypted secrets, signed updates, 14 console languages, REST API.
@@ -199,6 +200,7 @@ WatchZit checks for new releases itself and shows them under **Settings → Upda
 | TCP 8444 | agents → server | agent endpoint |
 | TCP 80 | browsers, Let's Encrypt → server | optional: redirect to HTTPS and the Let's Encrypt check |
 | ICMP, UDP 161, TCP … | server → devices | the checks you set up (ping, SNMP, HTTP, databases …) |
+| UDP 514, UDP 162 | devices → server | optional: syslog messages and SNMP traps |
 | TCP 22 | admins → appliance | optional SSH |
 
 ## Documentation, support, license

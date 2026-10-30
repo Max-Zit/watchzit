@@ -8,7 +8,7 @@
     <thead><tr><th>{{.T "Name"}}</th><th>{{.T "Condition"}}</th><th class="hide-sm">{{.T "Applies to"}}</th><th>{{.T "Severity"}}</th>{{if .User.CanWrite}}<th></th>{{end}}</tr></thead>
     <tbody>{{range .Data.Triggers}}<tr class="{{if not .Enabled}}trig-off{{end}}">
       <td><b>{{$.T .Name}}</b>{{if not .Enabled}} <span class="badge muted">{{$.T "Off"}}</span>{{end}}</td>
-      <td class="small">{{$.T (triggerKind .Kind)}}{{if eq .Kind "metric"}}: {{$.T (metricName .Metric)}} {{if eq .Op ">"}}{{$.T "above"}}{{else}}{{$.T "below"}}{{end}} <b>{{.Threshold}}</b>{{end}}
+      <td class="small">{{$.T (triggerKind .Kind)}}{{if eq .Kind "log"}}: “{{.Metric}}”{{end}}{{if eq .Kind "metric"}}: {{$.T (metricName .Metric)}} {{if eq .Op ">"}}{{$.T "above"}}{{else}}{{$.T "below"}}{{end}} <b>{{.Threshold}}</b>{{end}}
         {{if .ForS}} · {{$.T "for %s min" (minutes .ForS)}}{{end}}
         {{if .CheckTypes}}<br><span class="muted">{{range $i, $t := .CheckTypes}}{{if $i}}, {{end}}{{$.T (checkKind $t)}}{{end}}</span>{{end}}</td>
       <td class="hide-sm small">{{if .Device}}{{.Device}}{{else if .Group}}{{$.T "Group"}} {{.Group}}{{else}}<span class="muted">{{$.T "All devices"}}</span>{{end}}</td>
@@ -25,12 +25,23 @@
   <form method="post" action="{{if $e}}/alerts/triggers/{{$e.ID}}{{else}}/alerts/triggers{{end}}" class="stack">
     <div class="cols">
       <label>{{.T "Name"}}<input name="name" value="{{$in.Name}}" required maxlength="100" placeholder="{{.T "Name, for example Disk almost full"}}"></label>
-      <label>{{.T "Kind"}}<select name="kind" data-switch="tkind">{{range $k := (list "device_down" "check_down" "metric" "ha_degraded")}}<option value="{{$k}}" {{if eq $k $in.Kind}}selected{{end}}>{{$.T (triggerKind $k)}}</option>{{end}}</select></label>
+      <label>{{.T "Kind"}}<select name="kind" data-switch="tkind">{{range $k := (list "device_down" "check_down" "metric" "ha_degraded" "log")}}<option value="{{$k}}" {{if eq $k $in.Kind}}selected{{end}}>{{$.T (triggerKind $k)}}</option>{{end}}</select></label>
     </div>
     <div class="cols" data-show="tkind" data-when="metric">
       <label>{{.T "Value"}}<select name="metric">{{range .Data.Metrics}}<option value="{{.Metric}}" {{if eq .Metric $in.Metric}}selected{{end}}>{{$.T .Name}}{{with .Unit}} ({{.}}){{end}}</option>{{end}}</select></label>
       <label>{{.T "Condition"}}<select name="op"><option value=">" {{if eq $in.Op ">"}}selected{{end}}>{{.T "above"}}</option><option value="<" {{if eq $in.Op "<"}}selected{{end}}>{{.T "below"}}</option></select></label>
       <label>{{.T "Threshold"}}<input name="threshold" value="{{$in.Threshold}}" inputmode="decimal" required><small>{{.T "In the unit of the value: % for loads, ms for times, bit/s for traffic."}}</small></label>
+    </div>
+    <div class="stack" data-show="tkind" data-when="log">
+      <label>{{.T "Text in the message"}}<input name="pattern" value="{{if eq $in.Kind "log"}}{{$in.Metric}}{{end}}" maxlength="200" placeholder="login failure" required><small>{{.T "Upper and lower case do not matter. Between slashes it is a regular expression, e.g. /link (down|failure)/."}}</small></label>
+      <div class="cols">
+        <label>{{.T "Syslog level at least"}}<select name="level">{{range $i, $n := levels $}}<option value="{{$i}}" {{if and (eq $in.Kind "log") (eq (printf "%.0f" $in.Threshold) (printf "%d" $i))}}selected{{else if and (ne $in.Kind "log") (eq $i 7)}}selected{{end}}>{{$i}} · {{$n}}</option>{{end}}</select><small>{{.T "Traps count as level 4 (warning)."}}</small></label>
+        <fieldset class="box"><legend>{{.T "From"}}</legend>
+          <label class="check"><input type="checkbox" name="source" value="syslog" {{if or (ne $in.Kind "log") (not $in.CheckTypes) (inStrings $in.CheckTypes "syslog")}}checked{{end}}>Syslog</label>
+          <label class="check"><input type="checkbox" name="source" value="trap" {{if or (ne $in.Kind "log") (not $in.CheckTypes) (inStrings $in.CheckTypes "trap")}}checked{{end}}>{{.T "SNMP traps"}}</label>
+        </fieldset>
+      </div>
+      <p class="small muted">{{.T "The problem stays open while such messages keep coming and closes when none came for the time below (at least a minute)."}}</p>
     </div>
     <div class="cols">
       <label>{{.T "For at least (minutes)"}}<input type="number" name="for" value="{{.Data.ForMin}}" min="0" max="1440" step="0.5"><small>{{.T "0 = at once. A short dip does not open a problem."}}</small></label>

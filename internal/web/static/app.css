@@ -901,3 +901,10 @@ body.graph-full { overflow: hidden; }
 .link .lbl.vlan, .tunnel .lbl.vlan { font-size: 4.2px; stroke-width: 1.3px; }
 .link .lbl.cname { font-size: 4.2px; font-weight: 600; fill: var(--text); stroke-width: 1.3px; }
 .pre-line { white-space: pre-line; }
+/* logs */
+.logs .logmsg { overflow-wrap: anywhere; }
+.lvl { display: inline-block; min-width: 20px; text-align: center; border-radius: 4px; padding: 0 4px; font-weight: 600; background: var(--line); }
+.lvl0, .lvl1, .lvl2 { background: var(--bad); color: #fff; }
+.lvl3 { background: #ef4444aa; color: #fff; }
+.lvl4 { background: var(--warn); color: #111; }
+.logs tr.lv7 td { opacity: .7; }

@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/max-zit/watchzit/internal/alert"
+	"github.com/max-zit/watchzit/internal/logrecv"
 	"github.com/max-zit/watchzit/internal/netacl"
 	"github.com/max-zit/watchzit/internal/poller"
 	"github.com/max-zit/watchzit/internal/store"
@@ -64,7 +65,9 @@ type Server struct {
 	// LauncherKey signs the links that open devices with local tools.
 	LauncherKey ed25519.PrivateKey
 	// Alerts is the alert engine (kicked after changes; may be nil).
-	Alerts  *alert.Engine
+	Alerts *alert.Engine
+	// Logs receives syslog messages and traps (may be nil).
+	Logs    *logrecv.Receiver
 	wg      sync.WaitGroup // notifications in flight
 	queries queryCache     // answers of data source queries
 	tlsc    *consoleTLS    // console certificates (nil on the development server)
@@ -374,6 +377,9 @@ func (s *Server) Handler() http.Handler {
 	app("GET /reports.csv", s.handleReportCSV)
 	admin("POST /reports/mail", s.handleReportMail)
 	app("GET /problems", s.handleProblems)
+	app("GET /logs", s.handleLogs)
+	admin("GET /settings/logs", s.handleLogSettings)
+	admin("POST /settings/logs", s.handleLogSettingsSave)
 	write("POST /problems/{id}/ack", s.handleProblemAck)
 	app("GET /alerts/triggers", s.handleTriggers)
 	app("GET /alerts/triggers/{id}", s.handleTriggers)

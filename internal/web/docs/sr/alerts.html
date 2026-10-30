@@ -41,3 +41,10 @@
   <li><b>Samo nekih dana i sati</b> pretvara kanal u dežurstvo: npr. SMS noćnoj smeni od ponedeljka do petka od 18 do 08 i ceo vikend. Problemi koji počnu van njegovih sati stižu mu kada dežurstvo počne, ako su još otvoreni. Za rotaciju dodajte po jedan kanal za svaku osobu ili tim sa svojim danima i satima.</li>
   <li>Kanal kome je javljen problem dobija i poruku kada je rešen; ostali ne.</li>
 </ul>
+
+<h2 id="logs">Syslog i SNMP trapovi</h2>
+<p>Uređaji mogu da šalju svoje log poruke i SNMP trapove WatchZit-u. Uključite to pod <a href="/settings/logs">Podešavanja → Syslog i trapovi</a>: syslog na UDP 514 i trapove (SNMP v1 i v2c, na inform poruke se odgovara) na UDP 162 podrazumevano, po želji samo trapove sa zadatim community vrednostima, čuvaju se 30 dana. Otvorite ove portove u firewall-u servera i na uređajima podesite WatchZit kao odredište, npr. na MikroTik-u <code>/system logging action set remote remote=&lt;server&gt;</code> i pravilo logovanja sa akcijom <code>remote</code>, na FortiGate-u <code>config log syslogd setting</code>, na Linux-u rsyslog red <code>*.* @&lt;server&gt;:514</code>.</p>
+<ul>
+  <li><a href="/logs">Logovi</a> prikazuju poruke, najnovije prve, sa pretragom, uređajem, izvorom (syslog ili trapovi) i najmanje važnim nivoom (0 hitno … 7 otklanjanje grešaka). Poruka sa adrese koja nije uređaj prikazuje se sa svojom adresom. Svaka stranica uređaja ima dugme <b>Logovi</b>.</li>
+  <li>Okidač vrste <b>Syslog poruka ili trap</b> otvara problem kada poruka sadrži tekst (ili odgovara regularnom izrazu između kosih crta, npr. <code>/link (down|failure)/</code>) na nivou bar toliko važnom koliko je izabrano. Problem ostaje otvoren dok takve poruke stižu i zatvara se kada nijedna nije stigla tokom vremena okidača. Ovi problemi se ne računaju kao vreme bez rada u izveštajima.</li>
+</ul>

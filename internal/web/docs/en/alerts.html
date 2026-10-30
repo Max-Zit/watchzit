@@ -41,3 +41,10 @@
   <li><b>Only on some days and hours</b> makes the channel an on-call duty: e.g. SMS to the night shift Monday–Friday from 18 to 08 and all weekend. Problems that start outside its hours reach it when its duty starts, if they are still open. For a rotation add one channel per person or team with its own days and hours.</li>
   <li>A channel that was told about a problem is also told when it is resolved; the others are not.</li>
 </ul>
+
+<h2 id="logs">Syslog and SNMP traps</h2>
+<p>Devices can send their log messages and SNMP traps to WatchZit. Switch it on under <a href="/settings/logs">Settings → Syslog and traps</a>: syslog on UDP 514 and traps (SNMP v1 and v2c, informs are answered) on UDP 162 by default, optionally only traps with given communities, kept for 30 days. Open these ports in the server's firewall and set WatchZit as the destination on the devices, e.g. on MikroTik <code>/system logging action set remote remote=&lt;server&gt;</code> and a logging rule with action <code>remote</code>, on FortiGate <code>config log syslogd setting</code>, on Linux an rsyslog <code>*.* @&lt;server&gt;:514</code> line.</p>
+<ul>
+  <li><a href="/logs">Logs</a> lists the messages, newest first, with a search, a device, the source (syslog or traps) and the least important level (0 emergency … 7 debug). A message from an address that is no device is shown with its address. Each device page has a <b>Logs</b> button.</li>
+  <li>A trigger of the kind <b>Syslog message or trap</b> opens a problem when a message contains a text (or matches a regular expression between slashes, e.g. <code>/link (down|failure)/</code>) at a level at least as important as chosen. The problem stays open while such messages keep coming and closes when none came for the time of the trigger. These problems do not count as downtime in reports.</li>
+</ul>

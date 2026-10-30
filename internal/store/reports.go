@@ -20,11 +20,11 @@ type AvailabilityRow struct {
 }
 
 // Availability measures devices over a period from their "device down"
-// problems (the only problems without a check).
+// problems (without a check; HA-group and log problems do not count).
 func (s *Store) Availability(ctx context.Context, from, to time.Time, groupID int64) ([]AvailabilityRow, error) {
 	rows, err := s.db.Query(ctx, `SELECT d.id, d.name, COALESCE(g.name,''), d.address, d.kind, d.created_at,
-		COALESCE(sum(EXTRACT(EPOCH FROM LEAST(COALESCE(p.resolved_at,$2),$2) - GREATEST(p.started_at,$1))) FILTER (WHERE p.check_id IS NULL AND p.suppressed <> 'maintenance'),0),
-		COALESCE(sum(EXTRACT(EPOCH FROM LEAST(COALESCE(p.resolved_at,$2),$2) - GREATEST(p.started_at,$1))) FILTER (WHERE p.check_id IS NULL AND p.suppressed = 'maintenance'),0),
+		COALESCE(sum(EXTRACT(EPOCH FROM LEAST(COALESCE(p.resolved_at,$2),$2) - GREATEST(p.started_at,$1))) FILTER (WHERE p.check_id IS NULL AND p.key NOT LIKE '%:ha%' AND p.key NOT LIKE '%:log' AND p.suppressed <> 'maintenance'),0),
+		COALESCE(sum(EXTRACT(EPOCH FROM LEAST(COALESCE(p.resolved_at,$2),$2) - GREATEST(p.started_at,$1))) FILTER (WHERE p.check_id IS NULL AND p.key NOT LIKE '%:ha%' AND p.key NOT LIKE '%:log' AND p.suppressed = 'maintenance'),0),
 		count(p.id) FILTER (WHERE p.started_at >= $1),
 		COALESCE((SELECT s.id FROM series s JOIN checks c ON c.id=s.check_id WHERE c.device_id=d.id AND c.type='icmp' AND s.metric='rtt_ms' ORDER BY c.id LIMIT 1),0)
 		FROM devices d LEFT JOIN device_groups g ON g.id=d.group_id

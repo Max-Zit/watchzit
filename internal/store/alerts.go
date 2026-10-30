@@ -136,6 +136,27 @@ func (in *TriggerInput) clean() error {
 		if in.Kind != TriggerCheckDown {
 			in.CheckTypes = nil
 		}
+	case TriggerLog:
+		// metric: the text to look for; threshold: the least important level;
+		// check types: syslog and/or trap; for: how long the problem stays
+		in.Metric = strings.TrimSpace(in.Metric)
+		if in.Metric == "" || len(in.Metric) > 200 {
+			return errors.New("enter the text to look for in the messages (1–200 characters)")
+		}
+		if in.Threshold < 0 || in.Threshold > 7 {
+			in.Threshold = 7
+		}
+		in.Threshold = math.Trunc(in.Threshold)
+		in.Op = ">"
+		for _, t := range in.CheckTypes {
+			if t != LogSyslog && t != LogTrap {
+				return errors.New("unknown message source")
+			}
+		}
+		if in.ForS < 60 {
+			in.ForS = 900
+		}
+		return nil
 	case TriggerMetric:
 		types, ok := TriggerMetrics()[in.Metric]
 		if !ok {

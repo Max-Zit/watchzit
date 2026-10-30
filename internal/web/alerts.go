@@ -177,6 +177,11 @@ func triggerInput(r *http.Request) (store.TriggerInput, string) {
 		in.DeviceID, _ = strconv.ParseInt(scope[1:], 10, 64)
 	}
 	in.CheckTypes = append(in.CheckTypes, r.Form["type"]...)
+	if in.Kind == store.TriggerLog {
+		in.Metric = r.FormValue("pattern")
+		in.Threshold, _ = strconv.ParseFloat(r.FormValue("level"), 64)
+		in.CheckTypes = append([]string(nil), r.Form["source"]...)
+	}
 	return in, forMin
 }
 

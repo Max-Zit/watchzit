@@ -447,6 +447,9 @@ func init() {
 	funcs["weekdays"] = func(p *Page) []string {
 		return []string{p.T("Mon"), p.T("Tue"), p.T("Wed"), p.T("Thu"), p.T("Fri"), p.T("Sat"), p.T("Sun")}
 	}
+	funcs["levels"] = func(p *Page) []string {
+		return []string{p.T("Emergency"), p.T("Alert"), p.T("Critical"), p.T("Error"), p.T("Warning"), p.T("Notice"), p.T("Informational"), p.T("Debug")}
+	}
 	funcs["dayOn"] = func(days, i int) bool { return days&(1<<i) != 0 }
 	funcs["hours"] = func() []int {
 		h := make([]int, 25)
@@ -536,7 +539,7 @@ func init() {
 }
 
 // triggerKinds and channelKinds name the kinds (translated in templates).
-var triggerKinds = map[string]string{store.TriggerDeviceDown: "Device down", store.TriggerCheckDown: "Check down", store.TriggerMetric: "Value out of range", store.TriggerHADegraded: "HA group without redundancy"}
+var triggerKinds = map[string]string{store.TriggerDeviceDown: "Device down", store.TriggerCheckDown: "Check down", store.TriggerMetric: "Value out of range", store.TriggerHADegraded: "HA group without redundancy", store.TriggerLog: "Syslog message or trap"}
 var channelKinds = map[string]string{store.ChannelEmail: "Email", store.ChannelWebhook: "Webhook (JSON)", store.ChannelSlack: "Slack", store.ChannelTeams: "Microsoft Teams",
 	store.ChannelDiscord: "Discord", store.ChannelTelegram: "Telegram", store.ChannelNtfy: "ntfy (push to phones)", store.ChannelPagerDuty: "PagerDuty",
 	store.ChannelTwilio: "SMS (Twilio)", store.ChannelSMSGateway: "SMS (own gateway)"}

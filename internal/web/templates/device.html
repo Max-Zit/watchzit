@@ -7,6 +7,7 @@
   <div class="row">
     {{with $d.WebURL}}<a class="btn secondary" href="{{.}}" target="_blank" rel="noopener noreferrer">{{template "icon" "globe"}}{{with $d.WebName}}{{.}}{{else}}{{$.T "Open web interface"}}{{end}}</a>{{end}}
     {{range $d.WebLinks}}<a class="btn secondary" href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{template "icon" "globe"}}{{.Name}}</a>{{end}}
+    <a class="btn secondary" href="/logs?device={{$d.ID}}">{{template "icon" "file"}}{{.T "Logs"}}</a>
     {{if .User.CanWrite}}<a class="btn secondary" href="/devices/{{$d.ID}}/edit">{{template "icon" "edit"}}{{.T "Edit"}}</a>{{end}}
   </div>
 </div>

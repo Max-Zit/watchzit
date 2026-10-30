@@ -1,0 +1,30 @@
+{{template "app" .}}
+{{define "content"}}
+{{$f := .Data.F}}
+<div class="titlebar">
+  <h1>{{.T "Logs"}}</h1>
+  {{if .User.IsAdmin}}<a class="btn secondary sm" href="/settings/logs">{{template "icon" "settings"}}{{.T "Syslog and traps"}}</a>{{end}}
+</div>
+{{if not .Data.Received}}<p class="flash info">{{.T "Receiving syslog messages and traps is off; an administrator switches it on under Settings → Syslog and traps."}}</p>{{end}}
+<form method="get" action="/logs" class="row wrap">
+  <input type="search" name="q" value="{{$f.Text}}" placeholder="{{.T "Search"}}" aria-label="{{.T "Search"}}">
+  <select name="device" aria-label="{{.T "Device"}}" data-autosubmit><option value="0">{{.T "All devices"}}</option>{{range .Data.Devices}}<option value="{{.ID}}" {{if eq .ID $f.DeviceID}}selected{{end}}>{{.Name}}</option>{{end}}</select>
+  <select name="kind" aria-label="{{.T "Kind"}}" data-autosubmit><option value="">{{.T "Syslog and traps"}}</option><option value="syslog" {{if eq $f.Kind "syslog"}}selected{{end}}>Syslog</option><option value="trap" {{if eq $f.Kind "trap"}}selected{{end}}>{{.T "SNMP traps"}}</option></select>
+  <select name="level" aria-label="{{.T "Level"}}" data-autosubmit>{{range $i, $n := levels $}}<option value="{{$i}}" {{if eq $i $f.MaxLevel}}selected{{end}}>{{$.T "up to"}} {{$i}} · {{$n}}</option>{{end}}</select>
+  <button class="secondary sm">{{.T "Show"}}</button>
+</form>
+<section class="panel">
+  {{if .Data.Logs}}
+  <div class="table-wrap"><table class="logs">
+    <thead><tr><th>{{.T "Time"}}</th><th>{{.T "Device"}}</th><th>{{.T "Level"}}</th><th>{{.T "Message"}}</th></tr></thead>
+    <tbody>{{range .Data.Logs}}<tr class="lv{{.Severity}}">
+      <td class="nowrap small">{{$.Time .At}}</td>
+      <td class="nowrap">{{if .DeviceID}}<a href="/devices/{{.DeviceID}}">{{.Device}}</a>{{else}}<span class="mono small">{{.Source}}</span>{{end}}{{with .Host}}<br><span class="small muted">{{.}}</span>{{end}}</td>
+      <td class="nowrap small">{{if eq .Kind "trap"}}<span class="badge muted">trap</span>{{else}}<span class="lvl lvl{{.Severity}}">{{.Severity}}</span>{{end}}</td>
+      <td class="logmsg">{{with .Tag}}<b>{{.}}</b> {{end}}<span class="mono small">{{.Message}}</span></td>
+    </tr>{{end}}</tbody>
+  </table></div>
+  {{if .Data.Older}}<p class="mt"><a class="btn secondary sm" href="/logs?{{.Data.Query}}&amp;before={{.Data.Older}}">{{.T "Older"}}</a></p>{{end}}
+  {{else}}<p class="muted">{{.T "No messages."}}</p>{{end}}
+</section>
+{{end}}

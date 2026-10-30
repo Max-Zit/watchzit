@@ -1,0 +1,36 @@
+{{template "app" .}}
+{{define "content"}}
+<h1>{{.T "Settings"}}</h1>
+<div class="settings">
+{{template "settingstabs" .}}
+<div class="settings-body">
+{{$c := .Data.C}}
+<section class="panel">
+  <h2>{{template "icon" "file"}}{{.T "Syslog and traps"}}</h2>
+  <p class="muted">{{.T "Routers, switches, firewalls and servers can send their log messages (syslog) and SNMP traps to WatchZit. They appear under Logs, on the device they come from, and triggers can open problems from them."}}</p>
+  {{if .Data.Off}}<p class="flash info">{{.T "This server does not receive messages."}}</p>{{else}}
+  <p class="small">{{.T "Received since the start"}}: <b>{{.Data.Received}}</b>{{if .Data.Dropped}} · <span class="warntext">{{.T "dropped (too many at once)"}}: {{.Data.Dropped}}</span>{{end}}</p>
+  {{with .Data.Err}}<div class="flash err" role="alert">{{template "icon" "alert"}}<span>{{.}}</span></div>{{end}}{{end}}
+  <form method="post" action="/settings/logs" class="stack">
+    <div class="cols">
+      <fieldset class="box"><legend>Syslog</legend>
+        <label class="check"><input type="checkbox" name="syslog" value="1" {{if $c.Syslog}}checked{{end}}>{{.T "Receive syslog messages"}}</label>
+        <label>{{.T "UDP port"}}<input type="number" name="syslog_port" value="{{$c.SyslogPort}}" min="1" max="65535"></label>
+      </fieldset>
+      <fieldset class="box"><legend>{{.T "SNMP traps"}}</legend>
+        <label class="check"><input type="checkbox" name="traps" value="1" {{if $c.Traps}}checked{{end}}>{{.T "Receive SNMP traps and informs (v1, v2c)"}}</label>
+        <label>{{.T "UDP port"}}<input type="number" name="trap_port" value="{{$c.TrapPort}}" min="1" max="65535"></label>
+        <label>{{.T "Communities"}} <small>{{.T "optional"}}</small><input name="communities" value="{{range $i, $x := $c.Communities}}{{if $i}}, {{end}}{{$x}}{{end}}" placeholder="public"><small>{{.T "Only traps with one of these; empty: any."}}</small></label>
+      </fieldset>
+    </div>
+    <div class="cols">
+      <label>{{.T "Keep messages (days)"}}<input type="number" name="keep_days" value="{{$c.KeepDays}}" min="1" max="730"></label>
+      <label class="check"><input type="checkbox" name="unknown" value="1" {{if $c.Unknown}}checked{{end}}>{{.T "Also from addresses that are not devices"}}</label>
+    </div>
+    <div><button class="primary">{{.T "Save"}}</button></div>
+  </form>
+  <p class="small muted mt">{{.T "Open the ports in the server's firewall; on devices set this server as the syslog or trap destination, e.g. MikroTik: /system logging action set remote remote=<address>; FortiGate: config log syslogd setting."}}</p>
+</section>
+</div>
+</div>
+{{end}}

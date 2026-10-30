@@ -29,6 +29,7 @@ import (
 	"github.com/max-zit/watchzit/internal/helper"
 	"github.com/max-zit/watchzit/internal/launch"
 	"github.com/max-zit/watchzit/internal/logfile"
+	"github.com/max-zit/watchzit/internal/logrecv"
 	"github.com/max-zit/watchzit/internal/netacl"
 	"github.com/max-zit/watchzit/internal/poller"
 	"github.com/max-zit/watchzit/internal/store"
@@ -185,6 +186,14 @@ func run() error {
 	srv.Version = version
 	srv.Alerts = alerts
 	alerts.Notify = srv.Notify
+	// syslog messages and SNMP traps from devices
+	logs := logrecv.New(st, log)
+	srv.Logs = logs
+	if lc := srv.LogConfig(ctx); lc.Syslog || lc.Traps {
+		if err := logs.Apply(lc); err != nil {
+			log.Error("syslog and traps", "err", err)
+		}
+	}
 	srv.DownloadsDir = filepath.Join(*dataDir, "downloads")
 	srv.DataDir = *dataDir
 	if srv.LauncherKey, err = launch.LoadOrCreateKey(filepath.Join(*dataDir, launch.KeyFile)); err != nil {
@@ -280,6 +289,7 @@ func run() error {
 	go func() { alerts.Run(ctx); done <- struct{}{} }()
 	go srv.RunEscalation(ctx)
 	go srv.RunReportMail(ctx)
+	go logs.Run(ctx)
 	go srv.RunUpdates(ctx)
 	// For the root helper: which version runs and where (it checks this after an update).
 	if err := helper.WriteServerInfo(*dataDir, helper.ServerInfo{Version: version, MgmtListen: net0.MgmtListen}); err != nil {

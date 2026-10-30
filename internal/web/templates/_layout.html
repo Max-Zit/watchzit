@@ -19,6 +19,7 @@
   <nav>
     <a href="/" class="{{if eq .Nav "overview"}}on{{end}}">{{template "icon" "overview"}}{{.T "Overview"}}</a>
     <a href="/problems" class="{{if eq .Nav "problems"}}on{{end}}">{{template "icon" "bell"}}{{.T "Problems"}}{{if .Problems}} <span class="navcount{{if not .ProblemsCritical}} warn{{end}}">{{.Problems}}</span>{{end}}</a>
+    <a href="/logs" class="{{if eq .Nav "logs"}}on{{end}}">{{template "icon" "file"}}{{.T "Logs"}}</a>
     <a href="/maps" class="{{if eq .Nav "maps"}}on{{end}}">{{template "icon" "map"}}{{.T "Maps"}}</a>
     {{if .User.CanWrite}}<a href="/pictures" class="{{if eq .Nav "pictures"}}on{{end}}">{{template "icon" "image"}}{{.T "Picture library"}}</a>{{end}}
     <a href="/dashboards" class="{{if eq .Nav "dashboards"}}on{{end}}">{{template "icon" "overview"}}{{.T "Dashboards"}}</a>
@@ -91,6 +92,7 @@
   <a href="/settings/tools" class="{{if eq .Title "Tools"}}on{{end}}">{{template "icon" "terminal"}}<span>{{.T "Tools"}}<small>{{.T "Programs that open devices"}}</small></span></a>
   <a href="/settings/notifications" class="{{if eq .Title "Notifications"}}on{{end}}">{{template "icon" "bell"}}<span>{{.T "Notifications"}}<small>{{.T "Email, webhooks, Slack, Teams"}}</small></span></a>
   <a href="/settings/datasources" class="{{if eq .Title "Data sources"}}on{{end}}">{{template "icon" "database"}}<span>{{.T "Data sources"}}<small>{{.T "Databases, Prometheus, InfluxDB for graphs"}}</small></span></a>
+  <a href="/settings/logs" class="{{if eq .Title "Syslog and traps"}}on{{end}}">{{template "icon" "file"}}<span>{{.T "Syslog and traps"}}<small>{{.T "Messages devices send"}}</small></span></a>
   <a href="/settings/kiosks" class="{{if eq .Title "Kiosk displays"}}on{{end}}">{{template "icon" "screen"}}<span>{{.T "Kiosk displays"}}<small>{{.T "Maps on a monitoring TV"}}</small></span></a>
 </nav>{{end}}
 
