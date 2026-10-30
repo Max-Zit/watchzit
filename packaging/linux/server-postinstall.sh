@@ -34,8 +34,12 @@ if [ -f /var/lib/watchzit/.appliance ]; then
     install -m 0644 $a/watchzit-appliance-boot.service /etc/systemd/system/watchzit-appliance-boot.service
     install -m 0644 $a/watchzit-menu.sh /etc/profile.d/watchzit-menu.sh
     install -m 0440 $a/sudoers-watchzit-setup /etc/sudoers.d/watchzit-setup
+    install -m 0644 $a/watchzit-icmp.service /etc/systemd/system/watchzit-icmp.service
+    install -m 0644 $a/sysctl-watchzit.conf /etc/sysctl.d/60-watchzit.conf
+    sysctl -q -p /etc/sysctl.d/60-watchzit.conf 2>/dev/null || true
     systemctl daemon-reload 2>/dev/null || true
     systemctl enable watchzit-appliance-boot.service >/dev/null 2>&1 || true
+    systemctl enable --now watchzit-icmp.service >/dev/null 2>&1 || true
     if [ -d /etc/ssh/sshd_config.d ]; then
         install -m 0644 $a/sshd-watchzit.conf /etc/ssh/sshd_config.d/50-watchzit.conf
         # Inside the installer (no host keys yet) sshd -t fails anyway: take

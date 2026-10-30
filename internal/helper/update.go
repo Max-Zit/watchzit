@@ -40,6 +40,18 @@ func (h *Helper) update(ctx context.Context, req Request, res Result) Result {
 	if source == "" {
 		source = update.DefaultSource
 	}
+	if req.Upload {
+		// files uploaded in the console (no internet access): checked like a
+		// download, against the signed manifest
+		dir := filepath.Join(h.dir(), UploadDir)
+		defer os.RemoveAll(dir)
+		for _, n := range []string{"manifest.json", "manifest.json.sig"} {
+			if fi, err := os.Lstat(filepath.Join(dir, n)); err != nil || !fi.Mode().IsRegular() {
+				return fail("the uploaded release is incomplete")
+			}
+		}
+		source = "file://" + filepath.ToSlash(dir)
+	}
 	hc := &http.Client{Timeout: 10 * time.Minute}
 	m, _, _, err := update.Fetch(ctx, hc, source, req.Version)
 	if err != nil {

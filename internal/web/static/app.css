@@ -900,3 +900,4 @@ body.graph-full { overflow: hidden; }
 .link .lbl.vlanpick { font-size: 4.2px; font-weight: 600; fill: #a78bfa; stroke-width: 1.3px; }
 .link .lbl.vlan, .tunnel .lbl.vlan { font-size: 4.2px; stroke-width: 1.3px; }
 .link .lbl.cname { font-size: 4.2px; font-weight: 600; fill: var(--text); stroke-width: 1.3px; }
+.pre-line { white-space: pre-line; }

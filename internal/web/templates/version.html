@@ -27,6 +27,18 @@
 </section>
 {{end}}{{else if .Data.Latest}}<div class="flash ok" role="status">{{template "icon" "check"}}<span>{{.T "WatchZit is up to date."}}</span></div>{{end}}
 {{if .Data.HelperOK}}
+<section class="panel" id="upload">
+  <h2>{{template "icon" "upload"}}{{.T "Install from files"}}</h2>
+  <p class="small muted">{{.T "For a server without internet access: download manifest.json, manifest.json.sig and the server package (.deb or .rpm) of a release on another computer and upload them here. Only releases signed with the WatchZit release key are installed."}}</p>
+  <form method="post" action="/settings/version/upload" enctype="multipart/form-data" class="stack" data-confirm="{{.T "Install the uploaded release now? The console is away for a minute or two."}}">
+    <div class="cols">
+      <label>manifest.json<input type="file" name="manifest" accept=".json" required></label>
+      <label>manifest.json.sig<input type="file" name="signature" accept=".sig" required></label>
+      <label>{{.T "Server package"}}<input type="file" name="package" accept=".deb,.rpm" required></label>
+    </div>
+    <div><button class="secondary">{{template "icon" "upload"}}{{.T "Upload and install"}}</button></div>
+  </form>
+</section>
 <section class="panel">
   <h2>{{template "icon" "clock"}}{{.T "Automatic updates"}}</h2>
   <form method="post" action="/settings/version/settings" class="stack">
@@ -48,7 +60,32 @@
 <section class="panel">
   <h2>{{template "icon" "refresh"}}{{.T "Restart"}}</h2>
   <p class="small muted">{{.T "Needed after changing the console or agent port. Monitoring continues right after."}}</p>
-  <form method="post" action="/settings/restart" data-confirm="{{.T "Restart the WatchZit service now? The console is away for a few seconds."}}"><button class="secondary">{{template "icon" "refresh"}}{{.T "Restart now"}}</button></form>
+  <div class="row">
+    <form method="post" action="/settings/restart" data-confirm="{{.T "Restart the WatchZit service now? The console is away for a few seconds."}}"><button class="secondary">{{template "icon" "refresh"}}{{.T "Restart now"}}</button></form>
+    <form method="post" action="/settings/os" data-confirm="{{.T "Restart the whole server now? Monitoring stops for a minute or two."}}"><input type="hidden" name="do" value="reboot"><button class="secondary">{{template "icon" "power"}}{{.T "Restart the server"}}</button></form>
+  </div>
+</section>
+{{with .Data.OSLast}}<div class="flash {{if eq .Status "done"}}ok{{else if eq .Status "running"}}info{{else}}err{{end}}" role="status">{{template "icon" "check"}}<span>{{$.T "Last server task"}} ({{$.Time .Started}}): <span class="pre-line">{{.Message}}</span></span></div>{{end}}
+<section class="panel" id="os">
+  <h2>{{template "icon" "package"}}{{.T "Operating system updates"}}</h2>
+  {{with .Data.OS}}
+  <dl class="facts">
+    <div><dt>{{$.T "System"}}</dt><dd>{{.OS}}{{with .Kernel}} · {{$.T "kernel"}} {{.}}{{end}}</dd></div>
+    <div><dt>{{$.T "Waiting updates"}}</dt><dd><b>{{.Pending}}</b>{{if .Security}} · <span class="warntext">{{$.T "%d security" .Security}}</span>{{end}}</dd></div>
+    <div><dt>{{$.T "Automatic security updates"}}</dt><dd>{{if .AutoSecurity}}{{$.T "on"}}{{else}}{{$.T "off"}}{{end}}{{if not .LastAutoRun.IsZero}} · {{$.T "last run"}} {{$.Time .LastAutoRun}}{{end}}</dd></div>
+    <div><dt>{{$.T "Checked"}}</dt><dd>{{$.Time .Checked}}</dd></div>
+  </dl>
+  {{if .RebootRequired}}<p class="flash info mt">{{$.T "The installed updates need a restart of the server."}}</p>{{end}}
+  {{with .Error}}<p class="flash err mt">{{$.T "The last check failed:"}} {{.}}</p>{{end}}
+  {{with .Packages}}<details class="mt"><summary>{{$.T "Packages"}}</summary><pre class="notes">{{range .}}{{.}}
+{{end}}</pre></details>{{end}}
+  {{else}}<p class="small muted">{{.T "Not checked yet."}}</p>{{end}}
+  <div class="row mt">
+    <form method="post" action="/settings/os"><input type="hidden" name="do" value="status"><button class="secondary">{{template "icon" "refresh"}}{{.T "Check now"}}</button></form>
+    {{if and .Data.OS .Data.OS.Pending}}<form method="post" action="/settings/os" data-confirm="{{.T "Install all operating system updates now? This can take a few minutes."}}"><input type="hidden" name="do" value="upgrade"><button class="primary">{{template "icon" "download"}}{{.T "Install all updates"}}</button></form>{{end}}
+    {{if and .Data.OS .Data.OS.AutoSecurity}}<form method="post" action="/settings/os"><input type="hidden" name="do" value="auto-off"><button class="ghost">{{.T "Switch automatic security updates off"}}</button></form>
+    {{else}}<form method="post" action="/settings/os"><input type="hidden" name="do" value="auto-on"><button class="ghost">{{.T "Switch automatic security updates on"}}</button></form>{{end}}
+  </div>
 </section>
 <section class="panel">
   <h2>{{template "icon" "network"}}{{.T "Network of the server"}}</h2>
@@ -70,6 +107,17 @@
   </form>
   {{else}}<p class="small muted">{{.T "The network of this server is managed by its operating system. On the WatchZit appliance it can be changed here."}}</p>{{end}}
 </section>
+{{if .Data.Net.Appliance}}
+<section class="panel" id="ssh">
+  <h2>{{template "icon" "terminal"}}SSH</h2>
+  <p class="small muted">{{.T "Sign-in to the appliance's command line for support. Switch it off when nobody needs it."}}</p>
+  <form method="post" action="/settings/ssh" class="stack">
+    <label class="check"><input type="checkbox" name="enabled" value="1" {{if .Data.SSH.Enabled}}checked{{end}}>{{.T "SSH server on"}}</label>
+    <label>{{.T "Port"}}<input type="number" name="port" value="{{.Data.SSH.Port}}" min="1" max="65535" class="narrow"></label>
+    <div><button class="primary">{{.T "Apply"}}</button> <small class="muted">{{.T "A port the SSH server refuses leaves the previous setting in place."}}</small></div>
+  </form>
+</section>
+{{end}}
 {{end}}
 </div>
 </div>

@@ -15,6 +15,7 @@
   <li><b>Mreža i pristup</b> — portovi konzole i agenata, mreže koje smeju do njih, javna adresa za agente.</li>
   <li><b>Prijava i bezbednost</b> — trajanje sesije, koliko neuspelih prijava blokira adresu i uklanjanje blokade.</li>
   <li><b>Podaci merenja</b> — koliko se čuvaju sirove vrednosti, vrednosti po 5 minuta i po satu, i koliko prostora zauzimaju.</li>
+  <li><b>Sertifikat</b> — sopstveni sertifikat konzole, sertifikat koji učitate, ili sertifikat od Let's Encrypt-a (vidi niže).</li>
   <li><b>SNMP</b>, <b>Obaveštenja</b>, <b>Alati</b>, <b>Kiosk ekrani</b> — vidi njihova poglavlja.</li>
 </ul>
 
@@ -26,6 +27,20 @@
   <li>Ako se ne pokrene, sam se vraća na staru verziju.</li>
 </ol>
 <p>Ažuriranja se instaliraju klikom ili automatski u izabranom satu. Izvor može biti mirror ili lokalni folder (<code>WATCHZIT_UPDATE_SOURCE</code> u <code>/etc/watchzit/server.env</code>). Na istoj stranici se podešava vremenska zona servera i restartuje servis.</p>
+<p><b>Bez interneta:</b> pod <b>Instaliraj iz fajlova</b> učitajte <code>manifest.json</code>, <code>manifest.json.sig</code> i serverski paket (.deb ili .rpm) izdanja, preuzete na drugom računaru. Proveravaju se kao preuzimanje i instaliraju na isti način.</p>
+
+<h2 id="os">Operativni sistem i SSH</h2>
+<p>Ista stranica prikazuje <b>ažuriranja operativnog sistema</b> servera (Debian, Ubuntu, AlmaLinux, Rocky Linux): koliko ih čeka i koliko su bezbednosna, da li su automatska bezbednosna ažuriranja uključena i kada su poslednji put radila. <b>Instaliraj sva ažuriranja</b> ih instalira odmah; kada traže restart, stranica to kaže, a <b>Restartuj server</b> ga restartuje. Spisak se sam osvežava dva puta dnevno, ili sa <b>Proveri sada</b>.</p>
+<p>Na WatchZit appliance-u stranica podešava i njegovu <b>mrežu</b> (DHCP ili fiksna adresa, gateway, DNS, ime — podešavanja koja odseku appliance se poništavaju posle 30 sekundi) i <b>SSH</b>: uključen ili isključen i port; port koji SSH server odbije ostavlja staro podešavanje. Na drugim serverima to pripada operativnom sistemu.</p>
+
+<h2 id="certificate">Sertifikat</h2>
+<p>Konzola na početku koristi sopstveni sertifikat, na koji pregledači upozoravaju. Pod <a href="/settings/certificate">Podešavanja → Sertifikat</a>:</p>
+<ul>
+  <li><b>Učitajte sertifikat</b> vaše firme: sertifikat sa lancem i privatni ključ u PEM formatu (fajlovi ili nalepljen tekst), za DNS ime — ili IP adresu — koju pregledači koriste. Proverava se pre upotrebe.</li>
+  <li><b>Let's Encrypt</b>: unesite ime i email adresu. Let's Encrypt proverava ime preko <b>porta 80</b> ovog servera (dostupnog sa interneta) ili, kada je konzola interna, preko <b>DNS zapisa kroz Cloudflare</b> (API token sa dozvolom Zone → DNS → Edit). Sertifikat se sam obnavlja 30 dana pre isteka.</li>
+  <li><b>Port 80</b> takođe šalje pregledače koji ukucaju http:// na konzolu.</li>
+</ul>
+<p>Pouzdan sertifikat se koristi kada se konzola otvori pod svojim imenom; otvorena preko IP adrese, konzola i dalje koristi sopstveni sertifikat. Agenti nisu pogođeni: koriste sopstveni sertifikat porta za agente, koji su zapamtili pri prijavi. Za standardni port podesite port konzole na 443 pod Mreža i pristup.</p>
 
 <h2 id="security">Bezbednost</h2>
 <ul>

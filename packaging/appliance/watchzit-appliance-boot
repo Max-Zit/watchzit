@@ -65,7 +65,7 @@ WatchZit appliance - \n
   $setup
 
   Setup menu:    sign in here as wzadmin (first password: watchzit,
-                 must be changed) - network, server name, time zone.
+                 must be changed) - network, server name, time zone, SSH.
 
 ISSUE
 }

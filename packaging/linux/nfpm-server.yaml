@@ -55,6 +55,12 @@ contents:
     dst: /usr/share/watchzit/appliance/sudoers-watchzit-setup
   - src: ./packaging/appliance/sshd-watchzit.conf
     dst: /usr/share/watchzit/appliance/sshd-watchzit.conf
+  - src: ./packaging/appliance/icmp-timestamp.nft
+    dst: /usr/share/watchzit/appliance/icmp-timestamp.nft
+  - src: ./packaging/appliance/watchzit-icmp.service
+    dst: /usr/share/watchzit/appliance/watchzit-icmp.service
+  - src: ./packaging/appliance/sysctl-watchzit.conf
+    dst: /usr/share/watchzit/appliance/sysctl-watchzit.conf
   - src: ./packaging/linux/server.env
     dst: /etc/watchzit/server.env
     type: config|noreplace

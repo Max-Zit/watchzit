@@ -19,7 +19,7 @@
 
 <h2 id="appliance">Appliance</h2>
 <p>The appliance is a ready-made image (Debian with WatchZit, PostgreSQL and automatic security updates). Import it into VMware, Proxmox or Hyper-V, start it and follow the menu on its screen: it shows the console address and the setup token, and sets the network.</p>
-<p>Images: <b>OVA</b> (VMware ESXi, Workstation, VirtualBox), <b>qcow2</b> (Proxmox, KVM), <b>VHDX</b> (Hyper-V generation 1) and an <b>ISO</b> that installs the appliance on a new VM or a physical server (it erases the first disk). Give it 2 CPUs, 2 GB of memory and a disk of 16 GB or more; a bigger disk is used automatically. Sign in on its screen as <code>wzadmin</code> with the first password <code>watchzit</code>; you must choose a new one at once. The menu sets the network (DHCP or a fixed address), the server name and the time zone. SSH allows no root sign-in.</p>
+<p>Images: <b>OVA</b> (VMware ESXi, Workstation, VirtualBox), <b>qcow2</b> (Proxmox, KVM), <b>VHDX</b> (Hyper-V generation 1) and an <b>ISO</b> that installs the appliance on a new VM or a physical server (it erases the first disk). Give it 2 CPUs, 2 GB of memory and a disk of 16 GB or more; a bigger disk is used automatically. Sign in on its screen as <code>wzadmin</code> with the first password <code>watchzit</code>; you must choose a new one at once. The menu sets the network (DHCP or a fixed address), the server name, the time zone and SSH (on or off, port), and sets a new password for a console user such as admin (lifting all sign-in blocks). Network, SSH, operating system updates and a trusted certificate can also be set in the console (see Users, settings and updates). SSH allows no root sign-in.</p>
 
 <h2 id="first-sign-in">First sign-in</h2>
 <ol>

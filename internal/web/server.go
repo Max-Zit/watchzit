@@ -67,6 +67,7 @@ type Server struct {
 	Alerts  *alert.Engine
 	wg      sync.WaitGroup // notifications in flight
 	queries queryCache     // answers of data source queries
+	tlsc    *consoleTLS    // console certificates (nil on the development server)
 }
 
 // New creates the server; settings are loaded from the database.
@@ -415,6 +416,12 @@ func (s *Server) Handler() http.Handler {
 	admin("POST /settings/timezone", s.handleTimeZone)
 	admin("POST /settings/restart", s.handleRestart)
 	admin("POST /settings/server-network", s.handleServerNetwork)
+	admin("GET /settings/certificate", s.handleCertificate)
+	admin("POST /settings/certificate", s.handleCertificateSave)
+	admin("POST /settings/certificate/renew", s.handleCertificateRenew)
+	admin("POST /settings/os", s.handleOS)
+	admin("POST /settings/ssh", s.handleSSH)
+	admin("POST /settings/version/upload", s.handleVersionUpload)
 	admin("GET /settings/tools", s.handleTools)
 	admin("POST /settings/tools", s.handleToolCreate)
 	admin("GET /settings/tools/{id}", s.handleTools)

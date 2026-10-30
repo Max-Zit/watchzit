@@ -19,7 +19,7 @@
 
 <h2 id="appliance">Appliance</h2>
 <p>Appliance je gotova slika (Debian sa WatchZit-om, PostgreSQL-om i automatskim bezbednosnim ažuriranjima). Uvezite je u VMware, Proxmox ili Hyper-V, pokrenite i pratite meni na ekranu: prikazuje adresu konzole i token za podešavanje i podešava mrežu.</p>
-<p>Slike: <b>OVA</b> (VMware ESXi, Workstation, VirtualBox), <b>qcow2</b> (Proxmox, KVM), <b>VHDX</b> (Hyper-V generacija 1) i <b>ISO</b> koji instalira appliance na novu virtuelnu mašinu ili fizički server (briše prvi disk). Dajte mu 2 procesora, 2 GB memorije i disk od 16 GB ili više; veći disk se sam iskoristi. Prijavite se na njegovom ekranu kao <code>wzadmin</code> sa prvom lozinkom <code>watchzit</code>; odmah morate izabrati novu. Meni podešava mrežu (DHCP ili fiksna adresa), ime servera i vremensku zonu. SSH ne dozvoljava prijavu kao root.</p>
+<p>Slike: <b>OVA</b> (VMware ESXi, Workstation, VirtualBox), <b>qcow2</b> (Proxmox, KVM), <b>VHDX</b> (Hyper-V generacija 1) i <b>ISO</b> koji instalira appliance na novu virtuelnu mašinu ili fizički server (briše prvi disk). Dajte mu 2 procesora, 2 GB memorije i disk od 16 GB ili više; veći disk se sam iskoristi. Prijavite se na njegovom ekranu kao <code>wzadmin</code> sa prvom lozinkom <code>watchzit</code>; odmah morate izabrati novu. Meni podešava mrežu (DHCP ili fiksna adresa), ime servera, vremensku zonu i SSH (uključen ili isključen, port), i postavlja novu lozinku korisnika konzole, npr. admin (uz uklanjanje svih blokada prijave). Mreža, SSH, ažuriranja operativnog sistema i pouzdan sertifikat mogu da se podese i u konzoli (vidi Korisnici, podešavanja i ažuriranja). SSH ne dozvoljava prijavu kao root.</p>
 
 <h2 id="first-sign-in">Prva prijava</h2>
 <ol>

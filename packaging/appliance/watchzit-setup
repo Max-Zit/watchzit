@@ -68,6 +68,35 @@ time_zone() {
     ask_helper "{\"action\":\"timezone\",\"requested_by\":\"setup menu\",\"timezone\":\"$z\"}"
 }
 
+ssh_setup() {
+    port=$(sed -n 's/^Port \([0-9]*\)$/\1/p' /etc/ssh/sshd_config.d/60-watchzit-port.conf 2>/dev/null)
+    [ -n "$port" ] || port=22
+    if systemctl is-active --quiet ssh; then state=on; else state=off; fi
+    on=$(whiptail --title "$T" --menu "SSH is $state (port $port)" 12 74 2 \
+        on "SSH on" off "SSH off" 3>&1 1>&2 2>&3) || return
+    if [ "$on" = on ]; then
+        port=$(whiptail --title "$T" --inputbox "SSH port" 10 74 "$port" 3>&1 1>&2 2>&3) || return
+        ask_helper "{\"action\":\"ssh\",\"requested_by\":\"setup menu\",\"ssh\":{\"enabled\":true,\"port\":${port:-22}}}"
+    else
+        ask_helper "{\"action\":\"ssh\",\"requested_by\":\"setup menu\",\"ssh\":{\"enabled\":false,\"port\":${port:-22}}}"
+    fi
+}
+
+admin_password() {
+    user=$(whiptail --title "$T" --inputbox "Console user whose password is set" 10 74 "admin" 3>&1 1>&2 2>&3) || return
+    case "$user" in
+    "" | *[!A-Za-z0-9._@-]*) msg "Enter a user name of the console."; return ;;
+    esac
+    p1=$(whiptail --title "$T" --passwordbox "New password (at least 12 characters)" 10 74 3>&1 1>&2 2>&3) || return
+    p2=$(whiptail --title "$T" --passwordbox "Repeat the password" 10 74 3>&1 1>&2 2>&3) || return
+    if [ "$p1" != "$p2" ]; then
+        msg "The passwords differ; nothing was changed."
+        return
+    fi
+    out=$(printf '%s\n' "$p1" | su watchzit -s /bin/sh -c "set -a; . /etc/watchzit/server.env; /usr/bin/watchzit-server --data-dir $DATA --reset-password '$user'" 2>&1)
+    msg "$out"
+}
+
 console_info() {
     tok=""
     [ -f "$DATA/setup-token.txt" ] && tok="
@@ -79,12 +108,14 @@ $tok"
 }
 
 while true; do
-    c=$(whiptail --title "$T" --menu "Address: $(current_ip)   Console: https://$(current_ip | cut -d/ -f1):8443" 20 74 9 \
+    c=$(whiptail --title "$T" --menu "Address: $(current_ip)   Console: https://$(current_ip | cut -d/ -f1):8443" 22 74 11 \
         1 "Network (DHCP or fixed address)" \
         2 "Server name" \
         3 "Time zone" \
         4 "Console address and setup token" \
         5 "Allow the console from all private networks again" \
+        s "SSH (on or off, port)" \
+        p "Password of a console user (and lift sign-in blocks)" \
         6 "Restart WatchZit" \
         7 "Command line" \
         8 "Restart the appliance" \
@@ -94,6 +125,8 @@ while true; do
     2) server_name ;;
     3) time_zone ;;
     4) console_info ;;
+    s) ssh_setup ;;
+    p) admin_password ;;
     5) su watchzit -s /bin/sh -c "set -a; . /etc/watchzit/server.env; /usr/bin/watchzit-server --data-dir $DATA --reset-allowlist" >/dev/null 2>&1 &&
            systemctl restart watchzit-server && msg "The console allows the private networks again." || msg "That did not work; see journalctl -u watchzit-server." ;;
     6) systemctl restart watchzit-server && msg "WatchZit restarted." ;;

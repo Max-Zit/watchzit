@@ -3,6 +3,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -17,6 +18,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -63,6 +65,7 @@ func run() error {
 	devNo2FA := flag.Bool("dev-no-2fa", false, "sign in with the password only (development only, needs --dev-embedded-db; shown as a warning and audited)")
 	resetACL := flag.Bool("reset-allowlist", false, "allow the console again from the private networks (10/8, 172.16/12, 192.168/16, fc00::/7) and exit")
 	unblock := flag.String("unblock-ip", "", "lift the sign-in block of an address (or \"all\") and exit")
+	resetPass := flag.String("reset-password", "", "set a new console password for a user (read from standard input), lift all sign-in blocks and exit")
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	runHelper := flag.Bool("helper", false, "root helper: handle a request of the console (updates, time zone, network) and exit; started by watchzit-helper.service")
 	flag.Parse()
@@ -136,6 +139,26 @@ func run() error {
 		_ = st.Audit(ctx, "-", "local", "settings.network.reset", "settings", "console allow-list reset to the private networks from the command line")
 		fmt.Println("The console allows the private networks again. Restart the service if it is running.")
 		return nil
+	case *resetPass != "":
+		line, _ := bufio.NewReader(os.Stdin).ReadString('\n')
+		pw := strings.TrimRight(line, "\r\n")
+		us, err := st.Users(ctx)
+		if err != nil {
+			return err
+		}
+		for _, u := range us {
+			if u.Username != *resetPass {
+				continue
+			}
+			if err := st.SetPassword(ctx, u.ID, pw, false, ""); err != nil {
+				return err
+			}
+			_, _ = st.Unblock(ctx, "all")
+			_ = st.Audit(ctx, "-", "local", "user.password", "user:"+u.Username, "password set and sign-in blocks lifted from the command line (setup menu)")
+			fmt.Printf("The password of %s was changed and sign-in blocks were lifted.\n", u.Username)
+			return nil
+		}
+		return fmt.Errorf("there is no user %q", *resetPass)
 	case *unblock != "":
 		n, err := st.Unblock(ctx, *unblock)
 		if err != nil {
@@ -218,7 +241,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("console listener %s: %w", net0.MgmtListen, err)
 	}
-	cfg := tlsutil.ServerConfig(consoleCert)
+	cfg := srv.StartConsoleTLS(ctx, *dataDir, consoleCert, net0.MgmtListen)
 	l := tls.NewListener(&netacl.Listener{Listener: raw, List: srv.MgmtACL, OnRefuse: func(remote string) {
 		log.Debug("connection refused by allow-list", "remote", remote)
 	}}, cfg)

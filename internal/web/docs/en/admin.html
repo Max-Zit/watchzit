@@ -15,6 +15,7 @@
   <li><b>Network and access</b> — the console and agent ports, the networks allowed to reach each, the public agent address.</li>
   <li><b>Sign-in and security</b> — session length, how many failed sign-ins block an address, and lifting a block.</li>
   <li><b>Metric data</b> — how long raw values, 5-minute and hourly values are kept, and how much space they take.</li>
+  <li><b>Certificate</b> — the console's own certificate, one you upload, or one from Let's Encrypt (see below).</li>
   <li><b>SNMP</b>, <b>Notifications</b>, <b>Tools</b>, <b>Kiosk displays</b> — see their chapters.</li>
 </ul>
 
@@ -26,6 +27,20 @@
   <li>If it does not, it goes back to the old version by itself.</li>
 </ol>
 <p>Updates can be installed by a click or automatically in a chosen hour. A mirror or a local folder can be the source (<code>WATCHZIT_UPDATE_SOURCE</code> in <code>/etc/watchzit/server.env</code>). The same page sets the server's time zone and restarts the service.</p>
+<p><b>Without internet access:</b> under <b>Install from files</b> upload <code>manifest.json</code>, <code>manifest.json.sig</code> and the server package (.deb or .rpm) of a release, downloaded on another computer. They are checked like a download and installed the same way.</p>
+
+<h2 id="os">Operating system and SSH</h2>
+<p>The same page shows the <b>operating system updates</b> of the server (Debian, Ubuntu, AlmaLinux, Rocky Linux): how many wait and how many are security updates, whether automatic security updates are on and when they last ran. <b>Install all updates</b> installs them now; when they need a restart, the page says so and <b>Restart the server</b> restarts it. The list is refreshed by itself twice a day, or with <b>Check now</b>.</p>
+<p>On the WatchZit appliance the page also sets its <b>network</b> (DHCP or a fixed address, gateway, DNS, name — settings that cut the appliance off are undone after 30 seconds) and <b>SSH</b>: on or off and its port; a port the SSH server refuses leaves the old setting. On other servers these belong to the operating system.</p>
+
+<h2 id="certificate">Certificate</h2>
+<p>Out of the box the console uses its own certificate, which browsers warn about. Under <a href="/settings/certificate">Settings → Certificate</a>:</p>
+<ul>
+  <li><b>Upload a certificate</b> of your company: the certificate with its chain and the private key in PEM (files or pasted), for the DNS name — or the IP address — browsers use. It is checked before it is used.</li>
+  <li><b>Let's Encrypt</b>: enter the name and an email address. Let's Encrypt checks the name over <b>port 80</b> of this server (reachable from the internet) or, when the console is internal, with a <b>DNS record through Cloudflare</b> (an API token with the permission Zone → DNS → Edit). The certificate is renewed by itself 30 days before it expires.</li>
+  <li><b>Serve port 80</b> also sends browsers that type http:// to the console.</li>
+</ul>
+<p>The trusted certificate is served when the console is opened under its name; opened by its IP address, the console keeps using its own certificate. Agents are not affected: they use the agent port's own certificate, which they pinned at enrollment. To use the standard port, set the console port to 443 under Network and access.</p>
 
 <h2 id="security">Security</h2>
 <ul>

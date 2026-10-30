@@ -1,0 +1,62 @@
+{{template "app" .}}
+{{define "content"}}
+<h1>{{.T "Settings"}}</h1>
+<div class="settings">
+{{template "settingstabs" .}}
+<div class="settings-body">
+{{$d := .Data}}
+<section class="panel">
+  <h2>{{template "icon" "lock"}}{{.T "Certificate of the console"}}</h2>
+  <p class="muted">{{.T "Out of the box the console uses its own certificate, which browsers warn about. Upload a certificate of your company, or let WatchZit get one from Let's Encrypt and renew it by itself. Agents are not affected: they keep using the agent port's own certificate."}}</p>
+  {{with $d.Info}}
+  <dl class="facts">
+    <div><dt>{{$.T "In use for"}}</dt><dd><b>{{range $i, $n := .Names}}{{if $i}}, {{end}}{{$n}}{{end}}</b></dd></div>
+    <div><dt>{{$.T "Issued by"}}</dt><dd>{{.Issuer}}</dd></div>
+    <div><dt>{{$.T "Valid until"}}</dt><dd>{{.NotAfter.Format "2006-01-02"}} <span class="{{if lt .DaysLeft 21}}warntext{{else}}muted{{end}}">({{$.T "%d days" .DaysLeft}})</span></dd></div>
+    <div><dt>SHA-256</dt><dd><code class="wrap small">{{.Fingerprint}}</code></dd></div>
+  </dl>
+  {{with $d.Address}}<p class="mt">{{$.T "Open the console at"}} <a href="{{.}}">{{.}}</a></p>{{end}}
+  {{else}}{{with $d.Self}}
+  <dl class="facts">
+    <div><dt>{{$.T "In use"}}</dt><dd>{{$.T "the console's own certificate"}}</dd></div>
+    <div><dt>{{$.T "Valid until"}}</dt><dd>{{.NotAfter.Format "2006-01-02"}}</dd></div>
+    <div><dt>SHA-256</dt><dd><code class="wrap small">{{.Fingerprint}}</code></dd></div>
+  </dl>
+  {{end}}{{end}}
+  {{with $d.LastErr}}<div class="flash err mt" role="alert">{{template "icon" "alert"}}<span>{{.}}</span></div>{{end}}
+  {{if eq $d.S.Mode "acme"}}<form method="post" action="/settings/certificate/renew" class="mt"><button class="secondary">{{template "icon" "refresh"}}{{.T "Renew now"}}</button> <small class="muted">{{.T "Let's Encrypt certificates are renewed by themselves 30 days before they expire."}}</small></form>{{end}}
+</section>
+{{if $d.Off}}<p class="flash info">{{.T "The certificate cannot be changed on this server."}}</p>{{else}}
+<section class="panel">
+  <h2>{{.T "Change"}}</h2>
+  <form method="post" action="/settings/certificate" enctype="multipart/form-data" class="stack">
+    <label>{{.T "Certificate"}}<select name="mode" data-switch="certmode">
+      <option value="self" {{if eq $d.S.Mode "self"}}selected{{end}}>{{.T "The console's own (browsers warn)"}}</option>
+      <option value="upload" {{if eq $d.S.Mode "upload"}}selected{{end}}>{{.T "Upload a certificate"}}</option>
+      <option value="acme" {{if eq $d.S.Mode "acme"}}selected{{end}}>{{.T "Let's Encrypt (free, renewed by itself)"}}</option>
+    </select></label>
+    <div data-show="certmode" data-when="upload acme" class="stack">
+      <label>{{.T "Name of the console"}}<input name="hostname" value="{{$d.S.Hostname}}" placeholder="watch.example.com" spellcheck="false" class="mono"><small>{{.T "The DNS name browsers use (an uploaded certificate may also be for an IP address)."}}</small></label>
+      <label class="check"><input type="checkbox" name="redirect_http" value="1" {{if $d.S.RedirectHTTP}}checked{{end}}>{{.T "Serve port 80: send browsers to HTTPS and answer Let's Encrypt"}}</label>
+    </div>
+    <div data-show="certmode" data-when="upload" class="stack">
+      <label>{{.T "Certificate with its chain (PEM)"}}<input type="file" name="cert_pem_file" accept=".pem,.crt,.cer"><textarea name="cert_pem" rows="4" class="mono small" placeholder="-----BEGIN CERTIFICATE-----"></textarea></label>
+      <label>{{.T "Private key (PEM)"}}<input type="file" name="key_pem_file" accept=".pem,.key"><textarea name="key_pem" rows="4" class="mono small" placeholder="-----BEGIN PRIVATE KEY-----"></textarea></label>
+      {{if eq $d.S.Mode "upload"}}<small class="muted">{{.T "Leave both empty to keep the uploaded certificate."}}</small>{{end}}
+    </div>
+    <div data-show="certmode" data-when="acme" class="stack">
+      <label>{{.T "Email for expiry notices"}}<input type="email" name="acme_email" value="{{$d.S.ACMEEmail}}"></label>
+      <label>{{.T "How Let's Encrypt checks the name"}}<select name="challenge" data-switch="challenge">
+        <option value="http" {{if ne $d.S.Challenge "cloudflare"}}selected{{end}}>{{.T "Port 80 of this server, reachable from the internet"}}</option>
+        <option value="cloudflare" {{if eq $d.S.Challenge "cloudflare"}}selected{{end}}>{{.T "DNS record through Cloudflare (no open port needed)"}}</option>
+      </select></label>
+      <label data-show="challenge" data-when="cloudflare">{{.T "Cloudflare API token"}} {{if $d.HasToken}}<small>{{.T "empty: keep the saved one"}}</small>{{end}}<input type="password" name="cloudflare_token" autocomplete="new-password"><small>{{.T "A token with the permission Zone → DNS → Edit for the zone of the name."}}</small></label>
+      <label class="check"><input type="checkbox" name="staging" value="1" {{if $d.Staging}}checked{{end}}>{{.T "Test with the Let's Encrypt staging server (certificate not trusted)"}}</label>
+    </div>
+    <div><button class="primary">{{.T "Save"}}</button></div>
+  </form>
+</section>
+{{end}}
+</div>
+</div>
+{{end}}
