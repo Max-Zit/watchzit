@@ -290,6 +290,7 @@ func run() error {
 	go srv.RunEscalation(ctx)
 	go srv.RunReportMail(ctx)
 	go logs.Run(ctx)
+	go srv.RunDiscovery(ctx)
 	go srv.RunUpdates(ctx)
 	// For the root helper: which version runs and where (it checks this after an update).
 	if err := helper.WriteServerInfo(*dataDir, helper.ServerInfo{Version: version, MgmtListen: net0.MgmtListen}); err != nil {

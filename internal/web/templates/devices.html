@@ -1,6 +1,6 @@
 {{template "app" .}}
 {{define "content"}}
-<div class="titlebar"><h1>{{.T "Devices"}}</h1>{{if .User.CanWrite}}<a class="btn primary" href="/devices/new{{if gt .Data.GroupID 0}}?group={{.Data.GroupID}}{{end}}">{{template "icon" "plus"}}{{.T "Add a device"}}</a>{{end}}</div>
+<div class="titlebar"><h1>{{.T "Devices"}}</h1>{{if .User.CanWrite}}<div class="row"><a class="btn secondary" href="/discovery">{{template "icon" "network"}}{{.T "Discovery"}}</a><a class="btn primary" href="/devices/new{{if gt .Data.GroupID 0}}?group={{.Data.GroupID}}{{end}}">{{template "icon" "plus"}}{{.T "Add a device"}}</a></div>{{end}}</div>
 <section class="panel">
   <form method="get" action="/devices" class="row">
     <input type="search" name="q" value="{{.Data.Q}}" placeholder="{{.T "Search name, address, notes"}}" aria-label="{{.T "Search"}}">

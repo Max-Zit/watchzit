@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/max-zit/watchzit/internal/alert"
+	"github.com/max-zit/watchzit/internal/discovery"
 	"github.com/max-zit/watchzit/internal/logrecv"
 	"github.com/max-zit/watchzit/internal/netacl"
 	"github.com/max-zit/watchzit/internal/poller"
@@ -71,6 +72,9 @@ type Server struct {
 	wg      sync.WaitGroup // notifications in flight
 	queries queryCache     // answers of data source queries
 	tlsc    *consoleTLS    // console certificates (nil on the development server)
+	scans   scans          // network discovery in progress
+	// Prober replaces the network prober of discovery (tests).
+	Prober *discovery.Prober
 }
 
 // New creates the server; settings are loaded from the database.
@@ -378,6 +382,10 @@ func (s *Server) Handler() http.Handler {
 	admin("POST /reports/mail", s.handleReportMail)
 	app("GET /problems", s.handleProblems)
 	app("GET /logs", s.handleLogs)
+	write("GET /discovery", s.handleDiscovery)
+	write("POST /discovery/ranges", s.handleDiscoveryRangeAdd)
+	write("POST /discovery/ranges/{id}", s.handleDiscoveryRange)
+	write("POST /discovery/hosts", s.handleDiscoveryHosts)
 	admin("GET /settings/logs", s.handleLogSettings)
 	admin("POST /settings/logs", s.handleLogSettingsSave)
 	write("POST /problems/{id}/ack", s.handleProblemAck)

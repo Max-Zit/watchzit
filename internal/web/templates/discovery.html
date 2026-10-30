@@ -1,0 +1,62 @@
+{{template "app" .}}
+{{define "content"}}
+<p class="back"><a href="/devices">{{.T "Devices"}}</a></p>
+<h1>{{.T "Discovery"}}</h1>
+<p class="muted">{{.T "WatchZit pings every address of a range, tries common ports (SSH, web, RDP, WinBox, printers …), asks SNMP with your profiles who answers and looks up DNS names. Found hosts that are not devices yet are listed below; add them with one click. Scheduled ranges are scanned again every day or week, so new hosts show up here by themselves."}}</p>
+<section class="panel">
+  <h2>{{template "icon" "network"}}{{.T "Ranges"}}</h2>
+  {{if .Data.Ranges}}
+  <div class="table-wrap"><table>
+    <thead><tr><th>{{.T "Range"}}</th><th>{{.T "Schedule"}}</th><th>{{.T "Last scan"}}</th><th></th></tr></thead>
+    <tbody>{{range .Data.Ranges}}<tr>
+      <td class="mono"><b>{{.CIDR}}</b></td>
+      <td><form method="post" action="/discovery/ranges/{{.ID}}" class="inline"><input type="hidden" name="do" value="every"><select name="every" data-autosubmit aria-label="{{$.T "Schedule"}}">
+        <option value="" {{if eq .Every ""}}selected{{end}}>{{$.T "Only by hand"}}</option><option value="day" {{if eq .Every "day"}}selected{{end}}>{{$.T "Every day"}}</option><option value="week" {{if eq .Every "week"}}selected{{end}}>{{$.T "Every week"}}</option></select></form></td>
+      <td class="small">{{if index $.Data.Busy .ID}}<span class="badge info"><i></i>{{$.T "scanning…"}}</span>{{else if .LastRun}}{{$.Ago .LastRun}} · {{$.T "%d new" .LastFound}}{{else}}<span class="muted">{{$.T "never"}}</span>{{end}}</td>
+      <td class="actions nowrap">
+        <form method="post" action="/discovery/ranges/{{.ID}}" class="inline"><input type="hidden" name="do" value="scan"><button class="secondary sm" {{if index $.Data.Busy .ID}}disabled{{end}}>{{template "icon" "refresh"}}{{$.T "Scan now"}}</button></form>
+        <form method="post" action="/discovery/ranges/{{.ID}}" class="inline" data-confirm="{{$.T "Delete the range %s?" .CIDR}}"><input type="hidden" name="do" value="delete"><button class="ghost sm" title="{{$.T "Delete"}}">{{template "icon" "trash"}}</button></form>
+      </td>
+    </tr>{{end}}</tbody>
+  </table></div>
+  {{end}}
+  <form method="post" action="/discovery/ranges" class="row wrap mt">
+    <input name="cidr" required maxlength="43" placeholder="192.168.1.0/24" class="mono" aria-label="{{.T "Range"}}">
+    <select name="every" aria-label="{{.T "Schedule"}}"><option value="">{{.T "Only by hand"}}</option><option value="day">{{.T "Every day"}}</option><option value="week" selected>{{.T "Every week"}}</option></select>
+    <input type="hidden" name="now" value="1">
+    <button class="primary">{{template "icon" "plus"}}{{.T "Add and scan"}}</button>
+  </form>
+  <p class="small muted">{{.T "A network up to /22 (1024 addresses) or one address."}}</p>
+</section>
+<section class="panel">
+  <h2>{{.T "Found hosts"}} <span class="muted small">({{len .Data.Hosts}})</span></h2>
+  {{if .Data.Hosts}}
+  <form method="post" action="/discovery/hosts" class="stack">
+    <div class="table-wrap"><table>
+      <thead><tr><th><input type="checkbox" data-check-all="addr" aria-label="{{.T "All"}}"></th><th>{{.T "Address"}}</th><th>{{.T "Name"}}</th><th>{{.T "Kind"}}</th><th class="hide-sm">{{.T "Answers"}}</th><th class="hide-sm">{{.T "Last seen"}}</th></tr></thead>
+      <tbody>{{range .Data.Hosts}}<tr>
+        <td><input type="checkbox" name="addr" value="{{.Address}}" aria-label="{{.Address}}"></td>
+        <td class="mono">{{.Address}}</td>
+        <td><b>{{.Name}}</b>{{with .Vendor}} <span class="badge muted">{{.}}</span>{{end}}{{with .SysDescr}}<br><span class="small muted">{{.}}</span>{{end}}{{if and .DNSName (ne .DNSName .Name)}}<br><span class="small muted mono">{{.DNSName}}</span>{{end}}</td>
+        <td>{{$.KindName .Kind}}</td>
+        <td class="hide-sm small">{{if .Ping}}ping{{end}}{{range .Ports}} · {{.}}{{end}}{{if .SNMP}} · SNMP <span class="muted">({{index $.Data.Profiles .SNMP}})</span>{{end}}</td>
+        <td class="hide-sm small">{{$.Ago .LastSeen}}</td>
+      </tr>{{end}}</tbody>
+    </table></div>
+    <div class="row wrap">
+      <label class="inline">{{.T "Group"}}<select name="group"><option value="0">{{.T "None"}}</option>{{range .Data.Groups}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></label>
+      <button class="primary" name="do" value="add">{{template "icon" "plus"}}{{.T "Add as devices"}}</button>
+      <button class="secondary" name="do" value="dismiss">{{.T "Hide"}}</button>
+    </div>
+    <p class="small muted">{{.T "Each device gets a ping check (or a TCP check when ping is blocked) and the SNMP profile that answered."}}</p>
+  </form>
+  {{else}}<p class="muted">{{.T "No new hosts. Add a range and scan it."}}</p>{{end}}
+</section>
+{{with .Data.Dismissed}}<section class="panel">
+  <details><summary>{{$.T "Hidden hosts"}} ({{len .}})</summary>
+  <form method="post" action="/discovery/hosts" class="stack mt">
+    <div class="pickers">{{range .}}<label class="check"><input type="checkbox" name="addr" value="{{.Address}}"><span class="mono">{{.Address}}</span> {{.Name}}</label>{{end}}</div>
+    <div><button class="secondary sm" name="do" value="restore">{{$.T "Show again"}}</button></div>
+  </form></details>
+</section>{{end}}
+{{end}}

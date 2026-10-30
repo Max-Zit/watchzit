@@ -11,6 +11,9 @@
 </ul>
 <p>The device's state comes from its checks: <b>up</b> when all are up, <b>partly down</b> when some are down, <b>down</b> when all are.</p>
 
+
+<h2 id="discovery">Discovery</h2>
+<p><a href="/discovery">Devices → Discovery</a> finds the hosts of a network: add a range (e.g. <code>192.168.1.0/24</code>, up to /22, or one address) and scan it now, every day or every week. WatchZit pings every address, tries common ports (SSH, Telnet, web, RDP, WinBox, SMB, printers, VNC), asks SNMP with your SNMP profiles for the name, description and maker, and looks up the DNS name. Hosts that are not devices yet are listed with their name, a guessed kind and what answered; tick them and click <b>Add as devices</b> (optionally into a group): each gets a ping check (or a TCP check when ping is blocked) and the SNMP profile that answered. <b>Hide</b> keeps a host out of the list; hidden hosts can be shown again. With a schedule, new hosts that appear in the network show up here by themselves.</p>
 <h2 id="links">Web links</h2>
 <p>Under <b>Web links</b> on a device, the <b>Web interface</b> address opens with the button on the device page and on maps; give the button another <b>name</b> if you like. Add more links for a server with several addresses, its iDRAC or iLO, or the page of a service; each becomes a button of its own.</p>
 
