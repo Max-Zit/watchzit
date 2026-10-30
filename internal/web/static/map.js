@@ -496,17 +496,20 @@
     if (len < 70) nameA = nameB = ""; // a short patch cord: the panel names its ports
     if (nameA) { var pa = pointAlong(pts, offA); label(gl, "port", pa.x, pa.y, nameA); }
     if (nameB) { var pb = pointAlong(pts, len - offB); label(gl, "port", pb.x, pb.y, nameB); }
-    var text = k.label || "";
+    var text = "";
     if (vlan) {
       var pv = findVLAN(linkVLANs(k, s), vlan);
       text = "VLAN " + vlan + (pv ? " · " + (pv.tagged ? T("tagged") : T("untagged")) : "");
-    } else if (s.ab !== null && s.ab !== undefined && len > 190) text = (text ? text + "  " : "") + "→ " + bits(s.ab) + "  ← " + bits(s.ba);
+    } else if (s.ab !== null && s.ab !== undefined && len > 190) text = "→ " + bits(s.ab) + "  ← " + bits(s.ba);
     var mid = pointAlong(pts, len / 2);
     if (text) label(gl, vlan ? "vlanpick" : "traffic", mid.x, mid.y, text);
     // the VLAN mode (access / trunk, native VLAN) and the VXLAN VNI
     var vt = vlan ? "" : modeText(linkMode(k, s), 30);
     if (k.vni) vt = (vt ? vt + " · " : "") + "VNI " + k.vni;
-    if (vt && len > 120) label(gl, "vlan", mid.x, mid.y + (text ? 8 : 0), vt);
+    // the cable's own label, small like the port numbers, then the VLAN mode
+    var ly = mid.y + (text ? 8 : 0);
+    if (k.label) { label(gl, "cname", mid.x, ly, k.label); ly += 5; }
+    if (vt && len > 120) label(gl, "vlan", mid.x, ly, vt);
   }
   // VXLAN tunnels the devices report, between devices on the map (a cable
   // of kind VXLAN with the same VNI between them stands for it)
