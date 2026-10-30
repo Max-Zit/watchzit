@@ -1099,16 +1099,20 @@
     function fill() {
       grid.innerHTML = "";
       var f = q.value.toLowerCase().trim();
-      var items = libList.filter(function (i) { return f || vend.value === "*" || (i.vendor || "") === vend.value; })
+      // a search or a type with "Generic pictures" looks through all manufacturers
+      var all = vend.value === "*" || (!vend.value && (f || kind.value));
+      var items = libList.filter(function (i) { return all || (f && !vend.value) || (i.vendor || "") === vend.value; })
         .map(function (i) { return { icon: "lib:" + i.name, src: "/static/devices/" + i.name + ".svg?v=" + assetV, label: i.label, type: picType(i) }; });
       Object.keys(meta.assets || {}).forEach(function (id) {
         var a = meta.assets[id];
         var am = a.meta || {};
-        if (a.kind === "icon" && (!vend.value || vend.value === "*" || f || am.vendor === vend.value)) items.push({ icon: "asset:" + id, src: url("assets", id), label: a.name, type: am.type || "uploaded" });
+        if (a.kind === "icon" && (!vend.value || all || am.vendor === vend.value)) items.push({ icon: "asset:" + id, src: url("assets", id), label: a.name, type: am.type || "uploaded" });
       });
+      var shown = 0, more = false;
       items.forEach(function (it) {
         if (kind.value && it.type !== kind.value) return;
         if (f && f.split(/\s+/).some(function (w) { return it.label.toLowerCase().indexOf(w) < 0; })) return;
+        if (++shown > 300) { more = true; return; }
         var b = h("button", { type: "button", title: it.label });
         b.appendChild(h("img", { src: it.src, alt: "", loading: "lazy" }));
         b.appendChild(h("small", {}, vend.value && it.label.indexOf(vend.value + " ") === 0 ? it.label.slice(vend.value.length + 1) : it.label));
@@ -1116,6 +1120,7 @@
         grid.appendChild(b);
       });
       if (!grid.firstChild) grid.appendChild(h("p", { "class": "muted small" }, T("No pictures match.")));
+      if (more) grid.appendChild(h("p", { "class": "muted small" }, T("Showing the first 300; search or choose a manufacturer to see the others.")));
     }
     q.addEventListener("input", fill);
     var acts = h("div", { "class": "row" });

@@ -24,7 +24,7 @@ var vendorAccent = map[string]string{
 	"Fortinet": "#da291c", "HPE": "#01a982", "MikroTik": "#9aa5b5", "Dell": "#0076ce", "Lenovo": "#e2231a",
 	"Supermicro": "#1e64c8", "Cisco": "#049fd9", "Fujitsu": "#e60012", "Huawei": "#c7000b", "xFusion": "#c7000b", "Inspur": "#0055a5",
 	"Synology": "#2f3b4c", "QNAP": "#1d6fb8", "Cisco Meraki": "#67b346", "HPE Aruba": "#ff8300", "Juniper": "#84b135", "Ubiquiti": "#006fff",
-	"Netgear": "#5b2d90", "TP-Link": "#4acbd6", "Palo Alto": "#fa582d", "Sophos": "#005bc8", "NetApp": "#0067c5", "Pure Storage": "#fe5000", "IBM": "#0f62fe",
+	"Netgear": "#5b2d90", "TP-Link": "#4acbd6", "Palo Alto": "#fa582d", "Sophos": "#005bc8", "NetApp": "#0067c5", "Pure Storage": "#fe5000", "IBM": "#0f62fe", "FS": "#c8102e",
 }
 
 func catalog() []model {
@@ -266,5 +266,6 @@ func catalog() []model {
 	ms = append(ms, catalogMore()...)
 	ms = append(ms, catalogExtra()...)
 	ms = append(ms, catalogMisc()...)
-	return append(ms, catalogISP()...)
+	ms = append(ms, catalogISP()...)
+	return append(ms, catalogFS()...)
 }
