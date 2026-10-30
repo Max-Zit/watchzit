@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/max-zit/watchzit/internal/cfgbackup"
 	"github.com/max-zit/watchzit/internal/launch"
 	"github.com/max-zit/watchzit/internal/store"
 )
@@ -103,6 +104,10 @@ type deviceData struct {
 	Tools      []deviceTool
 	AccessUser string
 	CheckTypes []string
+	// configuration backups (operators and administrators)
+	Backup   *store.DeviceBackup
+	Versions []*store.ConfigVersion
+	Methods  []string
 }
 
 // graphDef is one graph of the device page: the series of a check that
@@ -217,6 +222,9 @@ func (s *Server) showDevice(w http.ResponseWriter, r *http.Request, status int, 
 	if u := userFrom(r); u != nil && u.CanWrite() {
 		srcs, _ := s.store.DataSources(r.Context())
 		data.GraphEdit = graphEditJSON(s.lang(r, u), cs, data.Graphs, layout, srcs)
+		data.Backup, _ = s.store.DeviceBackupOf(r.Context(), d.ID)
+		data.Versions, _ = s.store.ConfigVersions(r.Context(), d.ID)
+		data.Methods = cfgbackup.Methods
 	}
 	data.Now = s.now()
 	if a, err := s.store.DeviceAccess(r.Context(), d.ID); err == nil {

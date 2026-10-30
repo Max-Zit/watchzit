@@ -60,3 +60,13 @@
   <li><b>Dodaj grafik</b> pravi novi od bilo kojih vrednosti uređaja. Vrednosti novih provera dobijaju svoje automatske grafike.</li>
   <li><b>Automatski grafici</b> brišu raspored: ponovo po jedan grafik za svaku proveru.</li>
 </ul>
+
+<h2 id="config-backup">Backup konfiguracije</h2>
+<p>Operateri i administratori mogu da čuvaju konfiguraciju mrežnih uređaja: u odeljku <b>Backup konfiguracije</b> na uređaju izaberite način — <b>MikroTik RouterOS</b> (<code>/export terse show-sensitive</code>), <b>Cisco IOS</b> (<code>show running-config</code>), <b>FortiGate</b> (<code>show full-configuration</code>) ili sopstvenu komandu — i SSH korisnika, port i lozinku ili privatni ključ. Lozinka i ključ se čuvaju šifrovani. Koristite korisnika koji sme samo da čita.</p>
+<ul>
+  <li>Backup se pravi svake noći u 02:00 (vreme servera) i dugmetom <b>Napravi backup sada</b>. Nova verzija se čuva samo kada se konfiguracija promenila; čuva se poslednjih 50 verzija svakog uređaja.</li>
+  <li>SSH host ključ se čuva pri prvom backup-u i posle se proverava. Kada se promeni, backup ne uspeva; ako je to očekivano (novi uređaj ili firmware), koristite <b>Zaboravi host ključ</b>.</li>
+  <li>Svaka verzija prikazuje izmene u odnosu na prethodnu (+ dodati, − uklonjeni redovi, uz <b>Cela konfiguracija</b> za sve) i može da se preuzme kao tekstualni fajl.</li>
+  <li>Izmene i neuspesi se upisuju u log uređaja (tag <code>config-backup</code>), pa log okidač može da pošalje obaveštenje.</li>
+  <li>Posmatrači ne vide ni konfiguracije ni podešavanja backup-a.</li>
+</ul>

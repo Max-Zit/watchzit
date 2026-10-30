@@ -450,6 +450,17 @@ func init() {
 	funcs["levels"] = func(p *Page) []string {
 		return []string{p.T("Emergency"), p.T("Alert"), p.T("Critical"), p.T("Error"), p.T("Warning"), p.T("Notice"), p.T("Informational"), p.T("Debug")}
 	}
+	funcs["backupMethod"] = func(p *Page, m string) string {
+		switch m {
+		case "mikrotik":
+			return p.T("MikroTik RouterOS (/export)")
+		case "cisco":
+			return p.T("Cisco IOS (show running-config)")
+		case "fortigate":
+			return p.T("FortiGate (show full-configuration)")
+		}
+		return p.T("Own command")
+	}
 	funcs["dayOn"] = func(days, i int) bool { return days&(1<<i) != 0 }
 	funcs["hours"] = func() []int {
 		h := make([]int, 25)

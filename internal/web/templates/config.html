@@ -1,0 +1,21 @@
+{{template "app" .}}
+{{define "content"}}
+{{$d := .Data.D}}{{$v := .Data.V}}
+<p class="back"><a href="/devices/{{$d.ID}}#backup">{{$d.Name}}</a></p>
+<div class="titlebar">
+  <h1>{{.T "Configuration"}} · {{.Time $v.At}}</h1>
+  <div class="row">
+    {{if .Data.Prev}}{{if .Data.Full}}<a class="btn secondary sm" href="?">{{.T "Changes only"}}</a>{{else}}<a class="btn secondary sm" href="?full=1">{{.T "Whole configuration"}}</a>{{end}}{{end}}
+    <a class="btn secondary sm" href="?download=1">{{template "icon" "download"}}{{.T "Download"}}</a>
+  </div>
+</div>
+{{with .Data.Prev}}<p class="muted small">{{$.T "Compared with the version of %s" ($.Time .At)}}: <span class="ok-text">+{{$v.Added}}</span> <span class="warntext">−{{$v.Removed}}</span></p>{{end}}
+<section class="panel">
+  {{if .Data.Diff}}<pre class="cfgdiff">{{range .Data.Diff}}{{if eq .Op 126}}<span class="gap">⋯</span>
+{{else if eq .Op 43}}<span class="add">+ {{.Text}}</span>
+{{else if eq .Op 45}}<span class="del">- {{.Text}}</span>
+{{else}}  {{.Text}}
+{{end}}{{end}}</pre>
+  {{else}}<pre class="cfgdiff">{{$v.Content}}</pre>{{end}}
+</section>
+{{end}}

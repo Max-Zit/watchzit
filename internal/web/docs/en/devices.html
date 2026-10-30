@@ -60,3 +60,13 @@
   <li><b>Add graph</b> makes a new one from any values of the device. Values of new checks get their automatic graphs.</li>
   <li><b>Automatic graphs</b> removes the arrangement: one graph per check again.</li>
 </ul>
+
+<h2 id="config-backup">Configuration backups</h2>
+<p>Operators and administrators can keep the configuration of network devices: in the <b>Configuration backups</b> section of a device choose the method — <b>MikroTik RouterOS</b> (<code>/export terse show-sensitive</code>), <b>Cisco IOS</b> (<code>show running-config</code>), <b>FortiGate</b> (<code>show full-configuration</code>) or an own command — and the SSH user, port and password or private key. The password and key are kept encrypted. Use a user that may only read.</p>
+<ul>
+  <li>Backups run every night at 02:00 (server time) and with <b>Back up now</b>. A new version is kept only when the configuration changed; the last 50 versions of each device are kept.</li>
+  <li>The SSH host key is saved at the first backup and checked after that. When it changes the backup fails; if that was expected (new device or firmware) use <b>Forget host key</b>.</li>
+  <li>Each version shows the changes against the one before (+ added, − removed lines, with <b>Whole configuration</b> for everything) and can be downloaded as a text file.</li>
+  <li>Changes and failures are written to the device's log (tag <code>config-backup</code>), so a log trigger can send a notification for them.</li>
+  <li>Viewers see neither the configurations nor the backup settings.</li>
+</ul>

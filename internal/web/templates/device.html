@@ -280,5 +280,47 @@
   </details>
   {{end}}
 </section>
+{{if .User.CanWrite}}{{$b := .Data.Backup}}
+<section class="panel" id="backup">
+  <h2>{{template "icon" "file"}}{{.T "Configuration backups"}}</h2>
+  {{if $b}}
+  <p class="small">{{.T "Method"}}: <b>{{backupMethod $ $b.Method}}</b> · {{$b.User}}@{{$d.Address}}:{{$b.Port}}{{if not $b.Enabled}} · <span class="badge muted">{{.T "Off"}}</span>{{end}}
+    · {{.T "Last backup"}}: {{if $b.LastRun}}{{$.Ago $b.LastRun}}{{else}}{{.T "never"}}{{end}}
+    {{with $b.LastError}}<br><span class="warntext">{{.}}</span>{{end}}</p>
+  <div class="row">
+    <form method="post" action="/devices/{{$d.ID}}/backup/run"><button class="secondary sm">{{template "icon" "refresh"}}{{.T "Back up now"}}</button></form>
+    {{if $b.HostKey}}<form method="post" action="/devices/{{$d.ID}}/backup/run" data-confirm="{{.T "Forget the saved SSH host key? The next backup trusts the key it sees."}}"><input type="hidden" name="do" value="forget-key"><button class="ghost sm" title="{{$b.HostKey}}">{{.T "Forget host key"}}</button></form>{{end}}
+  </div>
+  {{end}}
+  {{if .Data.Versions}}
+  <div class="table-wrap mt"><table>
+    <thead><tr><th>{{.T "Saved"}}</th><th class="num">{{.T "Size"}}</th><th>{{.T "Changes"}}</th><th></th></tr></thead>
+    <tbody>{{range $i, $v := .Data.Versions}}<tr>
+      <td>{{$.Time $v.At}}{{if eq $i 0}} <span class="badge ok">{{$.T "current"}}</span>{{end}}</td>
+      <td class="num">{{$v.Size}} B</td>
+      <td class="small">{{if or $v.Added $v.Removed}}<span class="ok-text">+{{$v.Added}}</span> <span class="warntext">−{{$v.Removed}}</span>{{else}}<span class="muted">{{$.T "first"}}</span>{{end}}</td>
+      <td class="actions nowrap"><a class="btn ghost sm" href="/devices/{{$d.ID}}/configs/{{$v.ID}}">{{$.T "Show"}}</a> <a class="btn ghost sm" href="/devices/{{$d.ID}}/configs/{{$v.ID}}?download=1" title="{{$.T "Download"}}">{{template "icon" "download"}}</a></td>
+    </tr>{{end}}</tbody>
+  </table></div>
+  {{end}}
+  <details class="mt"{{if not $b}} open{{end}}><summary>{{if $b}}{{.T "Settings"}}{{else}}{{.T "Back up the configuration of this device every night over SSH"}}{{end}}</summary>
+  <form method="post" action="/devices/{{$d.ID}}/backup" class="stack mt" autocomplete="off">
+    <div class="cols">
+      <label>{{.T "Method"}}<select name="method" data-switch="bkmethod">{{range .Data.Methods}}<option value="{{.}}" {{if and $b (eq . $b.Method)}}selected{{end}}>{{backupMethod $ .}}</option>{{end}}</select></label>
+      <label>{{.T "SSH user"}}<input name="user" value="{{if $b}}{{$b.User}}{{end}}" required maxlength="100"></label>
+      <label>{{.T "SSH port"}}<input type="number" name="port" value="{{if $b}}{{$b.Port}}{{else}}22{{end}}" min="1" max="65535"></label>
+    </div>
+    <label data-show="bkmethod" data-when="command">{{.T "Command"}}<input name="command" value="{{if $b}}{{$b.Command}}{{end}}" maxlength="500" placeholder="cat /etc/config/network" class="mono"></label>
+    <div class="cols">
+      <label>{{.T "Password"}} {{if and $b $b.HasSecret}}<small>{{.T "empty: keep the saved one"}}</small>{{end}}<input type="password" name="secret" maxlength="500" autocomplete="new-password"></label>
+      <label>{{.T "Private key (PEM)"}} <small>{{.T "optional"}}{{if and $b $b.HasKey}} · {{.T "empty: keep the saved one"}}{{end}}</small><textarea name="key" rows="2" class="mono small" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"></textarea></label>
+    </div>
+    {{if $b}}<div class="row wrap">{{if $b.HasSecret}}<label class="check"><input type="checkbox" name="clear_secret" value="1">{{.T "Remove the saved password"}}</label>{{end}}{{if $b.HasKey}}<label class="check"><input type="checkbox" name="clear_key" value="1">{{.T "Remove the saved key"}}</label>{{end}}</div>{{end}}
+    <label class="check"><input type="checkbox" name="enabled" value="1" {{if or (not $b) $b.Enabled}}checked{{end}}>{{.T "Back up every night"}}</label>
+    <p class="small muted">{{.T "Use a user that may only read. MikroTik: /export with secrets; Cisco: show running-config; FortiGate: show full-configuration. The SSH host key is saved at the first backup and checked after that. A new version is kept only when the configuration changed; changes and failures also appear in the device's log, so a log trigger can report them."}}</p>
+    <div class="row"><button class="primary">{{.T "Save"}}</button>{{if $b}}</div></form><form method="post" action="/devices/{{$d.ID}}/backup" class="mt" data-confirm="{{.T "Stop the configuration backups of this device? The saved versions stay."}}"><input type="hidden" name="do" value="delete"><button class="danger sm">{{.T "Stop backups"}}</button></form>{{else}}</div></form>{{end}}
+  </details>
+</section>
+{{end}}
 <script src="/static/chart.js?v={{.Asset}}" defer></script>
 {{end}}
