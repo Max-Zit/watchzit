@@ -269,7 +269,8 @@
     var p = box(n).pic;
     if (!p || !slot) return "";
     var copper = p.ports.length - (p.fiber || 0);
-    return slot > copper ? "SFP " + (slot - copper) : String(slot);
+    // only fibre ports (a patch panel): plain numbers
+    return slot > copper && copper > 0 ? "SFP" + (slot - copper) : String(slot);
   }
   // guessSlot finds the picture port of an interface name (ether3 → 3,
   // sfp1 → first SFP cage, eth0 → 1).
@@ -494,9 +495,12 @@
     var offB = anchor(b, slotOf(k, "b")).port ? 0 : Math.min(len * 0.4, edgeDist(b, pts[pts.length - 1], pts[pts.length - 2]));
     var nameA = s.a ? s.a.name : k.a_slot ? slotName(a, k.a_slot) : "";
     var nameB = s.b ? s.b.name : k.b_slot ? slotName(b, k.b_slot) : "";
-    if (len < 70) nameA = nameB = ""; // a short patch cord: the panel names its ports
-    if (nameA) { var pa = pointAlong(pts, offA); label(gl, "port", pa.x, pa.y, nameA); }
-    if (nameB) { var pb = pointAlong(pts, len - offB); label(gl, "port", pb.x, pb.y, nameB); }
+    // a short cord that does not end on a port of a picture: no room for names
+    if (len < 70 && offA) nameA = "";
+    if (len < 70 && offB) nameB = "";
+    // longer names (SFP2, ether12) in a smaller font, to stay on their port
+    if (nameA) { var pa = pointAlong(pts, offA); label(gl, "port" + (nameA.length > 2 ? " long" : ""), pa.x, pa.y, nameA); }
+    if (nameB) { var pb = pointAlong(pts, len - offB); label(gl, "port" + (nameB.length > 2 ? " long" : ""), pb.x, pb.y, nameB); }
     var text = "";
     if (vlan) {
       var pv = findVLAN(linkVLANs(k, s), vlan);
