@@ -98,7 +98,7 @@ var portNames = map[int]string{20: "FTP data", 21: "FTP", 22: "SSH", 23: "Telnet
 	110: "POP3", 123: "NTP", 137: "NetBIOS", 138: "NetBIOS", 139: "NetBIOS", 143: "IMAP", 161: "SNMP", 162: "SNMP trap", 179: "BGP", 389: "LDAP", 443: "HTTPS",
 	445: "SMB", 465: "SMTPS", 500: "IKE", 514: "Syslog", 587: "Submission", 636: "LDAPS", 853: "DNS over TLS", 993: "IMAPS", 995: "POP3S", 1194: "OpenVPN",
 	1433: "SQL Server", 1701: "L2TP", 1723: "PPTP", 1812: "RADIUS", 2055: "NetFlow", 3306: "MySQL", 3389: "RDP", 4500: "IPsec NAT-T", 5060: "SIP",
-	5432: "PostgreSQL", 5900: "VNC", 6343: "sFlow", 8080: "HTTP alt", 8291: "WinBox", 8443: "HTTPS alt", 8728: "RouterOS API", 51820: "WireGuard"}
+	5432: "PostgreSQL", 5900: "VNC", 8006: "Proxmox VE", 6343: "sFlow", 8080: "HTTP alt", 8291: "WinBox", 8443: "HTTPS alt", 8728: "RouterOS API", 51820: "WireGuard"}
 
 func serviceName(proto, port int) string {
 	p, ok := protoNames[proto]
@@ -181,6 +181,8 @@ func (s *Server) handleFlows(w http.ResponseWriter, r *http.Request) {
 			if x := byID[t.DeviceID]; x != nil {
 				l.Exporter, l.ExporterID = x.Name, x.ID
 			}
+		} else if t.Exporter.IsValid() {
+			l.Exporter = t.Exporter.String()
 		}
 		return l
 	}

@@ -45,7 +45,7 @@
 {{define "flowtop"}}{{$p := .P}}<section class="panel">
   <h2>{{.Title}}</h2>
   {{if .Rows}}<table class="list flowtop"><tbody>{{range .Rows}}<tr>
-    <td>{{if eq $.Kind "src"}}{{template "flowaddr" (flowAddr .Src .SrcID)}}{{else if eq $.Kind "dst"}}{{template "flowaddr" (flowAddr .Dst .DstID)}}{{else if eq $.Kind "exporter"}}<a href="/flows?device={{.ExporterID}}">{{.Exporter}}</a>{{else}}{{.Service}}{{end}}
+    <td>{{if eq $.Kind "src"}}{{template "flowaddr" (flowAddr .Src .SrcID)}}{{else if eq $.Kind "dst"}}{{template "flowaddr" (flowAddr .Dst .DstID)}}{{else if eq $.Kind "exporter"}}{{if .ExporterID}}<a href="/flows?device={{.ExporterID}}">{{.Exporter}}</a>{{else}}<span class="mono small">{{.Exporter}}</span>{{end}}{{else}}{{.Service}}{{end}}
       <progress class="meter" max="100" value="{{.Pct}}"></progress></td>
     <td class="num nowrap">{{bytes .Bytes}}<br><span class="muted small">{{printf "%.1f" .Pct}} %</span></td></tr>{{end}}</tbody></table>
   {{else}}<p class="muted">—</p>{{end}}

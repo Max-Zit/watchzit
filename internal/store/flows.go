@@ -79,6 +79,7 @@ func (f FlowFilter) where() (string, []any) {
 // FlowTop is a row of a top list.
 type FlowTop struct {
 	Src, Dst       netip.Addr // by conversation; Src alone for sources, Dst alone for destinations
+	Exporter       netip.Addr // exporters
 	Proto, Port    int
 	DeviceID       int64 // exporters
 	Bytes, Packets int64
@@ -99,19 +100,19 @@ func (s *Store) FlowTops(ctx context.Context, f FlowFilter, by string, limit int
 	var cols string
 	switch by {
 	case FlowBySource:
-		cols, where = `src, NULL::inet, 0, 0, 0`, where+` AND src IS NOT NULL`
+		cols, where = `src, NULL::inet, 0, 0, 0, NULL::inet`, where+` AND src IS NOT NULL`
 	case FlowByDestination:
-		cols, where = `NULL::inet, dst, 0, 0, 0`, where+` AND dst IS NOT NULL`
+		cols, where = `NULL::inet, dst, 0, 0, 0, NULL::inet`, where+` AND dst IS NOT NULL`
 	case FlowByConversation:
-		cols, where = `src, dst, proto, port, 0`, where+` AND src IS NOT NULL`
+		cols, where = `src, dst, proto, port, 0, NULL::inet`, where+` AND src IS NOT NULL`
 	case FlowByService:
-		cols, where = `NULL::inet, NULL::inet, proto, port, 0`, where+` AND src IS NOT NULL`
+		cols, where = `NULL::inet, NULL::inet, proto, port, 0, NULL::inet`, where+` AND src IS NOT NULL`
 	default:
-		cols = `NULL::inet, NULL::inet, 0, 0, COALESCE(device_id, 0)`
+		cols = `NULL::inet, NULL::inet, 0, 0, COALESCE(device_id, 0), exporter`
 	}
 	args = append(args, limit)
 	rows, err := s.db.Query(ctx, `SELECT `+cols+`, sum(bytes)::bigint, sum(packets)::bigint FROM flow_minutes WHERE `+where+
-		` GROUP BY 1, 2, 3, 4, 5 ORDER BY 6 DESC LIMIT $`+strconv.Itoa(len(args)), args...)
+		` GROUP BY 1, 2, 3, 4, 5, 6 ORDER BY 7 DESC LIMIT $`+strconv.Itoa(len(args)), args...)
 	if err != nil {
 		return nil, err
 	}
@@ -119,8 +120,8 @@ func (s *Store) FlowTops(ctx context.Context, f FlowFilter, by string, limit int
 	var out []FlowTop
 	for rows.Next() {
 		var t FlowTop
-		var src, dst *netip.Addr
-		if err := rows.Scan(&src, &dst, &t.Proto, &t.Port, &t.DeviceID, &t.Bytes, &t.Packets); err != nil {
+		var src, dst, exp *netip.Addr
+		if err := rows.Scan(&src, &dst, &t.Proto, &t.Port, &t.DeviceID, &exp, &t.Bytes, &t.Packets); err != nil {
 			return nil, err
 		}
 		if src != nil {
@@ -128,6 +129,9 @@ func (s *Store) FlowTops(ctx context.Context, f FlowFilter, by string, limit int
 		}
 		if dst != nil {
 			t.Dst = *dst
+		}
+		if exp != nil {
+			t.Exporter = *exp
 		}
 		out = append(out, t)
 	}
