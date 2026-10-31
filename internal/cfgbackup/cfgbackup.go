@@ -63,6 +63,9 @@ type Result struct {
 }
 
 // ErrHostKey: the device answered with another host key than before.
+// ErrAuth: the device refused the user, password or key.
+var ErrAuth = errors.New("the device refused the user, password or key")
+
 var ErrHostKey = errors.New("the SSH host key of the device changed; if that was expected (new device or firmware), forget the saved key")
 
 // MaxSize limits a configuration.
@@ -129,7 +132,7 @@ func Fetch(ctx context.Context, t Target) (*Result, error) {
 	d := net.Dialer{}
 	conn, err := d.DialContext(ctx, "tcp", net.JoinHostPort(t.Address, strconv.Itoa(t.Port)))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("the device does not answer on SSH port %d (%w)", t.Port, err)
 	}
 	if dl, ok := ctx.Deadline(); ok {
 		_ = conn.SetDeadline(dl)
@@ -139,6 +142,9 @@ func Fetch(ctx context.Context, t Target) (*Result, error) {
 		_ = conn.Close()
 		if errors.Is(err, ErrHostKey) || strings.Contains(err.Error(), ErrHostKey.Error()) {
 			return nil, ErrHostKey
+		}
+		if strings.Contains(err.Error(), "unable to authenticate") {
+			return nil, ErrAuth
 		}
 		return nil, err
 	}

@@ -50,6 +50,15 @@ func docHTML(lang, slug string) template.HTML {
 	return ""
 }
 
+// adminOnlyLink is a link of the guide to a page only administrators may open.
+var adminOnlyLink = regexp.MustCompile(`<a href="/(?:settings/[^"]*|users|audit)">(.*?)</a>`)
+
+// adminLinksAsText shows such links as plain bold text to other users, so
+// the guide does not lead them to a page they may not open.
+func adminLinksAsText(h template.HTML) template.HTML {
+	return template.HTML(adminOnlyLink.ReplaceAllString(string(h), "<b>$1</b>")) // #nosec G203 -- our own embedded guide
+}
+
 type docsData struct {
 	Pages      []DocPage
 	Page       string
@@ -83,6 +92,9 @@ func (s *Server) handleDocs(w http.ResponseWriter, r *http.Request) {
 	}
 	lang := s.lang(r, userFrom(r))
 	d.Body = docHTML(lang, slug)
+	if !userFrom(r).IsAdmin() {
+		d.Body = adminLinksAsText(d.Body)
+	}
 	s.render(w, r, http.StatusOK, "docs", &Page{Title: title, Nav: "docs", Lang: lang, Data: d})
 }
 

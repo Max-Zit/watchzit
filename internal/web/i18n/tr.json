@@ -1102,6 +1102,7 @@
   "The data source answers.": "Veri kaynağı yanıt veriyor.",
   "The data source does not answer:": "Veri kaynağı yanıt vermiyor:",
   "The device is the DNS server that is asked.": "Cihaz, sorgulanan DNS sunucusudur.",
+  "The device refused the user, password or key. Check them in the settings below.": "Cihaz kullanıcıyı, parolayı veya anahtarı reddetti. Aşağıdaki ayarlardan kontrol edin.",
   "The directory (Active Directory / LDAP) cannot be reached. Try again or ask your administrator.": "Dizine (Active Directory / LDAP) ulaşılamıyor. Tekrar deneyin veya yöneticinize başvurun.",
   "The end is already past.": "Bitiş zaten geçmiş.",
   "The folder keeps as many backups as the server.": "Klasör, sunucu kadar yedek saklar.",

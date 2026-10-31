@@ -1102,6 +1102,7 @@
   "The data source answers.": "Źródło danych odpowiada.",
   "The data source does not answer:": "Źródło danych nie odpowiada:",
   "The device is the DNS server that is asked.": "Urządzenie jest odpytywanym serwerem DNS.",
+  "The device refused the user, password or key. Check them in the settings below.": "Urządzenie odrzuciło użytkownika, hasło lub klucz. Sprawdź je w ustawieniach poniżej.",
   "The directory (Active Directory / LDAP) cannot be reached. Try again or ask your administrator.": "Katalog (Active Directory / LDAP) jest niedostępny. Spróbuj ponownie lub zapytaj administratora.",
   "The end is already past.": "Koniec już minął.",
   "The folder keeps as many backups as the server.": "Folder przechowuje tyle kopii co serwer.",

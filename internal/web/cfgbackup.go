@@ -168,6 +168,10 @@ func (s *Server) handleBackupRun(w http.ResponseWriter, r *http.Request) {
 			s.redirectErr(w, r, back, "The SSH host key of the device changed. If that was expected (new device or firmware), forget the saved key and back up again.")
 			return
 		}
+		if errors.Is(err, cfgbackup.ErrAuth) {
+			s.redirectErr(w, r, back, "The device refused the user, password or key. Check them in the settings below.")
+			return
+		}
 		s.redirectErr(w, r, back, translate(lang, "The backup failed: %s", err.Error()))
 		return
 	}

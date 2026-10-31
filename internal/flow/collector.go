@@ -145,15 +145,20 @@ func (c *Collector) serve(x net.PacketConn) {
 
 // Take decodes one datagram of an exporter and adds its flows.
 func (c *Collector) Take(exporter netip.Addr, b []byte) {
+	// senders that are no device are dropped before anything is decoded or
+	// remembered (templates), unless flows of unknown exporters are wanted
+	c.mu.Lock()
+	c.Datagrams++
+	known := c.addrs[exporter] != 0 || c.cfg.Unknown
+	c.mu.Unlock()
+	if !known {
+		return
+	}
 	recs, err := c.dec.Decode(exporter, b)
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.Datagrams++
 	if err != nil && len(recs) == 0 {
 		c.errors++
-		return
-	}
-	if c.addrs[exporter] == 0 && !c.cfg.Unknown {
 		return
 	}
 	c.roll()

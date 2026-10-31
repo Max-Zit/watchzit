@@ -313,7 +313,9 @@ func (d *Decoder) readData(exporter netip.Addr, t *template, b []byte) []Record 
 			// an options record announcing the sampling rate
 			if rate > 0 && rate < 1<<31 {
 				d.mu.Lock()
-				d.sampling[exporter] = uint32(rate) // #nosec G115 -- checked
+				if _, ok := d.sampling[exporter]; ok || len(d.sampling) < 10000 {
+					d.sampling[exporter] = uint32(rate) // #nosec G115 -- checked
+				}
 				d.mu.Unlock()
 			}
 			continue
