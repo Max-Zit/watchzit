@@ -152,7 +152,7 @@ func (s *Server) showTriggers(w http.ResponseWriter, r *http.Request, status int
 	d.Metrics = metricChoices()
 	d.Types = []string{store.CheckICMP, store.CheckTCP, store.CheckSNMP, store.CheckSNMPIf, store.CheckSNMPCPU, store.CheckSNMPStor, store.CheckSNMPOID,
 		store.CheckAgent, store.CheckAgentCPU, store.CheckAgentMem, store.CheckAgentDisk, store.CheckAgentNet, store.CheckAgentService,
-		store.CheckHTTP, store.CheckTLS, store.CheckDNS, store.CheckPostgres, store.CheckMySQL, store.CheckRouterOS, store.CheckJSON}
+		store.CheckHTTP, store.CheckTLS, store.CheckDNS, store.CheckPostgres, store.CheckMySQL, store.CheckRouterOS, store.CheckJSON, store.CheckHypervisor}
 	p := &Page{Title: "Triggers", Nav: "problems", Data: d}
 	if errMsg != "" {
 		p.Error = translate(s.lang(r, userFrom(r)), errMsg)

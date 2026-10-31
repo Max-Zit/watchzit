@@ -28,6 +28,7 @@
   <tr><td>PostgreSQL, MySQL / MariaDB</td><td>Prijava korisnikom za praćenje, verzija, broj konekcija, vreme odziva.</td></tr>
   <tr><td>MikroTik RouterOS (API)</td><td>Procesor, memorija, vreme rada i temperatura preko REST API-ja RouterOS-a 7.</td></tr>
   <tr><td>Vrednost iz JSON API-ja</td><td>Jedan broj iz bilo kog JSON API-ja (FortiGate, vCenter, vaši servisi): adresa, putanja kao <code>results.cpu.0.current</code> i, po želji, Bearer ili basic prijava.</td></tr>
+  <tr><td>Hipervizor (vSphere, Proxmox VE)</td><td>Hostovi, virtuelne mašine i kontejneri, datastore-ovi sa VMware ESXi ili vCenter-a (web services API) ili Proxmox VE (REST API): procesor i memorija hostova, mašine koje rade, hostovi u kvaru, najpuniji datastore. Pogledajte <a href="#hypervisor">Hipervizori</a>.</td></tr>
   <tr><td>SNMP</td><td>Dostupnost i vreme rada; interfejsi, procesor i skladišta koje pronađe otkrivanje; bilo koji numerički OID.</td></tr>
 </table>
 <p>Lozinke i tokeni provera se čuvaju šifrovani i više se ne prikazuju; kada menjate proveru, ostavite polje prazno da zadržite sačuvanu.</p>
@@ -69,4 +70,13 @@
   <li>Svaka verzija prikazuje izmene u odnosu na prethodnu (+ dodati, − uklonjeni redovi, uz <b>Cela konfiguracija</b> za sve) i može da se preuzme kao tekstualni fajl.</li>
   <li>Izmene i neuspesi se upisuju u log uređaja (tag <code>config-backup</code>), pa log okidač može da pošalje obaveštenje.</li>
   <li>Posmatrači ne vide ni konfiguracije ni podešavanja backup-a.</li>
+</ul>
+
+<h2 id="hypervisor">Hipervizori</h2>
+<p>Dodajte proveru <b>Hipervizor (vSphere, Proxmox VE)</b> uređaju ESXi hosta, vCenter-a ili Proxmox VE čvora (bilo koji čvor klastera čita ceo klaster). Dovoljan je korisnik koji sme samo da čita: uloga <b>Read-only</b> u vSphere-u, <b>PVEAuditor</b> na <code>/</code> u Proxmox VE — ili API token (<code>user@realm!name</code> kao korisnik i njegova tajna kao lozinka). Port ostavite prazan za 443 (vSphere) ili 8006 (Proxmox VE); uključite <b>Prihvati sertifikate kojima se ne veruje</b> za samopotpisani sertifikat koji oni podrazumevano imaju.</p>
+<ul>
+  <li>Svako pokretanje čuva procesor i memoriju svih hostova, mašine koje rade i ukupno, hostove u kvaru i koliko je pun najpuniji datastore; uz to dolaze okidači <b>Datastore almost full</b> (preko 90 %) i <b>Hypervisor host down</b>.</li>
+  <li>Stranica uređaja prikazuje hostove, svaku virtuelnu mašinu i kontejner (stanje, procesor, memorija, adresa, gostujući sistem) i datastore-ove. Gostujući sistemi i adrese se čitaju svakih deset minuta (Proxmox VE čita adrese preko QEMU guest agenta).</li>
+  <li>Za <b>Hyper-V</b> i <b>Docker</b> nije potrebna provera: WatchZit agent na Windows hostu (sa Hyper-V) ili Linux hostu (sa Docker-om) javlja svoje mašine ili kontejnere svakih pet minuta.</li>
+  <li>Na mapama kutija hipervizora može sama da prikaže te mašine (pogledajte uputstvo za mape).</li>
 </ul>

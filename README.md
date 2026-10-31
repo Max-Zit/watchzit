@@ -29,7 +29,8 @@ WatchZit is made by [MaxZit](https://maxzit.com), like [BackupZit](https://githu
 - **Network maps:** devices on maps with live state and traffic on the cables, real pictures of some 3,500 device models (ports and drive bays drawn where they are), racks, hypervisors with their virtual machines, HA groups, VLANs and VXLAN, submaps, the path between two devices, kiosk displays for a monitoring TV.
 - **Discovery:** ping sweeps, SNMP, LLDP/CDP and ARP neighbours; suggested links between devices.
 - **Checks:** ping, TCP, HTTP(S) with text and certificate expiry, DNS, SNMP v1/v2c/v3 (interfaces, CPU, memory, disks, temperatures, UPS, printers), MikroTik RouterOS, FortiGate, PostgreSQL, MySQL/MariaDB, SQL Server, JSON APIs, VRRP roles.
-- **Agent** for Windows and Linux: CPU, memory, disks, interfaces, services — one outbound connection, enrolled with a one-time code.
+- **Hypervisors:** VMware ESXi and vCenter, Proxmox VE, Hyper-V and Docker — hosts, virtual machines and containers, datastores; hypervisor boxes on maps fill with their machines by themselves.
+- **Agent** for Windows and Linux: CPU, memory, disks, interfaces, services, Hyper-V machines, Docker containers — one outbound connection, enrolled with a one-time code.
 - **Graphs and dashboards:** years of history (raw, 5-minute and hourly), zoom, graphs you arrange, resize and colour like dashboard panels, and **data sources** — PostgreSQL, MySQL, SQL Server, Prometheus, InfluxDB and JSON — next to WatchZit's own measurements.
 - **Syslog and SNMP traps:** received from devices, searchable under Logs, with triggers that open problems from them.
 - **Alerts:** thresholds, dependencies (a router down hides the alarms behind it), maintenance windows, email, Slack, Microsoft Teams, Discord, Telegram, ntfy, PagerDuty, SMS and webhooks; availability reports.

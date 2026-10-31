@@ -94,6 +94,7 @@ type Report struct {
 	Nets      []Net      `json:"nets,omitempty"`
 	Services  []Service  `json:"services,omitempty"`
 	VXLANs    []VXLAN    `json:"vxlans,omitempty"`
+	Guests    *Guests    `json:"guests,omitempty"` // Hyper-V machines or Docker containers, read every five minutes
 	Errors    []string   `json:"errors,omitempty"`
 	Boot      *time.Time `json:"boot,omitempty"`
 }
@@ -183,4 +184,26 @@ type EnrollData struct {
 func MakeEnrollCode(d EnrollData) string {
 	b, _ := json.Marshal(d)
 	return EnrollCodePrefix + base64.RawURLEncoding.EncodeToString(b)
+}
+
+// Guests are the virtual machines (Hyper-V) or containers (Docker) the
+// machine runs.
+type Guests struct {
+	Kind    string  `json:"kind"` // hyperv or docker
+	Product string  `json:"product,omitempty"`
+	Items   []Guest `json:"items"`
+}
+
+// Guest is one machine or container. State is running, stopped or
+// suspended.
+type Guest struct {
+	ID     string   `json:"id"`
+	Name   string   `json:"name"`
+	State  string   `json:"state"`
+	OS     string   `json:"os,omitempty"` // container: its image
+	CPUs   int      `json:"cpus,omitempty"`
+	CPUPct float64  `json:"cpu_pct,omitempty"`
+	MemB   int64    `json:"mem_b,omitempty"`
+	MemPct float64  `json:"mem_pct,omitempty"`
+	IPs    []string `json:"ips,omitempty"`
 }

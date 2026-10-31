@@ -96,6 +96,7 @@ type deviceData struct {
 	PortModes  []store.PortMode
 	HA         *store.HARole
 	VXLANs     []store.VXLANInfo
+	HV         *store.HVInventory   // what the hypervisor of the device runs
 	Traffic    map[int]*store.Check // interface checks by ifIndex
 	Agent      *store.AgentInfo
 	Watched    map[string]bool // services the agent reports
@@ -257,6 +258,10 @@ func (s *Server) showDevice(w http.ResponseWriter, r *http.Request, status int, 
 		return
 	}
 	if data.VXLANs, err = s.store.DeviceVXLANs(r.Context(), d.ID); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	if data.HV, err = s.store.HVInventoryOf(r.Context(), d.ID); err != nil {
 		s.serverError(w, r, err)
 		return
 	}
@@ -499,7 +504,7 @@ func checkInput(r *http.Request) store.CheckInput {
 			OID: r.FormValue("oid"), Rate: r.FormValue("rate") == "1", Unit: r.FormValue("unit"), Scale: formFloat(r, "scale"),
 			URL: r.FormValue("url"), Expect: formInt(r, "expect"), Contains: r.FormValue("contains"), Insecure: r.FormValue("insecure") == "1",
 			Query: r.FormValue("query"), RType: r.FormValue("rtype"), User: r.FormValue("user"), Secret: r.FormValue("secret"),
-			Database: r.FormValue("database"), Path: r.FormValue("path"), Auth: r.FormValue("auth"), TLS: r.FormValue("tls") == "1"}}
+			Database: r.FormValue("database"), Path: r.FormValue("path"), Auth: r.FormValue("auth"), TLS: r.FormValue("tls") == "1", HV: r.FormValue("hv")}}
 }
 
 func formFloat(r *http.Request, k string) float64 {

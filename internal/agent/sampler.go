@@ -35,6 +35,7 @@ type Sampler struct {
 	prevAt time.Time
 	vx     []proto.VXLAN // VXLANs, read every five minutes
 	vxAt   time.Time
+	gu     *proto.Guests // Hyper-V machines or Docker containers, read every five minutes
 }
 
 // NewSampler prepares a sampler (the first CPU value comes on the second report).
@@ -87,8 +88,10 @@ func (s *Sampler) Sample(ctx context.Context, services []string) *proto.Report {
 	}
 	if now.Sub(s.vxAt) >= 5*time.Minute {
 		s.vx, s.vxAt = vxlans(ctx), now
+		s.gu = guests(ctx)
 	}
 	r.VXLANs = s.vx
+	r.Guests = s.gu
 	return r
 }
 

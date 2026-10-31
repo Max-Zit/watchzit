@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/max-zit/watchzit/internal/checks"
+	"github.com/max-zit/watchzit/internal/hypervisor"
 	"github.com/max-zit/watchzit/internal/probe"
 	"github.com/max-zit/watchzit/internal/snmp"
 	"github.com/max-zit/watchzit/internal/snmpmon"
@@ -39,6 +40,7 @@ type Poller struct {
 	profiles map[int64]*store.SNMPProfile
 	counters map[int64]*counterState // last raw counters per check
 	vlanSync map[int64]time.Time     // last read of a router's VLANs per device
+	hvSync   map[int64]time.Time     // last full read of a hypervisor per device
 	haLast   map[int64][2]string     // HA role and its source last stored per device
 }
 
@@ -55,7 +57,7 @@ type entry struct {
 
 // New creates a poller.
 func New(st *store.Store, db *tsdb.DB, log *slog.Logger) *Poller {
-	return &Poller{store: st, db: db, log: log, now: time.Now, Workers: 64, entries: map[int64]*entry{}, reload: make(chan struct{}, 1), profiles: map[int64]*store.SNMPProfile{}, counters: map[int64]*counterState{}, vlanSync: map[int64]time.Time{}, haLast: map[int64][2]string{}}
+	return &Poller{store: st, db: db, log: log, now: time.Now, Workers: 64, entries: map[int64]*entry{}, reload: make(chan struct{}, 1), profiles: map[int64]*store.SNMPProfile{}, counters: map[int64]*counterState{}, vlanSync: map[int64]time.Time{}, hvSync: map[int64]time.Time{}, haLast: map[int64][2]string{}}
 }
 
 // Reload makes the poller read the checks again (after a change).
@@ -495,7 +497,7 @@ func (p *Poller) refreshDevice(ctx context.Context, d *store.Device) error {
 // database, RouterOS, JSON API).
 func (p *Poller) runService(ctx context.Context, c *store.Check, o *outcome, sample func(string, float64)) {
 	t := checks.Target{Host: c.Address}
-	if c.Type != store.CheckHTTP && c.Type != store.CheckJSON && c.Type != store.CheckRouterOS {
+	if c.Type != store.CheckHTTP && c.Type != store.CheckJSON && c.Type != store.CheckRouterOS && c.Type != store.CheckHypervisor {
 		addr, err := probe.Resolve(ctx, c.Address)
 		if err != nil {
 			o.res.Text = err.Error()
@@ -509,6 +511,10 @@ func (p *Poller) runService(ctx context.Context, c *store.Check, o *outcome, sam
 		return
 	}
 	t.Secret = secret
+	if c.Type == store.CheckHypervisor {
+		p.runHypervisor(ctx, c, secret, o, sample)
+		return
+	}
 	r := checks.Run(ctx, c.Type, c.Params, t, time.Duration(c.Params.TimeoutMS)*time.Millisecond)
 	for k, v := range r.Values {
 		sample(k, round2(v))
@@ -588,5 +594,55 @@ func (p *Poller) haState(ctx context.Context, deviceID int64, state, source stri
 	p.mu.Unlock()
 	if err := p.store.SetHAState(ctx, deviceID, state, source); err != nil {
 		p.log.Warn("poller: cannot save the HA role", "device", deviceID, "err", err)
+	}
+}
+
+// runHypervisor reads the hosts, machines and datastores of VMware vSphere
+// or Proxmox VE, stores their values and keeps the inventory for the
+// device page and maps. Guest systems and addresses take a request per
+// machine, so they are read every ten minutes and kept in between.
+func (p *Poller) runHypervisor(ctx context.Context, c *store.Check, secret string, o *outcome, sample func(string, float64)) {
+	p.mu.Lock()
+	details := p.now().Sub(p.hvSync[c.DeviceID]) >= 10*time.Minute
+	if details {
+		p.hvSync[c.DeviceID] = p.now()
+	}
+	p.mu.Unlock()
+	timeout := max(time.Duration(c.Params.TimeoutMS)*time.Millisecond, 20*time.Second)
+	if details {
+		timeout = 2 * time.Minute
+	}
+	rctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	inv, err := hypervisor.Read(rctx, hypervisor.Conn{Platform: c.Params.HV, Address: c.Address, Port: c.Params.Port, User: c.Params.User,
+		Secret: secret, Insecure: c.Params.Insecure, Details: details})
+	if err != nil {
+		o.res.Text = err.Error()
+		if details {
+			p.mu.Lock()
+			delete(p.hvSync, c.DeviceID)
+			p.mu.Unlock()
+		}
+		return
+	}
+	if !details {
+		if old, err := p.store.HVInventoryOf(ctx, c.DeviceID); err == nil && old != nil {
+			inv.Merge(&old.Inventory)
+		}
+	}
+	m := inv.Metrics()
+	for k, v := range m {
+		sample(k, v)
+	}
+	if err := p.store.SetHVInventory(ctx, c.DeviceID, p.now(), inv); err != nil {
+		p.log.Warn("poller: cannot save the hypervisor inventory", "device", c.DeviceID, "err", err)
+	}
+	o.res.Status = store.StatusUp
+	o.res.Text = fmt.Sprintf("%s: %d hosts, %.0f of %.0f machines running, CPU %.0f%%, memory %.0f%%", inv.Product, len(inv.Hosts), m["vms_running"], m["vms_total"], m["cpu_pct"], m["mem_pct"])
+	if ds, ok := m["ds_used_pct"]; ok {
+		o.res.Text += fmt.Sprintf(", fullest datastore %.0f%%", ds)
+	}
+	if m["hosts_down"] > 0 {
+		o.res.Text += fmt.Sprintf(", %.0f hosts down", m["hosts_down"])
 	}
 }

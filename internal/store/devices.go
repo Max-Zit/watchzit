@@ -377,10 +377,11 @@ const (
 	CheckMySQL        = "mysql"         // MySQL or MariaDB
 	CheckRouterOS     = "routeros"      // MikroTik RouterOS REST API: CPU, memory, uptime
 	CheckJSON         = "jsonapi"       // a number from any JSON API
+	CheckHypervisor   = "hypervisor"    // VMware vSphere or Proxmox VE: hosts, machines, datastores
 )
 
 // CheckTypes are the types a user can add by hand.
-var CheckTypes = []string{CheckICMP, CheckTCP, CheckHTTP, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON, CheckSNMP, CheckSNMPOID}
+var CheckTypes = []string{CheckICMP, CheckTCP, CheckHTTP, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON, CheckHypervisor, CheckSNMP, CheckSNMPOID}
 
 // IsSNMP tells whether a check type polls SNMP.
 func IsSNMP(typ string) bool { return strings.HasPrefix(typ, "snmp") }
@@ -417,6 +418,7 @@ type CheckParams struct {
 	Path     string `json:"path,omitempty"` // JSON API: where the number is (a.b.0.c)
 	Auth     string `json:"auth,omitempty"` // JSON API: "", "basic" or "bearer"
 	TLS      bool   `json:"tls,omitempty"`  // RouterOS: HTTPS (else HTTP)
+	HV       string `json:"hv,omitempty"`   // hypervisor platform: vsphere or proxmox
 }
 
 // Check is one thing polled on a device.
@@ -569,6 +571,8 @@ func metricsOf(typ string, p CheckParams) []Series {
 		return []Series{{Metric: "cpu_pct", Unit: "%"}, {Metric: "mem_pct", Unit: "%"}, {Metric: "uptime_s", Unit: "s"}, {Metric: "temperature", Unit: "°C"}}
 	case CheckJSON:
 		return []Series{{Metric: "value", Unit: p.Unit}, {Metric: "response_ms", Unit: "ms"}}
+	case CheckHypervisor:
+		return []Series{{Metric: "cpu_pct", Unit: "%"}, {Metric: "mem_pct", Unit: "%"}, {Metric: "ds_used_pct", Unit: "%"}, {Metric: "vms_running", Unit: ""}, {Metric: "vms_total", Unit: ""}, {Metric: "hosts_down", Unit: ""}}
 	}
 	return nil
 }
@@ -612,7 +616,7 @@ func (in *CheckInput) clean() error {
 		if strings.TrimSpace(in.Name) == "" {
 			in.Name = "TCP " + strconv.Itoa(p.Port)
 		}
-	case CheckHTTP, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON:
+	case CheckHTTP, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON, CheckHypervisor:
 		if err := p.cleanService(in.Type); err != nil {
 			return err
 		}
@@ -664,6 +668,9 @@ func (in *CheckInput) clean() error {
 func (s *Store) CreateCheck(ctx context.Context, deviceID int64, in CheckInput) (int64, error) {
 	if err := in.clean(); err != nil {
 		return 0, err
+	}
+	if in.Type == CheckHypervisor && in.Params.Secret == "" {
+		return 0, errors.New("enter the password or token")
 	}
 	if HasSecret(in.Type) {
 		s.sealCheckSecret(&in.Params, "")
@@ -732,6 +739,9 @@ func (s *Store) DeleteCheck(ctx context.Context, id int64) ([]int32, error) {
 	}
 	if _, err := s.db.Exec(ctx, `DELETE FROM checks WHERE id=$1`, id); err != nil {
 		return nil, err
+	}
+	if c.Type == CheckHypervisor {
+		_, _ = s.db.Exec(ctx, `DELETE FROM hv_inventory WHERE device_id=$1 AND source<>'hyperv' AND NOT EXISTS (SELECT 1 FROM checks WHERE device_id=$1 AND type=$2)`, c.DeviceID, CheckHypervisor)
 	}
 	return ids, s.RefreshDeviceStatus(ctx, c.DeviceID)
 }

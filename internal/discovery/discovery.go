@@ -82,7 +82,7 @@ type Prober struct {
 	Ping     func(ctx context.Context, a netip.Addr) (time.Duration, bool)
 	Dial     func(ctx context.Context, a netip.Addr, port int) bool
 	Identify func(ctx context.Context, a netip.Addr) (sysName, sysDescr, vendor string, profile int64) // SNMP
-	Lookup   func(ctx context.Context, a netip.Addr) string                                           // reverse DNS
+	Lookup   func(ctx context.Context, a netip.Addr) string                                            // reverse DNS
 	Parallel int
 }
 

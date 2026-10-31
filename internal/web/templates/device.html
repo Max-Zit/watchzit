@@ -110,6 +110,33 @@
 </section>
 {{end}}
 
+{{with .Data.HV}}{{$many := gt (len .Hosts) 1}}
+<section class="panel" id="vms">
+  <div class="titlebar"><h2>{{if eq .Kind "docker"}}{{$.T "Containers"}}{{else}}{{$.T "Virtual machines"}}{{end}}</h2><span class="muted small">{{.Product}} · {{$.Ago .At}}</span></div>
+  {{if or (eq .Kind "vsphere") (eq .Kind "proxmox")}}  <div class="table-wrap"><table class="list">
+    <thead><tr><th>{{$.T "Host"}}</th><th>{{$.T "Status"}}</th><th class="num">CPU</th><th class="num">{{$.T "Memory"}}</th><th class="hide-sm">{{$.T "Version"}}</th></tr></thead>
+    <tbody>{{range .Hosts}}<tr><td><b>{{.Name}}</b>{{if and .Address (ne .Address .Name)}} <span class="muted mono small">{{.Address}}</span>{{end}}</td>
+      <td>{{if .Up}}<span class="badge ok">{{$.T "up"}}</span>{{else}}<span class="badge bad">{{$.T "down"}}</span>{{end}}</td>
+      <td class="num">{{if .Up}}{{printf "%.0f" .CPUPct}} %{{end}}</td><td class="num">{{if .MemB}}{{bytes .MemUsedB}} / {{bytes .MemB}}{{end}}</td><td class="hide-sm muted small">{{.Version}}</td></tr>{{end}}</tbody>
+  </table></div>
+  {{end}}
+  <div class="table-wrap mt"><table class="list">
+    <thead><tr><th>{{$.T "Name"}}</th><th>{{$.T "Status"}}</th>{{if $many}}<th>{{$.T "Host"}}</th>{{end}}<th class="num">CPU</th><th class="num">{{$.T "Memory"}}</th><th class="hide-sm">{{$.T "Address"}}</th><th class="hide-sm">{{$.T "System"}}</th></tr></thead>
+    <tbody>{{range .VMs}}<tr><td><b>{{.Name}}</b>{{if eq .Kind "ct"}} <span class="muted small">{{$.T "container"}}</span>{{end}}{{if .Template}} <span class="muted small">{{$.T "template"}}</span>{{end}}</td>
+      <td>{{if eq .State "running"}}<span class="badge ok">{{$.T "running"}}</span>{{else if eq .State "suspended"}}<span class="badge warn">{{$.T "suspended"}}</span>{{else}}<span class="badge">{{$.T "stopped"}}</span>{{end}}</td>
+      {{if $many}}<td>{{.Host}}</td>{{end}}
+      <td class="num">{{if eq .State "running"}}{{printf "%.0f" .CPUPct}} %{{end}}</td><td class="num">{{if eq .State "running"}}{{printf "%.0f" .MemPct}} % {{end}}<span class="muted small">{{if .MemB}}{{bytes .MemB}}{{end}}</span></td>
+      <td class="hide-sm mono small">{{join .IPs ", "}}</td><td class="hide-sm muted small">{{.OS}}</td></tr>{{else}}<tr><td colspan="7" class="muted">—</td></tr>{{end}}</tbody>
+  </table></div>
+  {{if .Datastores}}<h3 class="mt">{{$.T "Datastores"}}</h3>
+  <div class="table-wrap"><table class="list">
+    <thead><tr><th>{{$.T "Name"}}</th><th class="hide-sm">{{$.T "Type"}}</th><th class="num">{{$.T "Size"}}</th><th class="num">{{$.T "Free"}}</th><th>{{$.T "Used"}}</th></tr></thead>
+    <tbody>{{range .Datastores}}<tr><td>{{.Name}}{{if not .Active}} <span class="badge bad">{{$.T "not available"}}</span>{{end}}</td><td class="hide-sm muted">{{.Type}}</td><td class="num">{{bytes .CapB}}</td><td class="num">{{bytes .FreeB}}</td>
+      <td><progress class="meter {{if gt .UsedPct 90.0}}warn{{end}}" max="100" value="{{.UsedPct}}"></progress> <span class="small">{{printf "%.0f" .UsedPct}} %</span></td></tr>{{end}}</tbody>
+  </table></div>{{end}}
+</section>
+{{end}}
+
 {{if .Data.VXLANs}}
 <section class="panel">
   <h2>VXLAN</h2>
@@ -173,11 +200,13 @@
               {{if or (eq .Type "pgsql") (eq .Type "mysql") (eq .Type "routeros")}}<div class="cols"><label>{{$.T "User name"}}<input name="user" value="{{.Params.User}}" maxlength="64" autocomplete="off"></label><label>{{$.T "Password"}} <small>{{$.T "saved; empty keeps it"}}</small><input name="secret" type="password" autocomplete="new-password"></label></div>
               <div class="cols"><label>{{$.T "Port"}}<input type="number" name="port" value="{{.Params.Port}}" min="1" max="65535"></label>{{if ne .Type "routeros"}}<label>{{$.T "Database"}}<input name="database" value="{{.Params.Database}}" maxlength="63"></label>{{end}}</div>
               {{if eq .Type "routeros"}}<label class="check"><input type="checkbox" name="tls" value="1" {{if .Params.TLS}}checked{{end}}>{{$.T "HTTPS (www-ssl service, port 443)"}}</label>{{end}}{{end}}
+              {{if eq .Type "hypervisor"}}<div class="cols"><label>{{$.T "Platform"}}<select name="hv">{{$hv := .Params.HV}}<option value="vsphere" {{if eq $hv "vsphere"}}selected{{end}}>VMware vSphere (ESXi, vCenter)</option><option value="proxmox" {{if eq $hv "proxmox"}}selected{{end}}>Proxmox VE</option></select></label><label>{{$.T "Port"}}<input type="number" name="port" value="{{.Params.Port}}" min="1" max="65535"></label></div>
+              <div class="cols"><label>{{$.T "User name"}}<input name="user" value="{{.Params.User}}" maxlength="128" autocomplete="off"></label><label>{{$.T "Password or token"}} <small>{{$.T "saved; empty keeps it"}}</small><input name="secret" type="password" autocomplete="new-password"></label></div>{{end}}
               {{if eq .Type "jsonapi"}}<label>{{$.T "Address (URL)"}}<input name="url" value="{{.Params.URL}}" type="url" class="mono" required></label>
               <div class="cols"><label>{{$.T "Where the number is"}}<input name="path" value="{{.Params.Path}}" class="mono" required></label><label>{{$.T "Sign-in"}}<select name="auth">{{$a := .Params.Auth}}<option value="" {{if eq $a ""}}selected{{end}}>{{$.T "None"}}</option><option value="bearer" {{if eq $a "bearer"}}selected{{end}}>{{$.T "Token (Bearer)"}}</option><option value="basic" {{if eq $a "basic"}}selected{{end}}>{{$.T "User and password"}}</option></select></label></div>
               <div class="cols"><label>{{$.T "User name"}}<input name="user" value="{{.Params.User}}" maxlength="64" autocomplete="off"></label><label>{{$.T "Password or token"}} <small>{{$.T "saved; empty keeps it"}}</small><input name="secret" type="password" autocomplete="new-password"></label></div>
               <div class="cols"><label>{{$.T "Unit"}}<input name="unit" value="{{.Params.Unit}}" maxlength="16"></label><label>{{$.T "Multiplier"}}<input name="scale" value="{{if .Params.Scale}}{{.Params.Scale}}{{else}}1{{end}}" inputmode="decimal"></label></div>{{end}}
-              {{if or (eq .Type "http") (eq .Type "tls") (eq .Type "routeros") (eq .Type "jsonapi")}}<label class="check"><input type="checkbox" name="insecure" value="1" {{if .Params.Insecure}}checked{{end}}>{{$.T "Accept certificates that are not trusted (self-signed)"}}</label>{{end}}
+              {{if or (eq .Type "http") (eq .Type "tls") (eq .Type "routeros") (eq .Type "jsonapi") (eq .Type "hypervisor")}}<label class="check"><input type="checkbox" name="insecure" value="1" {{if .Params.Insecure}}checked{{end}}>{{$.T "Accept certificates that are not trusted (self-signed)"}}</label>{{end}}
               <label>{{$.T "Interval (seconds)"}}<input type="number" name="interval" value="{{.IntervalS}}" min="10" max="3600" required></label>
               <label>{{$.T "Timeout (ms)"}}<input type="number" name="timeout_ms" value="{{.Params.TimeoutMS}}" min="100" max="30000" required></label>
               <label class="check"><input type="checkbox" name="paused" value="1" {{if .Paused}}checked{{end}}>{{$.T "Paused"}}</label>
@@ -245,6 +274,18 @@
           <label class="check"><input type="checkbox" name="tls" value="1">{{.T "HTTPS (www-ssl service, port 443)"}}</label>
           <label class="check"><input type="checkbox" name="insecure" value="1">{{.T "Accept certificates that are not trusted (self-signed)"}}</label>
         </div>
+      </div>
+      <div class="stack" data-show="checktype" data-when="hypervisor">
+        <p class="small muted">{{.T "VMware ESXi or vCenter, or Proxmox VE. A user that may only read is enough: the Read-only role in vSphere, PVEAuditor in Proxmox VE (an API token user@realm!name with its secret works too). The password is stored encrypted."}}</p>
+        <div class="cols">
+          <label>{{.T "Platform"}}<select name="hv"><option value="vsphere">VMware vSphere (ESXi, vCenter)</option><option value="proxmox">Proxmox VE</option></select></label>
+          <label>{{.T "Port"}} <small>{{.T "optional"}}</small><input type="number" name="port" min="1" max="65535" placeholder="443 / 8006"></label>
+        </div>
+        <div class="cols">
+          <label>{{.T "User name"}}<input name="user" maxlength="128" autocomplete="off" spellcheck="false" placeholder="monitor@vsphere.local"></label>
+          <label>{{.T "Password or token"}}<input name="secret" type="password" maxlength="1000" autocomplete="new-password"></label>
+        </div>
+        <label class="check"><input type="checkbox" name="insecure" value="1">{{.T "Accept certificates that are not trusted (self-signed)"}}</label>
       </div>
       <div class="stack" data-show="checktype" data-when="jsonapi">
         <label>{{.T "Address (URL)"}}<input name="url" type="url" maxlength="2000" class="mono" spellcheck="false" placeholder="https://{{$d.Address}}/api/v2/monitor/system/resource/usage"></label>

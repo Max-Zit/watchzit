@@ -28,6 +28,7 @@
   <tr><td>PostgreSQL, MySQL / MariaDB</td><td>Sign-in with a monitoring user, version, number of connections, response time.</td></tr>
   <tr><td>MikroTik RouterOS (API)</td><td>CPU, memory, uptime and temperature over the REST API of RouterOS 7.</td></tr>
   <tr><td>JSON API value</td><td>One number from any JSON API (FortiGate, vCenter, your own services): an address, a path like <code>results.cpu.0.current</code>, and optional Bearer or basic sign-in.</td></tr>
+  <tr><td>Hypervisor (vSphere, Proxmox VE)</td><td>Hosts, virtual machines and containers, datastores of VMware ESXi or vCenter (web services API) or Proxmox VE (REST API): CPU and memory of the hosts, machines running, hosts down, the fullest datastore. See <a href="#hypervisor">Hypervisors</a>.</td></tr>
   <tr><td>SNMP</td><td>Availability and uptime; interfaces, CPU and storage found by discovery; any numeric OID.</td></tr>
 </table>
 <p>Passwords and tokens of checks are stored encrypted and never shown again; leave the field empty when you edit a check to keep the stored one.</p>
@@ -69,4 +70,13 @@
   <li>Each version shows the changes against the one before (+ added, − removed lines, with <b>Whole configuration</b> for everything) and can be downloaded as a text file.</li>
   <li>Changes and failures are written to the device's log (tag <code>config-backup</code>), so a log trigger can send a notification for them.</li>
   <li>Viewers see neither the configurations nor the backup settings.</li>
+</ul>
+
+<h2 id="hypervisor">Hypervisors</h2>
+<p>Add the check <b>Hypervisor (vSphere, Proxmox VE)</b> to the device of an ESXi host, a vCenter or a Proxmox VE node (any node of a cluster reads the whole cluster). A user that may only read is enough: the <b>Read-only</b> role in vSphere, <b>PVEAuditor</b> on <code>/</code> in Proxmox VE — or an API token (<code>user@realm!name</code> as the user and its secret as the password). Leave the port empty for 443 (vSphere) or 8006 (Proxmox VE); tick <b>Accept certificates that are not trusted</b> for the self-signed certificate these have by default.</p>
+<ul>
+  <li>Every run stores the CPU and memory of all hosts, the machines running and in all, the hosts that are down and how full the fullest datastore is; the triggers <b>Datastore almost full</b> (over 90 %) and <b>Hypervisor host down</b> come with it.</li>
+  <li>The device page lists the hosts, every virtual machine and container (state, CPU, memory, address, guest system) and the datastores. Guest systems and addresses are read every ten minutes (Proxmox VE reads addresses through the QEMU guest agent).</li>
+  <li><b>Hyper-V</b> and <b>Docker</b> need no check: the WatchZit agent on the Windows host (with Hyper-V) or the Linux host (with Docker) reports its machines or containers every five minutes.</li>
+  <li>On maps a hypervisor box can show these machines by itself (see the map guide).</li>
 </ul>

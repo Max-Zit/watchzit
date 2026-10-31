@@ -101,6 +101,18 @@ func (p *CheckParams) cleanService(typ string) error {
 			return keep(443)
 		}
 		return keep(80)
+	case CheckHypervisor:
+		p.URL, p.Expect, p.Contains, p.Query, p.RType, p.Database, p.Path, p.Auth, p.TLS, p.Unit, p.Scale = "", 0, "", "", "", "", "", "", false, "", 0
+		if p.HV != "vsphere" && p.HV != "proxmox" {
+			return errors.New("choose the hypervisor platform")
+		}
+		if p.User == "" || len(p.User) > 128 || strings.ContainsAny(p.User, " \t\r\n") {
+			return errors.New("enter the user (a read-only role is enough)")
+		}
+		if p.HV == "proxmox" {
+			return keep(8006)
+		}
+		return keep(443)
 	case CheckJSON:
 		p.Expect, p.Contains, p.Query, p.RType, p.Database, p.TLS = 0, "", "", "", "", false
 		if err := checkURL(p.URL); err != nil {
@@ -152,13 +164,18 @@ func (p *CheckParams) defaultName(typ string) string {
 		return "RouterOS"
 	case CheckJSON:
 		return "API " + p.Path
+	case CheckHypervisor:
+		if p.HV == "proxmox" {
+			return "Proxmox VE"
+		}
+		return "VMware vSphere"
 	}
 	return typ
 }
 
 // HasSecret reports whether a check type takes a password or token.
 func HasSecret(typ string) bool {
-	return typ == CheckPostgres || typ == CheckMySQL || typ == CheckRouterOS || typ == CheckJSON
+	return typ == CheckPostgres || typ == CheckMySQL || typ == CheckRouterOS || typ == CheckJSON || typ == CheckHypervisor
 }
 
 const checkSecretPurpose = "check.secret"
@@ -183,7 +200,7 @@ func (s *Store) CheckSecret(c *Check) (string, error) {
 // IsService tells whether a check type is a service check (internal/checks).
 func IsService(typ string) bool {
 	switch typ {
-	case CheckHTTP, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON:
+	case CheckHTTP, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON, CheckHypervisor:
 		return true
 	}
 	return false

@@ -227,6 +227,7 @@
   function nodeStatus(n) {
     if (n.kind === "device") { var d = live.devices[n.device]; return d ? d.status : "unknown"; }
     if (n.kind === "submap") return live.maps[n.submap] || "unknown";
+    if (n.kind === "item") { var vm = vmOf(n); return vm ? vmStatus(vm) : ""; }
     if (n.kind === "rack" || n.kind === "host") {
       var w = "";
       layout.nodes.forEach(function (c) { if (c.parent === n.id && c.kind === "device") w = worse(w, nodeStatus(c)); });
@@ -428,7 +429,7 @@
   function drawNode(n) {
     var st = nodeStatus(n), b = box(n);
     var sel = selected && selected.type === "node" && selected.id === n.id;
-    var g = el("g", { "class": "node n-" + n.kind + (st ? " s-" + st : "") + (sel ? " sel" : "") + (connectFrom === n.id ? " from" : "") + (rackOf(n) ? " mounted" : "") + (hostOf(n) ? " guest" : "") + onPath("nodes", n.id) + (vlan && deviceInVLAN(n, vlan) ? " invlan" : ""),
+    var g = el("g", { "class": "node n-" + n.kind + (st ? " s-" + st : "") + (sel ? " sel" : "") + (connectFrom === n.id ? " from" : "") + (rackOf(n) ? " mounted" : "") + (hostOf(n) ? " guest" : "") + (n.virtual ? " virtual" : "") + onPath("nodes", n.id) + (vlan && deviceInVLAN(n, vlan) ? " invlan" : ""),
       transform: "translate(" + n.x + " " + n.y + ")", "data-node": n.id }, gNodes);
     if (n.kind === "label") {
       el("text", { "class": "maplabel", y: 6, "text-anchor": "middle" }, g).textContent = n.label;
@@ -637,6 +638,14 @@
     if (n.kind === "host") { showHost(n); return; }
     var p = openPanel(nodeName(n) || T("Item"), st);
     var dl = h("dl", { "class": "facts" });
+    var vmi = vmOf(n);
+    if (vmi) vmFacts(dl, vmi);
+    if (n.virtual && editing) {
+      p.appendChild(dl);
+      p.appendChild(h("p", { "class": "muted small" }, T("Shown by itself because its hypervisor runs it. Place it to change it or connect it.")));
+      p.appendChild(button(T("Place on the map"), "primary", function () { pin(nodeByID(n.id)); render(); showSelection(); }));
+      return;
+    }
     if (n.kind === "device") {
       var d = live.devices[n.device] || deviceMeta(n.device) || {};
       row(dl, T("Address"), d.address || "");
@@ -792,6 +801,8 @@
     if (hp) row(dl, T("Hypervisor"), hp.label);
     var hd = n.host_device && (live.devices[n.host_device] || deviceMeta(n.host_device));
     if (hd) row(dl, T("Physical server"), hd.name + " · " + hd.address);
+    var vms = vmsOf(n);
+    if (vms.length) row(dl, T("Machines running"), vms.filter(function (v) { return v.state === "running"; }).length + " / " + vms.length);
     p.appendChild(dl);
     var inside = guestsOf(n), list = h("ul", { "class": "mp-ports" });
     inside.forEach(function (c) {
@@ -815,12 +826,20 @@
     hostFields(p, n);
     clusterFields(p, n);
     haField(p, n);
-    hostFields(p, n);
+    var av = h("input", { type: "checkbox" });
+    av.checked = !!n.auto_vms;
+    av.addEventListener("change", function () { n.auto_vms = av.checked; syncVMs(); render(); changed(); });
+    var avl = h("label", { "class": "check" });
+    avl.appendChild(av);
+    avl.appendChild(document.createTextNode(T("Show the machines of the hypervisor by themselves")));
+    p.appendChild(avl);
+    if (vms.length) p.appendChild(button(T("Place the machines on the map"), "secondary", function () { placeVMs(n); showSelection(); }));
+    p.appendChild(h("p", { "class": "muted small" }, T("The machines come from a hypervisor check (vSphere, Proxmox VE) or the agent on the physical server (Hyper-V, Docker), or from vCenter for its hosts.")));
     p.appendChild(h("p", { "class": "muted small" }, T("Drag virtual machines and devices into the box; drag them within it to change the order. Add a VM as a device of the console to see its state, or as an item with a picture of its system.")));
   }
   function addHost() {
     var p = openPanel(T("Add hypervisor"));
-    var n = { kind: "host", label: "", icon: "lib:hv-esxi", host_device: 0 };
+    var n = { kind: "host", label: "", icon: "lib:hv-esxi", host_device: 0, auto_vms: true };
     var nm = field(p, T("Name"), h("input", { maxlength: "200", placeholder: "esx01" }));
     hostFields(p, n);
     var err = h("p", { "class": "small warntext", hidden: "" }, T("Choose the physical server the hypervisor runs on."));
@@ -857,6 +876,57 @@
       }));
     }
     fill();
+  }
+
+  // ---- machines the hypervisors run (live.vms per host node): hosts with
+  // auto_vms show those not placed by hand as virtual nodes, which are not
+  // saved until they are moved, connected or placed
+  var virtIDs = {}, nextVirt = -1000000;
+  function vmsOf(hn) { return (live.vms && live.vms[hn.id]) || []; }
+  function vmMatch(v, n) {
+    if (n.kind === "device") return !!v.device && v.device === n.device;
+    return n.kind === "item" && (nodeName(n) || "").toLowerCase() === v.name.toLowerCase();
+  }
+  function vmOf(n) {
+    var hn = hostOf(n), vs = hn ? vmsOf(hn) : [];
+    for (var i = 0; i < vs.length; i++) if (vmMatch(vs[i], n)) return vs[i];
+    return null;
+  }
+  function vmStatus(v) { return v.state === "running" ? "up" : v.state === "suspended" ? "warning" : "paused"; }
+  function syncVMs() {
+    // the same objects stay (open panels and drags hold them)
+    var was = {};
+    layout.nodes.forEach(function (n) { if (n.virtual) was[n.id] = n; });
+    layout.nodes = layout.nodes.filter(function (n) { return !n.virtual; });
+    var onMap = {};
+    layout.nodes.forEach(function (n) { if (n.kind === "device") onMap[n.device] = true; });
+    layout.nodes.filter(function (n) { return n.kind === "host" && n.auto_vms; }).forEach(function (hn) {
+      var gs = guestsOf(hn), u = 0;
+      gs.forEach(function (g) { u = Math.max(u, g.u || 0); });
+      vmsOf(hn).forEach(function (v) {
+        if (gs.some(function (g) { return vmMatch(v, g); }) || (v.device && onMap[v.device])) return;
+        var key = hn.id + "/" + v.name;
+        if (!virtIDs[key]) virtIDs[key] = nextVirt--;
+        var n = was[virtIDs[key]] || { id: virtIDs[key], virtual: true, x: hn.x, y: hn.y };
+        n.kind = "item"; n.parent = hn.id; n.u = ++u; n.label = v.name; n.icon = "lib:" + v.pic; delete n.device;
+        if (v.device) { n.kind = "device"; n.device = v.device; n.label = ""; onMap[v.device] = true; }
+        layout.nodes.push(n);
+      });
+    });
+  }
+  function placeVMs(hn) {
+    var was = hn.auto_vms;
+    hn.auto_vms = true; syncVMs(); hn.auto_vms = was;
+    layout.nodes.forEach(function (c) { if (c.parent === hn.id) pin(c); });
+    render(); changed();
+  }
+  // pin makes a virtual node part of the map (saved with it)
+  function pin(n) { if (n && n.virtual) { delete n.virtual; changed(); } }
+  function vmFacts(dl, v) {
+    row(dl, T("Status"), v.state === "running" ? T("running") : v.state === "suspended" ? T("suspended") : T("stopped"));
+    if (v.state === "running") row(dl, T("CPU · memory"), Math.round(v.cpu_pct) + " % · " + Math.round(v.mem_pct) + " %");
+    if (v.ip) row(dl, T("Address"), v.ip);
+    if (v.host) row(dl, T("Host"), v.host);
   }
 
   // ---- HA groups: devices that stand in for each other
@@ -1701,8 +1771,14 @@
     var gen = changeGen;
     setSave(T("Saving…"));
     syncSaveButtons();
+    // machines shown by themselves are saved only once something joins them
+    var used = {};
+    layout.links.forEach(function (k) { used[k.a] = used[k.b] = true; });
+    layout.ha.forEach(function (g) { g.nodes.forEach(function (id) { used[id] = true; }); });
+    layout.nodes.forEach(function (n) { if (n.virtual && used[n.id]) delete n.virtual; });
     layout.nodes = layout.nodes.filter(function (n) { return n.kind !== "label" || (n.label && n.label.trim()); });
     var sent = JSON.parse(JSON.stringify(layout));
+    sent.nodes = sent.nodes.filter(function (n) { return !n.virtual; });
     sent.ha = (sent.ha || []).filter(function (g) { return g.nodes.length >= 2; }); // a group being made waits for its second member
     fetch("/maps/" + mapID + "/layout", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(sent) })
       .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.status); return j; }); })
@@ -1848,6 +1924,7 @@
     drag = null;
     if (!d) return;
     if (d.type === "node" && d.changed) {
+      pin(d.n);
       // dropped on a rack: mounted on the units under it (or the nearest free)
       var n = d.n, guest = n.kind === "device" || n.kind === "item", r = n.kind !== "rack" && n.kind !== "label" && n.kind !== "host" ? rackAt(n.x, n.y, n) : null;
       var hv = guest && !r ? hostAt(n.x, n.y, n) : null;
@@ -1979,7 +2056,7 @@
   function refresh() {
     return fetch(url("live", mapID), { credentials: "same-origin", headers: { "Accept": "application/json" } })
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function (d) { live = d; syncVLANs(); if (!drag) { render(); if (selected && !editing && !panel.contains(document.activeElement)) showSelection(); } })
+      .then(function (d) { live = d; syncVLANs(); if (!drag) syncVMs(); if (!drag) { render(); if (selected && !editing && !panel.contains(document.activeElement)) showSelection(); } })
       .catch(function () { /* next round */ });
   }
   function loadMap(id, restoreView) {

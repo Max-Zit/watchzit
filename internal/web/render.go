@@ -528,13 +528,14 @@ var metricNames = map[string]string{"rtt_ms": "Response time", "loss_pct": "Pack
 	"response_ms": "Response time", "uptime_s": "Uptime", "in_bps": "Traffic in", "out_bps": "Traffic out", "in_err": "Errors in", "out_err": "Errors out",
 	"cpu_pct": "CPU load", "used_pct": "Used", "used_b": "Used space", "value": "Value",
 	"mem_pct": "Memory used", "swap_pct": "Swap used", "mem_used_b": "Memory used (bytes)", "load1": "Load average", "running": "Running",
-	"status_code": "Status code", "cert_days": "Certificate valid (days)", "handshake_ms": "Handshake time", "connections": "Connections", "temperature": "Temperature"}
+	"status_code": "Status code", "cert_days": "Certificate valid (days)", "handshake_ms": "Handshake time", "connections": "Connections", "temperature": "Temperature",
+	"ds_used_pct": "Fullest datastore", "vms_running": "Machines running", "vms_total": "Machines", "hosts_down": "Hosts down"}
 
 // checkKinds name the check types.
 var checkKinds = map[string]string{"icmp": "Ping (ICMP)", "tcp": "TCP port", "snmp": "SNMP availability", "snmp_if": "Interface traffic",
 	"snmp_cpu": "CPU load", "snmp_storage": "Memory or disk", "snmp_oid": "SNMP value (OID)",
 	"agent": "Agent", "agent_cpu": "CPU load", "agent_mem": "Memory", "agent_disk": "Disk", "agent_net": "Interface traffic", "agent_service": "Service",
-	"http": "Web page (HTTP)", "tls": "TLS certificate", "dns": "DNS", "pgsql": "PostgreSQL", "mysql": "MySQL / MariaDB", "routeros": "MikroTik RouterOS (API)", "jsonapi": "JSON API value"}
+	"http": "Web page (HTTP)", "tls": "TLS certificate", "dns": "DNS", "pgsql": "PostgreSQL", "mysql": "MySQL / MariaDB", "routeros": "MikroTik RouterOS (API)", "jsonapi": "JSON API value", "hypervisor": "Hypervisor (vSphere, Proxmox VE)"}
 
 // groupNames name the kinds of items discovery finds.
 var groupNames = map[string]string{"system": "System", "interface": "Interface", "memory": "Memory", "disk": "Disk"}

@@ -914,3 +914,7 @@ body.graph-full { overflow: hidden; }
 .cfgdiff .del { background: rgba(239, 68, 68, .15); color: var(--bad); display: inline-block; width: 100%; }
 .cfgdiff .gap { color: var(--muted); }
 .ok-text { color: var(--ok); }
+/* machines a hypervisor runs, shown by themselves on maps */
+.node.s-paused .frame { stroke: var(--line-2); stroke-dasharray: 5 4; }
+.node.s-paused image { opacity: .55; }
+.node.virtual .frame { stroke-dasharray: 3 3; }

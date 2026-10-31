@@ -54,6 +54,8 @@ type MapNode struct {
 	HostDevice int64 `json:"host_device,omitempty"`
 	// HostDevices are more physical servers of a hypervisor cluster.
 	HostDevices []int64 `json:"host_devices,omitempty"`
+	// AutoVMs: the host shows the machines its hypervisor runs by itself.
+	AutoVMs bool `json:"auto_vms,omitempty"`
 }
 
 // MapLink connects two nodes, optionally port to port (ifIndex for the
@@ -257,13 +259,13 @@ func (s *Store) MapLayout(ctx context.Context, id int64) (*MapLayout, error) {
 		bg.Asset = *asset
 	}
 	rows, err := s.db.Query(ctx, `SELECT id, kind, COALESCE(device_id,0), COALESCE(submap_id,0), label, x, y, icon, size, COALESCE(parent,0), u, COALESCE(host_device,0),
-		COALESCE((SELECT array_agg(x) FROM unnest(host_devices) x WHERE EXISTS (SELECT 1 FROM devices WHERE devices.id=x)), '{}') FROM map_nodes WHERE map_id=$1 ORDER BY id`, id)
+		COALESCE((SELECT array_agg(x) FROM unnest(host_devices) x WHERE EXISTS (SELECT 1 FROM devices WHERE devices.id=x)), '{}'), auto_vms FROM map_nodes WHERE map_id=$1 ORDER BY id`, id)
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
 		var n MapNode
-		if err := rows.Scan(&n.ID, &n.Kind, &n.DeviceID, &n.SubmapID, &n.Label, &n.X, &n.Y, &n.Icon, &n.Size, &n.Parent, &n.U, &n.HostDevice, &n.HostDevices); err != nil {
+		if err := rows.Scan(&n.ID, &n.Kind, &n.DeviceID, &n.SubmapID, &n.Label, &n.X, &n.Y, &n.Icon, &n.Size, &n.Parent, &n.U, &n.HostDevice, &n.HostDevices, &n.AutoVMs); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -403,7 +405,7 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 		}
 		var dev, sub, hostDev *int64
 		if n.Kind != NodeHost {
-			n.HostDevice, n.HostDevices = 0, nil
+			n.HostDevice, n.HostDevices, n.AutoVMs = 0, nil, false
 		}
 		switch n.Kind {
 		case NodeDevice:
@@ -457,12 +459,12 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 		}
 		var real int64
 		if n.ID > 0 && old[n.ID] {
-			_, err = tx.Exec(ctx, `UPDATE map_nodes SET kind=$2, device_id=$3, submap_id=$4, label=$5, x=$6, y=$7, icon=$8, size=$9, u=$10, host_device=$11, host_devices=$12 WHERE id=$1`,
-				n.ID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U, hostDev, hostDevs(n.HostDevices))
+			_, err = tx.Exec(ctx, `UPDATE map_nodes SET kind=$2, device_id=$3, submap_id=$4, label=$5, x=$6, y=$7, icon=$8, size=$9, u=$10, host_device=$11, host_devices=$12, auto_vms=$13 WHERE id=$1`,
+				n.ID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U, hostDev, hostDevs(n.HostDevices), n.AutoVMs)
 			real = n.ID
 		} else {
-			err = tx.QueryRow(ctx, `INSERT INTO map_nodes(map_id, kind, device_id, submap_id, label, x, y, icon, size, u, host_device, host_devices) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,
-				mapID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U, hostDev, hostDevs(n.HostDevices)).Scan(&real)
+			err = tx.QueryRow(ctx, `INSERT INTO map_nodes(map_id, kind, device_id, submap_id, label, x, y, icon, size, u, host_device, host_devices, auto_vms) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
+				mapID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U, hostDev, hostDevs(n.HostDevices), n.AutoVMs).Scan(&real)
 		}
 		if isFK(err) {
 			return nil, errors.New("a device or map on the map no longer exists")
@@ -644,6 +646,7 @@ type MapLive struct {
 	Maps    map[int64]string            `json:"maps"`              // submap → worst status
 	VLANs   map[int]string              `json:"vlans,omitempty"`   // VLAN → name (may be empty)
 	Tunnels []LiveTunnel                `json:"tunnels,omitempty"` // VXLAN tunnels between devices of the map
+	VMs     map[int64][]LiveVM          `json:"vms,omitempty"`     // hypervisor host node → the machines it runs
 }
 
 // DevicePorts lists the interfaces of devices with their latest traffic.
@@ -757,6 +760,9 @@ func (s *Store) MapLiveData(ctx context.Context, l *MapLayout) (*MapLive, error)
 			return nil, err2
 		}
 		if live.Tunnels, err2 = s.mapTunnels(ctx, live.Devices); err2 != nil {
+			return nil, err2
+		}
+		if live.VMs, err2 = s.mapVMs(ctx, l, live.Devices); err2 != nil {
 			return nil, err2
 		}
 	}

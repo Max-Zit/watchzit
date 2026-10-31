@@ -16,6 +16,7 @@ import (
 
 	"github.com/coder/websocket"
 
+	"github.com/max-zit/watchzit/internal/hypervisor"
 	"github.com/max-zit/watchzit/internal/proto"
 	"github.com/max-zit/watchzit/internal/store"
 	"github.com/max-zit/watchzit/internal/tsdb"
@@ -37,6 +38,7 @@ type agentConn struct {
 	ifsHash  string // the interfaces last stored for the map
 	vlanHash string // the VLANs last stored
 	vxHash   string // the VXLANs last stored
+	guHash   string // the machines or containers last stored
 }
 
 func newHub() *hub { return &hub{conns: map[int64]*agentConn{}} }
@@ -453,6 +455,9 @@ func (s *Server) agentReport(ctx context.Context, c *agentConn, r *proto.Report)
 		}
 		c.vxHash = string(v)
 	}
+	if err := s.storeGuests(ctx, c, r); err != nil {
+		return err
+	}
 	if created {
 		s.log.Info("agent checks added", "device", c.deviceID)
 	}
@@ -488,4 +493,44 @@ func bitsText(bps float64) string {
 		i++
 	}
 	return fmt.Sprintf("%.3g %s", bps, u[i])
+}
+
+// storeGuests keeps the Hyper-V machines or Docker containers an agent
+// reports as the device's hypervisor inventory, when they changed.
+func (s *Server) storeGuests(ctx context.Context, c *agentConn, r *proto.Report) error {
+	if r.Guests == nil {
+		return nil
+	}
+	h, _ := json.Marshal(r.Guests)
+	if string(h) == c.guHash {
+		return nil
+	}
+	d, err := s.store.DeviceByID(ctx, c.deviceID)
+	if err != nil {
+		return err
+	}
+	inv := &hypervisor.Inventory{Kind: r.Guests.Kind, Product: r.Guests.Product, VMs: []hypervisor.VM{},
+		Hosts: []hypervisor.Host{{Name: d.Name, Address: d.Address, Up: true, CPUPct: round2(r.CPU), MemB: int64(min(r.MemTotal, 1<<62)), MemUsedB: int64(min(r.MemUsed, 1<<62))}}} // #nosec G115 -- capped
+	for _, g := range r.Guests.Items {
+		v := hypervisor.VM{ID: g.ID, Name: cutName(g.Name), Host: d.Name, State: g.State, OS: cutName(g.OS), CPUs: g.CPUs, MemB: g.MemB,
+			CPUPct: round2(g.CPUPct), MemPct: round2(g.MemPct), IPs: g.IPs}
+		if r.Guests.Kind == hypervisor.Docker {
+			v.Kind = "ct"
+		}
+		if len(inv.VMs) < 2000 {
+			inv.VMs = append(inv.VMs, v)
+		}
+	}
+	if err := s.store.SetHVInventory(ctx, c.deviceID, s.now(), inv); err != nil {
+		return err
+	}
+	c.guHash = string(h)
+	return nil
+}
+
+func cutName(s string) string {
+	if len(s) > 200 {
+		return s[:200]
+	}
+	return s
 }
