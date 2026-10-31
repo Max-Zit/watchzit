@@ -10,6 +10,15 @@
 </table>
 <p>Every user signs in with a password and two-factor sign-in (an authenticator app); recovery codes help when the phone is lost. Administrators add users under <a href="/users">Users</a>, reset passwords and two-factor sign-in. <a href="/audit">Audit log</a> records every change; its entries are chained so changes to the log show.</p>
 
+<h2 id="directory">Active Directory / LDAP and single sign-on</h2>
+<p>Besides local accounts, users can sign in with a directory account. Local accounts always keep working, so an administrator can sign in when the directory or the identity provider is down. A username that belongs to a local account is never taken over by a directory sign-in.</p>
+<ul>
+  <li><b>Active Directory / LDAP</b> (<a href="/settings/ldap">Settings → Active Directory / LDAP</a>): the server (<code>ldaps://dc1.example.local</code>, or <code>ldap://</code> with StartTLS — passwords never cross the network unencrypted), optionally the CA certificate of a company CA, a service account that may read users and groups, the base DN and the user filter (Active Directory <code>(&amp;(objectClass=user)(sAMAccountName={username}))</code>). Groups in groups are followed on Active Directory. The directory checks the password; WatchZit still asks for its own second factor. <b>Test</b> checks an account without signing in and shows the groups and the role it would get.</li>
+  <li><b>Single sign-on</b> (<a href="/settings/sso">Settings → Single sign-on</a>): OpenID Connect (Microsoft Entra ID, Google, Okta, Keycloak …: the issuer, client ID and secret; register <code>https://&lt;console&gt;/login/sso/callback</code> as the redirect URI) or SAML 2.0 (ADFS, Entra ID, Okta …: the identity provider's metadata URL or XML; give it <code>https://&lt;console&gt;/login/sso/metadata</code>, the reply address is <code>/login/sso/saml</code>). The sign-in page gets a button. WatchZit's own second factor is asked too only when you tick it; otherwise the identity provider's policy decides.</li>
+  <li><b>Groups and roles</b>: at every sign-in the groups decide the role — administrators, operators or viewers, the highest wins — and users in none of the groups get the default role or cannot sign in. A group is its name or full DN, or the name or ID the identity provider sends (Entra ID sends IDs).</li>
+  <li>Directory accounts are created at their first sign-in and show <b>LDAP</b> or <b>SSO</b> in the user list. They have no WatchZit password; disable them in WatchZit to keep them out even if the directory lets them in.</li>
+</ul>
+
 <h2 id="settings">Settings</h2>
 <ul>
   <li><b>Network and access</b> — the console and agent ports, the networks allowed to reach each, the public agent address.</li>

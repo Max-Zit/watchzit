@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/max-zit/watchzit/internal/auth"
 )
 
@@ -32,6 +34,8 @@ type User struct {
 	Lang               string
 	CreatedAt          time.Time
 	LastLoginAt        *time.Time
+	Source             string // local, ldap or sso
+	Email              string
 }
 
 // IsAdmin reports the admin role.
@@ -50,12 +54,12 @@ func ValidUsername(u string) error {
 	return nil
 }
 
-const userCols = `id, username, display_name, role, totp_enabled, must_change_password, disabled, lang, created_at, last_login_at`
+const userCols = `id, username, display_name, role, totp_enabled, must_change_password, disabled, lang, created_at, last_login_at, source, email`
 
 func scanUser(row interface{ Scan(...any) error }) (*User, error) {
 	u := &User{}
 	err := row.Scan(&u.ID, &u.Username, &u.DisplayName, &u.Role, &u.TOTPEnabled, &u.MustChangePassword,
-		&u.Disabled, &u.Lang, &u.CreatedAt, &u.LastLoginAt)
+		&u.Disabled, &u.Lang, &u.CreatedAt, &u.LastLoginAt, &u.Source, &u.Email)
 	return u, err
 }
 
@@ -134,7 +138,7 @@ func (s *Store) CheckPassword(ctx context.Context, username, password string) (*
 	var id int64
 	var hash string
 	var disabled bool
-	err := s.db.QueryRow(ctx, `SELECT id, password_hash, disabled FROM users WHERE lower(username)=lower($1)`, strings.TrimSpace(username)).
+	err := s.db.QueryRow(ctx, `SELECT id, password_hash, disabled FROM users WHERE lower(username)=lower($1) AND source='local'`, strings.TrimSpace(username)).
 		Scan(&id, &hash, &disabled)
 	if err != nil {
 		auth.BurnTime(password)
@@ -294,4 +298,63 @@ func (s *Store) ResetTwoFactor(ctx context.Context, userID int64) error {
 	}
 	_, err = s.db.Exec(ctx, `DELETE FROM sessions WHERE user_id=$1`, userID)
 	return err
+}
+
+// Account sources.
+const (
+	SourceLocal = "local"
+	SourceLDAP  = "ldap"
+	SourceSSO   = "sso"
+)
+
+// ErrOtherSource: the username belongs to an account of another source (a
+// local account cannot be taken over by a directory sign-in).
+var ErrOtherSource = errors.New("the account exists with another sign-in method")
+
+// DirectoryUser is an account as a directory describes it at sign-in.
+type DirectoryUser struct {
+	Source                       string
+	Username, DisplayName, Email string
+	Role                         string
+}
+
+// UpsertDirectoryUser creates a directory account at its first sign-in and
+// refreshes its name and role at every later one (the directory decides).
+// Disabled accounts stay disabled.
+func (s *Store) UpsertDirectoryUser(ctx context.Context, d DirectoryUser) (*User, error) {
+	d.Username = strings.TrimSpace(d.Username)
+	if err := ValidUsername(d.Username); err != nil {
+		return nil, err
+	}
+	if !ValidRole(d.Role) || (d.Source != SourceLDAP && d.Source != SourceSSO) {
+		return nil, errors.New("bad directory account")
+	}
+	display, email := cutText(strings.TrimSpace(d.DisplayName), 200), cutText(strings.TrimSpace(d.Email), 200)
+	var id int64
+	var source string
+	err := s.db.QueryRow(ctx, `SELECT id, source FROM users WHERE lower(username)=lower($1)`, d.Username).Scan(&id, &source)
+	switch {
+	case err == nil && source != d.Source:
+		return nil, ErrOtherSource
+	case err == nil:
+		_, err = s.db.Exec(ctx, `UPDATE users SET display_name=$2, email=$3, role=$4 WHERE id=$1`, id, display, email, d.Role)
+	case errors.Is(err, pgx.ErrNoRows):
+		// no password of its own: the directory checks it
+		err = s.db.QueryRow(ctx, `INSERT INTO users(username, display_name, email, password_hash, role, source) VALUES($1,$2,$3,'!',$4,$5)
+			ON CONFLICT (lower(username)) DO NOTHING RETURNING id`, d.Username, display, email, d.Role, d.Source).Scan(&id)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return s.UpsertDirectoryUser(ctx, d) // created meanwhile by another sign-in
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	return s.UserByID(ctx, id)
+}
+
+// UserSource is the sign-in method of a username ("" when there is none).
+func (s *Store) UserSource(ctx context.Context, username string) string {
+	var src string
+	_ = s.db.QueryRow(ctx, `SELECT source FROM users WHERE lower(username)=lower($1)`, strings.TrimSpace(username)).Scan(&src)
+	return src
 }

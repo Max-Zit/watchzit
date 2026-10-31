@@ -95,6 +95,8 @@
   <a href="/settings/datasources" class="{{if eq .Title "Data sources"}}on{{end}}">{{template "icon" "database"}}<span>{{.T "Data sources"}}<small>{{.T "Databases, Prometheus, InfluxDB for graphs"}}</small></span></a>
   <a href="/settings/logs" class="{{if eq .Title "Syslog and traps"}}on{{end}}">{{template "icon" "file"}}<span>{{.T "Syslog and traps"}}<small>{{.T "Messages devices send"}}</small></span></a>
   <a href="/settings/flows" class="{{if eq .Title "Traffic flows"}}on{{end}}">{{template "icon" "route"}}<span>{{.T "Traffic flows"}}<small>{{.T "NetFlow, IPFIX and sFlow"}}</small></span></a>
+  <a href="/settings/ldap" class="{{if eq .Title "Active Directory / LDAP"}}on{{end}}">{{template "icon" "users"}}<span>{{.T "Active Directory / LDAP"}}<small>{{.T "Sign-in with directory accounts"}}</small></span></a>
+  <a href="/settings/sso" class="{{if eq .Title "Single sign-on"}}on{{end}}">{{template "icon" "key"}}<span>{{.T "Single sign-on"}}<small>{{.T "OpenID Connect, SAML 2.0"}}</small></span></a>
   <a href="/settings/kiosks" class="{{if eq .Title "Kiosk displays"}}on{{end}}">{{template "icon" "screen"}}<span>{{.T "Kiosk displays"}}<small>{{.T "Maps on a monitoring TV"}}</small></span></a>
 </nav>{{end}}
 
@@ -121,3 +123,17 @@
     <div class="graph-tip" hidden></div>
   </figure>{{end}}
 {{define "docnav"}}<nav class="docnav" aria-label="{{.T "User guide"}}"><div class="docnav-title">{{template "icon" "book"}} {{.T "User guide"}}</div><form method="get" action="/docs/search" class="docnav-search"><input type="search" name="q" placeholder="{{.T "Search the guide"}}" aria-label="{{.T "Search the guide"}}" value="{{.Data.Q}}"></form>{{range .Data.Pages}}<a href="/docs/{{.Slug}}" class="{{if eq .Slug $.Data.Page}}on{{end}}">{{$.T .Title}}</a>{{end}}</nav>{{end}}
+{{define "groupmapping"}}{{$p := .P}}<fieldset class="box">
+  <legend>{{$p.T "Groups and roles"}}</legend>
+  <p class="small muted">{{$p.T "At every sign-in the groups decide the role; the highest wins. A group is its name or its full DN (Active Directory), or its name or ID at the identity provider (Entra ID sends group IDs)."}}</p>
+  <div class="cols">
+    <label>{{$p.T "Administrators"}}<input name="admin_group" value="{{.G.AdminGroup}}" spellcheck="false" placeholder="WatchZit Admins"></label>
+    <label>{{$p.T "Operators"}}<input name="operator_group" value="{{.G.OperatorGroup}}" spellcheck="false" placeholder="WatchZit Operators"></label>
+    <label>{{$p.T "Viewers"}}<input name="viewer_group" value="{{.G.ViewerGroup}}" spellcheck="false" placeholder="WatchZit Viewers"></label>
+  </div>
+  <label>{{$p.T "Users in none of these groups"}}<select name="default_role">
+    <option value="" {{if eq .G.DefaultRole ""}}selected{{end}}>{{$p.T "cannot sign in"}}</option>
+    <option value="viewer" {{if eq .G.DefaultRole "viewer"}}selected{{end}}>{{$p.RoleName "viewer"}}</option>
+    <option value="operator" {{if eq .G.DefaultRole "operator"}}selected{{end}}>{{$p.RoleName "operator"}}</option>
+  </select></label>
+</fieldset>{{end}}

@@ -10,6 +10,15 @@
 </table>
 <p>Svaki korisnik se prijavljuje lozinkom i u dva koraka (aplikacijom za autentifikaciju); kodovi za oporavak pomažu kada se telefon izgubi. Administratori dodaju korisnike u <a href="/users">Korisnici</a>, resetuju lozinke i prijavu u dva koraka. <a href="/audit">Dnevnik aktivnosti</a> beleži svaku promenu; njegovi unosi su povezani u lanac pa se izmene dnevnika vide.</p>
 
+<h2 id="directory">Active Directory / LDAP i jedinstvena prijava</h2>
+<p>Pored lokalnih naloga, korisnici mogu da se prijave nalogom iz direktorijuma. Lokalni nalozi uvek rade, pa administrator može da se prijavi i kada direktorijum ili provajder identiteta ne radi. Korisničko ime lokalnog naloga prijava iz direktorijuma nikada ne preuzima.</p>
+<ul>
+  <li><b>Active Directory / LDAP</b> (<a href="/settings/ldap">Podešavanja → Active Directory / LDAP</a>): server (<code>ldaps://dc1.example.local</code>, ili <code>ldap://</code> sa StartTLS-om — lozinke nikada ne idu mrežom nešifrovane), po želji CA sertifikat firmine CA, servisni nalog koji sme da čita korisnike i grupe, osnovni DN i filter korisnika (Active Directory <code>(&amp;(objectClass=user)(sAMAccountName={username}))</code>). Na Active Directory-ju se prate i grupe u grupama. Direktorijum proverava lozinku; WatchZit i dalje traži svoj drugi faktor. <b>Test</b> proverava nalog bez prijave i prikazuje grupe i ulogu koju bi dobio.</li>
+  <li><b>Jedinstvena prijava</b> (<a href="/settings/sso">Podešavanja → Jedinstvena prijava (SSO)</a>): OpenID Connect (Microsoft Entra ID, Google, Okta, Keycloak …: issuer, client ID i tajna; kao redirect URI registrujte <code>https://&lt;konzola&gt;/login/sso/callback</code>) ili SAML 2.0 (ADFS, Entra ID, Okta …: URL ili XML metapodataka provajdera identiteta; njemu dajte <code>https://&lt;konzola&gt;/login/sso/metadata</code>, adresa za odgovor je <code>/login/sso/saml</code>). Stranica za prijavu dobija dugme. WatchZit-ov drugi faktor se traži samo ako to uključite; inače odlučuje politika provajdera identiteta.</li>
+  <li><b>Grupe i uloge</b>: pri svakoj prijavi grupe određuju ulogu — administratori, operateri ili posmatrači, najviša pobeđuje — a korisnici koji nisu ni u jednoj grupi dobijaju podrazumevanu ulogu ili ne mogu da se prijave. Grupa je njeno ime ili pun DN, ili ime ili ID koji šalje provajder identiteta (Entra ID šalje ID-jeve).</li>
+  <li>Nalozi iz direktorijuma se prave pri prvoj prijavi i u listi korisnika imaju oznaku <b>LDAP</b> ili <b>SSO</b>. Nemaju WatchZit lozinku; isključite ih u WatchZit-u da ih ne pustite čak i kad ih direktorijum pušta.</li>
+</ul>
+
 <h2 id="settings">Podešavanja</h2>
 <ul>
   <li><b>Mreža i pristup</b> — portovi konzole i agenata, mreže koje smeju do njih, javna adresa za agente.</li>

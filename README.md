@@ -34,6 +34,7 @@ WatchZit is made by [MaxZit](https://maxzit.com), like [BackupZit](https://githu
 - **Graphs and dashboards:** years of history (raw, 5-minute and hourly), zoom, graphs you arrange, resize and colour like dashboard panels, and **data sources** — PostgreSQL, MySQL, SQL Server, Prometheus, InfluxDB and JSON — next to WatchZit's own measurements.
 - **Syslog and SNMP traps:** received from devices, searchable under Logs, with triggers that open problems from them.
 - **Traffic flows:** NetFlow v5/v9, IPFIX and sFlow — top talkers, destinations, services and conversations per exporter, with a traffic graph.
+- **Sign-in:** local accounts with two-factor sign-in, Active Directory / LDAP, and single sign-on with OpenID Connect (Entra ID, Google, Okta, Keycloak) or SAML 2.0 (ADFS); roles follow directory groups.
 - **Alerts:** thresholds, dependencies (a router down hides the alarms behind it), maintenance windows, email, Slack, Microsoft Teams, Discord, Telegram, ntfy, PagerDuty, SMS and webhooks; availability reports.
 - **Open a device** from the map: its web interface, SSH/PuTTY, RDP, WinBox, VNC or your own tools.
 - **Secure by default:** HTTPS, two-factor sign-in, roles, allowed networks, brute-force blocking, audit log, encrypted secrets, signed updates, 14 console languages, REST API.

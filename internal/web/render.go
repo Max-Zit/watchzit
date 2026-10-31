@@ -509,6 +509,7 @@ func init() {
 	funcs["flowTop"] = func(p *Page, title, kind string, rows []flowLine) flowTopCtx {
 		return flowTopCtx{P: p, Title: title, Kind: kind, Rows: rows}
 	}
+	funcs["groupMapping"] = func(p *Page, g GroupMapping) groupMappingData { return groupMappingData{P: p, G: g} }
 	funcs["flowAddr"] = func(name string, id int64) flowAddrCtx { return flowAddrCtx{Name: name, ID: id} }
 	funcs["metricName"] = func(m string) string {
 		if n, ok := metricNames[m]; ok {

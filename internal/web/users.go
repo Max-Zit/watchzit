@@ -115,6 +115,10 @@ func (s *Server) handleUserPassword(w http.ResponseWriter, r *http.Request) {
 	if u == nil {
 		return
 	}
+	if u.Source != store.SourceLocal {
+		s.showUser(w, r, http.StatusBadRequest, u, "This account signs in through the directory or single sign-on; its password is set there.")
+		return
+	}
 	if err := s.store.SetPassword(r.Context(), u.ID, r.FormValue("password"), true, ""); err != nil {
 		s.showUser(w, r, http.StatusBadRequest, u, storeErr(err))
 		return

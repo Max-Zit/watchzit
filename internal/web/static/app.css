@@ -927,3 +927,6 @@ body.graph-full { overflow: hidden; }
 .flowgrid .panel { margin: 0; }
 table.flowtop td { vertical-align: top; }
 table.flowtop progress.meter { display: block; margin-top: 4px; height: 5px; }
+/* sign-in with single sign-on */
+.btn.wide { width: 100%; justify-content: center; }
+p.center { text-align: center; }
