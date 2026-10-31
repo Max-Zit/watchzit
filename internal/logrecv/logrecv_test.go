@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"net"
 	"net/netip"
-	"sync"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
