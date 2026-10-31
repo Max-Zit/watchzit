@@ -157,6 +157,7 @@
   "At every sign-in the groups decide the role; the highest wins. A group is its name or its full DN (Active Directory), or its name or ID at the identity provider (Entra ID sends group IDs).": "Bei jeder Anmeldung entscheiden die Gruppen über die Rolle; die höchste gewinnt. Eine Gruppe ist ihr Name oder ihr vollständiger DN (Active Directory) bzw. ihr Name oder ihre ID beim Identitätsanbieter (Entra ID sendet Gruppen-IDs).",
   "At least 12 characters. A passphrase of several words is best.": "Mindestens 12 Zeichen. Eine Passphrase aus mehreren Wörtern ist am besten.",
   "At next sign-in": "Bei der nächsten Anmeldung",
+  "At the identity provider": "Beim Identitätsanbieter",
   "Audit log": "Prüfprotokoll",
   "Authentication": "Authentifizierung",
   "Authentication password": "Authentifizierungspasswort",

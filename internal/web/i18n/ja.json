@@ -157,6 +157,7 @@
   "At every sign-in the groups decide the role; the highest wins. A group is its name or its full DN (Active Directory), or its name or ID at the identity provider (Entra ID sends group IDs).": "サインインのたびにグループがロールを決め、最も高いロールが優先されます。グループはその名前または完全な DN（Active Directory）、あるいは ID プロバイダーでの名前または ID（Entra ID はグループ ID を送信）です。",
   "At least 12 characters. A passphrase of several words is best.": "12 文字以上。複数の単語からなるパスフレーズが最適です。",
   "At next sign-in": "次回サインイン時",
+  "At the identity provider": "ID プロバイダー側",
   "Audit log": "監査ログ",
   "Authentication": "認証",
   "Authentication password": "認証パスワード",

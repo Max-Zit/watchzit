@@ -157,6 +157,7 @@
   "At every sign-in the groups decide the role; the highest wins. A group is its name or its full DN (Active Directory), or its name or ID at the identity provider (Entra ID sends group IDs).": "Bij elke aanmelding bepalen de groepen de rol; de hoogste wint. Een groep is zijn naam of zijn volledige DN (Active Directory), of zijn naam of ID bij de identiteitsprovider (Entra ID stuurt groeps-ID's).",
   "At least 12 characters. A passphrase of several words is best.": "Minstens 12 tekens. Een wachtzin van meerdere woorden is het best.",
   "At next sign-in": "Bij de volgende aanmelding",
+  "At the identity provider": "Bij de identiteitsprovider",
   "Audit log": "Auditlogboek",
   "Authentication": "Authenticatie",
   "Authentication password": "Authenticatiewachtwoord",

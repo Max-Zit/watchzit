@@ -15,7 +15,7 @@
   <h2>{{.T "Password and two-factor sign-in"}}</h2>
   <dl class="facts">
     <dt>{{.T "Sign-in"}}</dt><dd>{{if eq .Data.U.Source "ldap"}}Active Directory / LDAP{{else if eq .Data.U.Source "sso"}}{{.T "Single sign-on"}}{{else}}{{.T "Local account"}}{{end}}{{with .Data.U.Email}} · {{.}}{{end}}</dd>
-    <dt>{{.T "Two-factor"}}</dt><dd>{{if .Data.U.TOTPEnabled}}<span class="badge ok"><i></i>{{.T "On"}}</span>{{else}}<span class="badge warn">{{.T "At next sign-in"}}</span>{{end}}</dd>
+    <dt>{{.T "Two-factor"}}</dt><dd>{{if .Data.U.TOTPEnabled}}<span class="badge ok"><i></i>{{.T "On"}}</span>{{else if eq .Data.U.Source "sso"}}<span class="badge">{{.T "At the identity provider"}}</span>{{else}}<span class="badge warn">{{.T "At next sign-in"}}</span>{{end}}</dd>
     <dt>{{.T "Last sign-in"}}</dt><dd>{{.Time .Data.U.LastLoginAt}}</dd>
     <dt>{{.T "Added"}}</dt><dd>{{.Time .Data.U.CreatedAt}}</dd>
   </dl>

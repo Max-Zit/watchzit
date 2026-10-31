@@ -157,6 +157,7 @@
   "At every sign-in the groups decide the role; the highest wins. A group is its name or its full DN (Active Directory), or its name or ID at the identity provider (Entra ID sends group IDs).": "Při každém přihlášení určují roli skupiny; vyhrává nejvyšší. Skupina je její název nebo úplné DN (Active Directory), nebo její název či ID u poskytovatele identity (Entra ID posílá ID skupin).",
   "At least 12 characters. A passphrase of several words is best.": "Alespoň 12 znaků. Nejlepší je heslo z několika slov.",
   "At next sign-in": "Při příštím přihlášení",
+  "At the identity provider": "U poskytovatele identity",
   "Audit log": "Protokol auditu",
   "Authentication": "Ověřování",
   "Authentication password": "Heslo pro ověřování",

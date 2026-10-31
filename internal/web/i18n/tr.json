@@ -157,6 +157,7 @@
   "At every sign-in the groups decide the role; the highest wins. A group is its name or its full DN (Active Directory), or its name or ID at the identity provider (Entra ID sends group IDs).": "Her girişte rolü gruplar belirler; en yüksek olan kazanır. Bir grup, adı veya tam DN'si (Active Directory) ya da kimlik sağlayıcıdaki adı veya kimliğidir (Entra ID grup kimlikleri gönderir).",
   "At least 12 characters. A passphrase of several words is best.": "En az 12 karakter. Birkaç kelimeden oluşan bir parola cümlesi en iyisidir.",
   "At next sign-in": "Sonraki girişte",
+  "At the identity provider": "Kimlik sağlayıcıda",
   "Audit log": "Denetim günlüğü",
   "Authentication": "Kimlik doğrulama",
   "Authentication password": "Kimlik doğrulama parolası",

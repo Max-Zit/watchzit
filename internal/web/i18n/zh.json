@@ -157,6 +157,7 @@
   "At every sign-in the groups decide the role; the highest wins. A group is its name or its full DN (Active Directory), or its name or ID at the identity provider (Entra ID sends group IDs).": "每次登录时由组决定角色；最高者优先。组可以是其名称或完整 DN（Active Directory），也可以是其在身份提供商处的名称或 ID（Entra ID 发送组 ID）。",
   "At least 12 characters. A passphrase of several words is best.": "至少 12 个字符。最好使用由几个单词组成的密码短语。",
   "At next sign-in": "下次登录时",
+  "At the identity provider": "由身份提供商负责",
   "Audit log": "审计日志",
   "Authentication": "认证",
   "Authentication password": "认证密码",

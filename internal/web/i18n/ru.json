@@ -157,6 +157,7 @@
   "At every sign-in the groups decide the role; the highest wins. A group is its name or its full DN (Active Directory), or its name or ID at the identity provider (Entra ID sends group IDs).": "При каждом входе роль определяют группы; побеждает наивысшая. Группа — это её имя или полное DN (Active Directory) либо её имя или ID у поставщика удостоверений (Entra ID отправляет ID групп).",
   "At least 12 characters. A passphrase of several words is best.": "Не менее 12 символов. Лучше всего — фраза из нескольких слов.",
   "At next sign-in": "При следующем входе",
+  "At the identity provider": "У поставщика удостоверений",
   "Audit log": "Журнал аудита",
   "Authentication": "Аутентификация",
   "Authentication password": "Пароль аутентификации",
