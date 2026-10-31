@@ -2,7 +2,7 @@
 
 Status: **approved by Stefan on 2026-10-27** (retention defaults, ports 8443/8444, agent before maps, launcher variant A+B). Versions 0.1–0.3 are built on develop; the order was changed to map first (section 10).
 
-WatchZit follows ControlZit's newer layout (Go server + PostgreSQL, html/template
+WatchZit follows RMMZit's newer layout (Go server + PostgreSQL, html/template
 console, JSON i18n catalogs, numbered SQL migrations, separate console and agent
 listeners, mTLS agent channel over WebSocket) and BackupZit's release machinery
 (signed self-update, update channels, appliance images, MSI agent). All code is
@@ -26,7 +26,7 @@ products.
 - **As built in 0.7:** `internal/checks` runs web pages (status, time, text, certificate days), TLS certificates (days, trust with SNI), DNS (own query over UDP with golang.org/x/net/dns/dnsmessage; record type, expected answer), PostgreSQL (pgx; version, connections) and MySQL/MariaDB (go-sql-driver/mysql, MPL-2.0; version, Threads_connected), the MikroTik RouterOS 7 REST API (CPU, memory, uptime, temperature) and a number from any JSON API (dot path, none/Bearer/basic sign-in, unit, multiplier; covers FortiGate REST, vCenter REST and others). Passwords and tokens are sealed in the check params and never shown again. New triggers: certificate expires soon (< 21 days) / expires (< 7 days, critical), high temperature (RouterOS > 70 °C); CPU and memory triggers include RouterOS. Not yet: SQL Server, ready-made FortiGate/vSphere templates, SNMP traps, syslog.
 - Agent items are pushed by the agent every interval over its existing WebSocket (no inbound port on the monitored machine). **As built in 0.4:** the agent makes an ed25519 key and a self-signed client certificate; it enrolls with a one-time-shown code (`WZ1-` + server URL, SHA-256 pin of the agent certificate, token whose hash only is stored) over `POST /agent/enroll`, then keeps one WebSocket `/agent/connect` on port 8444 (hello → welcome with interval and watched services → report every 60 s, inventory daily or on request). The server knows agents by their public key; checks agent, agent_cpu, agent_mem, agent_disk, agent_net, agent_service are created from the reports, and agent interfaces feed the map like SNMP ones.
 - **Templates** (Zabbix idea, simpler): a template = items + triggers + graphs + default tools; built-in ones for Generic SNMP (IF-MIB, HOST-RESOURCES), MikroTik, FortiGate, generic switch, printer (Printer-MIB), UPS (UPS-MIB), Windows/Linux agent, PostgreSQL/MySQL/MSSQL. Interfaces, disks etc. are found by low-level discovery (SNMP table walk / agent list) and become items automatically. No MIB parser in v1 — templates carry OIDs.
-- Credentials (SNMP communities/v3 keys, API tokens, DB passwords) sealed with AES-GCM under a server key (like ControlZit `secret.go`), write-only in the UI.
+- Credentials (SNMP communities/v3 keys, API tokens, DB passwords) sealed with AES-GCM under a server key (like RMMZit `secret.go`), write-only in the UI.
 
 ## 3. Metric storage (PostgreSQL, own compressed blocks)
 
@@ -68,14 +68,14 @@ Browsers cannot start local programs. Proposal:
 
 **B. WatchZit Launcher** (small Windows program, per-user MSI, no admin needed: protocol registered under `HKCU\Software\Classes\watchzit`):
 - The console builds a link `watchzit://open?p=<payload>&s=<signature>`; payload = tool id, host, port, username (never passwords), server id, expiry 60 s; signed with the server's ed25519 key.
-- The launcher is paired with a server once (fingerprint shown in the console, like ControlZit's enrollment code); it refuses unsigned, expired or foreign links.
+- The launcher is paired with a server once (fingerprint shown in the console, like RMMZit's enrollment code); it refuses unsigned, expired or foreign links.
 - Built-in tools: PuTTY, OpenSSH (Windows Terminal/cmd), mstsc, WinBox, VNC viewer, Telnet, browser; **custom applications** defined in the console (name, program path on the PC, argument template with `{host}`, `{port}`, `{user}`). Arguments are passed as an argv list (no shell), host/user validated against a strict charset.
 - Safety: the first time a program path is used on a PC the launcher asks "Allow WatchZit to start C:\…\winbox.exe?" and remembers the answer locally — a compromised server cannot run arbitrary programs silently.
 - Without a code signing certificate SmartScreen will warn on download (same as the other products today).
 - Linux/macOS launcher later (xdg-open handler / app bundle).
 - **As built in 0.6:** as above, with these choices: pairing by clicking a watchzit://pair link (user confirms the fingerprint) instead of a code; the launcher is a self-installing per-user exe (MSI later); built-in tools are switchable and limited by device kind; per-device user and port overrides; .rdp download as the no-launcher fallback; links refused when the request is cross-site.
 
-## 7. Console, security, operations (reuse from BackupZit/ControlZit)
+## 7. Console, security, operations (reuse from BackupZit/RMMZit)
 
 Layout, sidebar, cards, light/dark with the moon button, 14 languages, user guide (/docs), roles (admin / operator / viewer, plus map/device-group scope later), argon2id, TOTP 2FA with recovery codes, sessions, CSRF via Origin, login rate limits and lockout, IP allow-lists for console and agent ports, hash-chained audit log, CSP without inline scripts/styles, Secure/HttpOnly/SameSite cookies, certificate page (self-signed / upload / ACME later), REST API with tokens, LDAP/AD + OIDC/SAML later, diagnostics page, Report a bug / Contact support links.
 

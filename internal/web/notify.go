@@ -29,7 +29,7 @@ import (
 // Notifications: problems go to email recipients, webhooks (JSON, signed
 // with HMAC-SHA256), Slack and Microsoft Teams. The SMTP password, the
 // channel URLs and webhook keys are stored encrypted. Mail and channel code
-// come from ControlZit.
+// come from RMMZit.
 
 const settingNotify = "notify"
 

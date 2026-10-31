@@ -6,7 +6,7 @@
 
 WatchZit watches routers, switches, firewalls, servers, printers, UPSs and services over ping, SNMP, HTTP and a small agent, draws them on live network maps, keeps their measurements for years, and tells you when something breaks — by email, chat or webhook. It runs on one Linux server or as a ready-made appliance for VMware, Proxmox and Hyper-V.
 
-WatchZit is made by [MaxZit](https://maxzit.com), like [BackupZit](https://github.com/Max-Zit/backupzit) and [ControlZit](https://github.com/Max-Zit/controlzit).
+WatchZit is made by [MaxZit](https://maxzit.com), like [BackupZit](https://github.com/Max-Zit/backupzit) and [RMMZit](https://github.com/Max-Zit/rmmzit).
 
 ## Contents
 
