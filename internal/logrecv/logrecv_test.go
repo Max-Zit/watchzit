@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/netip"
 	"sync"
+	"strconv"
 	"testing"
 	"time"
 
@@ -69,7 +70,7 @@ func TestReceive(t *testing.T) {
 	r.Refresh(context.Background())
 	rt.Refresh(context.Background())
 	send := func(to net.Addr, b []byte) net.Conn {
-		c, err := net.Dial("udp", to.String())
+		c, err := net.Dial("udp", net.JoinHostPort("127.0.0.1", strconv.Itoa(to.(*net.UDPAddr).Port))) // from the device address, also where :: answers as ::1
 		if err != nil {
 			t.Fatal(err)
 		}

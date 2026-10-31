@@ -13,11 +13,6 @@ import (
 // PowerShell's Get-VM), Docker on Linux (through its socket). The parsers
 // are here so they are tested on every system.
 
-// hyperVScript lists the machines as JSON (an array, also for one).
-const hyperVScript = `$ErrorActionPreference='Stop'
-$v = @(Get-VM | ForEach-Object { [pscustomobject]@{ id = [string]$_.VMId; name = $_.Name; state = [string]$_.State; cpu = $_.CPUUsage; cpus = $_.ProcessorCount; mem = $_.MemoryAssigned; demand = $_.MemoryDemand; startup = $_.MemoryStartup; ips = @($_.NetworkAdapters | ForEach-Object { $_.IPAddresses }) } })
-ConvertTo-Json -InputObject $v -Compress -Depth 3`
-
 func usableIPv4(s string) bool {
 	a, err := netip.ParseAddr(strings.TrimSpace(s))
 	return err == nil && a.Is4() && !a.IsLoopback() && !a.IsLinkLocalUnicast() && !a.IsUnspecified()

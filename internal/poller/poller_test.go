@@ -67,7 +67,8 @@ func TestPollerRunsChecks(t *testing.T) {
 	for time.Now().Before(deadline) {
 		c, _ := st.CheckByID(ctx, shut)
 		o, _ := st.CheckByID(ctx, open)
-		if c.LastRun != nil && o.LastRun != nil {
+		pg, _ := st.CheckByID(ctx, ping)
+		if c.LastRun != nil && o.LastRun != nil && pg.LastRun != nil {
 			break
 		}
 		time.Sleep(200 * time.Millisecond)

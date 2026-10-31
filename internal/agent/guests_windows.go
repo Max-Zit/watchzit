@@ -38,3 +38,8 @@ func guests(ctx context.Context) *proto.Guests {
 	}
 	return g
 }
+
+// hyperVScript lists the machines as JSON (an array, also for one).
+const hyperVScript = `$ErrorActionPreference='Stop'
+$v = @(Get-VM | ForEach-Object { [pscustomobject]@{ id = [string]$_.VMId; name = $_.Name; state = [string]$_.State; cpu = $_.CPUUsage; cpus = $_.ProcessorCount; mem = $_.MemoryAssigned; demand = $_.MemoryDemand; startup = $_.MemoryStartup; ips = @($_.NetworkAdapters | ForEach-Object { $_.IPAddresses }) } })
+ConvertTo-Json -InputObject $v -Compress -Depth 3`
