@@ -14,7 +14,7 @@ Its programs contain the following components under their own licenses, all comp
 | github.com/crewjam/saml | v0.5.1 | BSD-2-Clause |
 | github.com/fergusstrange/embedded-postgres | v1.34.0 | MIT |
 | github.com/go-asn1-ber/asn1-ber | v1.5.8 | MIT |
-| github.com/go-jose/go-jose/v4 | v4.1.4 | Apache-2.0 |
+| github.com/go-jose/go-jose/v4 | v4.1.6 | Apache-2.0 |
 | github.com/go-ldap/ldap/v3 | v3.4.15 | MIT |
 | github.com/go-sql-driver/mysql | v1.9.3 | MPL-2.0 |
 | github.com/golang-sql/civil | v0.0.0-20220223132316-b832511892a9 | Apache-2.0 |
@@ -468,7 +468,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## github.com/go-jose/go-jose/v4 v4.1.4 (Apache-2.0)
+## github.com/go-jose/go-jose/v4 v4.1.6 (Apache-2.0)
 
 ```
 Apache License
