@@ -95,6 +95,7 @@
   <a href="/settings/datasources" class="{{if eq .Title "Data sources"}}on{{end}}">{{template "icon" "database"}}<span>{{.T "Data sources"}}<small>{{.T "Databases, Prometheus, InfluxDB for graphs"}}</small></span></a>
   <a href="/settings/logs" class="{{if eq .Title "Syslog and traps"}}on{{end}}">{{template "icon" "file"}}<span>{{.T "Syslog and traps"}}<small>{{.T "Messages devices send"}}</small></span></a>
   <a href="/settings/flows" class="{{if eq .Title "Traffic flows"}}on{{end}}">{{template "icon" "route"}}<span>{{.T "Traffic flows"}}<small>{{.T "NetFlow, IPFIX and sFlow"}}</small></span></a>
+  <a href="/settings/console-backup" class="{{if eq .Title "Console backup"}}on{{end}}">{{template "icon" "disk"}}<span>{{.T "Console backup"}}<small>{{.T "Database and keys, daily, SFTP copy"}}</small></span></a>
   <a href="/settings/ldap" class="{{if eq .Title "Active Directory / LDAP"}}on{{end}}">{{template "icon" "users"}}<span>{{.T "Active Directory / LDAP"}}<small>{{.T "Sign-in with directory accounts"}}</small></span></a>
   <a href="/settings/sso" class="{{if eq .Title "Single sign-on"}}on{{end}}">{{template "icon" "key"}}<span>{{.T "Single sign-on"}}<small>{{.T "OpenID Connect, SAML 2.0"}}</small></span></a>
   <a href="/settings/kiosks" class="{{if eq .Title "Kiosk displays"}}on{{end}}">{{template "icon" "screen"}}<span>{{.T "Kiosk displays"}}<small>{{.T "Maps on a monitoring TV"}}</small></span></a>

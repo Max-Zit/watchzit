@@ -26,6 +26,7 @@ import (
 
 	"github.com/max-zit/watchzit/internal/alert"
 	"github.com/max-zit/watchzit/internal/auth"
+	"github.com/max-zit/watchzit/internal/backup"
 	"github.com/max-zit/watchzit/internal/flow"
 	"github.com/max-zit/watchzit/internal/helper"
 	"github.com/max-zit/watchzit/internal/launch"
@@ -68,6 +69,8 @@ func run() error {
 	resetACL := flag.Bool("reset-allowlist", false, "allow the console again from the private networks (10/8, 172.16/12, 192.168/16, fc00::/7) and exit")
 	unblock := flag.String("unblock-ip", "", "lift the sign-in block of an address (or \"all\") and exit")
 	resetPass := flag.String("reset-password", "", "set a new console password for a user (read from standard input), lift all sign-in blocks and exit")
+	restoreFile := flag.String("restore", "", "restore this console backup (database and data files) and exit; stop the server first")
+	restorePass := flag.String("restore-passphrase-file", "", "file with the passphrase of an encrypted backup (or set WATCHZIT_BACKUP_PASSPHRASE)")
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	runHelper := flag.Bool("helper", false, "root helper: handle a request of the console (updates, time zone, network) and exit; started by watchzit-helper.service")
 	flag.Parse()
@@ -116,6 +119,9 @@ func run() error {
 	}
 	if *dbURL == "" {
 		return errors.New("database URL required (--db or WATCHZIT_DB)")
+	}
+	if *restoreFile != "" {
+		return restoreBackup(ctx, *restoreFile, *restorePass, *dataDir, *dbURL)
 	}
 	st, err := store.Open(ctx, *dbURL)
 	if err != nil {
@@ -302,6 +308,18 @@ func run() error {
 	go flows.Run(ctx)
 	go srv.RunDiscovery(ctx)
 	go srv.RunConfigBackups(ctx)
+	go func() {
+		t := time.NewTicker(5 * time.Minute)
+		defer t.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+				srv.RunConsoleBackups(ctx)
+			}
+		}
+	}()
 	go srv.RunUpdates(ctx)
 	// For the root helper: which version runs and where (it checks this after an update).
 	if err := helper.WriteServerInfo(*dataDir, helper.ServerInfo{Version: version, MgmtListen: net0.MgmtListen}); err != nil {
@@ -368,4 +386,32 @@ func startEmbeddedDB(dir string) (*embeddedpostgres.EmbeddedPostgres, string, er
 		return nil, "", err
 	}
 	return pg, fmt.Sprintf("postgres://postgres:postgres@127.0.0.1:%d/watchzit?sslmode=disable", port), nil
+}
+
+// restoreBackup puts a console backup back (server stopped): the database
+// in one transaction, then the data files. The server migrates to its own
+// version when it starts.
+func restoreBackup(ctx context.Context, file, passFile, dataDir, dbURL string) error {
+	pass := os.Getenv("WATCHZIT_BACKUP_PASSPHRASE")
+	if passFile != "" {
+		b, err := os.ReadFile(passFile) // #nosec G304 -- the administrator names the file
+		if err != nil {
+			return err
+		}
+		pass = strings.TrimRight(string(b), "\r\n")
+	}
+	f, err := os.Open(file) // #nosec G304 -- the administrator names the file
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	m, err := backup.Restore(ctx, f, pass, dataDir, func(ctx context.Context, r io.Reader) error {
+		return store.RestoreDump(ctx, dbURL, r)
+	})
+	if err != nil {
+		return fmt.Errorf("restore: %w", err)
+	}
+	fmt.Printf("Restored the backup of %s (WatchZit %s, %d files). Start the server now.\n",
+		m.Created.Local().Format("2006-01-02 15:04"), m.ServerVersion, len(m.Files))
+	return nil
 }

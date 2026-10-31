@@ -51,6 +51,15 @@
 </ul>
 <p>Pouzdan sertifikat se koristi kada se konzola otvori pod svojim imenom; otvorena preko IP adrese, konzola i dalje koristi sopstveni sertifikat. Agenti nisu pogođeni: koriste sopstveni sertifikat porta za agente, koji su zapamtili pri prijavi. Za standardni port podesite port konzole na 443 pod Mreža i pristup.</p>
 
+<h2 id="backup">Backup konzole</h2>
+<p><a href="/settings/console-backup">Podešavanja → Rezervna kopija konzole</a> pravi backup cele konzole: bazu sa svim merenjima, tajni ključ sačuvanih lozinki, ključ launcher-a i sertifikate kojima agenti veruju — sve što novom serveru treba da preuzme posao. Backup se upisuje u <code>backups</code> u direktorijumu podataka svakog dana u izabrani sat (i dugmetom <b>Napravi backup sada</b>); čuvaju se najnoviji (podrazumevano 7).</p>
+<ul>
+  <li><b>Šifrovanje</b>: sa lozinkom (najmanje 12 znakova) fajl je šifrovan (AES-256-GCM). Lozinku čuvajte na drugom mestu: bez nje se backup ne može vratiti.</li>
+  <li><b>SFTP kopija</b>: svaki backup se kopira i u folder na drugom serveru (lozinka ili privatni ključ). Prvi <b>Testiraj SFTP folder</b> pokazuje host ključ servera kome treba verovati; kopije idu samo na server sa tim ključem. Folder čuva onoliko backup-a koliko i server.</li>
+  <li><b>Mejl kad backup ne uspe</b> šalje obaveštenje preko SMTP servera iz Podešavanja → Obaveštenja.</li>
+  <li><b>Vraćanje</b> se radi dok je server zaustavljen: na appliance-u stavka menija <b>Restore a console backup</b>; sa Linux paketima <code>systemctl stop watchzit-server</code>, pa <code>watchzit-server --data-dir /var/lib/watchzit --restore FAJL</code> kao korisnik watchzit sa učitanim <code>/etc/watchzit/server.env</code> (šifrovani backup čita lozinku iz <code>WATCHZIT_BACKUP_PASSPHRASE</code> ili <code>--restore-passphrase-file</code>), pa pokrenite server. Vraćanje menja sve u jednoj transakciji; backup starije verzije se ažurira kad se server pokrene. Agenti nastavljaju da rade: veruju istom sertifikatu.</li>
+</ul>
+
 <h2 id="security">Bezbednost</h2>
 <ul>
   <li>Konzola koristi samo HTTPS, strogu Content Security Policy i zaštitu od zahteva sa drugih sajtova; odgovara samo dozvoljenim mrežama.</li>

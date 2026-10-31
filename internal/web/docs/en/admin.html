@@ -51,6 +51,15 @@
 </ul>
 <p>The trusted certificate is served when the console is opened under its name; opened by its IP address, the console keeps using its own certificate. Agents are not affected: they use the agent port's own certificate, which they pinned at enrollment. To use the standard port, set the console port to 443 under Network and access.</p>
 
+<h2 id="backup">Console backup</h2>
+<p><a href="/settings/console-backup">Settings → Console backup</a> backs up the whole console: the database with all measurements, the secret key of the stored passwords, the launcher key and the certificates the agents trust — everything a new server needs to take over. Backups are written to <code>backups</code> in the data directory every day at the chosen hour (and with <b>Back up now</b>); the newest ones are kept (7 by default).</p>
+<ul>
+  <li><b>Encryption</b>: with a passphrase (at least 12 characters) the file is encrypted (AES-256-GCM). Keep the passphrase somewhere else: without it a backup cannot be restored.</li>
+  <li><b>SFTP copy</b>: every backup is also copied to a folder on another server (password or private key). The first <b>Test the SFTP folder</b> shows the server's host key to trust; copies go only to a server with that key. The folder keeps as many backups as the server.</li>
+  <li><b>Mail when a backup fails</b> sends a notice through the SMTP server of Settings → Notifications.</li>
+  <li><b>Restore</b> runs with the server stopped: on the appliance the setup menu item <b>Restore a console backup</b>; with Linux packages <code>systemctl stop watchzit-server</code>, then <code>watchzit-server --data-dir /var/lib/watchzit --restore FILE</code> as the user watchzit with <code>/etc/watchzit/server.env</code> loaded (an encrypted backup reads its passphrase from <code>WATCHZIT_BACKUP_PASSPHRASE</code> or <code>--restore-passphrase-file</code>), then start the server. The restore replaces everything in one transaction; a backup of an older version is brought up to date when the server starts. Agents keep working: they trust the same certificate.</li>
+</ul>
+
 <h2 id="security">Security</h2>
 <ul>
   <li>The console uses HTTPS only, a strict Content Security Policy and protection against cross-site requests; it answers only the allowed networks.</li>

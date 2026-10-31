@@ -71,12 +71,13 @@ type Server struct {
 	// Logs receives syslog messages and traps (may be nil).
 	Logs *logrecv.Receiver
 	// Flows collects NetFlow, IPFIX and sFlow (may be nil).
-	Flows   *flow.Collector
-	wg      sync.WaitGroup // notifications in flight
-	queries queryCache     // answers of data source queries
-	sso     ssoCache       // identity providers of single sign-on
-	tlsc    *consoleTLS    // console certificates (nil on the development server)
-	scans   scans          // network discovery in progress
+	Flows          *flow.Collector
+	wg             sync.WaitGroup      // notifications in flight
+	queries        queryCache          // answers of data source queries
+	sso            ssoCache            // identity providers of single sign-on
+	consoleBackups consoleBackupRunner // one console backup at a time
+	tlsc           *consoleTLS         // console certificates (nil on the development server)
+	scans          scans               // network discovery in progress
 	// Prober replaces the network prober of discovery (tests).
 	Prober *discovery.Prober
 }
@@ -399,6 +400,12 @@ func (s *Server) Handler() http.Handler {
 	write("POST /discovery/hosts", s.handleDiscoveryHosts)
 	admin("GET /settings/logs", s.handleLogSettings)
 	admin("POST /settings/logs", s.handleLogSettingsSave)
+	admin("GET /settings/console-backup", s.handleConsoleBackup)
+	admin("POST /settings/console-backup", s.handleConsoleBackupSave)
+	admin("POST /settings/console-backup/run", s.handleConsoleBackupRun)
+	admin("POST /settings/console-backup/test", s.handleConsoleBackupTest)
+	admin("GET /settings/console-backup/file/{name}", s.handleConsoleBackupDownload)
+	admin("POST /settings/console-backup/delete", s.handleConsoleBackupDelete)
 	admin("GET /settings/ldap", s.handleLDAPSettings)
 	admin("POST /settings/ldap", s.handleLDAPSave)
 	admin("POST /settings/ldap/test", s.handleLDAPTest)

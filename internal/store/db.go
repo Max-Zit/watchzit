@@ -72,8 +72,19 @@ func (s *Store) migrate(ctx context.Context) error {
 		return err
 	}
 	defer tx.Rollback(ctx)
-	// Only one server instance migrates at a time.
-	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(7263001)`); err != nil {
+	if err := migrateTx(ctx, tx, 0); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+// migrationLock keeps two servers (or a restore) from migrating at once.
+const migrationLock = 7263001
+
+// migrateTx applies the pending migrations in tx, up to version upTo (0:
+// all of them).
+func migrateTx(ctx context.Context, tx pgx.Tx, upTo int) error {
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock($1)`, migrationLock); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(ctx, `CREATE TABLE IF NOT EXISTS schema_migrations (version int PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`); err != nil {
@@ -94,7 +105,7 @@ func (s *Store) migrate(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("migration %s: bad name", n)
 		}
-		if v <= cur {
+		if v <= cur || (upTo > 0 && v > upTo) {
 			continue
 		}
 		sqlText, err := migrations.ReadFile(n)
@@ -108,7 +119,19 @@ func (s *Store) migrate(ctx context.Context) error {
 			return err
 		}
 	}
-	return tx.Commit(ctx)
+	return nil
+}
+
+// SchemaVersion is the newest migration this program has.
+func SchemaVersion() int {
+	names, _ := fs.Glob(migrations, "migrations/*.sql")
+	best := 0
+	for _, n := range names {
+		if v, err := strconv.Atoi(strings.SplitN(strings.TrimPrefix(n, "migrations/"), "_", 2)[0]); err == nil && v > best {
+			best = v
+		}
+	}
+	return best
 }
 
 func notFound(err error) error {
