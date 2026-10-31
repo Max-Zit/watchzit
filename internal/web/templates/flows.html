@@ -1,0 +1,52 @@
+{{template "app" .}}
+{{define "content"}}
+{{$d := .Data}}
+<div class="titlebar">
+  <h1>{{.T "Traffic flows"}}</h1>
+  <div class="row">
+    <form method="get" action="/flows" class="row">
+      <input type="hidden" name="range" value="{{$d.Range}}">
+      <select name="device" aria-label="{{.T "Exporter"}}" data-autosubmit><option value="0">{{.T "All exporters"}}</option>{{range $d.Exporters}}<option value="{{.ID}}" {{if eq .ID $d.DeviceID}}selected{{end}}>{{.Name}}</option>{{end}}</select>
+    </form>
+    <nav class="seg" aria-label="{{.T "Time range"}}">{{range $d.Ranges}}<a href="?range={{.}}&amp;device={{$d.DeviceID}}" class="{{if eq . $d.Range}}on{{end}}">{{.}}</a>{{end}}</nav>
+    {{if .User.IsAdmin}}<a class="btn secondary sm" href="/settings/flows">{{template "icon" "settings"}}{{.T "Settings"}}</a>{{end}}
+  </div>
+</div>
+{{if not $d.On}}<p class="flash info">{{.T "Receiving traffic flows is off; an administrator switches it on under Settings → Traffic flows."}}</p>{{end}}
+<div class="flowsum">
+  <div class="panel"><span class="muted small">{{.T "Traffic"}}</span><b>{{bytes $d.Bytes}}</b></div>
+  <div class="panel"><span class="muted small">{{.T "Average"}}</span><b>{{bits $d.BPS}}</b></div>
+  <div class="panel"><span class="muted small">{{.T "Packets"}}</span><b>{{$d.Packets}}</b></div>
+</div>
+<div class="graphs">
+<figure class="panel graph w-full" data-series="" data-queries="/flows/series/{{$d.DeviceID}}" data-range="{{$d.Range}}" data-unit="bit/s" data-nodata="{{.T "No flows in this time range."}}" data-legend="{{.T "Last"}}|{{.T "Min"}}|{{.T "Avg"}}|{{.T "Max"}}">
+  <figcaption><b>{{.T "Traffic"}}</b></figcaption>
+  <canvas role="img" aria-label="{{.T "Traffic"}}"></canvas>
+  <div class="graph-tip" hidden></div>
+</figure>
+</div>
+<div class="flowgrid">
+  {{template "flowtop" (flowTop . (.T "Top sources") "src" $d.Sources)}}
+  {{template "flowtop" (flowTop . (.T "Top destinations") "dst" $d.Dests)}}
+  {{template "flowtop" (flowTop . (.T "Top services") "service" $d.Services)}}
+  {{if not $d.DeviceID}}{{template "flowtop" (flowTop . (.T "Exporters") "exporter" $d.By)}}{{end}}
+</div>
+<section class="panel">
+  <h2>{{.T "Top conversations"}}</h2>
+  {{if $d.Conversations}}<div class="table-wrap"><table class="list">
+    <thead><tr><th>{{.T "Source"}}</th><th>{{.T "Destination"}}</th><th>{{.T "Service"}}</th><th class="num">{{.T "Traffic"}}</th><th class="num hide-sm">{{.T "Average"}}</th><th class="hide-sm">{{.T "Share"}}</th></tr></thead>
+    <tbody>{{range $d.Conversations}}<tr><td>{{template "flowaddr" (flowAddr .Src .SrcID)}}</td><td>{{template "flowaddr" (flowAddr .Dst .DstID)}}</td><td class="small">{{.Service}}</td>
+      <td class="num">{{bytes .Bytes}}</td><td class="num hide-sm">{{bits .BPS}}</td><td class="hide-sm"><progress class="meter" max="100" value="{{.Pct}}"></progress></td></tr>{{end}}</tbody>
+  </table></div>{{else}}<p class="muted">{{.T "No flows in this time range."}}</p>{{end}}
+</section>
+<script src="/static/chart.js?v={{.Asset}}" defer></script>
+{{end}}
+{{define "flowaddr"}}{{if .ID}}<a href="/devices/{{.ID}}">{{.Name}}</a>{{else}}<span class="mono small">{{.Name}}</span>{{end}}{{end}}
+{{define "flowtop"}}{{$p := .P}}<section class="panel">
+  <h2>{{.Title}}</h2>
+  {{if .Rows}}<table class="list flowtop"><tbody>{{range .Rows}}<tr>
+    <td>{{if eq $.Kind "src"}}{{template "flowaddr" (flowAddr .Src .SrcID)}}{{else if eq $.Kind "dst"}}{{template "flowaddr" (flowAddr .Dst .DstID)}}{{else if eq $.Kind "exporter"}}<a href="/flows?device={{.ExporterID}}">{{.Exporter}}</a>{{else}}{{.Service}}{{end}}
+      <progress class="meter" max="100" value="{{.Pct}}"></progress></td>
+    <td class="num nowrap">{{bytes .Bytes}}<br><span class="muted small">{{printf "%.1f" .Pct}} %</span></td></tr>{{end}}</tbody></table>
+  {{else}}<p class="muted">—</p>{{end}}
+</section>{{end}}

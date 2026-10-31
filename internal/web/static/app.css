@@ -918,3 +918,11 @@ body.graph-full { overflow: hidden; }
 .node.s-paused .frame { stroke: var(--line-2); stroke-dasharray: 5 4; }
 .node.s-paused image { opacity: .55; }
 .node.virtual .frame { stroke-dasharray: 3 3; }
+/* traffic flows */
+.flowsum { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.flowsum .panel { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; margin: 0; }
+.flowsum b { font-size: 20px; }
+.flowgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 16px 0; }
+.flowgrid .panel { margin: 0; }
+table.flowtop td { vertical-align: top; }
+table.flowtop progress.meter { display: block; margin-top: 4px; height: 5px; }

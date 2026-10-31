@@ -494,6 +494,22 @@ func init() {
 		}
 		return fmt.Sprintf("%d kbit/s", bps/1e3)
 	}
+	funcs["bits"] = func(bps float64) string {
+		units := []string{"bit/s", "kbit/s", "Mbit/s", "Gbit/s", "Tbit/s"}
+		i := 0
+		for bps >= 1000 && i < len(units)-1 {
+			bps /= 1000
+			i++
+		}
+		if bps >= 100 || i == 0 {
+			return fmt.Sprintf("%.0f %s", bps, units[i])
+		}
+		return fmt.Sprintf("%.1f %s", bps, units[i])
+	}
+	funcs["flowTop"] = func(p *Page, title, kind string, rows []flowLine) flowTopCtx {
+		return flowTopCtx{P: p, Title: title, Kind: kind, Rows: rows}
+	}
+	funcs["flowAddr"] = func(name string, id int64) flowAddrCtx { return flowAddrCtx{Name: name, ID: id} }
 	funcs["metricName"] = func(m string) string {
 		if n, ok := metricNames[m]; ok {
 			return n

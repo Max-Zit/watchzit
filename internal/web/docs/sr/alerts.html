@@ -48,3 +48,11 @@
   <li><a href="/logs">Logovi</a> prikazuju poruke, najnovije prve, sa pretragom, uređajem, izvorom (syslog ili trapovi) i najmanje važnim nivoom (0 hitno … 7 otklanjanje grešaka). Poruka sa adrese koja nije uređaj prikazuje se sa svojom adresom. Svaka stranica uređaja ima dugme <b>Logovi</b>.</li>
   <li>Okidač vrste <b>Syslog poruka ili trap</b> otvara problem kada poruka sadrži tekst (ili odgovara regularnom izrazu između kosih crta, npr. <code>/link (down|failure)/</code>) na nivou bar toliko važnom koliko je izabrano. Problem ostaje otvoren dok takve poruke stižu i zatvara se kada nijedna nije stigla tokom vremena okidača. Ovi problemi se ne računaju kao vreme bez rada u izveštajima.</li>
 </ul>
+
+<h2 id="flows">Tokovi saobraćaja (NetFlow, IPFIX, sFlow)</h2>
+<p>Ruteri, svičevi i firewall-i mogu da jave koji saobraćaj prolazi kroz njih. Uključite kolektor pod <a href="/settings/flows">Podešavanja → Tokovi saobraćaja</a>: NetFlow v5, NetFlow v9 i IPFIX na UDP 2055 i sFlow v5 na UDP 6343 podrazumevano, čuvaju se 7 dana (1–90). Otvorite ove portove u firewall-u servera i podesite WatchZit kao kolektor, npr. na MikroTik-u <code>/ip traffic-flow set enabled=yes</code> i <code>/ip traffic-flow target add dst-address=&lt;server&gt; port=2055 version=ipfix</code>, na FortiGate-u <code>config system netflow</code>, na svičevima sa sFlow-om sFlow agent sa ovim serverom kao kolektorom.</p>
+<ul>
+  <li>WatchZit sabira tokove po minutu i izvozniku, po razgovoru (izvor, odredište, protokol i port servisa — manji od dva porta). Svaki minut čuva 1.000 najvećih razgovora svakog izvoznika; ostatak je jedan red bez adresa, pa zbirovi ostaju tačni. Uzorkovani tokovi (sFlow, ili NetFlow sa stopom uzorkovanja) množe se stopom.</li>
+  <li><a href="/flows">Tokovi saobraćaja</a> prikazuju saobraćaj kroz vreme i najveće izvore, odredišta, servise, izvoznike i razgovore za poslednji sat, 6 sati, dan ili nedelju, jednog izvoznika ili svih. Adrese uređaja konzole prikazuju se kao uređaj. Izvoznici imaju dugme <b>Tokovi saobraćaja</b> na stranici uređaja.</li>
+  <li>Tokovi sa adresa koje nisu uređaji se izostavljaju, osim ako je uključeno <b>I sa adresa koje nisu uređaji</b>.</li>
+</ul>

@@ -1,0 +1,30 @@
+{{template "app" .}}
+{{define "content"}}
+<h1>{{.T "Settings"}}</h1>
+<div class="settings">
+{{template "settingstabs" .}}
+<div class="settings-body">
+{{$c := .Data.C}}
+<section class="panel">
+  <h2>{{template "icon" "route"}}{{.T "Traffic flows"}}</h2>
+  <p class="muted">{{.T "Routers, switches and firewalls can send what traffic goes through them — NetFlow v5 or v9, IPFIX or sFlow. WatchZit sums it per minute and shows who talks to whom, which services take the bandwidth and which exporter carries it, under Traffic flows."}}</p>
+  {{if .Data.Off}}<p class="flash info">{{.T "This server does not receive flows."}}</p>{{else}}
+  <p class="small">{{.T "Received since the start"}}: <b>{{.Data.Datagrams}}</b> {{.T "datagrams"}}, <b>{{.Data.Records}}</b> {{.T "flows"}}{{if .Data.Errors}} · <span class="warntext">{{.T "not readable"}}: {{.Data.Errors}}</span>{{end}}</p>
+  {{with .Data.Err}}<div class="flash err" role="alert">{{template "icon" "alert"}}<span>{{.}}</span></div>{{end}}{{end}}
+  <form method="post" action="/settings/flows" class="stack">
+    <label class="check"><input type="checkbox" name="enabled" value="1" {{if $c.Enabled}}checked{{end}}>{{.T "Receive traffic flows"}}</label>
+    <div class="cols">
+      <label>{{.T "NetFlow and IPFIX port (UDP)"}}<input type="number" name="netflow_port" value="{{$c.NetFlowPort}}" min="1" max="65535"></label>
+      <label>{{.T "sFlow port (UDP)"}}<input type="number" name="sflow_port" value="{{$c.SFlowPort}}" min="1" max="65535"></label>
+    </div>
+    <div class="cols">
+      <label>{{.T "Keep flows (days)"}}<input type="number" name="keep_days" value="{{$c.KeepDays}}" min="1" max="90"></label>
+      <label class="check"><input type="checkbox" name="unknown" value="1" {{if $c.Unknown}}checked{{end}}>{{.T "Also from addresses that are not devices"}}</label>
+    </div>
+    <div><button class="primary">{{.T "Save"}}</button></div>
+  </form>
+  <p class="small muted mt">{{.T "Open the ports in the server's firewall and set this server as the flow collector, e.g. MikroTik: /ip traffic-flow set enabled=yes; /ip traffic-flow target add dst-address=<address> port=2055 version=ipfix. Each minute keeps the 1,000 largest conversations of each exporter and sums the rest."}}</p>
+</section>
+</div>
+</div>
+{{end}}

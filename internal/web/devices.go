@@ -97,6 +97,7 @@ type deviceData struct {
 	HA         *store.HARole
 	VXLANs     []store.VXLANInfo
 	HV         *store.HVInventory   // what the hypervisor of the device runs
+	Flows      bool                 // the device sent traffic flows lately
 	Traffic    map[int]*store.Check // interface checks by ifIndex
 	Agent      *store.AgentInfo
 	Watched    map[string]bool // services the agent reports
@@ -265,6 +266,7 @@ func (s *Server) showDevice(w http.ResponseWriter, r *http.Request, status int, 
 		s.serverError(w, r, err)
 		return
 	}
+	data.Flows = s.store.HasFlows(r.Context(), d.ID, s.now().AddDate(0, 0, -7))
 	if a, err := s.store.DeviceAgent(r.Context(), d.ID); err == nil {
 		a.Online = s.hub.get(d.ID) != nil
 		data.Agent = a

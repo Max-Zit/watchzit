@@ -26,6 +26,7 @@ import (
 
 	"github.com/max-zit/watchzit/internal/alert"
 	"github.com/max-zit/watchzit/internal/auth"
+	"github.com/max-zit/watchzit/internal/flow"
 	"github.com/max-zit/watchzit/internal/helper"
 	"github.com/max-zit/watchzit/internal/launch"
 	"github.com/max-zit/watchzit/internal/logfile"
@@ -194,6 +195,14 @@ func run() error {
 			log.Error("syslog and traps", "err", err)
 		}
 	}
+	// traffic flows (NetFlow, IPFIX, sFlow)
+	flows := flow.New(st, log)
+	srv.Flows = flows
+	if fc := srv.FlowConfig(ctx); fc.Enabled {
+		if err := flows.Apply(fc); err != nil {
+			log.Error("traffic flows", "err", err)
+		}
+	}
 	srv.DownloadsDir = filepath.Join(*dataDir, "downloads")
 	srv.DataDir = *dataDir
 	if srv.LauncherKey, err = launch.LoadOrCreateKey(filepath.Join(*dataDir, launch.KeyFile)); err != nil {
@@ -290,6 +299,7 @@ func run() error {
 	go srv.RunEscalation(ctx)
 	go srv.RunReportMail(ctx)
 	go logs.Run(ctx)
+	go flows.Run(ctx)
 	go srv.RunDiscovery(ctx)
 	go srv.RunConfigBackups(ctx)
 	go srv.RunUpdates(ctx)

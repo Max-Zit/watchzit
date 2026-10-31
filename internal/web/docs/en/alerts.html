@@ -48,3 +48,11 @@
   <li><a href="/logs">Logs</a> lists the messages, newest first, with a search, a device, the source (syslog or traps) and the least important level (0 emergency … 7 debug). A message from an address that is no device is shown with its address. Each device page has a <b>Logs</b> button.</li>
   <li>A trigger of the kind <b>Syslog message or trap</b> opens a problem when a message contains a text (or matches a regular expression between slashes, e.g. <code>/link (down|failure)/</code>) at a level at least as important as chosen. The problem stays open while such messages keep coming and closes when none came for the time of the trigger. These problems do not count as downtime in reports.</li>
 </ul>
+
+<h2 id="flows">Traffic flows (NetFlow, IPFIX, sFlow)</h2>
+<p>Routers, switches and firewalls can tell what traffic goes through them. Switch the collector on under <a href="/settings/flows">Settings → Traffic flows</a>: NetFlow v5, NetFlow v9 and IPFIX on UDP 2055 and sFlow v5 on UDP 6343 by default, kept for 7 days (1–90). Open these ports in the server's firewall and set WatchZit as the collector, e.g. on MikroTik <code>/ip traffic-flow set enabled=yes</code> and <code>/ip traffic-flow target add dst-address=&lt;server&gt; port=2055 version=ipfix</code>, on FortiGate <code>config system netflow</code>, on switches with sFlow the sFlow agent with this server as the collector.</p>
+<ul>
+  <li>WatchZit sums the flows per minute and exporter by conversation (source, destination, protocol and the service port — the lower of the two ports). Each minute keeps the 1,000 largest conversations of each exporter; the rest is one row without addresses, so totals stay right. Sampled flows (sFlow, or NetFlow with a sampling rate) are multiplied by the rate.</li>
+  <li><a href="/flows">Traffic flows</a> shows the traffic over time and the top sources, destinations, services, exporters and conversations for the last hour, 6 hours, day or week, of one exporter or all. Addresses of devices of the console show as the device. Exporters have a <b>Traffic flows</b> button on their device page.</li>
+  <li>Flows of addresses that are not devices are left out unless <b>Also from addresses that are not devices</b> is on.</li>
+</ul>
