@@ -172,7 +172,12 @@
     return "";
   }
   function picURL(p) { return p.url || "/static/devices/" + p.name + ".svg?v=" + assetV; }
-  function unitsOf(n) { var p = picOf(n); return p && p.u ? p.u : 1; }
+  function unitsOf(n) { if (n.rack_h) return n.rack_h; var p = picOf(n); return p && p.u ? p.u : 1; }
+  // things that are not built for a rack can take part of its width, side
+  // by side on a shelf: rack_w parts, the rack_x-th of them (0 = left)
+  function partsOf(n) { return n.rack_w > 1 ? n.rack_w : 1; }
+  function partOf(n) { var w = partsOf(n), x = Math.min(n.rack_x || 0, w - 1); return [x / w, (x + 1) / w]; }
+  function unmount(n) { n.parent = 0; n.u = 0; delete n.rack_h; delete n.rack_w; delete n.rack_x; }
   // box is the drawn size of a node in world units
   function box(n) {
     if (n.kind === "rack") return { w: RACK_W + 34, h: n.u * UH + 40 };
@@ -181,7 +186,12 @@
       return { w: Math.max(280, cols * HOST_TILE_W + 20), h: HOST_HEAD + rows * HOST_TILE_H + 12 };
     }
     var p = picOf(n);
-    if (rackOf(n)) return { w: RACK_W, h: unitsOf(n) * UH, pic: p && p.u ? p : null };
+    if (rackOf(n)) {
+      // a rack picture fills its units when it has the whole width and its
+      // own height; anything else stands on a shelf
+      var pt = partOf(n), whole = partsOf(n) === 1, rp = p && p.u && whole && (!n.rack_h || n.rack_h === p.u) ? p : null;
+      return { w: RACK_W * (pt[1] - pt[0]), h: unitsOf(n) * UH, pic: rp, shelf: !rp && !!p && (!whole || unitsOf(n) > 1) };
+    }
     if (p && hostOf(n)) { var s0 = Math.min(90 / p.w, 70 / p.h); return { w: p.w * s0, h: p.h * s0, pic: p }; }
     if (n.kind === "label") return { w: Math.max(40, (n.label || "").length * 9), h: 20 };
     if (p) { var w = n.size || p.show || 80; return { w: w, h: w * p.h / p.w, pic: p }; }
@@ -210,8 +220,8 @@
         n.y = r.y - b.h / 2 + HOST_HEAD + Math.floor(i / cols) * HOST_TILE_H + 42;
         return;
       }
-      var u = unitsOf(n);
-      n.x = r.x;
+      var u = unitsOf(n), pt = partOf(n);
+      n.x = r.x - RACK_W / 2 + RACK_W * (pt[0] + pt[1]) / 2;
       n.y = rackTop(r) + (r.u - (n.u + u - 1)) * UH + u * UH / 2;
     });
   }
@@ -447,14 +457,21 @@
     var p = picOf(n), name = nodeName(n);
     if (rackOf(n)) {
       // mounted: the front panel fills its units; a state stripe on the left
+      var whole = partsOf(n) === 1, lastPart = (n.rack_x || 0) >= partsOf(n) - 1;
       if (b.pic) el("image", { href: picURL(b.pic), x: -b.w / 2, y: -b.h / 2, width: b.w, height: b.h, preserveAspectRatio: "none" }, g);
       else {
-        el("rect", { "class": "panel1u", x: -b.w / 2, y: -b.h / 2, width: b.w, height: b.h }, g);
-        if (p) el("image", { href: picURL(p), x: -b.w / 2 + 4, y: -b.h / 2 + 1, width: b.h * 1.6, height: b.h - 2 }, g);
+        el("rect", { "class": b.shelf ? "panel1u shelf" : "panel1u", x: -b.w / 2, y: -b.h / 2, width: b.w, height: b.h }, g);
+        if (p && b.shelf) el("image", { href: picURL(p), x: -b.w / 2 + 3, y: -b.h / 2 + 2, width: b.w - 6, height: b.h - 4, preserveAspectRatio: "xMidYMax meet" }, g);
+        else if (p) el("image", { href: picURL(p), x: -b.w / 2 + 4, y: -b.h / 2 + 1, width: b.h * 1.6, height: b.h - 2 }, g);
       }
-      el("rect", { "class": "stripe", x: -b.w / 2 - 7, y: -b.h / 2 + 1, width: 4, height: b.h - 2, rx: 2 }, g);
+      el("rect", { "class": "stripe", x: whole ? -b.w / 2 - 7 : -b.w / 2 + 1, y: -b.h / 2 + 1, width: whole ? 4 : 3, height: b.h - 2, rx: 2 }, g);
       el("rect", { "class": "ring", x: -b.w / 2 - 2, y: -b.h / 2 - 1, width: b.w + 4, height: b.h + 2, rx: 2 }, g);
-      el("text", { "class": "name side", x: b.w / 2 + 10, y: 4 }, g).textContent = name;
+      if (lastPart) el("text", { "class": "name side", x: b.w / 2 + 10, y: 4 }, g).textContent = name;
+      else { // a neighbour stands to the right: the name goes on the shelf
+        var max = Math.max(3, Math.floor(b.w / 6.2));
+        el("text", { "class": "name inner", x: 0, y: -b.h / 2 + 10, "text-anchor": "middle" }, g).textContent = name.length > max ? name.slice(0, max - 1) + "…" : name;
+        el("title", {}, g).textContent = name;
+      }
       var hg = haOf(n);
       if (!hg || !haTight(hg)) haRole(g, n, b.w / 2 + 10, -10, "start"); // in a rack HA group the tag shows it
     } else if (p) {
@@ -742,15 +759,34 @@
       var opts = [["0", T("Not in a rack")]].concat(racks.map(function (r) { return [String(r.id), (r.label || T("Rack")) + " · " + r.u + "U"]; }));
       field(p, T("Rack"), select(opts, n.parent || 0, function (v) {
         var id = +v;
-        if (!id) { n.parent = 0; n.u = 0; n.x += RACK_W + 60; }
-        else { n.parent = id; n.u = freeUnit(nodeByID(id), unitsOf(n), n) || 1; }
+        if (!id) { unmount(n); n.x += RACK_W + 60; }
+        else { n.parent = id; if (!freeSpot(nodeByID(id), n, 0, n.rack_x)) n.u = 1; }
         render(); changed(); showSelection();
       }));
-      if (n.parent) {
+      if (rackOf(n)) {
         var r0 = nodeByID(n.parent);
         var us = h("input", { type: "number", min: "1", max: String(r0.u - unitsOf(n) + 1), value: String(n.u) });
         us.addEventListener("change", function () { n.u = Math.max(1, Math.min(r0.u - unitsOf(n) + 1, +us.value || 1)); render(); changed(); });
         field(p, T("Mounted at unit"), us);
+        // height and width: things not built for a rack stand side by side
+        var pic = picOf(n), hs = [["0", T("Like the picture") + " (" + (pic && pic.u ? pic.u : 1) + "U)"]];
+        [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20].forEach(function (k) { hs.push([String(k), k + "U"]); });
+        var refit = function () { // keep it in the rack and off its neighbours
+          if (n.u + unitsOf(n) - 1 > r0.u) n.u = Math.max(1, r0.u - unitsOf(n) + 1);
+          if (!unitFree(r0, n.u, unitsOf(n), n)) freeSpot(r0, n, n.u, n.rack_x);
+          render(); changed(); showSelection();
+        };
+        field(p, T("Height"), select(hs, String(n.rack_h || 0), function (v) { if (+v) n.rack_h = +v; else delete n.rack_h; refit(); }));
+        field(p, T("Width"), select([["1", T("Whole width")], ["2", "1/2"], ["3", "1/3"], ["4", "1/4"]], String(partsOf(n)), function (v) {
+          if (+v > 1) { n.rack_w = +v; n.rack_x = Math.min(n.rack_x || 0, +v - 1); } else { delete n.rack_w; delete n.rack_x; }
+          refit();
+        }));
+        if (partsOf(n) > 1) {
+          var xs = [];
+          for (var k = 0; k < partsOf(n); k++) xs.push([String(k), k === 0 ? T("Left") : k === partsOf(n) - 1 ? T("Right") : String(k + 1)]);
+          field(p, T("Position"), select(xs, String(n.rack_x || 0), function (v) { n.rack_x = +v; refit(); }));
+        }
+        p.appendChild(h("p", { "class": "muted small" }, T("Things not built for a rack (a NAS, a small switch, a mini PC) can take several units and part of the width, side by side on a shelf.")));
       }
     }
   }
@@ -759,18 +795,37 @@
     var r = nodeByID(n.parent);
     if (r && n.u + unitsOf(n) - 1 > r.u) n.u = Math.max(1, r.u - unitsOf(n) + 1);
   }
-  // freeUnit finds the highest free position for hgt units in a rack
+  // freeUnit finds the highest free position for hgt units in a rack (in
+  // the part of the width self takes)
   function freeUnit(r, hgt, self) {
     for (var u = r.u - hgt + 1; u >= 1; u--) if (unitFree(r, u, hgt, self)) return u;
     return 0;
   }
+  // unitFree: nothing else in units u…u+hgt-1 overlaps self's part of the width
   function unitFree(r, u, hgt, self) {
+    var pt = self ? partOf(self) : [0, 1];
     for (var i = 0; i < layout.nodes.length; i++) {
       var c = layout.nodes[i];
       if (c.parent !== r.id || c === self) continue;
-      if (c.u <= u + hgt - 1 && u <= c.u + unitsOf(c) - 1) return false;
+      var cp = partOf(c);
+      if (c.u <= u + hgt - 1 && u <= c.u + unitsOf(c) - 1 && cp[0] < pt[1] - 1e-9 && pt[0] < cp[1] - 1e-9) return false;
     }
     return true;
+  }
+  // freeSpot puts n at the highest free place of a rack, trying every part
+  // of the width it may take (the wanted unit and part first)
+  function freeSpot(r, n, wantU, wantX) {
+    var hgt = unitsOf(n), w = partsOf(n), us = [];
+    if (wantU) us.push(wantU);
+    for (var u = r.u - hgt + 1; u >= 1; u--) if (u !== wantU) us.push(u);
+    for (var i = 0; i < us.length; i++) {
+      for (var k = 0; k < w; k++) {
+        n.rack_x = ((wantX || 0) + k) % w;
+        if (us[i] >= 1 && us[i] + hgt - 1 <= r.u && unitFree(r, us[i], hgt, n)) { n.u = us[i]; return true; }
+      }
+    }
+    n.rack_x = wantX || 0;
+    return false;
   }
 
   var rackSizes = [4, 6, 9, 12, 15, 18, 22, 24, 27, 32, 36, 42, 45, 47, 48];
@@ -782,7 +837,7 @@
       var st = nodeStatus(c);
       var li = h("li", { "class": st === "down" ? "down" : st === "up" ? "up" : "" });
       li.appendChild(h("b", {}, nodeName(c) || "—"));
-      li.appendChild(h("span", {}, "U" + c.u + (unitsOf(c) > 1 ? "–" + (c.u + unitsOf(c) - 1) : "")));
+      li.appendChild(h("span", {}, "U" + c.u + (unitsOf(c) > 1 ? "–" + (c.u + unitsOf(c) - 1) : "") + (partsOf(c) > 1 ? " · " + ((c.rack_x || 0) + 1) + "/" + partsOf(c) : "")));
       list.appendChild(li);
     });
     p.appendChild(h("h3", {}, T("Devices in rack")));
@@ -1313,7 +1368,7 @@
     if (!editing || !selected) return;
     if (selected.type === "node") {
       var id = selected.id;
-      layout.nodes.forEach(function (n) { if (n.parent === id) { n.parent = 0; n.u = 0; n.x += RACK_W + 60; } });
+      layout.nodes.forEach(function (n) { if (n.parent === id) { unmount(n); n.x += RACK_W + 60; } });
       layout.nodes = layout.nodes.filter(function (n) { return n.id !== id; });
       layout.links = layout.links.filter(function (k) { return k.a !== id && k.b !== id; });
       layout.ha.forEach(function (g) { g.nodes = g.nodes.filter(function (x) { return x !== id; }); });
@@ -2028,11 +2083,13 @@
         n.parent = hv.id;
         gs.forEach(function (c, i) { c.u = i + 1; });
       } else if (r) {
-        var hgt = unitsOf(n), top = rackTop(r);
+        var hgt = unitsOf(n), top = rackTop(r), w = partsOf(n);
         var want = Math.max(1, Math.min(r.u - hgt + 1, Math.round(r.u - (n.y - top) / UH - hgt / 2 + 1)));
+        var wantX = Math.max(0, Math.min(w - 1, Math.floor((n.x - (r.x - RACK_W / 2)) / (RACK_W / w))));
         n.parent = r.id;
-        n.u = unitFree(r, want, hgt, n) ? want : freeUnit(r, hgt, n) || want;
+        if (!freeSpot(r, n, want, wantX)) { n.u = want; n.rack_x = wantX; }
       } else if (n.kind !== "rack") {
+        if (n.parent) unmount(n);
         n.u = 0;
       }
       render(); changed();

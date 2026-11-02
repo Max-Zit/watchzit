@@ -50,6 +50,12 @@ type MapNode struct {
 	Size     float64 `json:"size,omitempty"`   // shown width (0 = default)
 	Parent   int64   `json:"parent,omitempty"` // rack it is mounted in, or hypervisor host it runs on
 	U        int     `json:"u,omitempty"`      // rack: height in units; mounted: lowest unit; on a host: its place
+	// RackH, RackW and RackX size a mounted node: its height in units (0:
+	// the picture's), the parts the rack's width is split into (0, 1: the
+	// whole width; 2–4: side by side) and which of them it takes (0 = left).
+	RackH int `json:"rack_h,omitempty"`
+	RackW int `json:"rack_w,omitempty"`
+	RackX int `json:"rack_x,omitempty"`
 	// HostDevice is the physical server a hypervisor host (kind host) runs on.
 	HostDevice int64 `json:"host_device,omitempty"`
 	// HostDevices are more physical servers of a hypervisor cluster.
@@ -266,13 +272,13 @@ func (s *Store) MapLayout(ctx context.Context, id int64) (*MapLayout, error) {
 		bg.Asset = *asset
 	}
 	rows, err := s.db.Query(ctx, `SELECT id, kind, COALESCE(device_id,0), COALESCE(submap_id,0), label, x, y, icon, size, COALESCE(parent,0), u, COALESCE(host_device,0),
-		COALESCE((SELECT array_agg(x) FROM unnest(host_devices) x WHERE EXISTS (SELECT 1 FROM devices WHERE devices.id=x)), '{}'), auto_vms, auto FROM map_nodes WHERE map_id=$1 ORDER BY id`, id)
+		COALESCE((SELECT array_agg(x) FROM unnest(host_devices) x WHERE EXISTS (SELECT 1 FROM devices WHERE devices.id=x)), '{}'), auto_vms, auto, rack_h, rack_w, rack_x FROM map_nodes WHERE map_id=$1 ORDER BY id`, id)
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
 		var n MapNode
-		if err := rows.Scan(&n.ID, &n.Kind, &n.DeviceID, &n.SubmapID, &n.Label, &n.X, &n.Y, &n.Icon, &n.Size, &n.Parent, &n.U, &n.HostDevice, &n.HostDevices, &n.AutoVMs, &n.Auto); err != nil {
+		if err := rows.Scan(&n.ID, &n.Kind, &n.DeviceID, &n.SubmapID, &n.Label, &n.X, &n.Y, &n.Icon, &n.Size, &n.Parent, &n.U, &n.HostDevice, &n.HostDevices, &n.AutoVMs, &n.Auto, &n.RackH, &n.RackW, &n.RackX); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -468,14 +474,24 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 		} else if n.Kind != NodeRack {
 			n.U = 0
 		}
+		if n.Parent == 0 || kinds[n.Parent] != NodeRack {
+			n.RackH, n.RackW, n.RackX = 0, 0, 0
+		} else {
+			if n.RackW <= 1 {
+				n.RackW = 0
+			}
+			if n.RackH < 0 || n.RackH > 20 || n.RackW > 4 || n.RackX < 0 || n.RackX >= max(n.RackW, 1) {
+				return nil, errors.New("a device in a rack takes 1–20 units and a quarter to all of its width")
+			}
+		}
 		var real int64
 		if n.ID > 0 && old[n.ID] {
-			_, err = tx.Exec(ctx, `UPDATE map_nodes SET kind=$2, device_id=$3, submap_id=$4, label=$5, x=$6, y=$7, icon=$8, size=$9, u=$10, host_device=$11, host_devices=$12, auto_vms=$13, auto=$14 WHERE id=$1`,
-				n.ID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U, hostDev, hostDevs(n.HostDevices), n.AutoVMs, n.Auto)
+			_, err = tx.Exec(ctx, `UPDATE map_nodes SET kind=$2, device_id=$3, submap_id=$4, label=$5, x=$6, y=$7, icon=$8, size=$9, u=$10, host_device=$11, host_devices=$12, auto_vms=$13, auto=$14, rack_h=$15, rack_w=$16, rack_x=$17 WHERE id=$1`,
+				n.ID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U, hostDev, hostDevs(n.HostDevices), n.AutoVMs, n.Auto, n.RackH, n.RackW, n.RackX)
 			real = n.ID
 		} else {
-			err = tx.QueryRow(ctx, `INSERT INTO map_nodes(map_id, kind, device_id, submap_id, label, x, y, icon, size, u, host_device, host_devices, auto_vms, auto) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
-				mapID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U, hostDev, hostDevs(n.HostDevices), n.AutoVMs, n.Auto).Scan(&real)
+			err = tx.QueryRow(ctx, `INSERT INTO map_nodes(map_id, kind, device_id, submap_id, label, x, y, icon, size, u, host_device, host_devices, auto_vms, auto, rack_h, rack_w, rack_x) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id`,
+				mapID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U, hostDev, hostDevs(n.HostDevices), n.AutoVMs, n.Auto, n.RackH, n.RackW, n.RackX).Scan(&real)
 		}
 		if isFK(err) {
 			return nil, errors.New("a device or map on the map no longer exists")

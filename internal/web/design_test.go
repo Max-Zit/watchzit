@@ -82,6 +82,9 @@ func TestMapDesign(t *testing.T) {
 			{ID: -3, Kind: "device", DeviceID: 2, Icon: "asset:2", X: 400},
 			{ID: -4, Kind: "item", Icon: "lib:patch-24", Parent: -1, U: 12},
 			{ID: -5, Kind: "item", Icon: "lib:internet", Label: "ISP", X: -300},
+			{ID: -6, Kind: "item", Label: "QNAP", Parent: -1, U: 1, RackH: 3, RackW: 2},
+			{ID: -7, Kind: "item", Label: "Mini PC", Parent: -1, U: 1, RackH: 2, RackW: 2, RackX: 1},
+			{ID: -8, Kind: "item", Label: "Loose", X: 600, RackH: 4, RackW: 3},
 		},
 		Links: []store.MapLink{
 			{ID: -1, A: -4, B: -2, ASlot: 3, BSlot: 3, Kind: "ethernet"},
@@ -98,12 +101,15 @@ func TestMapDesign(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(l.Nodes) != 5 || len(l.Links) != 3 || l.Background.Asset != 1 || l.Background.W != 1600 {
+	if len(l.Nodes) != 8 || len(l.Links) != 3 || l.Background.Asset != 1 || l.Background.W != 1600 {
 		t.Fatalf("%+v", l)
 	}
 	rack := l.Nodes[0].ID
 	if l.Nodes[1].Parent != rack || l.Nodes[1].U != 10 || l.Nodes[3].Parent != rack || l.Nodes[1].Icon != "lib:switch-24" {
 		t.Fatalf("mounted: %+v", l.Nodes)
+	}
+	if q, pc, loose := l.Nodes[5], l.Nodes[6], l.Nodes[7]; q.RackH != 3 || q.RackW != 2 || q.RackX != 0 || pc.RackX != 1 || pc.RackH != 2 || loose.RackH != 0 || loose.RackW != 0 {
+		t.Fatalf("shelf: %+v %+v %+v", q, pc, loose)
 	}
 	if k := l.Links[1]; k.Kind != "fiber-sm" || k.Route != "ortho" || len(k.Points) != 2 || k.ASlot != 25 {
 		t.Fatalf("link: %+v", k)
@@ -122,6 +128,8 @@ func TestMapDesign(t *testing.T) {
 	for name, bad := range map[string]store.MapLayout{
 		"mounted without rack": {Nodes: []store.MapNode{{ID: -1, Kind: "item", Icon: "lib:pdu", Parent: -9, U: 1}}},
 		"rack too tall":        {Nodes: []store.MapNode{{ID: -1, Kind: "rack", U: 99}}},
+		"too high on a shelf":  {Nodes: []store.MapNode{{ID: -1, Kind: "rack", U: 12}, {ID: -2, Kind: "item", Parent: -1, U: 1, RackH: 21}}},
+		"part outside width":   {Nodes: []store.MapNode{{ID: -1, Kind: "rack", U: 12}, {ID: -2, Kind: "item", Parent: -1, U: 1, RackW: 2, RackX: 2}}},
 		"bad picture":          {Nodes: []store.MapNode{{ID: -1, Kind: "item", Icon: "https://evil.example/x.svg"}}},
 		"parent not a rack":    {Nodes: []store.MapNode{{ID: -1, Kind: "item"}, {ID: -2, Kind: "item", Parent: -1, U: 1}}},
 		"unknown background":   {Background: &store.MapBackground{Asset: 999, W: 100, Opacity: 1}},

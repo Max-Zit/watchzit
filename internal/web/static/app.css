@@ -653,6 +653,8 @@ main:has(.mapview) { max-width: none; padding-bottom: 12px; }
 .node.mounted.sel .ring, .node.mounted.from .ring { stroke: var(--accent); }
 .node.mounted .name.side { font-size: 11px; text-anchor: start; }
 .node .panel1u { fill: #2b313c; stroke: #59616e; stroke-width: .8; }
+.node .panel1u.shelf { fill: #222831; stroke-dasharray: 3 2; }
+.node.mounted .name.inner { font-size: 9px; fill: #e5e9f0; paint-order: stroke; stroke: #222831; stroke-width: 2px; }
 .n-item .name { font-weight: 500; fill: var(--muted); }
 .rack { cursor: pointer; }
 .mapview.editing .rack { cursor: move; }
@@ -691,7 +693,7 @@ main:has(.mapview) { max-width: none; padding-bottom: 12px; }
 .mapsvg.pathmode .hostlink.onpath .wire { stroke-width: 3.5; }
 .bgimg { pointer-events: none; }
 .bgimg.movable { pointer-events: auto; cursor: move; outline: 2px dashed var(--accent); }
-.mapsvg.far .rack .unum, .mapsvg.far .node.mounted .name.side { display: none; }
+.mapsvg.far .rack .unum, .mapsvg.far .node.mounted .name.side, .mapsvg.far .node.mounted .name.inner { display: none; }
 /* Port names on cables: about the size of the port numbers on the pictures,
    shown only when zoomed in (zoomed out they would pile up). */
 .link .lbl.port { font-size: 3.6px; stroke-width: 1.2px; }
