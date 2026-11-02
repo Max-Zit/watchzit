@@ -16,7 +16,7 @@ products.
 | `watchzit-server` (Linux, Windows for development) | Console (HTTPS 8443), agent listener (mTLS 8444, separately firewallable), pollers, trigger engine, notifications, metric store, root helper for self-update/appliance settings |
 | PostgreSQL | Configuration, audit log, alerts **and** metrics (own compressed format, see 3) — one database to back up |
 | `watchzit-agent` (Windows service + Linux systemd) | Local metrics (CPU, memory, disks, network, services, processes, uptime, event log later), pushed to the server; optional *remote poller* mode for sites behind NAT (later) |
-| `watchzit-launcher` (Windows first, per-user) | Opens devices with local programs (PuTTY, mstsc, WinBox, VNC, custom paths) from signed links — see 6 |
+| `maxzit-launcher` (Windows first, per-user) | Opens devices with local programs (PuTTY, mstsc, WinBox, VNC, custom paths) from signed links — see 6; native-messaging host of the PassZit extension |
 
 ## 2. Collectors and polling
 
@@ -66,7 +66,7 @@ Browsers cannot start local programs. Proposal:
 - RDP → download a generated `.rdp` file (mstsc opens it).
 - `ssh://` / `telnet://` / `vnc://` links for users who already have a handler.
 
-**B. WatchZit Launcher** (small Windows program, per-user MSI, no admin needed: protocol registered under `HKCU\Software\Classes\watchzit`):
+**B. MaxZit Launcher** (small Windows program, per-user MSI, no admin needed: protocol registered under `HKCU\Software\Classes\watchzit`):
 - The console builds a link `watchzit://open?p=<payload>&s=<signature>`; payload = tool id, host, port, username (never passwords), server id, expiry 60 s; signed with the server's ed25519 key.
 - The launcher is paired with a server once (fingerprint shown in the console, like RMMZit's enrollment code); it refuses unsigned, expired or foreign links.
 - Built-in tools: PuTTY, OpenSSH (Windows Terminal/cmd), mstsc, WinBox, VNC viewer, Telnet, browser; **custom applications** defined in the console (name, program path on the PC, argument template with `{host}`, `{port}`, `{user}`). Arguments are passed as an argv list (no shell), host/user validated against a strict charset.

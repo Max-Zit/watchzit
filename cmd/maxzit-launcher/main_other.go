@@ -9,6 +9,6 @@ import (
 
 // The launcher is a Windows program for now (Linux and macOS later).
 func main() {
-	fmt.Fprintln(os.Stderr, "watchzit-launcher "+version+" runs on Windows only")
+	fmt.Fprintln(os.Stderr, "maxzit-launcher "+version+" runs on Windows only")
 	os.Exit(2)
 }

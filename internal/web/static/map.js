@@ -704,7 +704,7 @@
         p.appendChild(acts);
         if (d.tools && d.tools.length) {
           // the tools need the Launcher paired with this console
-          var lp = h("p", { "class": "muted small" }, T("SSH, Remote Desktop and the other tools open through the WatchZit Launcher.") + " ");
+          var lp = h("p", { "class": "muted small" }, T("SSH, Remote Desktop and the other tools open through the MaxZit Launcher.") + " ");
           lp.appendChild(h("a", { href: "/launcher" + fromMap() }, T("Set it up")));
           p.appendChild(lp);
         }

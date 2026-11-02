@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// config is the launcher's state in %APPDATA%\WatchZit Launcher\launcher.json:
+// config is the launcher's state in %APPDATA%\MaxZit Launcher\launcher.json:
 // paired servers, programs the user allowed, nonces of used links and
 // paths of tools in unusual places.
 type config struct {

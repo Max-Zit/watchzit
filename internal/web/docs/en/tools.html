@@ -1,9 +1,10 @@
 <h1>Opening devices</h1>
 <p class="lead">From a device page or the map's side panel you open a device with the right program: its web interface, SSH, Remote Desktop, WinBox, VNC or your own tools.</p>
 
-<h2 id="launcher">The WatchZit Launcher</h2>
-<p>A browser cannot start programs, so a small Windows program does it: the <b>WatchZit Launcher</b>. Install it once per computer from the <a href="/launcher">Launcher</a> page — it installs for your Windows user, without administrator rights — and click <b>Pair this computer</b>. The launcher shows the server's fingerprint; it must match the one on the page.</p>
+<h2 id="launcher">The MaxZit Launcher</h2>
+<p>A browser cannot start programs, so a small Windows program does it: the <b>MaxZit Launcher</b>. Install it once per computer from the <a href="/launcher">Launcher</a> page — it installs for your Windows user, without administrator rights — and click <b>Pair this computer</b>. The launcher shows the server's fingerprint; it must match the one on the page.</p>
 <p>Then the <b>Open with</b> buttons work. The first time, the browser asks whether it may open the launcher; allow it.</p>
+<p>The same launcher serves <b>PassZit</b>: in the PassZit extension's menu click <b>Pair with the MaxZit Launcher</b> and agree in the launcher's own window. PassZit then opens Remote Desktop, SSH, WinSCP, WinBox, VNC and Telnet with the login from the vault — Remote Desktop through a Windows credential that exists only for a few seconds, an SSH password or key through a file only you can read that is removed right after the start. The launcher replaces the older WatchZit Launcher and passzit-helper: installing it takes over their settings and pairings.</p>
 
 <h2 id="safety">How it stays safe</h2>
 <ul>
@@ -22,7 +23,7 @@
   <tr><td>VNC</td><td>TightVNC, TigerVNC or RealVNC viewer</td></tr>
   <tr><td>Telnet</td><td>PuTTY</td></tr>
 </table>
-<p>Programs in other places: write their paths into <code>%APPDATA%\WatchZit Launcher\launcher.json</code>. Without the launcher, Remote Desktop still works: the <b>.rdp</b> button downloads a file Windows opens.</p>
+<p>Programs in other places: write their paths into <code>%APPDATA%\MaxZit Launcher\launcher.json</code>. Without the launcher, Remote Desktop still works: the <b>.rdp</b> button downloads a file Windows opens.</p>
 
 <h2 id="own-tools">Your own tools</h2>
 <p>Under <a href="/settings/tools">Settings → Tools</a> administrators switch built-in tools off, limit them to device types and add their own: a program path (for example <code>%ProgramFiles%\Mozilla Firefox\firefox.exe</code>) and arguments with <code>{host}</code>, <code>{port}</code>, <code>{user}</code> and <code>{name}</code>. The user name and ports per device are set in the device's <b>Remote access</b>.</p>

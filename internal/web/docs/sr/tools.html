@@ -1,9 +1,10 @@
 <h1>Otvaranje uređaja</h1>
 <p class="lead">Sa stranice uređaja ili iz bočnog panela mape otvarate uređaj pravim programom: njegov web interfejs, SSH, Remote Desktop, WinBox, VNC ili vaše alate.</p>
 
-<h2 id="launcher">WatchZit Launcher</h2>
-<p>Pregledač ne može da pokreće programe, pa to radi mali Windows program: <b>WatchZit Launcher</b>. Instalirajte ga jednom po računaru sa stranice <a href="/launcher">Launcher</a> — instalira se za vašeg Windows korisnika, bez administratorskih prava — i kliknite <b>Upari ovaj računar</b>. Launcher prikazuje otisak servera; mora biti isti kao na stranici.</p>
+<h2 id="launcher">MaxZit Launcher</h2>
+<p>Pregledač ne može da pokreće programe, pa to radi mali Windows program: <b>MaxZit Launcher</b>. Instalirajte ga jednom po računaru sa stranice <a href="/launcher">Launcher</a> — instalira se za vašeg Windows korisnika, bez administratorskih prava — i kliknite <b>Upari ovaj računar</b>. Launcher prikazuje otisak servera; mora biti isti kao na stranici.</p>
 <p>Posle toga rade dugmad <b>Otvori sa</b>. Prvi put pregledač pita da li sme da otvori launcher; dozvolite.</p>
+<p>Isti launcher služi i <b>PassZit</b>: u meniju PassZit ekstenzije kliknite <b>Pair with the MaxZit Launcher</b> i potvrdite u prozoru samog launchera. PassZit tada otvara Remote Desktop, SSH, WinSCP, WinBox, VNC i Telnet sa nalogom iz trezora — Remote Desktop preko Windows kredencijala koji postoji samo nekoliko sekundi, SSH lozinku ili ključ preko fajla koji samo vi možete da čitate i koji se briše odmah posle pokretanja. Launcher zamenjuje stariji WatchZit Launcher i passzit-helper: instalacija preuzima njihova podešavanja i uparivanja.</p>
 
 <h2 id="safety">Kako ostaje bezbedno</h2>
 <ul>
@@ -22,7 +23,7 @@
   <tr><td>VNC</td><td>TightVNC, TigerVNC ili RealVNC viewer</td></tr>
   <tr><td>Telnet</td><td>PuTTY</td></tr>
 </table>
-<p>Programi na drugim mestima: upišite njihove putanje u <code>%APPDATA%\WatchZit Launcher\launcher.json</code>. Bez launcher-a Remote Desktop i dalje radi: dugme <b>.rdp</b> preuzima fajl koji Windows otvara.</p>
+<p>Programi na drugim mestima: upišite njihove putanje u <code>%APPDATA%\MaxZit Launcher\launcher.json</code>. Bez launcher-a Remote Desktop i dalje radi: dugme <b>.rdp</b> preuzima fajl koji Windows otvara.</p>
 
 <h2 id="own-tools">Vaši alati</h2>
 <p>U <a href="/settings/tools">Podešavanja → Alati</a> administratori isključuju ugrađene alate, ograničavaju ih na vrste uređaja i dodaju svoje: putanju programa (na primer <code>%ProgramFiles%\Mozilla Firefox\firefox.exe</code>) i argumente sa <code>{host}</code>, <code>{port}</code>, <code>{user}</code> i <code>{name}</code>. Korisničko ime i portovi po uređaju se podešavaju u <b>Udaljeni pristup</b> na uređaju.</p>

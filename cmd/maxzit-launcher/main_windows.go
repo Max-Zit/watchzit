@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -12,9 +13,13 @@ import (
 
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
+
+	"github.com/max-zit/watchzit/internal/connect"
 )
 
-const appName = "WatchZit Launcher"
+// oldName is the launcher before it served PassZit too: its settings move
+// over and its installation is replaced.
+const oldName = "WatchZit Launcher"
 
 // boxes are Windows message boxes; quiet answers "yes" without showing
 // anything (installation scripts and tests).
@@ -54,6 +59,18 @@ func dataDir() string {
 	return filepath.Join(d, appName)
 }
 
+// migrate moves the settings of the WatchZit Launcher (pairings, program
+// paths) to the MaxZit Launcher once.
+func migrate() {
+	newDir := dataDir()
+	if _, err := os.Stat(newDir); err == nil {
+		return
+	}
+	if d, err := os.UserConfigDir(); err == nil {
+		_ = os.Rename(filepath.Join(d, oldName), newDir)
+	}
+}
+
 func installDir() string {
 	d, err := os.UserCacheDir() // %LOCALAPPDATA%
 	if err != nil {
@@ -68,11 +85,20 @@ func main() {
 	if len(args) > 0 && args[0] == "--quiet" {
 		quiet, args = true, args[1:]
 	}
-	ui := boxes{quiet: quiet}
+	if len(args) > 0 && args[0] == "--cleanup" {
+		cleanup(args[1:], deleteCred)
+		return
+	}
+	migrate()
 	logw := openLog()
 	logf := func(format string, a ...any) {
 		fmt.Fprintf(logw, "%s %s\n", time.Now().Format(time.RFC3339), fmt.Sprintf(format, a...))
 	}
+	if browserStarted(args) { // the PassZit extension: no windows, one message
+		serveHost(logf)
+		return
+	}
+	ui := boxes{quiet: quiet}
 	switch {
 	case len(args) == 0:
 		if err := install(); err != nil {
@@ -84,9 +110,16 @@ func main() {
 	case args[0] == "--uninstall":
 		uninstall()
 		logf("uninstalled")
-		ui.info(appName, "The WatchZit Launcher was removed.")
+		ui.info(appName, "The MaxZit Launcher was removed.")
 	case args[0] == "--version":
 		ui.info(appName, appName+" "+version)
+	case strings.HasPrefix(strings.ToLower(args[0]), "maxzit-launcher:"):
+		if err := pairExtension(ui, args[0]); err != nil {
+			logf("pairing refused: %v", err)
+			ui.fail(appName, capitalize(err.Error())+".")
+			os.Exit(1)
+		}
+		logf("paired with a PassZit extension")
 	case strings.HasPrefix(strings.ToLower(args[0]), "watchzit:"):
 		cfg, err := loadConfig(dataDir())
 		if err != nil {
@@ -207,8 +240,11 @@ func findProgram(cfg *config, tool string) string {
 // ---- installation for the current user (no administrator rights)
 
 const (
-	classKey     = `Software\Classes\watchzit`
-	uninstallKey = `Software\Microsoft\Windows\CurrentVersion\Uninstall\WatchZitLauncher`
+	classKey     = `Software\Classes\watchzit`        // watchzit: links of the WatchZit console
+	pairKey      = `Software\Classes\maxzit-launcher` // maxzit-launcher: pairing links of PassZit
+	uninstallKey = `Software\Microsoft\Windows\CurrentVersion\Uninstall\MaxZitLauncher`
+	oldUninstall = `Software\Microsoft\Windows\CurrentVersion\Uninstall\WatchZitLauncher`
+	exeName      = "maxzit-launcher.exe"
 )
 
 func install() error {
@@ -217,7 +253,7 @@ func install() error {
 		return err
 	}
 	dir := installDir()
-	dst := filepath.Join(dir, "watchzit-launcher.exe")
+	dst := filepath.Join(dir, exeName)
 	if !strings.EqualFold(filepath.Clean(self), filepath.Clean(dst)) {
 		if err := os.MkdirAll(dir, 0o750); err != nil {
 			return err
@@ -228,10 +264,14 @@ func install() error {
 	}
 	cmd := `"` + dst + `" "%1"`
 	sets := []struct{ key, name, value string }{
-		{classKey, "", "URL:WatchZit Launcher"},
+		{classKey, "", "URL:WatchZit (MaxZit Launcher)"},
 		{classKey, "URL Protocol", ""},
 		{classKey + `\DefaultIcon`, "", dst + ",0"},
 		{classKey + `\shell\open\command`, "", cmd},
+		{pairKey, "", "URL:MaxZit Launcher"},
+		{pairKey, "URL Protocol", ""},
+		{pairKey + `\DefaultIcon`, "", dst + ",0"},
+		{pairKey + `\shell\open\command`, "", cmd},
 		{uninstallKey, "DisplayName", appName},
 		{uninstallKey, "DisplayVersion", version},
 		{uninstallKey, "Publisher", "MaxZit"},
@@ -255,6 +295,56 @@ func install() error {
 		_ = k.SetDWordValue("NoRepair", 1)
 		_ = k.Close()
 	}
+	removeOld()
+	// extensions paired before an update, or with the older passzit-helper,
+	// now reach the installed launcher
+	for _, d := range []string{dataDir(), filepath.Join(os.Getenv("LOCALAPPDATA"), "PassZit")} {
+		if old, err := os.ReadFile(filepath.Join(d, "chrome-host.json")); err == nil { // #nosec G304 G703 -- the launcher's or passzit-helper's own file in the user's folders
+			for _, id := range chromeIDs(old) {
+				_ = registerHost(dst, pairing{Browser: "chromium", ID: id})
+			}
+		}
+		if _, err := os.Stat(filepath.Join(d, "firefox-host.json")); err == nil { // #nosec G703 -- a fixed name in the user's folders
+			_ = registerHost(dst, pairing{Browser: "firefox", ID: connect.FirefoxID})
+		}
+	}
+	return nil
+}
+
+// removeOld removes the WatchZit Launcher this one replaces (its entry in
+// Apps and its program; the watchzit: links now open this program).
+func removeOld() {
+	_ = registry.DeleteKey(registry.CURRENT_USER, oldUninstall)
+	d, err := os.UserCacheDir()
+	if err != nil {
+		return
+	}
+	dir := filepath.Join(d, "Programs", oldName)
+	_ = os.Remove(filepath.Join(dir, "watchzit-launcher.exe"))
+	_ = os.Remove(dir)
+}
+
+// pairExtension lets a PassZit extension open connections through this
+// launcher, after the user agreed in the launcher's own window (any web
+// page can open a maxzit-launcher: link).
+func pairExtension(ui boxes, link string) error {
+	p, err := parsePair(link)
+	if err != nil {
+		return err
+	}
+	text := "Allow the PassZit extension in your browsers to open connections (Remote Desktop, SSH, WinSCP, WinBox, VNC, Telnet) with passwords from your vault through this launcher?\n\nExtension: " + p.ID +
+		"\n\nOnly agree if you just clicked \"Pair with the MaxZit Launcher\" in PassZit."
+	if !ui.ask(appName, text) {
+		return errors.New("you did not allow the pairing")
+	}
+	self, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	if err := registerHost(self, p); err != nil {
+		return err
+	}
+	ui.info(appName, "PassZit is paired. Restart the browser if the extension still says the launcher is missing.")
 	return nil
 }
 
@@ -280,11 +370,15 @@ func copyFile(src, dst string) error {
 }
 
 func uninstall() {
-	for _, k := range []string{classKey + `\shell\open\command`, classKey + `\shell\open`, classKey + `\shell`, classKey + `\DefaultIcon`, classKey, uninstallKey} {
-		_ = registry.DeleteKey(registry.CURRENT_USER, k)
+	for _, c := range []string{classKey, pairKey} {
+		for _, k := range []string{c + `\shell\open\command`, c + `\shell\open`, c + `\shell`, c + `\DefaultIcon`, c} {
+			_ = registry.DeleteKey(registry.CURRENT_USER, k)
+		}
 	}
+	_ = registry.DeleteKey(registry.CURRENT_USER, uninstallKey)
+	unregisterHost()
 	// the running program cannot delete itself: a hidden cmd does it a moment later
-	dst := filepath.Join(installDir(), "watchzit-launcher.exe")
+	dst := filepath.Join(installDir(), exeName)
 	c := exec.Command("cmd.exe", "/c", "ping -n 3 127.0.0.1 >nul & del /q \""+dst+"\" & rmdir \""+installDir()+"\"") // #nosec G204 -- fixed paths of the own installation
 	c.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: windows.CREATE_NO_WINDOW}
 	_ = c.Start()

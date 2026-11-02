@@ -15,7 +15,7 @@ import (
 )
 
 // Opening devices with local programs: the console signs a watchzit:// link
-// for the WatchZit Launcher (see internal/launch). Remote Desktop also works
+// for the MaxZit Launcher (see internal/launch). Remote Desktop also works
 // without it, as a downloaded .rdp file.
 
 // deviceTool is a tool offered on a device, with the port it uses there.

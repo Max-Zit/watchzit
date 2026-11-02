@@ -1,8 +1,10 @@
-// Command watchzit-launcher opens devices from the WatchZit console with
+// Command maxzit-launcher opens devices from the WatchZit console with
 // programs on this computer (PuTTY or OpenSSH, Remote Desktop, WinBox, VNC,
 // programs the administrator adds). Windows passes it watchzit:// links; it
 // trusts only servers the user paired and checks every link's signature,
-// age and fields before it starts anything (see internal/launch).
+// age and fields before it starts anything (see internal/launch). For the
+// PassZit browser extension it is the native-messaging host that opens
+// connections with passwords from the vault (see nativehost.go).
 package main
 
 import (
@@ -19,6 +21,8 @@ import (
 )
 
 var version = "dev"
+
+const appName = "MaxZit Launcher"
 
 // ui asks and tells the user (message boxes on Windows).
 type ui interface {
@@ -55,12 +59,12 @@ func (l *launcher) handle(raw string) error {
 func (l *launcher) pair(link *launch.Link) error {
 	id := launch.KeyID(link.Key)
 	if s := l.cfg.server(id); s != nil {
-		l.ui.info("WatchZit Launcher", fmt.Sprintf("This computer is already paired with %s.", s.Name))
+		l.ui.info(appName, fmt.Sprintf("This computer is already paired with %s.", s.Name))
 		return nil
 	}
 	text := fmt.Sprintf("Pair this computer with the WatchZit server %s?\n\nFingerprint:\n%s\n\nCompare it with the Launcher page of the console. "+
 		"Only pair servers you trust: they can open devices with programs on this computer.", link.Name, launch.Fingerprint(link.Key))
-	if !l.ui.ask("WatchZit Launcher", text) {
+	if !l.ui.ask(appName, text) {
 		l.log("pairing with %s (%s) refused", link.Name, id)
 		return nil
 	}
@@ -69,7 +73,7 @@ func (l *launcher) pair(link *launch.Link) error {
 		return err
 	}
 	l.log("paired with %s (%s)", link.Name, id)
-	l.ui.info("WatchZit Launcher", fmt.Sprintf("Paired with %s. Devices now open from its console.", link.Name))
+	l.ui.info(appName, fmt.Sprintf("Paired with %s. Devices now open from its console.", link.Name))
 	return nil
 }
 
@@ -94,7 +98,7 @@ func (l *launcher) open(link *launch.Link) error {
 	}
 	if p.Tool == launch.ToolCustom && !l.cfg.allowed(prog) {
 		text := fmt.Sprintf("The WatchZit server %s wants to start this program:\n\n%s\n\nfor %s (%s). Allow it? WatchZit asks only once for each program.", srv.Name, prog, p.Device, p.Host)
-		if !l.ui.ask("WatchZit Launcher", text) {
+		if !l.ui.ask(appName, text) {
 			l.log("%s refused for %s", prog, srv.Name)
 			return nil
 		}
@@ -150,7 +154,7 @@ func (l *launcher) command(p *launch.Payload) (string, []string, error) {
 	case launch.ToolWinBox:
 		w := l.find("winbox")
 		if w == "" {
-			return "", nil, missing("WinBox", `Put winbox64.exe on the Desktop or in Downloads, or set its path in %APPDATA%\WatchZit Launcher\launcher.json.`)
+			return "", nil, missing("WinBox", `Put winbox64.exe on the Desktop or in Downloads, or set its path in %APPDATA%\MaxZit Launcher\launcher.json.`)
 		}
 		addr := p.Host
 		if p.Port != 8291 {

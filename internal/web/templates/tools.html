@@ -6,7 +6,7 @@
 <div class="settings-body">
 <section class="panel">
   <h2>{{.T "Tools"}}</h2>
-  <p class="muted">{{.T "Tools open devices with programs on the user's computer through the WatchZit Launcher. Built-in tools can be switched off or limited to device types; your own tools name a program and its arguments."}} <a href="/launcher">{{.T "Launcher"}}</a></p>
+  <p class="muted">{{.T "Tools open devices with programs on the user's computer through the MaxZit Launcher. Built-in tools can be switched off or limited to device types; your own tools name a program and its arguments."}} <a href="/launcher">{{.T "Launcher"}}</a></p>
   <div class="table-wrap"><table>
     <thead><tr><th>{{.T "Name"}}</th><th>{{.T "Port"}}</th><th class="hide-sm">{{.T "Device types"}}</th><th></th></tr></thead>
     <tbody>{{range .Data.Tools}}<tr class="{{if not .Enabled}}trig-off{{end}}">
