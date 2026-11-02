@@ -6,7 +6,7 @@
   <li>Under <a href="/maps">Maps</a> add a map and click <b>Edit</b>.</li>
   <li><b>Add device</b> puts devices on the map; drag them into place. <b>Add item</b> adds things that are not monitored (patch panels, PDUs). While editing, <b>Monitored device</b> in an item's panel turns it into a device of the console: picture, place, rack unit and cables stay, and it shows the device's status and metrics. <b>None (picture only)</b> turns a device back into an item.</li>
   <li><b>Connect</b>: click two devices and choose the ports at both ends (from SNMP or agent interfaces). The cable shows the traffic of that port.</li>
-  <li><b>Suggested links</b> finds neighbours over LLDP and MikroTik discovery and offers the cables with the right ports.</li>
+  <li><b>Suggested links</b> shows where the devices are plugged in (see <a href="#found">Links found on the devices</a>) and offers the cables with their ports, and the devices connected to the map that are not on it; <b>Add all</b> takes them all.</li>
   <li>Click <b>Save</b> (or Ctrl+S). Changes are kept only in the page until you save; <b>Cancel</b> goes back to the saved map.</li>
 </ol>
 
@@ -65,3 +65,13 @@
 
 <h2 id="kiosk">Kiosk displays</h2>
 <p>Under <a href="/settings/kiosks">Settings → Kiosk displays</a> create a display with the maps it shows and how often it changes between them. It gets a secret link that opens the maps full screen without signing in — for a monitoring TV. Delete the display to make the link stop working.</p>
+
+<h2 id="found">Links found on the devices</h2>
+<p>Every 15 minutes WatchZit reads from the devices with SNMP (and MikroTik devices with the RouterOS API check) where things are plugged in, in order of how sure it is:</p>
+<ul>
+  <li><b>Neighbour tables</b> — LLDP, Cisco CDP and MikroTik discovery: both ends and their ports. Between two devices only the real ports count (not VLAN, VXLAN, bridge or VRRP interfaces) when there are any.</li>
+  <li><b>MAC address tables</b> of switches: the port where a device's MAC address was learnt — the MACs of its own interfaces, the network cards an agent reports, or the MAC a router's ARP table has for its address (so printers, cameras and servers without SNMP are found too). The access port with the fewest addresses is taken; ports to other switches (with a neighbour that is a switch, or more than 8 addresses) are not.</li>
+  <li><b>Port descriptions</b> (the interface alias, or the description in a saved configuration) that name another device, e.g. "uplink to sw2 ether7" — with that port when the description names it.</li>
+  <li><b>Saved configurations</b> (configuration backups of MikroTik, Cisco, FortiGate): two devices with addresses in the same point-to-point network (/30 or /31).</li>
+</ul>
+<p><b>Draw by itself</b> (in the Suggested links panel): the map adds the links found between its devices every 15 minutes, and with <b>Also add the devices they lead to</b> it brings the devices connected to it, placed next to the device they are plugged into. Links and devices you remove from such a map stay removed (switching the option off and on again forgets that). <b>Read the devices again</b> reads the devices of the map now.</p>

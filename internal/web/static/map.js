@@ -40,6 +40,14 @@
   var pathPick = null;      // picking the two ends of a path: {a}
   var connectFrom = null, connecting = false, moveBg = false;
   var nextTmp = -1;         // ids of nodes and links not saved yet
+  // the highest saved ids this editor knows: what the map added by itself
+  // later is not removed for good when this editor saves without it
+  var seen = { link: 0, node: 0 };
+  function markSeen() {
+    seen.link = 0; seen.node = 0;
+    layout.links.forEach(function (k) { if (k.id > seen.link) seen.link = k.id; });
+    layout.nodes.forEach(function (n) { if (n.id > seen.node) seen.node = n.id; });
+  }
   var saving = false, dirty = false;
 
   function T(s) { return (meta && meta.text[s]) || s; }
@@ -1715,31 +1723,103 @@
   document.addEventListener("click", function (ev) {
     if (layersBox && !layersBox.hidden && !layersBox.contains(ev.target) && !ev.target.closest('[data-act="layers"]')) toggleLayers();
   });
-  function suggestions() {
+  // ---- links found on the devices (neighbour tables, MAC address tables,
+  // port descriptions, configurations); a map can also add them by itself
+  function spotNear(n) {
+    var c = hostOf(n) || rackOf(n) || n, b = box(c);
+    for (var r = 170; r < 3000; r += 120) {
+      for (var i = 0; i < 12; i++) {
+        var a = i * Math.PI / 6, x = Math.round(c.x + (b.w / 2 + r) * Math.cos(a)), y = Math.round(c.y + (b.h / 2 + r) * Math.sin(a));
+        if (layout.nodes.every(function (o) { return Math.abs(o.x - x) > 110 || Math.abs(o.y - y) > 110; })) return { x: x, y: y };
+      }
+    }
+    return { x: c.x + 200, y: c.y + 200 };
+  }
+  function viaText(v) {
+    return String(v || "").split(", ").map(function (x) { return x.indexOf("Configuration ") === 0 ? T("Configuration") + x.slice(13) : T(x); }).join(", ");
+  }
+  function addFoundLink(na, nb, sg) {
+    layout.links.push({ id: nextTmp--, a: na.id, b: nb.id, a_if: sg.a_if || 0, b_if: sg.b_if || 0, a_slot: guessSlot(na, sg.a_name), b_slot: guessSlot(nb, sg.b_name), kind: "ethernet", route: "straight", points: [], label: "" });
+  }
+  function suggestions(refresh) {
     var p = openPanel(T("Suggested links"));
-    p.appendChild(h("p", { "class": "muted small" }, T("Neighbours found over LLDP and MikroTik discovery.")));
-    var ul = h("ul", { "class": "mp-pick" });
-    p.appendChild(ul);
-    fetch("/maps/" + mapID + "/suggest", { credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (list) {
-      var n = 0;
-      (list || []).forEach(function (sg) {
-        var na = null, nb = null;
-        layout.nodes.forEach(function (x) { if (x.kind === "device" && x.device === sg.a) na = x; if (x.kind === "device" && x.device === sg.b) nb = x; });
+    p.appendChild(h("p", { "class": "muted small" }, T("Found on the devices: neighbour tables (LLDP, CDP, MikroTik), the MAC address tables of switches, port descriptions and saved configurations.")));
+    var info = h("p", { "class": "muted small" }, refresh ? T("Reading the devices…") : "");
+    p.appendChild(info);
+    var box1 = h("div"), box2 = h("div"), boxAuto = h("div", { "class": "stack mt" });
+    p.appendChild(box1); p.appendChild(box2); p.appendChild(boxAuto);
+    fetch("/maps/" + mapID + "/suggest" + (refresh ? "?refresh=1" : ""), { credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (ans) {
+      info.textContent = ans.read ? T("Read") + ": " + new Date(ans.read).toLocaleString() : T("The devices were not read yet.");
+      var again = button(T("Read the devices again"), "ghost", function () { suggestions(true); });
+      info.appendChild(document.createTextNode(" ")); info.appendChild(again);
+      // links between devices of the map
+      var links = [];
+      (ans.links || []).forEach(function (sg) {
+        var na = nodeOfDevice(sg.a), nb = nodeOfDevice(sg.b);
         if (!na || !nb) return;
-        var exists = layout.links.some(function (k) { return (k.a === na.id && k.b === nb.id && k.a_if === sg.a_if) || (k.a === nb.id && k.b === na.id && k.b_if === sg.a_if); });
-        if (exists) return;
-        var b = h("button", { type: "button" });
-        b.appendChild(h("b", {}, nodeName(na) + " " + (sg.a_name || "") + "  ↔  " + nodeName(nb) + " " + (sg.b_name || "")));
-        b.appendChild(h("small", {}, sg.via));
-        b.addEventListener("click", function () {
-          layout.links.push({ id: nextTmp--, a: na.id, b: nb.id, a_if: sg.a_if || 0, b_if: sg.b_if || 0, a_slot: guessSlot(na, sg.a_name), b_slot: guessSlot(nb, sg.b_name), kind: "ethernet", route: "straight", points: [], label: "" });
-          b.parentNode.removeChild(b);
-          render(); changed();
-        });
-        var li = h("li"); li.appendChild(b); ul.appendChild(li); n++;
+        var exists = layout.links.some(function (k) { return (k.a === na.id && k.b === nb.id) || (k.a === nb.id && k.b === na.id); });
+        if (!exists) links.push({ sg: sg, na: na, nb: nb });
       });
-      if (!n) ul.appendChild(h("li", { "class": "muted small" }, T("No suggestions.")));
-    }).catch(function () { ul.appendChild(h("li", { "class": "muted small" }, T("No suggestions."))); });
+      box1.appendChild(h("h3", {}, T("Links between devices of the map")));
+      var ul = h("ul", { "class": "mp-pick" });
+      links.forEach(function (x) {
+        var b = h("button", { type: "button" });
+        b.appendChild(h("b", {}, nodeName(x.na) + " " + (x.sg.a_name || "") + "  ↔  " + nodeName(x.nb) + " " + (x.sg.b_name || "")));
+        b.appendChild(h("small", {}, viaText(x.sg.via)));
+        b.addEventListener("click", function () { addFoundLink(x.na, x.nb, x.sg); x.done = true; b.parentNode.removeChild(b); render(); changed(); });
+        var li = h("li"); li.appendChild(b); ul.appendChild(li);
+      });
+      if (!links.length) ul.appendChild(h("li", { "class": "muted small" }, T("No suggestions.")));
+      box1.appendChild(ul);
+      if (links.length > 1) box1.appendChild(button(T("Add all"), "secondary", function () {
+        links.forEach(function (x) { if (!x.done) addFoundLink(x.na, x.nb, x.sg); });
+        render(); changed(); suggestions(false);
+      }));
+      // devices linked to the map that are not on it
+      var devs = (ans.devices || []).filter(function (d) { return !nodeOfDevice(d.id) && nodeOfDevice(d.near); });
+      if (devs.length) {
+        box2.appendChild(h("h3", {}, T("Devices connected to this map")));
+        var ul2 = h("ul", { "class": "mp-pick" });
+        var addDev = function (d) {
+          var near = nodeOfDevice(d.near), at = spotNear(near);
+          var n = { id: nextTmp--, kind: "device", device: d.id, label: "", x: at.x, y: at.y, icon: "" };
+          layout.nodes.push(n);
+          var sg = d.link, a = nodeOfDevice(sg.a), b = nodeOfDevice(sg.b);
+          if (a && b) addFoundLink(a, b, sg);
+        };
+        devs.forEach(function (d) {
+          var b = h("button", { type: "button" });
+          b.appendChild(h("b", {}, d.name + " · " + d.address));
+          b.appendChild(h("small", {}, T("at") + " " + nodeName(nodeOfDevice(d.near)) + " " + ((d.link.a === d.near ? d.link.a_name : d.link.b_name) || "") + " · " + viaText(d.via)));
+          b.addEventListener("click", function () { addDev(d); d.done = true; b.parentNode.removeChild(b); render(); changed(); });
+          var li = h("li"); li.appendChild(b); ul2.appendChild(li);
+        });
+        box2.appendChild(ul2);
+        if (devs.length > 1) box2.appendChild(button(T("Add all"), "secondary", function () {
+          devs.forEach(function (d) { if (!d.done && !nodeOfDevice(d.id)) addDev(d); });
+          render(); changed(); suggestions(false);
+        }));
+      }
+      // by itself
+      boxAuto.appendChild(h("h3", {}, T("Draw by itself")));
+      var cbL = h("input", { type: "checkbox" }), cbD = h("input", { type: "checkbox" });
+      cbL.checked = !!(ans.auto && ans.auto.auto_links); cbD.checked = !!(ans.auto && ans.auto.auto_devices); cbD.disabled = !cbL.checked;
+      var l1 = h("label", { "class": "check" }); l1.appendChild(cbL); l1.appendChild(document.createTextNode(T("Add the links found to this map by itself (every 15 minutes)")));
+      var l2 = h("label", { "class": "check" }); l2.appendChild(cbD); l2.appendChild(document.createTextNode(T("Also add the devices they lead to")));
+      boxAuto.appendChild(l1); boxAuto.appendChild(l2);
+      boxAuto.appendChild(h("p", { "class": "muted small" }, T("Links and devices you remove from the map stay removed. Save your changes first: the map is saved with what it adds.")));
+      var setAuto = function () {
+        cbD.disabled = !cbL.checked;
+        if (!cbL.checked) cbD.checked = false;
+        if (dirty) { cbL.checked = !!(ans.auto && ans.auto.auto_links); cbD.checked = !!(ans.auto && ans.auto.auto_devices); showHint(T("Save your changes first.")); return; }
+        fetch("/maps/" + mapID + "/auto", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ auto_links: cbL.checked, auto_devices: cbD.checked }) })
+          .then(function (r) { return r.json(); }).then(function (res) {
+            ans.auto = { auto_links: cbL.checked, auto_devices: cbD.checked };
+            if (res.added) loadMap(mapID, true).then(function () { setEditing(true); suggestions(false); });
+          });
+      };
+      cbL.addEventListener("change", setAuto); cbD.addEventListener("change", setAuto);
+    }).catch(function () { info.textContent = T("No suggestions."); });
   }
 
   // ---- saving: only on Save; temporary ids are replaced by the server's
@@ -1782,6 +1862,7 @@
     layout.nodes.forEach(function (n) { if (n.virtual && used[n.id]) delete n.virtual; });
     layout.nodes = layout.nodes.filter(function (n) { return n.kind !== "label" || (n.label && n.label.trim()); });
     var sent = JSON.parse(JSON.stringify(layout));
+    sent.seen_link = seen.link; sent.seen_node = seen.node;
     sent.nodes = sent.nodes.filter(function (n) { return !n.virtual; });
     sent.ha = (sent.ha || []).filter(function (g) { return g.nodes.length >= 2; }); // a group being made waits for its second member
     fetch("/maps/" + mapID + "/layout", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(sent) })
@@ -1802,6 +1883,7 @@
           if (ids[k.b] !== undefined) k.b = ids[k.b];
           if (lids[k.id] !== undefined) k.id = lids[k.id];
         });
+        markSeen();
         if (selected) { var m = selected.type === "node" ? ids : selected.type === "ha" ? hids : lids; if (m[selected.id] !== undefined) selected.id = m[selected.id]; }
         if (connectFrom !== null && ids[connectFrom] !== undefined) connectFrom = ids[connectFrom];
         saving = false;
@@ -2072,6 +2154,7 @@
         meta.assets = meta.assets || {};
         layout = d.layout || { nodes: [], links: [] };
         layout.ha = layout.ha || [];
+        markSeen();
         layout.links.forEach(function (k) { k.points = k.points || []; });
         selected = null; closePanel();
         var saved = restoreView ? load("wz-map-view-" + mapID) : null;

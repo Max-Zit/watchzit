@@ -10,7 +10,8 @@ import (
 )
 
 // Neighbour tables: LLDP-MIB (IEEE 802.1AB, most switches and routers)
-// and MikroTik's own table (MNDP/CDP/LLDP neighbours of RouterOS).
+// MikroTik's own table (MNDP/CDP/LLDP neighbours of RouterOS) and
+// Cisco's CDP cache.
 var (
 	lldpLocPortID   = snmp.MustOID("1.0.8802.1.1.2.1.3.7.1.3")
 	lldpLocPortDesc = snmp.MustOID("1.0.8802.1.1.2.1.3.7.1.4")
@@ -49,7 +50,11 @@ func Neighbours(ctx context.Context, c *snmp.Client, ifs []Interface) ([]Neighbo
 	if err != nil {
 		return nil, err
 	}
-	return append(out, mt...), nil
+	cdp, err := cdpNeighbours(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	return append(append(out, mt...), cdp...), nil
 }
 
 // Interface is the little discovery needs to map port names to ifIndex.

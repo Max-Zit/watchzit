@@ -736,3 +736,65 @@ func RouterOSVRRP(ctx context.Context, p store.CheckParams, t Target) (string, e
 	}
 	return state, nil
 }
+
+// RouterTopology is what a RouterOS device knows about its surroundings:
+// neighbours (MNDP/CDP/LLDP), the MAC addresses its bridges learnt on each
+// port, and its ARP table. Ports are interface names.
+type RouterTopology struct {
+	Neighbours []RouterNeighbour
+	Hosts      []RouterHost
+	ARP        []RouterARP
+}
+
+// RouterNeighbour is a row of /ip/neighbor.
+type RouterNeighbour struct{ Interface, Address, MAC, Identity, Port string }
+
+// RouterHost is a learnt MAC of /interface/bridge/host.
+type RouterHost struct {
+	Port string
+	MAC  string
+	VLAN int
+}
+
+// RouterARP is a row of /ip/arp.
+type RouterARP struct{ Interface, Address, MAC string }
+
+// RouterOSTopology reads the three tables over the REST API.
+func RouterOSTopology(ctx context.Context, p store.CheckParams, t Target) (*RouterTopology, error) {
+	get := rosGetter(ctx, p, t)
+	out := &RouterTopology{}
+	var nb []map[string]any
+	if err := get("ip/neighbor", &nb); err != nil {
+		return nil, err
+	}
+	s := func(m map[string]any, k string) string { v, _ := m[k].(string); return v }
+	for _, n := range nb {
+		// the interface may be "ether2,bridge"; the first is the port
+		ifc, _, _ := strings.Cut(s(n, "interface"), ",")
+		out.Neighbours = append(out.Neighbours, RouterNeighbour{Interface: ifc, Address: s(n, "address"), MAC: s(n, "mac-address"), Identity: s(n, "identity"), Port: s(n, "interface-name")})
+	}
+	var hosts []map[string]any
+	if get("interface/bridge/host", &hosts) == nil {
+		for _, h := range hosts {
+			if s(h, "local") == "true" || s(h, "external") == "true" {
+				continue
+			}
+			port := s(h, "on-interface")
+			if port == "" {
+				port = s(h, "interface")
+			}
+			vid, _ := strconv.Atoi(s(h, "vid"))
+			out.Hosts = append(out.Hosts, RouterHost{Port: port, MAC: s(h, "mac-address"), VLAN: vid})
+		}
+	}
+	var arp []map[string]any
+	if get("ip/arp", &arp) == nil {
+		for _, a := range arp {
+			if s(a, "mac-address") == "" || s(a, "invalid") == "true" {
+				continue
+			}
+			out.ARP = append(out.ARP, RouterARP{Interface: s(a, "interface"), Address: s(a, "address"), MAC: s(a, "mac-address")})
+		}
+	}
+	return out, nil
+}

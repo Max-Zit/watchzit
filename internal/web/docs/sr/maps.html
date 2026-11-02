@@ -6,7 +6,7 @@
   <li>U <a href="/maps">Mape</a> dodajte mapu i kliknite <b>Izmeni</b>.</li>
   <li><b>Dodaj uređaj</b> stavlja uređaje na mapu; prevucite ih na mesto. <b>Dodaj stavku</b> dodaje stvari koje se ne prate (patch paneli, PDU). U izmeni mape, <b>Nadgledani uređaj</b> u panelu stavke je povezuje sa uređajem konzole: slika, mesto, pozicija u reku i kablovi ostaju, a prikazuju se status i metrike uređaja. <b>Nijedan (samo slika)</b> vraća uređaj u običnu stavku.</li>
   <li><b>Poveži</b>: kliknite dva uređaja i izaberite portove na oba kraja (iz SNMP-a ili interfejsa agenta). Kabl pokazuje saobraćaj tog porta.</li>
-  <li><b>Predložene veze</b> pronalaze susede preko LLDP-a i MikroTik otkrivanja i nude kablove sa pravim portovima.</li>
+  <li><b>Predložene veze</b> pokazuju gde su uređaji priključeni (pogledajte <a href="#found">Veze pronađene na uređajima</a>) i nude kablove sa njihovim portovima, kao i uređaje povezane sa mapom koji nisu na njoj; <b>Dodaj sve</b> ih uzima sve.</li>
   <li>Kliknite <b>Sačuvaj</b> (ili Ctrl+S). Izmene ostaju samo na stranici dok ih ne sačuvate; <b>Otkaži</b> vraća sačuvanu mapu.</li>
 </ol>
 
@@ -65,3 +65,13 @@
 
 <h2 id="kiosk">Kiosk ekrani</h2>
 <p>U <a href="/settings/kiosks">Podešavanja → Kiosk ekrani</a> napravite ekran sa mapama koje prikazuje i koliko često se smenjuju. Dobija tajni link koji otvara mape preko celog ekrana bez prijave — za TV za nadzor. Obrišite ekran da link prestane da radi.</p>
+
+<h2 id="found">Veze pronađene na uređajima</h2>
+<p>Svakih 15 minuta WatchZit sa uređaja sa SNMP-om (i MikroTik uređaja sa proverom RouterOS API) čita gde je šta priključeno, redom po pouzdanosti:</p>
+<ul>
+  <li><b>Tabele suseda</b> — LLDP, Cisco CDP i MikroTik otkrivanje: oba kraja i njihovi portovi. Između dva uređaja računaju se samo pravi portovi (ne VLAN, VXLAN, bridge ili VRRP interfejsi) kada ih ima.</li>
+  <li><b>MAC tabele</b> svičeva: port na kome je naučena MAC adresa uređaja — MAC-ovi njegovih interfejsa, mrežne kartice koje javlja agent, ili MAC koji ruter ima u ARP tabeli za njegovu adresu (pa se pronalaze i štampači, kamere i serveri bez SNMP-a). Uzima se pristupni port sa najmanje adresa; portovi ka drugim svičevima (sa susedom koji je svič, ili sa više od 8 adresa) se ne uzimaju.</li>
+  <li><b>Opisi portova</b> (alias interfejsa, ili opis u sačuvanoj konfiguraciji) koji imenuju drugi uređaj, npr. „uplink to sw2 ether7“ — sa tim portom kada ga opis imenuje.</li>
+  <li><b>Sačuvane konfiguracije</b> (backup konfiguracije MikroTik, Cisco, FortiGate): dva uređaja sa adresama u istoj point-to-point mreži (/30 ili /31).</li>
+</ul>
+<p><b>Sam crtaj</b> (u panelu Predložene veze): mapa svakih 15 minuta dodaje pronađene veze između svojih uređaja, a sa <b>Dodaj i uređaje do kojih vode</b> dovodi i uređaje povezane sa njom, postavljene pored uređaja u koji su priključeni. Veze i uređaji koje uklonite sa takve mape ostaju uklonjeni (isključivanje i ponovno uključivanje opcije to zaboravlja). <b>Pročitaj uređaje ponovo</b> odmah čita uređaje mape.</p>

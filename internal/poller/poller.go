@@ -152,6 +152,16 @@ func (p *Poller) Run(ctx context.Context) {
 	// facts and interfaces of SNMP devices: soon after start, then hourly
 	refresh := time.NewTimer(20 * time.Second)
 	defer refresh.Stop()
+	// where devices are plugged in, every 15 minutes (first after 2)
+	topo := time.NewTicker(15 * time.Minute)
+	defer topo.Stop()
+	go func() {
+		select {
+		case <-ctx.Done():
+		case <-time.After(2 * time.Minute):
+			p.Topology(ctx)
+		}
+	}()
 	var refreshing sync.WaitGroup
 	defer refreshing.Wait()
 	for {
@@ -172,6 +182,9 @@ func (p *Poller) Run(ctx context.Context) {
 			}
 		case <-tick.C:
 			p.dispatch(ctx, jobs)
+		case <-topo.C:
+			refreshing.Add(1)
+			go func() { defer refreshing.Done(); p.Topology(ctx) }()
 		case <-refresh.C:
 			refresh.Reset(time.Hour)
 			refreshing.Add(1)
@@ -560,6 +573,7 @@ func (p *Poller) routerVLANs(ctx context.Context, c *store.Check, t checks.Targe
 			idx[i.Descr] = i.Index
 		}
 	}
+	p.routerTopology(ctx, c, t, idx)
 	out := make([]store.VLANPort, 0, len(vs))
 	for _, v := range vs {
 		out = append(out, store.VLANPort{VLAN: v.ID, Name: v.Name, IfIndex: idx[v.Port], Tagged: v.Tagged})

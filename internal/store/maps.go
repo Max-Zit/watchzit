@@ -56,6 +56,8 @@ type MapNode struct {
 	HostDevices []int64 `json:"host_devices,omitempty"`
 	// AutoVMs: the host shows the machines its hypervisor runs by itself.
 	AutoVMs bool `json:"auto_vms,omitempty"`
+	// Auto: the map added the device by itself (a link of it was found).
+	Auto bool `json:"auto,omitempty"`
 }
 
 // MapLink connects two nodes, optionally port to port (ifIndex for the
@@ -74,6 +76,7 @@ type MapLink struct {
 	Points [][2]float64 `json:"points,omitempty"`
 	VLANs  []PortVLAN   `json:"vlans,omitempty"` // set by hand
 	VNI    int          `json:"vni,omitempty"`   // VXLAN VNI set by hand
+	Auto   bool         `json:"auto,omitempty"`  // added by the map itself from what the devices report
 }
 
 // MapBackground is a picture under the map.
@@ -92,6 +95,10 @@ type MapLayout struct {
 	Links      []MapLink      `json:"links"`
 	Background *MapBackground `json:"background,omitempty"`
 	HA         []MapHA        `json:"ha,omitempty"`
+	// SeenLink and SeenNode: the highest ids the editor loaded (what it saves
+	// without an automatic link or device of those was removed by hand).
+	SeenLink int64 `json:"seen_link,omitempty"`
+	SeenNode int64 `json:"seen_node,omitempty"`
 }
 
 // MapHA is a HA group on a map: nodes that stand in for each other.
@@ -259,13 +266,13 @@ func (s *Store) MapLayout(ctx context.Context, id int64) (*MapLayout, error) {
 		bg.Asset = *asset
 	}
 	rows, err := s.db.Query(ctx, `SELECT id, kind, COALESCE(device_id,0), COALESCE(submap_id,0), label, x, y, icon, size, COALESCE(parent,0), u, COALESCE(host_device,0),
-		COALESCE((SELECT array_agg(x) FROM unnest(host_devices) x WHERE EXISTS (SELECT 1 FROM devices WHERE devices.id=x)), '{}'), auto_vms FROM map_nodes WHERE map_id=$1 ORDER BY id`, id)
+		COALESCE((SELECT array_agg(x) FROM unnest(host_devices) x WHERE EXISTS (SELECT 1 FROM devices WHERE devices.id=x)), '{}'), auto_vms, auto FROM map_nodes WHERE map_id=$1 ORDER BY id`, id)
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
 		var n MapNode
-		if err := rows.Scan(&n.ID, &n.Kind, &n.DeviceID, &n.SubmapID, &n.Label, &n.X, &n.Y, &n.Icon, &n.Size, &n.Parent, &n.U, &n.HostDevice, &n.HostDevices, &n.AutoVMs); err != nil {
+		if err := rows.Scan(&n.ID, &n.Kind, &n.DeviceID, &n.SubmapID, &n.Label, &n.X, &n.Y, &n.Icon, &n.Size, &n.Parent, &n.U, &n.HostDevice, &n.HostDevices, &n.AutoVMs, &n.Auto); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -275,7 +282,7 @@ func (s *Store) MapLayout(ctx context.Context, id int64) (*MapLayout, error) {
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	rows, err = s.db.Query(ctx, `SELECT id, a_node, b_node, COALESCE(a_if,0), COALESCE(b_if,0), a_slot, b_slot, kind, label, route, points, vlans, vni FROM map_links WHERE map_id=$1 ORDER BY id`, id)
+	rows, err = s.db.Query(ctx, `SELECT id, a_node, b_node, COALESCE(a_if,0), COALESCE(b_if,0), a_slot, b_slot, kind, label, route, points, vlans, vni, auto FROM map_links WHERE map_id=$1 ORDER BY id`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +290,7 @@ func (s *Store) MapLayout(ctx context.Context, id int64) (*MapLayout, error) {
 	for rows.Next() {
 		var k MapLink
 		var pts, vls []byte
-		if err := rows.Scan(&k.ID, &k.A, &k.B, &k.AIf, &k.BIf, &k.ASlot, &k.BSlot, &k.Kind, &k.Label, &k.Route, &pts, &vls, &k.VNI); err != nil {
+		if err := rows.Scan(&k.ID, &k.A, &k.B, &k.AIf, &k.BIf, &k.ASlot, &k.BSlot, &k.Kind, &k.Label, &k.Route, &pts, &vls, &k.VNI, &k.Auto); err != nil {
 			return nil, err
 		}
 		_ = json.Unmarshal(pts, &k.Points)
@@ -362,6 +369,10 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 	var exists bool
 	if err := tx.QueryRow(ctx, `SELECT true FROM maps WHERE id=$1 FOR UPDATE`, mapID).Scan(&exists); err != nil {
 		return nil, notFound(err)
+	}
+	oldAutoLinks, oldAutoNodes, err := autoBefore(ctx, tx, mapID, in.SeenLink, in.SeenNode)
+	if err != nil {
+		return nil, err
 	}
 	// nodes that belong to this map now
 	old := map[int64]bool{}
@@ -459,12 +470,12 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 		}
 		var real int64
 		if n.ID > 0 && old[n.ID] {
-			_, err = tx.Exec(ctx, `UPDATE map_nodes SET kind=$2, device_id=$3, submap_id=$4, label=$5, x=$6, y=$7, icon=$8, size=$9, u=$10, host_device=$11, host_devices=$12, auto_vms=$13 WHERE id=$1`,
-				n.ID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U, hostDev, hostDevs(n.HostDevices), n.AutoVMs)
+			_, err = tx.Exec(ctx, `UPDATE map_nodes SET kind=$2, device_id=$3, submap_id=$4, label=$5, x=$6, y=$7, icon=$8, size=$9, u=$10, host_device=$11, host_devices=$12, auto_vms=$13, auto=$14 WHERE id=$1`,
+				n.ID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U, hostDev, hostDevs(n.HostDevices), n.AutoVMs, n.Auto)
 			real = n.ID
 		} else {
-			err = tx.QueryRow(ctx, `INSERT INTO map_nodes(map_id, kind, device_id, submap_id, label, x, y, icon, size, u, host_device, host_devices, auto_vms) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
-				mapID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U, hostDev, hostDevs(n.HostDevices), n.AutoVMs).Scan(&real)
+			err = tx.QueryRow(ctx, `INSERT INTO map_nodes(map_id, kind, device_id, submap_id, label, x, y, icon, size, u, host_device, host_devices, auto_vms, auto) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
+				mapID, n.Kind, dev, sub, n.Label, n.X, n.Y, n.Icon, n.Size, n.U, hostDev, hostDevs(n.HostDevices), n.AutoVMs, n.Auto).Scan(&real)
 		}
 		if isFK(err) {
 			return nil, errors.New("a device or map on the map no longer exists")
@@ -532,11 +543,14 @@ func (s *Store) SaveMapLayout(ctx context.Context, mapID int64, in *MapLayout) (
 			pts, _ = json.Marshal(k.Points)
 		}
 		k.A, k.B = a, b
-		if err := tx.QueryRow(ctx, `INSERT INTO map_links(map_id, a_node, b_node, a_if, b_if, a_slot, b_slot, kind, label, route, points, vlans, vni) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
-			mapID, a, b, intPtr(k.AIf), intPtr(k.BIf), k.ASlot, k.BSlot, k.Kind, k.Label, k.Route, pts, vls, k.VNI).Scan(&k.ID); err != nil {
+		if err := tx.QueryRow(ctx, `INSERT INTO map_links(map_id, a_node, b_node, a_if, b_if, a_slot, b_slot, kind, label, route, points, vlans, vni, auto) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
+			mapID, a, b, intPtr(k.AIf), intPtr(k.BIf), k.ASlot, k.BSlot, k.Kind, k.Label, k.Route, pts, vls, k.VNI, k.Auto).Scan(&k.ID); err != nil {
 			return nil, err
 		}
 		out.Links = append(out.Links, k)
+	}
+	if err := rememberRemoved(ctx, tx, mapID, oldAutoLinks, oldAutoNodes, out); err != nil {
+		return nil, err
 	}
 	// HA groups: two or more devices, items or hypervisors, each in one group
 	if _, err := tx.Exec(ctx, `DELETE FROM map_ha WHERE map_id=$1`, mapID); err != nil {

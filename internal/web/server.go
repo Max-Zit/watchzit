@@ -337,6 +337,7 @@ func (s *Server) Handler() http.Handler {
 	app("GET /maps/{id}/live", s.handleMapLive)
 	write("POST /maps/{id}/layout", s.handleMapSave)
 	write("GET /maps/{id}/suggest", s.handleMapSuggest)
+	write("POST /maps/{id}/auto", s.handleMapAuto)
 	app("GET /assets", s.handleAssets)
 	write("POST /assets", s.handleAssetUpload)
 	app("GET /assets/{id}", s.handleAsset)

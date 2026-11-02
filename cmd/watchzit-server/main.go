@@ -308,6 +308,7 @@ func run() error {
 	go flows.Run(ctx)
 	go srv.RunDiscovery(ctx)
 	go srv.RunConfigBackups(ctx)
+	go srv.RunAutoMaps(ctx)
 	go func() {
 		t := time.NewTicker(5 * time.Minute)
 		defer t.Stop()
