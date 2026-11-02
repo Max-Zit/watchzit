@@ -1227,6 +1227,7 @@
   "The query gives no series in this time range.": "La consulta no da ninguna serie en este intervalo.",
   "The response of the identity provider is not valid.": "La respuesta del proveedor de identidad no es válida.",
   "The router or switch this device is reached through. While it is down, this device's problems are not sent.": "El router o switch a través del cual se llega a este dispositivo. Mientras esté caído, los problemas de este dispositivo no se envían.",
+  "The same launcher opens connections with logins from PassZit: in the menu of the PassZit browser extension click Pair with the MaxZit Launcher and agree in the launcher's window.": "El mismo lanzador abre conexiones con credenciales de PassZit: en el menú de la extensión de PassZit haga clic en Pair with the MaxZit Launcher y acepte en la ventana del lanzador.",
   "The saved ports differ from the running ones (console %s, agents %s). Restart the WatchZit service to use the new ports.": "Los puertos guardados difieren de los que están en uso (consola %s, agentes %s). Reinicie el servicio WatchZit para usar los nuevos puertos.",
   "The scan runs; this page shows the hosts it finds.": "El escaneo está en marcha; esta página muestra los hosts encontrados.",
   "The server %s shows this host key:": "El servidor %s muestra esta clave de host:",

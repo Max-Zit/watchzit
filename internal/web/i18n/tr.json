@@ -1227,6 +1227,7 @@
   "The query gives no series in this time range.": "Sorgu bu zaman aralığında seri vermiyor.",
   "The response of the identity provider is not valid.": "Kimlik sağlayıcının yanıtı geçerli değil.",
   "The router or switch this device is reached through. While it is down, this device's problems are not sent.": "Bu cihaza ulaşılan yönlendirici veya anahtar. O çalışmazken bu cihazın sorunları gönderilmez.",
+  "The same launcher opens connections with logins from PassZit: in the menu of the PassZit browser extension click Pair with the MaxZit Launcher and agree in the launcher's window.": "Aynı başlatıcı PassZit'teki oturum bilgileriyle bağlantı açar: PassZit tarayıcı uzantısının menüsünde Pair with the MaxZit Launcher'a tıklayın ve başlatıcının penceresinde onaylayın.",
   "The saved ports differ from the running ones (console %s, agents %s). Restart the WatchZit service to use the new ports.": "Kaydedilen portlar çalışanlardan farklı (konsol %s, ajanlar %s). Yeni portları kullanmak için WatchZit hizmetini yeniden başlatın.",
   "The scan runs; this page shows the hosts it finds.": "Tarama sürüyor; bu sayfa bulunan ana bilgisayarları gösterir.",
   "The server %s shows this host key:": "%s sunucusu şu ana makine anahtarını gösteriyor:",

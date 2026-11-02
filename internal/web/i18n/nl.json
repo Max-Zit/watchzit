@@ -1227,6 +1227,7 @@
   "The query gives no series in this time range.": "De query geeft geen reeks in deze periode.",
   "The response of the identity provider is not valid.": "Het antwoord van de identiteitsprovider is niet geldig.",
   "The router or switch this device is reached through. While it is down, this device's problems are not sent.": "De router of switch waarlangs dit apparaat bereikt wordt. Zolang die uitgevallen is, worden de problemen van dit apparaat niet verstuurd.",
+  "The same launcher opens connections with logins from PassZit: in the menu of the PassZit browser extension click Pair with the MaxZit Launcher and agree in the launcher's window.": "Dezelfde launcher opent verbindingen met aanmeldgegevens uit PassZit: klik in het menu van de PassZit-browserextensie op Pair with the MaxZit Launcher en ga akkoord in het venster van de launcher.",
   "The saved ports differ from the running ones (console %s, agents %s). Restart the WatchZit service to use the new ports.": "De opgeslagen poorten verschillen van de actieve (console %s, agents %s). Herstart de WatchZit-service om de nieuwe poorten te gebruiken.",
   "The scan runs; this page shows the hosts it finds.": "De scan loopt; deze pagina toont de gevonden hosts.",
   "The server %s shows this host key:": "De server %s toont deze hostsleutel:",

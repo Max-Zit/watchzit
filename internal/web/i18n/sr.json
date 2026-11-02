@@ -1227,6 +1227,7 @@
   "The query gives no series in this time range.": "Upit ne daje nijednu seriju u ovom vremenskom opsegu.",
   "The response of the identity provider is not valid.": "Odgovor dobavljača identiteta nije ispravan.",
   "The router or switch this device is reached through. While it is down, this device's problems are not sent.": "Ruter ili svič preko kog se dolazi do ovog uređaja. Dok on ne radi, problemi ovog uređaja se ne šalju.",
+  "The same launcher opens connections with logins from PassZit: in the menu of the PassZit browser extension click Pair with the MaxZit Launcher and agree in the launcher's window.": "Isti launcher otvara veze sa nalozima iz PassZit-a: u meniju PassZit ekstenzije pregledača kliknite Pair with the MaxZit Launcher i potvrdite u prozoru launchera.",
   "The saved ports differ from the running ones (console %s, agents %s). Restart the WatchZit service to use the new ports.": "Sačuvani portovi se razlikuju od onih koji rade (konzola %s, agenti %s). Restartujte WatchZit servis da biste koristili nove portove.",
   "The scan runs; this page shows the hosts it finds.": "Skeniranje traje; ova stranica prikazuje hostove koje pronađe.",
   "The server %s shows this host key:": "Server %s pokazuje ovaj ključ hosta:",

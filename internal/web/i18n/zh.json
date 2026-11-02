@@ -1227,6 +1227,7 @@
   "The query gives no series in this time range.": "该查询在此时间范围内没有序列。",
   "The response of the identity provider is not valid.": "身份提供商的响应无效。",
   "The router or switch this device is reached through. While it is down, this device's problems are not sent.": "访问此设备所经过的路由器或交换机。它宕机期间，此设备的问题不会发送。",
+  "The same launcher opens connections with logins from PassZit: in the menu of the PassZit browser extension click Pair with the MaxZit Launcher and agree in the launcher's window.": "同一个启动器可以使用 PassZit 中的登录信息打开连接：在 PassZit 浏览器扩展的菜单中点击 Pair with the MaxZit Launcher，然后在启动器窗口中确认。",
   "The saved ports differ from the running ones (console %s, agents %s). Restart the WatchZit service to use the new ports.": "已保存的端口与正在使用的不同（控制台 %s，代理 %s）。请重启 WatchZit 服务以使用新端口。",
   "The scan runs; this page shows the hosts it finds.": "正在扫描；此页面会显示找到的主机。",
   "The server %s shows this host key:": "服务器 %s 显示此主机密钥：",

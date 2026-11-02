@@ -1227,6 +1227,7 @@
   "The query gives no series in this time range.": "Dotaz v tomto rozsahu nevrací žádnou řadu.",
   "The response of the identity provider is not valid.": "Odpověď poskytovatele identity není platná.",
   "The router or switch this device is reached through. While it is down, this device's problems are not sent.": "Směrovač nebo přepínač, přes který je zařízení dostupné. Dokud nefunguje, problémy tohoto zařízení se neodesílají.",
+  "The same launcher opens connections with logins from PassZit: in the menu of the PassZit browser extension click Pair with the MaxZit Launcher and agree in the launcher's window.": "Stejný launcher otevírá spojení s přihlašovacími údaji z PassZit: v nabídce rozšíření PassZit klikněte na Pair with the MaxZit Launcher a potvrďte v okně launcheru.",
   "The saved ports differ from the running ones (console %s, agents %s). Restart the WatchZit service to use the new ports.": "Uložené porty se liší od běžících (konzole %s, agenti %s). Restartujte službu WatchZit, aby se použily nové porty.",
   "The scan runs; this page shows the hosts it finds.": "Prohledávání běží; tato stránka ukazuje nalezené hosty.",
   "The server %s shows this host key:": "Server %s ukazuje tento klíč hostitele:",

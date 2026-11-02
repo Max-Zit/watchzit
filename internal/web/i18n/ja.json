@@ -1227,6 +1227,7 @@
   "The query gives no series in this time range.": "この期間ではクエリから系列が得られません。",
   "The response of the identity provider is not valid.": "ID プロバイダーの応答が無効です。",
   "The router or switch this device is reached through. While it is down, this device's problems are not sent.": "このデバイスへの経路となるルーターまたはスイッチ。それがダウンしている間、このデバイスの問題は送信されません。",
+  "The same launcher opens connections with logins from PassZit: in the menu of the PassZit browser extension click Pair with the MaxZit Launcher and agree in the launcher's window.": "同じランチャーが PassZit のログイン情報で接続を開きます。PassZit ブラウザー拡張機能のメニューで Pair with the MaxZit Launcher をクリックし、ランチャーのウィンドウで許可してください。",
   "The saved ports differ from the running ones (console %s, agents %s). Restart the WatchZit service to use the new ports.": "保存されたポートが使用中のものと異なります（コンソール %s、エージェント %s）。新しいポートを使うには WatchZit サービスを再起動してください。",
   "The scan runs; this page shows the hosts it finds.": "スキャン中です。このページに見つかったホストが表示されます。",
   "The server %s shows this host key:": "サーバー %s は次のホスト鍵を提示しています:",
