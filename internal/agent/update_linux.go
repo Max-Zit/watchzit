@@ -30,7 +30,7 @@ func installUpdate(bin, version, _ string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(tmp, data, 0o755); err != nil { // #nosec G306 -- a program
+	if err := os.WriteFile(tmp, data, 0o755); err != nil { // #nosec G306 G703 -- a program, next to this agent's own executable
 		return err
 	}
 	if err := os.Rename(tmp, self); err != nil {
