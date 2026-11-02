@@ -9,7 +9,7 @@
 <form method="get" action="/logs" class="row wrap">
   <input type="search" name="q" value="{{$f.Text}}" placeholder="{{.T "Search"}}" aria-label="{{.T "Search"}}">
   <select name="device" aria-label="{{.T "Device"}}" data-autosubmit><option value="0">{{.T "All devices"}}</option>{{range .Data.Devices}}<option value="{{.ID}}" {{if eq .ID $f.DeviceID}}selected{{end}}>{{.Name}}</option>{{end}}</select>
-  <select name="kind" aria-label="{{.T "Kind"}}" data-autosubmit><option value="">{{.T "Syslog and traps"}}</option><option value="syslog" {{if eq $f.Kind "syslog"}}selected{{end}}>Syslog</option><option value="trap" {{if eq $f.Kind "trap"}}selected{{end}}>{{.T "SNMP traps"}}</option></select>
+  <select name="kind" aria-label="{{.T "Kind"}}" data-autosubmit><option value="">{{.T "All messages"}}</option><option value="syslog" {{if eq $f.Kind "syslog"}}selected{{end}}>Syslog</option><option value="trap" {{if eq $f.Kind "trap"}}selected{{end}}>{{.T "SNMP traps"}}</option><option value="agent" {{if eq $f.Kind "agent"}}selected{{end}}>{{.T "Agents (event log, journal)"}}</option></select>
   <select name="level" aria-label="{{.T "Level"}}" data-autosubmit>{{range $i, $n := levels $}}<option value="{{$i}}" {{if eq $i $f.MaxLevel}}selected{{end}}>{{$.T "up to"}} {{$i}} · {{$n}}</option>{{end}}</select>
   <button class="secondary sm">{{.T "Show"}}</button>
 </form>

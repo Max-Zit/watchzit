@@ -1,0 +1,26 @@
+name: watchzit-agent
+arch: ${ARCH}
+platform: linux
+version: ${VERSION}
+section: admin
+priority: optional
+maintainer: MaxZit <office@maxzit.com>
+description: |
+  WatchZit agent: reports CPU, memory, disks, network traffic, chosen
+  services and processes, and error messages of this computer to a
+  WatchZit server over one outbound encrypted connection.
+vendor: MaxZit
+homepage: https://github.com/Max-Zit/watchzit
+license: AGPL-3.0-only
+contents:
+  - src: ./LICENSE
+    dst: /usr/share/doc/watchzit-agent/copyright
+  - src: ./bin/pkg/agent/watchzit-agent
+    dst: /usr/bin/watchzit-agent
+    file_info:
+      mode: 0755
+  - src: ./packaging/linux/watchzit-agent.service
+    dst: /usr/lib/systemd/system/watchzit-agent.service
+scripts:
+  postinstall: ./packaging/linux/agent-postinstall.sh
+  preremove: ./packaging/linux/agent-preremove.sh

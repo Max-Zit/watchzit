@@ -101,6 +101,7 @@ type deviceData struct {
 	Traffic    map[int]*store.Check // interface checks by ifIndex
 	Agent      *store.AgentInfo
 	Watched    map[string]bool // services the agent reports
+	Processes  []string        // process names the agent reports
 	Problems   []*store.Problem
 	Fields     []store.CustomField
 	Links      []DeviceLink // the links on every device, filled in
@@ -287,6 +288,9 @@ func (s *Server) showDevice(w http.ResponseWriter, r *http.Request, status int, 
 		}
 		if c.Type == store.CheckAgentService {
 			data.Watched[c.Params.Descr] = true
+		}
+		if c.Type == store.CheckAgentProcess {
+			data.Processes = append(data.Processes, c.Params.Descr)
 		}
 	}
 	p := &Page{Title: d.Name, Nav: "devices", Data: data, Device: d.Address}

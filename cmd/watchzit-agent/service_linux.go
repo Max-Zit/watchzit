@@ -89,8 +89,11 @@ func installService(code string) error {
 	if _, err := exec.LookPath("systemctl"); err != nil {
 		return errors.New("this system has no systemd")
 	}
-	if err := copySelf(); err != nil {
-		return fmt.Errorf("cannot copy the agent to %s: %w", linuxBin, err)
+	pkg := packaged()
+	if !pkg {
+		if err := copySelf(); err != nil {
+			return fmt.Errorf("cannot copy the agent to %s: %w", linuxBin, err)
+		}
 	}
 	dir := agent.DefaultDir()
 	if code != "" {
@@ -118,8 +121,10 @@ func installService(code string) error {
 			}
 		}
 	}
-	if err := os.WriteFile(linuxUnit, []byte(unitFile), 0o644); err != nil { // #nosec G306 -- a systemd unit is world-readable
-		return err
+	if !pkg { // the deb/rpm package brings its own unit
+		if err := os.WriteFile(linuxUnit, []byte(unitFile), 0o644); err != nil { // #nosec G306 -- a systemd unit is world-readable
+			return err
+		}
 	}
 	if err := systemctl("daemon-reload"); err != nil {
 		return err
@@ -144,7 +149,21 @@ func uninstallService() error {
 	if err := agent.Forget(agent.DefaultDir()); err != nil && !errors.Is(err, os.ErrNotExist) {
 		fmt.Println("warning:", err)
 	}
+	if packaged() {
+		fmt.Println("The WatchZit agent is stopped and its enrollment removed. Remove the package too: apt remove watchzit-agent (or dnf remove watchzit-agent).")
+		return nil
+	}
 	_ = os.Remove(linuxBin)
 	fmt.Println("The WatchZit agent is removed.")
 	return nil
+}
+
+// packaged tells whether this agent came with the deb or rpm package
+// (/usr/bin, its own systemd unit).
+func packaged() bool {
+	exe, err := os.Executable()
+	if err == nil {
+		exe, err = filepath.EvalSymlinks(exe)
+	}
+	return err == nil && exe == "/usr/bin/watchzit-agent"
 }

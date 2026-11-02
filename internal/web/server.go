@@ -376,6 +376,7 @@ func (s *Server) Handler() http.Handler {
 	write("POST /agents/tokens/{id}/revoke", s.handleTokenRevoke)
 	app("GET /downloads/{name}", s.handleDownload)
 	write("POST /devices/{id}/services", s.handleAgentServices)
+	write("POST /devices/{id}/processes", s.handleAgentProcesses)
 	write("POST /devices/{id}/agent/remove", s.handleAgentRemove)
 	write("POST /devices/{id}/agent/refresh", s.handleAgentRefresh)
 	app("GET /devices/{id}/open/{tool}", s.handleOpen)

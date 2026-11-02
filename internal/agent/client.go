@@ -26,6 +26,11 @@ type Agent struct {
 	// Sample and Collect are replaced in tests.
 	Sample  func(ctx context.Context, services []string) *proto.Report
 	Collect func(ctx context.Context) *proto.Inventory
+	// Procs reports the watched processes (nil: a ProcWatcher).
+	Procs func(ctx context.Context, names []string) []proto.Process
+	// Events returns new error messages of the system logs (nil: an
+	// EventReader).
+	Events func(ctx context.Context) []proto.Event
 
 	key           ed25519.PrivateKey
 	lastInventory time.Time
@@ -47,6 +52,12 @@ func (a *Agent) Run(ctx context.Context) error {
 	}
 	if a.Collect == nil {
 		a.Collect = CollectInventory
+	}
+	if a.Procs == nil {
+		a.Procs = NewProcWatcher().States
+	}
+	if a.Events == nil {
+		a.Events = NewEventReader().Read
 	}
 	backoff := 2 * time.Second
 	for ctx.Err() == nil {
@@ -143,7 +154,7 @@ func (a *Agent) session(ctx context.Context) error {
 	}()
 
 	interval := 60 * time.Second
-	var services []string
+	var services, processes []string
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	first := time.After(3 * time.Second)
@@ -152,6 +163,10 @@ func (a *Agent) session(ctx context.Context) error {
 	defer invTimer.Stop()
 	report := func() error {
 		r := a.Sample(sctx, services)
+		if len(processes) > 0 {
+			r.Processes = a.Procs(sctx, processes)
+		}
+		r.Events = a.Events(sctx)
 		return sendMsg(sctx, ws, proto.TypeReport, r)
 	}
 	inventory := func() error {
@@ -177,7 +192,7 @@ func (a *Agent) session(ctx context.Context) error {
 						interval = time.Duration(w.IntervalSeconds) * time.Second
 						ticker.Reset(interval)
 					}
-					services = w.Services
+					services, processes = w.Services, w.Processes
 					if first == nil { // a later welcome (watched services changed): report now
 						if err := report(); err != nil {
 							return err

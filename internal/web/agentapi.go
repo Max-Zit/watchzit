@@ -9,6 +9,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"net/netip"
 	"sort"
 	"strconv"
 	"sync"
@@ -230,6 +231,9 @@ func (s *Server) welcome(ctx context.Context, c *agentConn) error {
 		if x.Type == store.CheckAgentService && !x.Paused {
 			w.Services = append(w.Services, x.Params.Descr)
 		}
+		if x.Type == store.CheckAgentProcess && !x.Paused {
+			w.Processes = append(w.Processes, x.Params.Descr)
+		}
 	}
 	return sendAgent(ctx, c.ws, proto.TypeWelcome, w)
 }
@@ -267,6 +271,9 @@ func (s *Server) agentMessage(ctx context.Context, c *agentConn, env proto.Envel
 			return err
 		}
 		if err := s.store.AgentSeen(ctx, c.deviceID, "", "", ip, true); err != nil {
+			return err
+		}
+		if err := s.agentEvents(ctx, c, &r, ip); err != nil {
 			return err
 		}
 		return s.agentReport(ctx, c, &r)
@@ -319,7 +326,7 @@ func (s *Server) agentReport(ctx context.Context, c *agentConn, r *proto.Report)
 	byKey := map[string]*store.Check{}
 	key := func(typ string, p store.CheckParams) string {
 		switch typ {
-		case store.CheckAgentDisk, store.CheckAgentService:
+		case store.CheckAgentDisk, store.CheckAgentService, store.CheckAgentProcess:
 			return typ + "|" + p.Descr
 		case store.CheckAgentNet:
 			return typ + "|" + strconv.Itoa(p.IfIndex)
@@ -433,6 +440,14 @@ func (s *Server) agentReport(ctx context.Context, c *agentConn, r *proto.Report)
 		}
 		put(x, status, sv.State, map[string]float64{"running": v})
 	}
+	for _, pr := range r.Processes {
+		x := byKey[key(store.CheckAgentProcess, store.CheckParams{Descr: pr.Name})]
+		status, text := store.StatusDown, "not running"
+		if pr.Count > 0 {
+			status, text = store.StatusUp, fmt.Sprintf("%d running · CPU %s%% · %s", pr.Count, strconv.FormatFloat(pr.CPU, 'f', -1, 64), bytesText(pr.Mem))
+		}
+		put(x, status, text, map[string]float64{"count": float64(pr.Count), "cpu_pct": round2(pr.CPU), "mem_b": float64(pr.Mem)})
+	}
 	if _, err := s.store.SaveResults(ctx, res); err != nil {
 		return err
 	}
@@ -540,4 +555,46 @@ func cutName(s string) string {
 		return s[:200]
 	}
 	return s
+}
+
+// maxAgentEvents limits the messages of one report.
+const maxAgentEvents = 100
+
+// agentEvents keeps the error messages an agent read from the Windows
+// event logs or the systemd journal with the syslog messages: the Logs
+// page shows them and log triggers match them.
+func (s *Server) agentEvents(ctx context.Context, c *agentConn, r *proto.Report, ip string) error {
+	if len(r.Events) == 0 {
+		return nil
+	}
+	src, _ := netip.ParseAddr(ip)
+	if !src.IsValid() {
+		src = netip.IPv4Unspecified()
+	}
+	host := ""
+	if d, err := s.store.DeviceByID(ctx, c.deviceID); err == nil {
+		host = d.Name
+	}
+	now := s.now()
+	var ms []store.LogMessage
+	for i, e := range r.Events {
+		if i >= maxAgentEvents {
+			break
+		}
+		at := e.Time
+		if at.IsZero() || at.After(now.Add(time.Hour)) || at.Before(now.AddDate(0, 0, -7)) {
+			at = now
+		}
+		lvl := min(max(e.Level, 0), 7)
+		tag := e.Source
+		if e.Log != "" {
+			tag = e.Log + "/" + e.Source
+		}
+		msg := e.Message
+		if e.ID != 0 {
+			msg = "[" + strconv.Itoa(e.ID) + "] " + msg
+		}
+		ms = append(ms, store.LogMessage{At: at, DeviceID: c.deviceID, Source: src, Kind: store.LogAgent, Facility: -1, Severity: lvl, Host: host, Tag: tag, Message: msg})
+	}
+	return s.store.AddLogs(ctx, ms)
 }

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -311,4 +312,75 @@ func (s *Server) handleAgentRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 	time.Sleep(2 * time.Second) // most agents answer by then
 	s.redirect(w, r, "/devices/"+strconv.FormatInt(dev.ID, 10), "The agent sends its inventory again.")
+}
+
+var procNameRE = regexp.MustCompile(`^[\pL\pN][\pL\pN ._+()\-]{0,99}$`)
+
+// handleAgentProcesses sets the process names the agent watches: one check
+// per name (how many run, their CPU and memory); none running is down.
+func (s *Server) handleAgentProcesses(w http.ResponseWriter, r *http.Request) {
+	dev := s.loadDevice(w, r)
+	if dev == nil {
+		return
+	}
+	ctx := r.Context()
+	if _, err := s.store.DeviceAgent(ctx, dev.ID); err != nil {
+		s.notFound(w, r)
+		return
+	}
+	back := "/devices/" + strconv.FormatInt(dev.ID, 10)
+	want := map[string]bool{}
+	var order []string
+	for _, n := range strings.FieldsFunc(r.FormValue("processes"), func(c rune) bool { return c == ',' || c == '\n' || c == '\r' || c == ';' }) {
+		n = strings.TrimSpace(n)
+		if n == "" || want[strings.ToLower(n)] {
+			continue
+		}
+		if !procNameRE.MatchString(n) {
+			s.redirectErr(w, r, back, s.errText(r, uiErrf("%s is not a process name", n)))
+			return
+		}
+		if len(order) >= 50 {
+			s.redirectErr(w, r, back, "At most 50 processes.")
+			return
+		}
+		want[strings.ToLower(n)] = true
+		order = append(order, n)
+	}
+	cs, err := s.store.DeviceChecks(ctx, dev.ID)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	var added, removed []string
+	have := map[string]bool{}
+	for _, c := range cs {
+		if c.Type != store.CheckAgentProcess {
+			continue
+		}
+		if want[strings.ToLower(c.Params.Descr)] {
+			have[strings.ToLower(c.Params.Descr)] = true
+			continue
+		}
+		ids, err := s.store.DeleteCheck(ctx, c.ID)
+		if err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+		_ = s.tsdb.Forget(ctx, ids)
+		removed = append(removed, c.Params.Descr)
+	}
+	for _, n := range order {
+		if have[strings.ToLower(n)] {
+			continue
+		}
+		if _, err := s.store.CreateCheck(ctx, dev.ID, store.CheckInput{Type: store.CheckAgentProcess, Name: n, Params: store.CheckParams{Descr: n}, IntervalS: AgentInterval}); err != nil {
+			s.redirectErr(w, r, back, storeErr(err))
+			return
+		}
+		added = append(added, n)
+	}
+	go s.rewelcome(dev.ID) // #nosec G118 -- outlives the request on purpose; rewelcome has its own timeout
+	s.audit(r, "agent.processes", "device:"+strconv.FormatInt(dev.ID, 10), "watched processes of %s: added %v, removed %v", dev.Name, added, removed)
+	s.redirect(w, r, back, "Saved. The agent reports the processes from its next report.")
 }

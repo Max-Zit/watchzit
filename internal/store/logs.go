@@ -13,6 +13,7 @@ import (
 const (
 	LogSyslog = "syslog"
 	LogTrap   = "trap"
+	LogAgent  = "agent" // an agent: Windows event logs, the systemd journal
 )
 
 // TriggerLog opens problems from syslog messages and traps.

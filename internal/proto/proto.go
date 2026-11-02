@@ -78,7 +78,8 @@ type Hello struct {
 type Welcome struct {
 	DeviceID        int64    `json:"device_id"`
 	IntervalSeconds int      `json:"interval_s"`
-	Services        []string `json:"services,omitempty"` // services to report the state of
+	Services        []string `json:"services,omitempty"`  // services to report the state of
+	Processes       []string `json:"processes,omitempty"` // process names to report
 }
 
 // Report is one sample of the machine.
@@ -95,6 +96,8 @@ type Report struct {
 	Disks     []Disk     `json:"disks,omitempty"`
 	Nets      []Net      `json:"nets,omitempty"`
 	Services  []Service  `json:"services,omitempty"`
+	Processes []Process  `json:"processes,omitempty"`
+	Events    []Event    `json:"events,omitempty"` // new error messages of the system logs
 	VXLANs    []VXLAN    `json:"vxlans,omitempty"`
 	Guests    *Guests    `json:"guests,omitempty"` // Hyper-V machines or Docker containers, read every five minutes
 	Errors    []string   `json:"errors,omitempty"`
@@ -141,6 +144,26 @@ type Service struct {
 	Display string `json:"display,omitempty"`
 	Running bool   `json:"running"`
 	State   string `json:"state"` // running, stopped, failed, missing …
+}
+
+// Event is an error message of the Windows event logs or the systemd
+// journal; Level is the syslog level (0 emergency … 3 error).
+type Event struct {
+	Time    time.Time `json:"time"`
+	Level   int       `json:"level"`
+	Source  string    `json:"source"`        // provider or unit, e.g. "Disk" or "nginx.service"
+	Log     string    `json:"log,omitempty"` // Windows: System, Application
+	ID      int       `json:"id,omitempty"`  // Windows event ID
+	Message string    `json:"message"`
+}
+
+// Process is a watched process name: how many run, their CPU (% of all
+// cores) and memory together.
+type Process struct {
+	Name  string  `json:"name"`
+	Count int     `json:"count"`
+	CPU   float64 `json:"cpu"`
+	Mem   uint64  `json:"mem"`
 }
 
 // Inventory describes the machine (sent after connecting and daily).

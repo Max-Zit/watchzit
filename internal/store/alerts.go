@@ -104,7 +104,7 @@ func TriggerMetrics() map[string][]string {
 }
 
 var allCheckTypes = []string{CheckICMP, CheckTCP, CheckSNMP, CheckSNMPIf, CheckSNMPCPU, CheckSNMPStor, CheckSNMPOID,
-	CheckAgent, CheckAgentCPU, CheckAgentMem, CheckAgentDisk, CheckAgentNet, CheckAgentService,
+	CheckAgent, CheckAgentCPU, CheckAgentMem, CheckAgentDisk, CheckAgentNet, CheckAgentService, CheckAgentProcess,
 	CheckHTTP, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON, CheckHypervisor}
 
 // MetricUnit is the unit of a metric of a check type ("" when unknown).
@@ -150,7 +150,7 @@ func (in *TriggerInput) clean() error {
 		in.Threshold = math.Trunc(in.Threshold)
 		in.Op = ">"
 		for _, t := range in.CheckTypes {
-			if t != LogSyslog && t != LogTrap {
+			if t != LogSyslog && t != LogTrap && t != LogAgent {
 				return errors.New("unknown message source")
 			}
 		}

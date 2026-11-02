@@ -12,6 +12,10 @@
 <h2 id="linux">Linux</h2>
 <p>The Agents page shows a command that downloads the agent from the agent port, checks its SHA-256 and installs it with the code (systemd service <code>watchzit-agent</code>):</p>
 <pre>curl -fsSk https://&lt;server&gt;:8444/agent/download/watchzit-agent-linux-amd64 -o /tmp/watchzit-agent &amp;&amp; … sudo /tmp/watchzit-agent install --code "WZ1-…"</pre>
+<p>Or install the <b>deb</b> or <b>rpm</b> package of the release (amd64 and arm64, from GitHub), then enroll and start it; updates come through the package manager or the agent's own updates:</p>
+<pre>sudo apt install ./watchzit-agent_&lt;version&gt;_amd64.deb      # or: sudo dnf install ./watchzit-agent-&lt;version&gt;-1.x86_64.rpm
+sudo watchzit-agent enroll --code "WZ1-…"
+sudo systemctl start watchzit-agent</pre>
 
 <h2 id="what">What the agent reports</h2>
 <ul>
@@ -19,6 +23,8 @@
   <li><b>Inventory</b>: operating system, CPU model, memory, vendor, model, serial number, addresses, services.</li>
   <li><b>Hyper-V</b> machines (Windows) and <b>Docker</b> containers (Linux), every five minutes, with their state, CPU, memory and addresses; they show on the device page and in hypervisor boxes on maps.</li>
   <li><b>Watched services</b>: choose them on the device page under <b>Watch services</b>; a service that stops opens a problem.</li>
+  <li><b>Watched processes</b>: under <b>Watch processes</b> on the device page enter program names (for example <code>nginx, sqlservr.exe, java</code>); each gets a check with how many run, their CPU and memory, and none running opens a problem.</li>
+  <li><b>Error messages</b> of the system — critical and error events of the Windows <b>System</b> and <b>Application</b> logs, and messages of priority <i>err</i> and worse from the systemd journal — go to <a href="/logs?kind=agent">Logs</a> (kind <b>Agents</b>) with every report; a log trigger with the source <b>Agents</b> opens problems from them.</li>
 </ul>
 <p>If a device with the same address or name exists, the agent joins it; otherwise a new device is created.</p>
 

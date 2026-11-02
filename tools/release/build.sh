@@ -39,6 +39,14 @@ NFPM="go run github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.43.0"
 rm -f "dist/watchzit-server_${V}_amd64.deb" "dist/watchzit-server-${V}-1.x86_64.rpm"
 $NFPM package --config packaging/linux/nfpm-server.yaml --packager deb --target dist/ >/dev/null
 $NFPM package --config packaging/linux/nfpm-server.yaml --packager rpm --target dist/ >/dev/null
+# the agent as deb and rpm (amd64, arm64)
+for arch in amd64 arm64; do
+  mkdir -p bin/pkg/agent && cp "dist/watchzit-agent-$V-linux-$arch" bin/pkg/agent/watchzit-agent
+  rpmarch=x86_64; [ $arch = arm64 ] && rpmarch=aarch64
+  rm -f "dist/watchzit-agent_${V}_$arch.deb" "dist/watchzit-agent-${V}-1.$rpmarch.rpm"
+  ARCH=$arch $NFPM package --config packaging/linux/nfpm-agent.yaml --packager deb --target dist/ >/dev/null
+  ARCH=$arch $NFPM package --config packaging/linux/nfpm-agent.yaml --packager rpm --target dist/ >/dev/null
+done
 
 # What goes on GitHub, with the signed manifest.
 R="dist/release-$V"
@@ -47,6 +55,8 @@ cp "dist/watchzit-agent-$V-x64.msi" "dist/watchzit-agent-$V-windows-amd64.exe" \
    "dist/watchzit-agent-$V-linux-amd64" "dist/watchzit-agent-$V-linux-arm64" "dist/maxzit-launcher-$V-windows-amd64.exe" \
    "dist/watchzit-server-$V-linux-amd64" "dist/watchzit-server-$V-windows-amd64.exe" \
    "dist/watchzit-server_${V}_amd64.deb" "dist/watchzit-server-${V}-1.x86_64.rpm" \
+   "dist/watchzit-agent_${V}_amd64.deb" "dist/watchzit-agent-${V}-1.x86_64.rpm" \
+   "dist/watchzit-agent_${V}_arm64.deb" "dist/watchzit-agent-${V}-1.aarch64.rpm" \
    "dist/THIRD_PARTY_LICENSES-$V.md" packaging/install.sh "$R/"
 (cd "$R" && sha256sum $(ls | grep -v '^SHA256SUMS') > SHA256SUMS)
 if [ -f "$KEY" ]; then

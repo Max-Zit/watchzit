@@ -12,6 +12,10 @@
 <h2 id="linux">Linux</h2>
 <p>Stranica Agenti prikazuje komandu koja preuzima agenta sa porta za agente, proverava njegov SHA-256 i instalira ga sa kodom (systemd servis <code>watchzit-agent</code>):</p>
 <pre>curl -fsSk https://&lt;server&gt;:8444/agent/download/watchzit-agent-linux-amd64 -o /tmp/watchzit-agent &amp;&amp; … sudo /tmp/watchzit-agent install --code "WZ1-…"</pre>
+<p>Ili instalirajte <b>deb</b> ili <b>rpm</b> paket iz izdanja (amd64 i arm64, sa GitHub-a), pa ga registrujte i pokrenite; ažuriranja stižu preko menadžera paketa ili samoažuriranjem agenta:</p>
+<pre>sudo apt install ./watchzit-agent_&lt;verzija&gt;_amd64.deb      # ili: sudo dnf install ./watchzit-agent-&lt;verzija&gt;-1.x86_64.rpm
+sudo watchzit-agent enroll --code "WZ1-…"
+sudo systemctl start watchzit-agent</pre>
 
 <h2 id="what">Šta agent javlja</h2>
 <ul>
@@ -19,6 +23,8 @@
   <li><b>Inventar</b>: operativni sistem, model procesora, memorija, proizvođač, model, serijski broj, adrese, servisi.</li>
   <li><b>Hyper-V</b> mašine (Windows) i <b>Docker</b> kontejnere (Linux), svakih pet minuta, sa stanjem, procesorom, memorijom i adresama; vide se na stranici uređaja i u kutijama hipervizora na mapama.</li>
   <li><b>Praćeni servisi</b>: izaberite ih na stranici uređaja u <b>Prati servise</b>; servis koji stane otvara problem.</li>
+  <li><b>Praćeni procesi</b>: u <b>Prati procese</b> na stranici uređaja unesite nazive programa (na primer <code>nginx, sqlservr.exe, java</code>); svaki dobija proveru sa brojem pokrenutih, procesorom i memorijom, a ako nijedan ne radi, otvara se problem.</li>
+  <li><b>Poruke o greškama</b> sistema — kritični događaji i greške iz Windows logova <b>System</b> i <b>Application</b>, i poruke prioriteta <i>err</i> i gore iz systemd journal-a — idu u <a href="/logs?kind=agent">Logove</a> (vrsta <b>Agenti</b>) sa svakim izveštajem; okidač na poruke sa izvorom <b>Agenti</b> otvara probleme iz njih.</li>
 </ul>
 <p>Ako uređaj sa istom adresom ili imenom već postoji, agent mu se pridružuje; inače se pravi novi uređaj.</p>
 

@@ -86,6 +86,16 @@
     </form>
   </details>
   {{end}}
+  {{if $.User.CanWrite}}
+  <details class="mt">
+    <summary class="btn secondary sm">{{template "icon" "cpu"}}{{$.T "Watch processes"}}{{with $.Data.Processes}} ({{len .}}){{end}}</summary>
+    <form method="post" action="/devices/{{$d.ID}}/processes" class="stack mt">
+      <p class="small muted">{{$.T "Program names, separated by commas, for example nginx, sqlservr.exe, java. Each gets a check with how many run and their CPU and memory; none running makes it red."}}</p>
+      <textarea name="processes" rows="2" maxlength="5000" placeholder="nginx, sqlservr.exe">{{range $i, $p := $.Data.Processes}}{{if $i}}, {{end}}{{$p}}{{end}}</textarea>
+      <div><button class="primary sm">{{$.T "Save"}}</button></div>
+    </form>
+  </details>
+  {{end}}
 </section>
 {{end}}
 

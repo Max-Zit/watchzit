@@ -370,6 +370,7 @@ const (
 	CheckAgentDisk    = "agent_disk"    // one file system / drive
 	CheckAgentNet     = "agent_net"     // one network interface
 	CheckAgentService = "agent_service" // one watched service
+	CheckAgentProcess = "agent_process" // one watched process name: count, CPU, memory
 	CheckHTTP         = "http"          // a web page: status, time, text, certificate
 	CheckTLS          = "tls"           // a TLS certificate: days until it expires
 	CheckDNS          = "dns"           // a DNS server answers a name
@@ -559,6 +560,8 @@ func metricsOf(typ string, p CheckParams) []Series {
 		return []Series{{Metric: "in_bps", Unit: "bit/s"}, {Metric: "out_bps", Unit: "bit/s"}, {Metric: "in_err", Unit: "/s"}, {Metric: "out_err", Unit: "/s"}}
 	case CheckAgentService:
 		return []Series{{Metric: "running", Unit: ""}}
+	case CheckAgentProcess:
+		return []Series{{Metric: "count", Unit: ""}, {Metric: "cpu_pct", Unit: "%"}, {Metric: "mem_b", Unit: "B"}}
 	case CheckHTTP:
 		return []Series{{Metric: "response_ms", Unit: "ms"}, {Metric: "status_code", Unit: ""}, {Metric: "cert_days", Unit: "d"}}
 	case CheckTLS:
@@ -624,10 +627,10 @@ func (in *CheckInput) clean() error {
 			in.Name = p.defaultName(in.Type)
 		}
 		in.Name = truncate(strings.Join(strings.Fields(in.Name), " "), 95)
-	case CheckAgent, CheckAgentCPU, CheckAgentMem, CheckAgentDisk, CheckAgentNet, CheckAgentService:
+	case CheckAgent, CheckAgentCPU, CheckAgentMem, CheckAgentDisk, CheckAgentNet, CheckAgentService, CheckAgentProcess:
 		keep := CheckParams{TimeoutMS: p.TimeoutMS, IfIndex: p.IfIndex, IfName: truncate(p.IfName, 95), Descr: truncate(strings.TrimSpace(p.Descr), 95)}
 		switch {
-		case in.Type == CheckAgentNet && p.IfIndex < 1, (in.Type == CheckAgentDisk || in.Type == CheckAgentService) && keep.Descr == "":
+		case in.Type == CheckAgentNet && p.IfIndex < 1, (in.Type == CheckAgentDisk || in.Type == CheckAgentService || in.Type == CheckAgentProcess) && keep.Descr == "":
 			return errors.New("the agent check misses its interface, drive or service")
 		}
 		*p = keep

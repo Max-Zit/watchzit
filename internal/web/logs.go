@@ -85,7 +85,7 @@ func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
 	if l, err := strconv.Atoi(r.FormValue("level")); err == nil && l >= 0 && l <= 7 {
 		f.MaxLevel = l
 	}
-	if f.Kind != store.LogSyslog && f.Kind != store.LogTrap {
+	if f.Kind != store.LogSyslog && f.Kind != store.LogTrap && f.Kind != store.LogAgent {
 		f.Kind = ""
 	}
 	if len(f.Text) > 200 {

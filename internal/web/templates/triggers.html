@@ -39,6 +39,7 @@
         <fieldset class="box"><legend>{{.T "From"}}</legend>
           <label class="check"><input type="checkbox" name="source" value="syslog" {{if or (ne $in.Kind "log") (not $in.CheckTypes) (inStrings $in.CheckTypes "syslog")}}checked{{end}}>Syslog</label>
           <label class="check"><input type="checkbox" name="source" value="trap" {{if or (ne $in.Kind "log") (not $in.CheckTypes) (inStrings $in.CheckTypes "trap")}}checked{{end}}>{{.T "SNMP traps"}}</label>
+          <label class="check"><input type="checkbox" name="source" value="agent" {{if or (ne $in.Kind "log") (not $in.CheckTypes) (inStrings $in.CheckTypes "agent")}}checked{{end}}>{{.T "Agents (event log, journal)"}}</label>
         </fieldset>
       </div>
       <p class="small muted">{{.T "The problem stays open while such messages keep coming and closes when none came for the time below (at least a minute)."}}</p>
