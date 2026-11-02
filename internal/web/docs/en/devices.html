@@ -41,6 +41,7 @@
   <li>Choose the profile on the device. WatchZit opens <b>SNMP discovery</b>: tick the interfaces, CPU, memory and disks to watch (loopbacks and interfaces without link are left out).</li>
   <li>The device page then shows <b>ports</b> with link state and live traffic, and graphs of every value.</li>
 </ol>
+<p>Discovery also finds what a device of its kind reports: the <b>supplies of printers</b> (toner, ink, drums, waste boxes, as a level in percent; the ready trigger <b>Toner or ink low</b> warns below 10 %), <b>UPSs</b> (UPS-MIB, or the APC PowerNet MIB of APC cards: battery charge, runtime left, load; the check is down while the UPS runs on battery or its battery is low, and <b>UPS runtime short</b> warns below 10 minutes) and the <b>health sensors of MikroTik</b> (temperatures, voltages, fans, power, each as an OID check with its unit).</p>
 <div class="callout tip"><p>MikroTik, Cisco, HP, Ubiquiti, printers and UPS devices speak SNMP. On Linux install <code>snmpd</code>; on Windows the SNMP service.</p></div>
 
 <h2 id="vlans">VLANs</h2>

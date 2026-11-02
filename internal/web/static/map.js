@@ -852,6 +852,67 @@
     p.appendChild(h("p", { "class": "muted small" }, T("Drag devices into the rack; they snap to the units.")));
   }
 
+  // ---- arranging a whole map by its links
+  // The most connected thing goes on top, what hangs on it in the row below,
+  // and so on (breadth first); every row is centred. Racks and hypervisor
+  // boxes move as one with what is in them; things without a cable go into
+  // a grid underneath. Texts stay where they are. Cancel undoes it.
+  function arrange() {
+    var top = layout.nodes.filter(function (n) { return !n.parent && n.kind !== "label"; });
+    if (top.length < 2) return;
+    var owner = function (id) {
+      var n = nodeByID(id), seen = 0;
+      while (n && n.parent && seen++ < 10) n = nodeByID(n.parent) || n;
+      return n;
+    };
+    var adj = {};
+    top.forEach(function (n) { adj[n.id] = {}; });
+    layout.links.forEach(function (k) {
+      var a = owner(k.a), b = owner(k.b);
+      if (a && b && a !== b && adj[a.id] && adj[b.id]) { adj[a.id][b.id] = true; adj[b.id][a.id] = true; }
+    });
+    var degree = function (n) { return Object.keys(adj[n.id]).length; };
+    var rank = { firewall: 0, router: 1, switch: 2 };
+    var kindOf = function (n) { return n.kind === "device" ? ((live.devices[n.device] || deviceMeta(n.device) || {}).kind || "") : ""; };
+    var order = top.slice().sort(function (a, b) {
+      return degree(b) - degree(a) || ((rank[kindOf(a)] === undefined ? 9 : rank[kindOf(a)]) - (rank[kindOf(b)] === undefined ? 9 : rank[kindOf(b)])) || a.id - b.id;
+    });
+    var level = {}, rows = [];
+    order.forEach(function (start) {
+      if (level[start.id] !== undefined || degree(start) === 0) return;
+      var base = rows.length, queue = [start];
+      level[start.id] = base;
+      while (queue.length) {
+        var n = queue.shift(), lv = level[n.id];
+        (rows[lv] = rows[lv] || []).push(n);
+        Object.keys(adj[n.id]).map(function (id) { return nodeByID(+id); }).sort(function (a, b) { return degree(b) - degree(a) || a.id - b.id; }).forEach(function (m) {
+          if (m && level[m.id] === undefined) { level[m.id] = lv + 1; queue.push(m); }
+        });
+      }
+    });
+    var loose = order.filter(function (n) { return level[n.id] === undefined; });
+    var GAP_X = 70, GAP_Y = 110, y = 0;
+    rows.forEach(function (row) {
+      var widths = row.map(function (n) { return box(n).w; }), total = widths.reduce(function (s, w) { return s + w; }, 0) + GAP_X * (row.length - 1);
+      var h0 = Math.max.apply(null, row.map(function (n) { return box(n).h; }));
+      var x = -total / 2;
+      row.forEach(function (n, i) { n.x = x + widths[i] / 2; n.y = y + h0 / 2; x += widths[i] + GAP_X; });
+      y += h0 + GAP_Y;
+    });
+    if (loose.length) {
+      var cols = Math.ceil(Math.sqrt(loose.length * 2)), cw = 0, ch = 0;
+      loose.forEach(function (n) { var b = box(n); cw = Math.max(cw, b.w); ch = Math.max(ch, b.h); });
+      loose.forEach(function (n, i) {
+        n.x = (i % cols - (cols - 1) / 2) * (cw + GAP_X);
+        n.y = y + Math.floor(i / cols) * (ch + GAP_Y / 2) + ch / 2;
+      });
+    }
+    // bends drawn for the old places would lead the cables astray
+    layout.links.forEach(function (k) { if (k.points && k.points.length) delete k.points; });
+    place();
+    render(); changed(); fit(true);
+  }
+
   // ---- hypervisor hosts
   function hvList() {
     return libList.filter(function (i) { return i.type === "hypervisor"; }).map(function (i) { return ["lib:" + i.name, i.label]; });
@@ -2177,6 +2238,7 @@
     else if (act === "layers") toggleLayers();
     else if (act === "connect") { setPath(false); setConnect(!connecting); }
     else if (act === "suggest") { setConnect(false); suggestions(); }
+    else if (act === "arrange") { setConnect(false); arrange(); }
     else if (act === "delete") removeSelected();
   });
   function fullscreen() {

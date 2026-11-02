@@ -41,6 +41,7 @@
   <li>Izaberite profil na uređaju. WatchZit otvara <b>SNMP otkrivanje</b>: označite interfejse, procesor, memoriju i diskove koje pratite (loopback-ovi i interfejsi bez linka su isključeni).</li>
   <li>Stranica uređaja tada prikazuje <b>portove</b> sa stanjem linka i saobraćajem uživo, i grafike svake vrednosti.</li>
 </ol>
+<p>Discovery pronalazi i ono što javlja uređaj te vrste: <b>potrošni materijal štampača</b> (toner, mastilo, bubnjevi, kutije za otpadni toner, kao nivo u procentima; gotov okidač <b>Toner ili mastilo pri kraju</b> upozorava ispod 10 %), <b>UPS-ove</b> (UPS-MIB ili APC PowerNet MIB na APC karticama: napunjenost baterije, preostala autonomija, opterećenje; provera je pala dok UPS radi na bateriji ili mu je baterija slaba, a <b>UPS kratka autonomija</b> upozorava ispod 10 minuta) i <b>senzore MikroTik uređaja</b> (temperature, napone, ventilatore, snagu, svaki kao OID proveru sa jedinicom).</p>
 <div class="callout tip"><p>MikroTik, Cisco, HP, Ubiquiti, štampači i UPS uređaji govore SNMP. Na Linux-u instalirajte <code>snmpd</code>; na Windows-u SNMP servis.</p></div>
 
 <h2 id="vlans">VLAN-ovi</h2>

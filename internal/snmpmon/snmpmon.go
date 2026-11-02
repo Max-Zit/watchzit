@@ -214,6 +214,7 @@ func Discover(ctx context.Context, c *snmp.Client) (store.Facts, []store.Interfa
 				Default: def, Group: s.Kind, Detail: bytesText(s.Size)})
 		}
 	}
+	props = devicesDiscover(ctx, c, props)
 	ifs, err := Interfaces(ctx, c)
 	if err != nil {
 		return f, nil, props, err
@@ -394,6 +395,14 @@ func Poll(ctx context.Context, c *snmp.Client, ch *store.Check) (Reading, error)
 		pct := used / size * 100
 		r.Gauges["used_pct"] = pct
 		r.Up, r.Text = true, fmt.Sprintf("%.0f%% of %s", pct, bytesText(size*units))
+	case store.CheckSNMPSupply:
+		if err := pollSupply(ctx, c, p, &r); err != nil {
+			return r, err
+		}
+	case store.CheckSNMPUPS:
+		if err := pollUPS(ctx, c, &r); err != nil {
+			return r, err
+		}
 	case store.CheckSNMPOID:
 		o, err := snmp.ParseOID(p.OID)
 		if err != nil {

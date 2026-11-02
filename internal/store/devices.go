@@ -364,6 +364,8 @@ const (
 	CheckSNMPCPU      = "snmp_cpu"      // processor load (HOST-RESOURCES)
 	CheckSNMPStor     = "snmp_storage"  // memory or a disk (HOST-RESOURCES)
 	CheckSNMPOID      = "snmp_oid"      // any numeric OID
+	CheckSNMPSupply   = "snmp_supply"   // a printer supply (Printer-MIB): toner, ink, drum …
+	CheckSNMPUPS      = "snmp_ups"      // a UPS (UPS-MIB or APC): battery, runtime, on battery
 	CheckAgent        = "agent"         // the agent is connected; uptime
 	CheckAgentCPU     = "agent_cpu"     // processor load (and load average)
 	CheckAgentMem     = "agent_mem"     // memory and swap
@@ -548,6 +550,10 @@ func metricsOf(typ string, p CheckParams) []Series {
 		return []Series{{Metric: "used_pct", Unit: "%"}, {Metric: "used_b", Unit: "B"}}
 	case CheckSNMPOID:
 		return []Series{{Metric: "value", Unit: p.Unit}}
+	case CheckSNMPSupply:
+		return []Series{{Metric: "level_pct", Unit: "%"}}
+	case CheckSNMPUPS:
+		return []Series{{Metric: "charge_pct", Unit: "%"}, {Metric: "runtime_min", Unit: "min"}, {Metric: "on_battery", Unit: ""}, {Metric: "load_pct", Unit: "%"}}
 	case CheckAgent:
 		return []Series{{Metric: "uptime_s", Unit: "s"}}
 	case CheckAgentCPU:
@@ -658,6 +664,13 @@ func (in *CheckInput) clean() error {
 				in.Name = p.Descr
 			case CheckSNMPOID:
 				in.Name = "OID " + p.OID
+			case CheckSNMPSupply:
+				in.Name = p.Descr
+				if in.Name == "" {
+					in.Name = "Supply " + p.OID
+				}
+			case CheckSNMPUPS:
+				in.Name = "UPS"
 			}
 		}
 		in.Name = truncate(strings.Join(strings.Fields(in.Name), " "), 95)
@@ -843,6 +856,13 @@ func (p *CheckParams) cleanSNMP(typ string) error {
 			return errors.New("choose a storage")
 		}
 		keep.Index, keep.Descr = p.Index, truncate(strings.TrimSpace(p.Descr), 95)
+	case CheckSNMPSupply:
+		o, err := snmp.ParseOID(p.OID)
+		if err != nil || len(o) != 2 {
+			return errors.New("choose a printer supply")
+		}
+		keep.OID, keep.Descr = o.String(), truncate(strings.TrimSpace(p.Descr), 95)
+	case CheckSNMPUPS:
 	case CheckSNMPOID:
 		o, err := snmp.ParseOID(p.OID)
 		if err != nil {

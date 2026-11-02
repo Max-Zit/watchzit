@@ -133,7 +133,7 @@ type graphDef struct {
 }
 
 // hiddenMetrics are kept but not drawn (they say little as a line).
-var hiddenMetrics = map[string]bool{"uptime_s": true, "used_b": true, "in_err": true, "out_err": true, "mem_used_b": true, "running": true, "status_code": true}
+var hiddenMetrics = map[string]bool{"uptime_s": true, "used_b": true, "in_err": true, "out_err": true, "mem_used_b": true, "running": true, "status_code": true, "on_battery": true}
 
 // unitTitles name graphs that hold several metrics.
 var unitTitles = map[string]string{"bit/s": "Traffic", "/s": "Errors"}
