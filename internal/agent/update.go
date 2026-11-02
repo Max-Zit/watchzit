@@ -89,3 +89,25 @@ func (a *Agent) selfUpdate(ctx context.Context, hc *http.Client, u proto.AgentUp
 	time.AfterFunc(15*time.Minute, func() { updating.Store(false) })
 	return nil
 }
+
+// cleanUpdates removes installers an earlier update left behind (the MSI
+// stays while msiexec runs); installer logs stay for a month.
+func cleanUpdates(dir string, now time.Time) {
+	list, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	for _, e := range list {
+		info, err := e.Info()
+		if err != nil || e.IsDir() {
+			continue
+		}
+		keep := time.Hour
+		if filepath.Ext(e.Name()) == ".log" {
+			keep = 30 * 24 * time.Hour
+		}
+		if now.Sub(info.ModTime()) > keep {
+			_ = os.Remove(filepath.Join(dir, e.Name()))
+		}
+	}
+}

@@ -9,6 +9,7 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"time"
 
@@ -39,6 +40,7 @@ func (a *Agent) Run(ctx context.Context) error {
 		return err
 	}
 	a.key = key
+	cleanUpdates(filepath.Join(a.Dir, "updates"), time.Now())
 	if a.Sample == nil {
 		s := NewSampler()
 		a.Sample = s.Sample

@@ -37,6 +37,7 @@ func installUpdate(bin, version, _ string) error {
 		_ = os.Remove(tmp)
 		return err
 	}
+	_ = os.Remove(bin)
 	go func() {
 		time.Sleep(2 * time.Second) // let the log line go out
 		os.Exit(0)
