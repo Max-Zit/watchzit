@@ -470,6 +470,7 @@ func init() {
 		return h
 	}
 	funcs["minutes"] = minutesText
+	funcs["days"] = func(sec int) int { return sec / 86400 }
 	funcs["sevOf"] = func(p *Page, sev string) sevCtx { return sevCtx{P: p, Sev: sev} }
 	funcs["severities"] = func() []string { return store.Severities }
 	funcs["dur"] = func(p *Page, d time.Duration) string { return durationText(p.Lang, d) }
@@ -568,7 +569,7 @@ func init() {
 }
 
 // triggerKinds and channelKinds name the kinds (translated in templates).
-var triggerKinds = map[string]string{store.TriggerDeviceDown: "Device down", store.TriggerCheckDown: "Check down", store.TriggerMetric: "Value out of range", store.TriggerHADegraded: "HA group without redundancy", store.TriggerLog: "Syslog message or trap"}
+var triggerKinds = map[string]string{store.TriggerDeviceDown: "Device down", store.TriggerCheckDown: "Check down", store.TriggerMetric: "Value out of range", store.TriggerHADegraded: "HA group without redundancy", store.TriggerLog: "Syslog message or trap", store.TriggerForecast: "Value will reach a threshold (forecast)"}
 var channelKinds = map[string]string{store.ChannelEmail: "Email", store.ChannelWebhook: "Webhook (JSON)", store.ChannelSlack: "Slack", store.ChannelTeams: "Microsoft Teams",
 	store.ChannelDiscord: "Discord", store.ChannelTelegram: "Telegram", store.ChannelNtfy: "ntfy (push to phones)", store.ChannelPagerDuty: "PagerDuty",
 	store.ChannelTwilio: "SMS (Twilio)", store.ChannelSMSGateway: "SMS (own gateway)"}

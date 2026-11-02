@@ -193,6 +193,7 @@ func run() error {
 	srv.Version = version
 	srv.Alerts = alerts
 	alerts.Notify = srv.Notify
+	alerts.History = srv.MetricHistory
 	// syslog messages and SNMP traps from devices
 	logs := logrecv.New(st, log)
 	srv.Logs = logs

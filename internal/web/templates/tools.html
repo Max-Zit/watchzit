@@ -37,6 +37,15 @@
   </form>
   {{if and $e (not $e.Builtin)}}<form method="post" action="/settings/tools/{{$e.ID}}/delete" class="mt" data-confirm="{{.T "Delete the tool %s?" $e.Name}}"><button class="danger sm">{{template "icon" "trash"}}{{.T "Delete"}}</button></form>{{end}}
 </section>
+<section class="panel" id="links">
+  <h2>{{template "icon" "link"}}{{.T "Links on every device"}}</h2>
+  <p class="muted">{{.T "Buttons on every device page that open the device in another program, for example in RMMZit or BackupZit. {name}, {address} and {id} are replaced by the device's name, address and number."}}</p>
+  <p class="small muted">{{.T "Examples:"}} <code>https://rmm.example.com:8443/devices?q={name}</code> · <code>https://backup.example.com:8443/agents</code></p>
+  <form method="post" action="/settings/device-links" class="stack">
+    {{range .Data.Links}}<div class="cols"><label>{{$.T "Name"}}<input name="link_name" value="{{.Name}}" maxlength="60" placeholder="RMMZit"></label><label>{{$.T "Address"}}<input name="link_url" value="{{.URL}}" maxlength="500" placeholder="https://rmm.example.com:8443/devices?q={name}"></label></div>{{end}}
+    <div><button class="secondary">{{.T "Save"}}</button></div>
+  </form>
+</section>
 </div>
 </div>
 {{end}}

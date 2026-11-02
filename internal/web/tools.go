@@ -174,6 +174,7 @@ func (s *Server) handleLauncher(w http.ResponseWriter, r *http.Request) {
 
 type toolsData struct {
 	Tools []*store.Tool
+	Links []DeviceLink // links on every device, with empty rows to add
 	Edit  *store.Tool
 	In    store.ToolInput
 	Args  string
@@ -200,6 +201,10 @@ func (s *Server) showTools(w http.ResponseWriter, r *http.Request, status int, d
 	if d.Tools, err = s.store.Tools(r.Context()); err != nil {
 		s.serverError(w, r, err)
 		return
+	}
+	d.Links = s.deviceLinks(r.Context())
+	for len(d.Links) < maxDeviceLinks && (len(d.Links) < 2 || d.Links[len(d.Links)-1].URL != "") {
+		d.Links = append(d.Links, DeviceLink{})
 	}
 	d.Kinds = store.DeviceKinds
 	p := &Page{Title: "Tools", Nav: "settings", Data: d}

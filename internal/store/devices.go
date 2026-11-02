@@ -152,7 +152,7 @@ type DeviceFilter struct {
 func (s *Store) Devices(ctx context.Context, f DeviceFilter) ([]*Device, error) {
 	q := "%" + strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(strings.TrimSpace(f.Query)) + "%"
 	rows, err := s.db.Query(ctx, `SELECT `+deviceCols+` FROM devices d LEFT JOIN device_groups g ON g.id=d.group_id
-		WHERE ($1 = '%%' OR d.name ILIKE $1 OR d.address ILIKE $1 OR d.notes ILIKE $1)
+		WHERE ($1 = '%%' OR d.name ILIKE $1 OR d.address ILIKE $1 OR d.notes ILIKE $1 OR EXISTS (SELECT 1 FROM device_field_values v WHERE v.device_id=d.id AND v.value ILIKE $1))
 		AND ($2 = 0 OR ($2 = -1 AND d.group_id IS NULL) OR d.group_id = $2)
 		AND ($3 = '' OR d.status = $3) AND (NOT $4 OR d.snmp_profile_id IS NOT NULL)
 		ORDER BY array_position(ARRAY['down','warning','unknown','up','paused'], d.status), lower(d.name)`, q, f.GroupID, f.Status, f.SNMPOnly)
@@ -935,4 +935,11 @@ func (s *Store) SetGroupSLA(ctx context.Context, id int64, target float64) error
 		return ErrNotFound
 	}
 	return err
+}
+
+// SeriesID is the series of a check's metric (ErrNotFound: nothing stored yet).
+func (s *Store) SeriesID(ctx context.Context, checkID int64, metric string) (int32, error) {
+	var id int32
+	err := s.db.QueryRow(ctx, `SELECT id FROM series WHERE check_id=$1 AND metric=$2`, checkID, metric).Scan(&id)
+	return id, notFound(err)
 }

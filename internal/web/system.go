@@ -203,6 +203,8 @@ const settingUpdates = "server_updates"
 type UpdateSettings struct {
 	Auto bool `json:"auto"`
 	Hour int  `json:"hour"` // server time, 0–23
+	// Channel is "" (official releases) or "testing" (release candidates).
+	Channel string `json:"channel,omitempty"`
 }
 
 // updateState is the last check for a new version.
@@ -213,16 +215,28 @@ type updateState struct {
 	err     string
 }
 
-func (s *Server) updateSource() string {
+// updateChannel is the chosen update channel ("" or "testing").
+func (s *Server) updateChannel(ctx context.Context) string {
+	var u UpdateSettings
+	_ = s.store.GetSetting(ctx, settingUpdates, &u)
+	if u.Channel == "testing" {
+		return u.Channel
+	}
+	return ""
+}
+
+// updateSource is where new versions come from: WATCHZIT_UPDATE_SOURCE,
+// else the chosen channel.
+func (s *Server) updateSource(ctx context.Context) string {
 	if v := os.Getenv("WATCHZIT_UPDATE_SOURCE"); v != "" {
 		return v
 	}
-	return update.DefaultSource
+	return update.ChannelSource(s.updateChannel(ctx))
 }
 
 // CheckUpdate looks for a newer signed release.
 func (s *Server) CheckUpdate(ctx context.Context) {
-	m, _, _, err := update.Fetch(ctx, &http.Client{Timeout: 30 * time.Second}, s.updateSource(), "")
+	m, _, _, err := update.Fetch(ctx, &http.Client{Timeout: 30 * time.Second}, s.updateSource(ctx), "")
 	s.upd.mu.Lock()
 	defer s.upd.mu.Unlock()
 	s.upd.checked = s.now()
@@ -256,7 +270,7 @@ func (s *Server) RunUpdates(ctx context.Context) {
 			if !u.Auto || latest == nil || s.now().Hour() != u.Hour || !update.Newer(latest.Version, s.Version) || !s.helperOK() || helper.Pending(s.DataDir) {
 				continue
 			}
-			if err := helper.Submit(s.DataDir, helper.Request{Action: helper.ActionUpdate, Version: latest.Version, RequestedBy: "automatic"}); err == nil {
+			if err := helper.Submit(s.DataDir, helper.Request{Action: helper.ActionUpdate, Version: latest.Version, Channel: u.Channel, RequestedBy: "automatic"}); err == nil {
 				_ = s.store.Audit(ctx, "-", "local", "server.update", "settings", "automatic installation of WatchZit "+latest.Version+" started")
 			}
 		}
@@ -285,7 +299,7 @@ type versionData struct {
 }
 
 func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
-	d := &versionData{Version: s.Version, HelperOK: s.helperOK(), Source: s.updateSource()}
+	d := &versionData{Version: s.Version, HelperOK: s.helperOK(), Source: s.updateSource(r.Context())}
 	if d.HelperOK {
 		d.Zones, d.Zone, d.Net = timeZones(), helper.SystemTimeZone(""), readServerNetwork()
 		d.SSH = helper.ReadSSH("")
@@ -300,7 +314,7 @@ func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	d.Unofficial = d.Source != update.DefaultSource
+	d.Unofficial = d.Source != update.DefaultSource && d.Source != update.TestingSource
 	_ = s.store.GetSetting(r.Context(), settingUpdates, &d.S)
 	for h := 0; h < 24; h++ {
 		d.Hours = append(d.Hours, h)
@@ -344,7 +358,7 @@ func (s *Server) handleVersionInstall(w http.ResponseWriter, r *http.Request) {
 		s.redirectErr(w, r, "/settings/version", "There is no newer version to install.")
 		return
 	}
-	if err := s.submit(r, helper.Request{Action: helper.ActionUpdate, Version: v}); err != nil {
+	if err := s.submit(r, helper.Request{Action: helper.ActionUpdate, Version: v, Channel: s.updateChannel(r.Context())}); err != nil {
 		s.redirectErr(w, r, "/settings/version", err.Error())
 		return
 	}
@@ -354,6 +368,10 @@ func (s *Server) handleVersionInstall(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleVersionSettings(w http.ResponseWriter, r *http.Request) {
 	u := UpdateSettings{Auto: r.FormValue("auto") == "1"}
+	if r.FormValue("channel") == "testing" {
+		u.Channel = "testing"
+	}
+	changed := u.Channel != s.updateChannel(r.Context())
 	u.Hour, _ = strconv.Atoi(r.FormValue("hour"))
 	if u.Hour < 0 || u.Hour > 23 {
 		u.Hour = 3
@@ -362,7 +380,10 @@ func (s *Server) handleVersionSettings(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	s.audit(r, "settings.server-updates", "settings", "automatic WatchZit updates: %v at %02d:00", u.Auto, u.Hour)
+	s.audit(r, "settings.server-updates", "settings", "automatic WatchZit updates: %v at %02d:00, channel %s", u.Auto, u.Hour, map[bool]string{true: "testing", false: "official"}[u.Channel == "testing"])
+	if changed {
+		s.CheckUpdate(r.Context())
+	}
 	s.redirect(w, r, "/settings/version", "Saved.")
 }
 

@@ -39,6 +39,8 @@ type agentConn struct {
 	vlanHash string // the VLANs last stored
 	vxHash   string // the VXLANs last stored
 	guHash   string // the machines or containers last stored
+	// what the agent said in its hello
+	version, os, arch string
 }
 
 func newHub() *hub { return &hub{conns: map[int64]*agentConn{}} }
@@ -253,7 +255,12 @@ func (s *Server) agentMessage(ctx context.Context, c *agentConn, env proto.Envel
 		if err := s.store.AgentSeen(ctx, c.deviceID, h.AgentVersion, h.OS, ip, true); err != nil {
 			return err
 		}
-		return s.welcome(ctx, c)
+		c.version, c.os, c.arch = h.AgentVersion, h.OS, h.Arch
+		if err := s.welcome(ctx, c); err != nil {
+			return err
+		}
+		s.offerAgentUpdate(ctx, c, false)
+		return nil
 	case proto.TypeReport:
 		var r proto.Report
 		if err := json.Unmarshal(env.Data, &r); err != nil {

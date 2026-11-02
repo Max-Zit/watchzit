@@ -40,15 +40,19 @@ type Engine struct {
 	Notify func(ctx context.Context, events []Event)
 	// Every is the evaluation period.
 	Every time.Duration
+	// History reads the stored values of a check's metric (forecast
+	// triggers; nil: they never fire).
+	History func(ctx context.Context, checkID int64, metric string, from, to time.Time) ([]Point, error)
 
 	mu      sync.Mutex // one evaluation at a time
 	pending map[string]time.Time
+	trends  map[string]trend
 	kick    chan struct{}
 }
 
 // New creates an engine.
 func New(st *store.Store, log *slog.Logger) *Engine {
-	return &Engine{st: st, log: log, now: time.Now, Every: 15 * time.Second, pending: map[string]time.Time{}, kick: make(chan struct{}, 1)}
+	return &Engine{st: st, log: log, now: time.Now, Every: 15 * time.Second, pending: map[string]time.Time{}, trends: map[string]trend{}, kick: make(chan struct{}, 1)}
 }
 
 // SetClock replaces the clock (tests).
@@ -176,6 +180,18 @@ func (e *Engine) Evaluate(ctx context.Context) error {
 	seenPending := map[string]bool{}
 	for _, t := range triggers {
 		if !t.Enabled {
+			continue
+		}
+		if t.Kind == store.TriggerForecast {
+			for i := range devs {
+				d := &devs[i]
+				if d.Paused || (t.DeviceID != 0 && t.DeviceID != d.ID) || (t.GroupID != 0 && t.GroupID != d.GroupID) {
+					continue
+				}
+				for _, c := range e.matchForecast(ctx, t, d, checksOf[d.ID], now, openByKey) {
+					active[c.key()] = c
+				}
+			}
 			continue
 		}
 		if t.Kind == store.TriggerHADegraded {

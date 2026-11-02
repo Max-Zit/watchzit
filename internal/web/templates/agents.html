@@ -47,12 +47,22 @@
       <td><a href="/devices/{{.DeviceID}}"><b>{{.Device}}</b></a></td>
       <td>{{if .Online}}<span class="badge ok"><i></i>{{$.T "Online"}}</span>{{else}}<span class="badge bad"><i></i>{{$.T "Offline"}}</span>{{end}}</td>
       <td class="hide-sm small">{{.OS}}</td>
-      <td class="hide-sm small">{{.Version}}</td>
+      <td class="hide-sm small">{{.Version}}{{if index $.Data.Outdated .DeviceID}} <span class="badge warn">{{$.T "older"}}</span>{{end}}</td>
       <td class="hide-sm muted small">{{if .Seen}}{{$.Ago .Seen}}{{if .IP}} · <span class="mono">{{.IP}}</span>{{end}}{{end}}</td>
     </tr>{{end}}</tbody>
   </table></div>
   {{else}}<p class="muted">{{.T "No computers with the agent yet."}}</p>{{end}}
 </section>
+
+{{if .User.IsAdmin}}<section class="panel" id="updates">
+  <h2>{{template "icon" "refresh"}}{{.T "Agent updates"}}</h2>
+  <p class="muted small">{{.T "An agent older than the server gets the agent of the server's version: it downloads it from this server over its own encrypted channel, checks it and installs it. Windows agents installed with the MSI and Linux agents (systemd) update themselves; agents before 1.2 are updated once by hand."}}{{with .Data.Latest}} {{$.T "Agent version of this server"}}: <b>{{.}}</b>.{{end}}</p>
+  <form method="post" action="/agents/updates" class="row">
+    <label class="check"><input type="checkbox" name="auto" value="1" {{if not .Data.Updates.Manual}}checked{{end}}>{{.T "Update agents by themselves when they connect"}}</label>
+    <button class="secondary sm">{{.T "Save"}}</button>
+  </form>
+  <form method="post" action="/agents/updates" class="mt"><input type="hidden" name="do" value="now"><button class="sm" {{if not .Data.Latest}}disabled{{end}}>{{.T "Update all online agents now"}}</button></form>
+</section>{{end}}
 
 <section class="panel">
   <h2>{{.T "Enrollment codes"}}</h2>

@@ -22,6 +22,9 @@
 </ul>
 <p>Ako uređaj sa istom adresom ili imenom već postoji, agent mu se pridružuje; inače se pravi novi uređaj.</p>
 
+<h2 id="updates">Ažuriranje agenata</h2>
+<p>Agent stariji od servera dobija agenta verzije servera kada se poveže (najviše jednom na sat): preuzima instalaciju sa servera preko svoje šifrovane, zakucane veze, proverava veličinu i SHA-256 i instalira je. Windows agenti instalirani preko MSI-ja pokreću novi MSI; Linux agenti (systemd) provere da novi program radi, zamene sebe i systemd ih ponovo pokrene. Stranica <a href="/agents">Agenti</a> označava starije agente; administratori tu pod <b>Ažuriranja agenata</b> isključuju automatska ažuriranja i jednim klikom ažuriraju sve agente na mreži. Agenti pre 1.2 još ne znaju za ažuriranja i jednom se ažuriraju ručno.</p>
+
 <h2 id="network">Mreža</h2>
 <p>Agenti se povezuju na <b>port za agente 8444</b>. U <a href="/settings/network">Podešavanja → Mreža i pristup</a> podesite <b>javnu adresu za agente</b> kada agenti dolaze do servera pod drugim imenom (na primer kroz firewall) i ograničite mreže iz kojih agenti smeju da dolaze.</p>
 <div class="callout"><p>Uklanjanje agenta na stranici uređaja čini njegov ključ nepoznatim; da biste ponovo koristili agenta, prijavite računar novim kodom.</p></div>

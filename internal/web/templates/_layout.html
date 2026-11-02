@@ -90,7 +90,7 @@
   <a href="/settings/snmp" class="{{if eq .Title "SNMP"}}on{{end}}">{{template "icon" "key"}}<span>SNMP<small>{{.T "Communities and SNMPv3 users"}}</small></span></a>
   <a href="/settings/certificate" class="{{if eq .Title "Certificate"}}on{{end}}">{{template "icon" "lock"}}<span>{{.T "Certificate"}}<small>{{.T "Your own or from Let's Encrypt"}}</small></span></a>
   <a href="/settings/version" class="{{if eq .Title "Updates and server"}}on{{end}}">{{template "icon" "download"}}<span>{{.T "Updates and server"}}<small>{{.T "New versions, time zone, restart"}}</small></span></a>
-  <a href="/settings/tools" class="{{if eq .Title "Tools"}}on{{end}}">{{template "icon" "terminal"}}<span>{{.T "Tools"}}<small>{{.T "Programs that open devices"}}</small></span></a>
+  <a href="/settings/tools" class="{{if eq .Title "Tools"}}on{{end}}">{{template "icon" "terminal"}}<span>{{.T "Tools"}}<small>{{.T "Programs and links that open devices"}}</small></span></a>
   <a href="/settings/notifications" class="{{if eq .Title "Notifications"}}on{{end}}">{{template "icon" "bell"}}<span>{{.T "Notifications"}}<small>{{.T "Email, webhooks, Slack, Teams"}}</small></span></a>
   <a href="/settings/datasources" class="{{if eq .Title "Data sources"}}on{{end}}">{{template "icon" "database"}}<span>{{.T "Data sources"}}<small>{{.T "Databases, Prometheus, InfluxDB for graphs"}}</small></span></a>
   <a href="/settings/logs" class="{{if eq .Title "Syslog and traps"}}on{{end}}">{{template "icon" "file"}}<span>{{.T "Syslog and traps"}}<small>{{.T "Messages devices send"}}</small></span></a>
@@ -99,6 +99,8 @@
   <a href="/settings/ldap" class="{{if eq .Title "Active Directory / LDAP"}}on{{end}}">{{template "icon" "users"}}<span>{{.T "Active Directory / LDAP"}}<small>{{.T "Sign-in with directory accounts"}}</small></span></a>
   <a href="/settings/sso" class="{{if eq .Title "Single sign-on"}}on{{end}}">{{template "icon" "key"}}<span>{{.T "Single sign-on"}}<small>{{.T "OpenID Connect, SAML 2.0"}}</small></span></a>
   <a href="/settings/kiosks" class="{{if eq .Title "Kiosk displays"}}on{{end}}">{{template "icon" "screen"}}<span>{{.T "Kiosk displays"}}<small>{{.T "Maps on a monitoring TV"}}</small></span></a>
+  <a href="/settings/fields" class="{{if eq .Title "Custom fields"}}on{{end}}">{{template "icon" "file"}}<span>{{.T "Custom fields"}}<small>{{.T "Asset number, warranty, rack"}}</small></span></a>
+  <a href="/settings/diagnostics" class="{{if eq .Title "Diagnostics"}}on{{end}}">{{template "icon" "file"}}<span>{{.T "Diagnostics"}}<small>{{.T "Logs and a file for support"}}</small></span></a>
 </nav>{{end}}
 
 {{define "qr"}}<svg class="qr" viewBox="0 0 {{.Size}} {{.Size}}" role="img" aria-label="QR"><rect width="{{.Size}}" height="{{.Size}}" fill="#fff"/>{{range .Cells}}<rect x="{{.X}}" y="{{.Y}}" width="1.02" height="1.02" fill="#000"/>{{end}}</svg>{{end}}

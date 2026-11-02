@@ -32,6 +32,7 @@ const (
 	TriggerCheckDown  = "check_down"
 	TriggerMetric     = "metric"
 	TriggerHADegraded = "ha_degraded" // a HA group of a map runs on fewer members than it has
+	TriggerForecast   = "forecast"    // a value's trend reaches a threshold within for_s seconds
 )
 
 // checkParent refuses a parent that is the device itself or depends on it.
@@ -124,7 +125,7 @@ func (in *TriggerInput) clean() error {
 	if SeverityRank(in.Severity) < 0 {
 		return errors.New("unknown severity")
 	}
-	if in.ForS < 0 || in.ForS > 86400 {
+	if in.Kind != TriggerForecast && (in.ForS < 0 || in.ForS > 86400) {
 		return errors.New("the delay must be 0–86400 seconds")
 	}
 	if in.GroupID != 0 && in.DeviceID != 0 {
@@ -157,7 +158,10 @@ func (in *TriggerInput) clean() error {
 			in.ForS = 900
 		}
 		return nil
-	case TriggerMetric:
+	case TriggerMetric, TriggerForecast:
+		if in.Kind == TriggerForecast && (in.ForS < 3600 || in.ForS > 365*86400) {
+			return errors.New("the forecast must look 1–365 days ahead")
+		}
 		types, ok := TriggerMetrics()[in.Metric]
 		if !ok {
 			return errors.New("choose the value to watch")
@@ -201,7 +205,7 @@ func scanTrigger(row pgx.Row) (*Trigger, error) {
 // Triggers lists the triggers.
 func (s *Store) Triggers(ctx context.Context) ([]*Trigger, error) {
 	rows, err := s.db.Query(ctx, `SELECT `+triggerCols+` FROM triggers t LEFT JOIN device_groups g ON g.id=t.group_id LEFT JOIN devices d ON d.id=t.device_id
-		ORDER BY array_position(ARRAY['device_down','check_down','metric'], t.kind), lower(t.name), t.id`)
+		ORDER BY array_position(ARRAY['device_down','check_down','metric','forecast'], t.kind), lower(t.name), t.id`)
 	if err != nil {
 		return nil, err
 	}

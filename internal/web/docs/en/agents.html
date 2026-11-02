@@ -22,6 +22,9 @@
 </ul>
 <p>If a device with the same address or name exists, the agent joins it; otherwise a new device is created.</p>
 
+<h2 id="updates">Agent updates</h2>
+<p>An agent older than the server gets the agent of the server's version when it connects (at most once an hour): it downloads the installer from the server over its own encrypted, pinned connection, checks its size and SHA-256 and installs it. Windows agents installed with the MSI run the new MSI; Linux agents (systemd) check that the new program starts, replace themselves and are restarted by systemd. The <a href="/agents">Agents</a> page marks older agents; administrators switch the automatic updates off there under <b>Agent updates</b> and update all online agents with one click. Agents before 1.2 do not know updates yet and are updated once by hand.</p>
+
 <h2 id="network">Network</h2>
 <p>Agents connect to the <b>agent port 8444</b>. Under <a href="/settings/network">Settings → Network and access</a> set the <b>public agent address</b> when agents reach the server by another name (for example through a firewall), and limit the networks agents may come from.</p>
 <div class="callout"><p>Removing the agent on the device page makes its key unknown; to use the agent again, enroll the computer with a new code.</p></div>

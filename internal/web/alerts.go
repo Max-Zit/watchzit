@@ -87,6 +87,7 @@ type triggersData struct {
 	Edit     *store.Trigger
 	In       store.TriggerInput
 	ForMin   string
+	Days     string // how far a forecast trigger looks ahead
 	Groups   []store.Group
 	Devices  []*store.Device
 	Metrics  []metricChoice
@@ -125,6 +126,9 @@ func (s *Server) handleTriggers(w http.ResponseWriter, r *http.Request) {
 		d.In = store.TriggerInput{Name: t.Name, Kind: t.Kind, CheckTypes: t.CheckTypes, Metric: t.Metric, Op: t.Op, Threshold: t.Threshold, ForS: t.ForS,
 			Severity: t.Severity, GroupID: t.GroupID, DeviceID: t.DeviceID, Enabled: t.Enabled}
 		d.ForMin = minutesText(t.ForS)
+		if t.Kind == store.TriggerForecast {
+			d.ForMin, d.Days = "5", strconv.Itoa(t.ForS/86400)
+		}
 	}
 	s.showTriggers(w, r, http.StatusOK, d, "")
 }
@@ -149,6 +153,12 @@ func (s *Server) showTriggers(w http.ResponseWriter, r *http.Request, status int
 		return
 	}
 	sort.Slice(d.Devices, func(i, j int) bool { return strings.ToLower(d.Devices[i].Name) < strings.ToLower(d.Devices[j].Name) })
+	if d.Days == "" {
+		d.Days = "14"
+		if d.In.Kind == store.TriggerForecast && d.In.ForS >= 86400 {
+			d.Days = strconv.Itoa(d.In.ForS / 86400)
+		}
+	}
 	d.Metrics = metricChoices()
 	d.Types = []string{store.CheckICMP, store.CheckTCP, store.CheckSNMP, store.CheckSNMPIf, store.CheckSNMPCPU, store.CheckSNMPStor, store.CheckSNMPOID,
 		store.CheckAgent, store.CheckAgentCPU, store.CheckAgentMem, store.CheckAgentDisk, store.CheckAgentNet, store.CheckAgentService,
@@ -177,6 +187,13 @@ func triggerInput(r *http.Request) (store.TriggerInput, string) {
 		in.DeviceID, _ = strconv.ParseInt(scope[1:], 10, 64)
 	}
 	in.CheckTypes = append(in.CheckTypes, r.Form["type"]...)
+	if in.Kind == store.TriggerForecast {
+		days, err := strconv.ParseFloat(strings.ReplaceAll(strings.TrimSpace(r.FormValue("days")), ",", "."), 64)
+		if err != nil || days < 0 || days > 365 {
+			days = -1
+		}
+		in.ForS = int(days * 86400)
+	}
 	if in.Kind == store.TriggerLog {
 		in.Metric = r.FormValue("pattern")
 		in.Threshold, _ = strconv.ParseFloat(r.FormValue("level"), 64)

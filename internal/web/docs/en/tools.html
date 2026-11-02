@@ -26,3 +26,6 @@
 
 <h2 id="own-tools">Your own tools</h2>
 <p>Under <a href="/settings/tools">Settings → Tools</a> administrators switch built-in tools off, limit them to device types and add their own: a program path (for example <code>%ProgramFiles%\Mozilla Firefox\firefox.exe</code>) and arguments with <code>{host}</code>, <code>{port}</code>, <code>{user}</code> and <code>{name}</code>. The user name and ports per device are set in the device's <b>Remote access</b>.</p>
+
+<h2 id="device-links">Links on every device</h2>
+<p>Also under <a href="/settings/tools#links">Settings → Tools</a>, <b>Links on every device</b> adds buttons to every device page that open the device in another program in the browser, for example RMMZit or BackupZit. Give a name and an address; <code>{name}</code>, <code>{address}</code> and <code>{id}</code> are replaced by the device's name, address and number, e.g. <code>https://rmm.example.com:8443/devices?q={name}</code>. Only http:// and https:// addresses are accepted.</p>

@@ -33,6 +33,7 @@ const (
 	TypeReport           = "report"    // agent → server: metrics
 	TypeInventory        = "inventory" // agent → server: what the machine is
 	TypeInventoryRequest = "inventory-request"
+	TypeUpdate           = "update" // server → agent: install the agent of the server's version (AgentUpdate)
 )
 
 // EnrollRequest joins a machine with an enrollment token.
@@ -70,6 +71,7 @@ type Hello struct {
 	Hostname     string    `json:"hostname"`
 	OS           string    `json:"os"`
 	BootTime     time.Time `json:"boot_time"`
+	Arch         string    `json:"arch,omitempty"` // runtime.GOARCH (since 1.2)
 }
 
 // Welcome answers hello.

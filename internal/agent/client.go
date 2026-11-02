@@ -9,6 +9,7 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/coder/websocket"
@@ -109,7 +110,7 @@ func (a *Agent) session(ctx context.Context) error {
 	defer ws.CloseNow()
 	ws.SetReadLimit(proto.MaxMessageSize)
 	host, _ := os.Hostname()
-	if err := sendMsg(ctx, ws, proto.TypeHello, proto.Hello{Protocol: proto.Version, AgentVersion: Version, Hostname: host, OS: osName(), BootTime: bootTime()}); err != nil {
+	if err := sendMsg(ctx, ws, proto.TypeHello, proto.Hello{Protocol: proto.Version, AgentVersion: Version, Hostname: host, OS: osName(), BootTime: bootTime(), Arch: runtime.GOARCH}); err != nil {
 		return err
 	}
 	a.Log.Info("connected to the server", "server", a.Cfg.ServerURL)
@@ -180,6 +181,17 @@ func (a *Agent) session(ctx context.Context) error {
 							return err
 						}
 					}
+				}
+			case proto.TypeUpdate:
+				var u proto.AgentUpdate
+				if json.Unmarshal(env.Data, &u) == nil {
+					dc := httpClient(pinnedTLS(a.Cfg.Fingerprint, cert))
+					dc.Timeout = 15 * time.Minute
+					go func() {
+						if err := a.selfUpdate(sctx, dc, u); err != nil {
+							a.Log.Warn("agent update failed", "version", u.Version, "err", err)
+						}
+					}()
 				}
 			case proto.TypeInventoryRequest:
 				if err := inventory(); err != nil {

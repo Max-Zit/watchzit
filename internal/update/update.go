@@ -31,6 +31,19 @@ var TrustedKeys = []string{"m6v0l8smmYzzu/067UcjEIa7OwhXq/npz9VngRrs/K0="}
 // DefaultSource is where releases are published.
 const DefaultSource = "https://github.com/Max-Zit/watchzit/releases"
 
+// TestingSource is the testing channel: the files of the current release
+// candidate, for test consoles.
+const TestingSource = "https://github.com/Max-Zit/watchzit/releases/download/testing"
+
+// ChannelSource is the release location of an update channel ("" or
+// "official": DefaultSource; "testing": TestingSource).
+func ChannelSource(channel string) string {
+	if channel == "testing" {
+		return TestingSource
+	}
+	return DefaultSource
+}
+
 // File is one file of a release.
 type File struct {
 	Name   string `json:"name"`

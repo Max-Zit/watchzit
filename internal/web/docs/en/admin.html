@@ -25,6 +25,8 @@
   <li><b>Sign-in and security</b> — session length, how many failed sign-ins block an address, and lifting a block.</li>
   <li><b>Metric data</b> — how long raw values, 5-minute and hourly values are kept, and how much space they take.</li>
   <li><b>Certificate</b> — the console's own certificate, one you upload, or one from Let's Encrypt (see below).</li>
+  <li><b>Custom fields</b> — your own fields for devices (see Devices).</li>
+  <li><b>Diagnostics</b> — where the logs are, the newest lines of the server log with a filter, and a ZIP for support (logs, devices, agents, problems, audit log) with passwords, communities, tokens, enrollment codes and keys removed; saved device configurations are not included.</li>
   <li><b>SNMP</b>, <b>Notifications</b>, <b>Tools</b>, <b>Kiosk displays</b> — see their chapters.</li>
 </ul>
 
@@ -35,6 +37,7 @@
   <li>The root helper backs up the database and the program, installs the new package and checks that the console starts.</li>
   <li>If it does not, it goes back to the old version by itself.</li>
 </ol>
+<p>The <b>update channel</b> chooses what the console installs: <b>official releases</b>, or <b>testing</b> — release candidates that come before an official release, for a test console. Keep production consoles on official releases.</p>
 <p>Updates can be installed by a click or automatically in a chosen hour. A mirror or a local folder can be the source (<code>WATCHZIT_UPDATE_SOURCE</code> in <code>/etc/watchzit/server.env</code>). The same page sets the server's time zone and restarts the service.</p>
 <p><b>Without internet access:</b> under <b>Install from files</b> upload <code>manifest.json</code>, <code>manifest.json.sig</code> and the server package (.deb or .rpm) of a release, downloaded on another computer. They are checked like a download and installed the same way.</p>
 

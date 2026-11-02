@@ -25,6 +25,8 @@
   <li><b>Prijava i bezbednost</b> — trajanje sesije, koliko neuspelih prijava blokira adresu i uklanjanje blokade.</li>
   <li><b>Podaci merenja</b> — koliko se čuvaju sirove vrednosti, vrednosti po 5 minuta i po satu, i koliko prostora zauzimaju.</li>
   <li><b>Sertifikat</b> — sopstveni sertifikat konzole, sertifikat koji učitate, ili sertifikat od Let's Encrypt-a (vidi niže).</li>
+  <li><b>Prilagođena polja</b> — vaša polja za uređaje (vidi Uređaji).</li>
+  <li><b>Dijagnostika</b> — gde su logovi, najnoviji redovi serverskog loga sa filterom i ZIP za podršku (logovi, uređaji, agenti, problemi, audit log) iz kog su uklonjene lozinke, community stringovi, tokeni, kodovi za registraciju i ključevi; sačuvane konfiguracije uređaja nisu uključene.</li>
   <li><b>SNMP</b>, <b>Obaveštenja</b>, <b>Alati</b>, <b>Kiosk ekrani</b> — vidi njihova poglavlja.</li>
 </ul>
 
@@ -35,6 +37,7 @@
   <li>Root pomoćnik pravi bekap baze i programa, instalira novi paket i proverava da li se konzola pokreće.</li>
   <li>Ako se ne pokrene, sam se vraća na staru verziju.</li>
 </ol>
+<p><b>Kanal ažuriranja</b> bira šta konzola instalira: <b>zvanična izdanja</b> ili <b>testiranje</b> — kandidate koji dolaze pre zvaničnog izdanja, za test konzolu. Produkcione konzole držite na zvaničnim izdanjima.</p>
 <p>Ažuriranja se instaliraju klikom ili automatski u izabranom satu. Izvor može biti mirror ili lokalni folder (<code>WATCHZIT_UPDATE_SOURCE</code> u <code>/etc/watchzit/server.env</code>). Na istoj stranici se podešava vremenska zona servera i restartuje servis.</p>
 <p><b>Bez interneta:</b> pod <b>Instaliraj iz fajlova</b> učitajte <code>manifest.json</code>, <code>manifest.json.sig</code> i serverski paket (.deb ili .rpm) izdanja, preuzete na drugom računaru. Proveravaju se kao preuzimanje i instaliraju na isti način.</p>
 

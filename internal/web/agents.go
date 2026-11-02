@@ -132,7 +132,11 @@ type agentsData struct {
 	Name       string
 	GroupID    int64
 	Days       int
-	MaxUses    int
+	// agent updates: the server's agent version, outdated agents, the setting
+	Latest   string
+	Outdated map[int64]bool
+	Updates  AgentUpdateSettings
+	MaxUses  int
 }
 
 func (s *Server) handleAgents(w http.ResponseWriter, r *http.Request) {
@@ -155,6 +159,13 @@ func (s *Server) showAgents(w http.ResponseWriter, r *http.Request, status int, 
 		return
 	}
 	d.Now, d.AgentURL, d.Files = s.now(), s.agentURL(r), s.agentDownloads()
+	d.Updates, d.Outdated = s.agentUpdateSettings(ctx), map[int64]bool{}
+	if proto.ValidVersion(s.Version) {
+		d.Latest = s.Version
+	}
+	for _, a := range d.Agents {
+		d.Outdated[a.DeviceID] = s.agentOutdated(a.Version)
+	}
 	if h, _, err := net.SplitHostPort(strings.TrimPrefix(d.AgentURL, "https://")); err == nil {
 		h = strings.Trim(h, "[]")
 		ip := net.ParseIP(h)

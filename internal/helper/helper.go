@@ -40,6 +40,7 @@ const (
 type Request struct {
 	Action      string         `json:"action"`
 	Version     string         `json:"version,omitempty"`
+	Channel     string         `json:"channel,omitempty"` // update: "" official, "testing" release candidates
 	TimeZone    string         `json:"timezone,omitempty"`
 	Network     *NetworkConfig `json:"network,omitempty"`
 	SSH         *SSHConfig     `json:"ssh,omitempty"`

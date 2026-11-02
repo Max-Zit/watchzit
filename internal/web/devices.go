@@ -102,6 +102,8 @@ type deviceData struct {
 	Agent      *store.AgentInfo
 	Watched    map[string]bool // services the agent reports
 	Problems   []*store.Problem
+	Fields     []store.CustomField
+	Links      []DeviceLink // the links on every device, filled in
 	Now        time.Time
 	Tools      []deviceTool
 	AccessUser string
@@ -221,6 +223,10 @@ func (s *Server) showDevice(w http.ResponseWriter, r *http.Request, status int, 
 	}
 	data := &deviceData{D: d, Checks: cs, Graphs: arrangeGraphs(d.ID, cs, layout), Range: rg, Ranges: graphRanges, New: in, CheckTypes: store.CheckTypes, Traffic: map[int]*store.Check{}}
 	data.Problems = s.deviceProblems(r.Context(), d.ID)
+	data.Fields, _ = s.store.FieldValues(r.Context(), d.ID)
+	for _, l := range s.deviceLinks(r.Context()) {
+		data.Links = append(data.Links, linkFor(l, d))
+	}
 	if u := userFrom(r); u != nil && u.CanWrite() {
 		srcs, _ := s.store.DataSources(r.Context())
 		data.GraphEdit = graphEditJSON(s.lang(r, u), cs, data.Graphs, layout, srcs)

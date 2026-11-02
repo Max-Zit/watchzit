@@ -9,12 +9,14 @@
   <tr><td>Provera ne radi</td><td>jedna provera ne radi 1 minut</td><td>upozorenje</td></tr>
   <tr><td>Visoko opterećenje procesora, Memorija skoro puna</td><td>preko 90 % 5 minuta</td><td>upozorenje</td></tr>
   <tr><td>Disk skoro pun / Disk pun</td><td>preko 90 % / 97 %</td><td>upozorenje / kritično</td></tr>
+  <tr><td>Disk pun za dve nedelje</td><td>trend diska agenta iz poslednje nedelje dostiže 98 % u roku od 14 dana</td><td>upozorenje</td></tr>
   <tr><td>Gubitak paketa</td><td>preko 20 % 5 minuta</td><td>upozorenje</td></tr>
   <tr><td>Sertifikat uskoro ističe / ističe</td><td>manje od 21 / 7 dana</td><td>upozorenje / kritično</td></tr>
   <tr><td>Visoka temperatura</td><td>RouterOS preko 70 °C 5 minuta</td><td>upozorenje</td></tr>
   <tr><td>HA grupa bez redundanse</td><td>HA grupa na mapi ima članove koji ne rade, ali ne sve, 1 minut (problem pripada članu koji ne radi)</td><td>upozorenje</td></tr>
 </table>
 <p>Dodajte svoje: <b>vrednost</b> (opterećenje procesora, vreme odziva, saobraćaj, konekcije …), <b>iznad</b> ili <b>ispod</b> praga, <b>najmanje</b> nekoliko minuta (kratak pad ne otvara problem), ozbiljnost i da li važi za sve uređaje, grupu ili jedan uređaj.</p>
+<p><b>Vrednost će dostići prag (predviđanje)</b> gleda unapred: povlači pravu liniju kroz poslednju nedelju vrednosti (najmanje šest sati istorije) i otvara problem kada ta linija dostigne prag <b>u roku</b> od zadatih dana — disk koji će biti pun za deset dana, pool koji se puni, temperatura koja stalno raste. Problem navodi trenutnu vrednost, koliko se menja dnevno i datum kada će stići do praga; zatvara se kada trend više ne stiže na vreme.</p>
 
 <h2 id="problems">Problemi</h2>
 <p><a href="/problems">Problemi</a> prikazuje šta je otvoreno, najgore prvo; broj u meniju broji poslate probleme (crven kada je neki kritičan). <b>Potvrdite</b> problem uz napomenu da drugi znaju da neko radi na njemu. Rešeni problemi ostaju u istoriji godinu dana.</p>

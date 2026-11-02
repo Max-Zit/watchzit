@@ -27,7 +27,7 @@
 <p>After too many failed sign-ins the address is blocked for a while. On the server: <code>watchzit-server --unblock-ip all</code>. If the allowed networks exclude you: <code>watchzit-server --reset-allowlist</code>.</p>
 
 <h2 id="logs">Where are the logs?</h2>
-<p><code>journalctl -u watchzit-server</code> and <code>/var/lib/watchzit/logs/server.log</code>; the update helper writes <code>/var/log/watchzit-helper/helper.log</code>.</p>
+<p><code>journalctl -u watchzit-server</code> and <code>/var/lib/watchzit/logs/server.log</code>; the update helper writes <code>/var/log/watchzit-helper/helper.log</code>. <a href="/settings/diagnostics">Settings → Diagnostics</a> shows the newest lines and gives a ZIP without secrets to send to support.</p>
 
 <h2 id="faq">FAQ</h2>
 <p><b>Do devices need an agent?</b> No. Ping, ports, SNMP, web, DNS, database and API checks run from the server; the agent adds what only the computer itself knows.</p>

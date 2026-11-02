@@ -7,6 +7,7 @@
   <div class="row">
     {{with $d.WebURL}}<a class="btn secondary" href="{{.}}" target="_blank" rel="noopener noreferrer">{{template "icon" "globe"}}{{with $d.WebName}}{{.}}{{else}}{{$.T "Open web interface"}}{{end}}</a>{{end}}
     {{range $d.WebLinks}}<a class="btn secondary" href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{template "icon" "globe"}}{{.Name}}</a>{{end}}
+    {{range .Data.Links}}<a class="btn secondary" href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{template "icon" "link"}}{{.Name}}</a>{{end}}
     <a class="btn secondary" href="/logs?device={{$d.ID}}">{{template "icon" "file"}}{{.T "Logs"}}</a>
     {{if .Data.Flows}}<a class="btn secondary" href="/flows?device={{$d.ID}}">{{template "icon" "route"}}{{.T "Traffic flows"}}</a>{{end}}
     {{if .User.CanWrite}}<a class="btn secondary" href="/devices/{{$d.ID}}/edit">{{template "icon" "edit"}}{{.T "Edit"}}</a>{{end}}
@@ -30,9 +31,16 @@
     {{with .Data.Profile}}<dt>SNMP</dt><dd>{{.Name}} <span class="muted">· {{.VersionName}}{{with .Security}}, {{.}}{{end}}</span></dd>{{end}}
     {{if $d.Parent}}<dt>{{$.T "Depends on"}}</dt><dd><a href="/devices/{{$d.Parent}}">{{$d.ParentName}}</a></dd>{{end}}
     {{with .Data.HA}}<dt>{{$.T "HA role"}}</dt><dd><span class="badge {{if eq .State "master"}}ok{{end}}">{{if eq .State "master"}}{{$.T "active"}}{{else}}{{$.T "standby"}}{{end}}</span> <span class="muted small">{{if eq .Source "routeros"}}RouterOS VRRP{{else}}VRRP{{end}}{{with .Since}} · {{$.Ago .}}{{end}}</span></dd>{{end}}
+    {{range .Data.Fields}}{{if .Value}}<dt>{{.Name}}</dt><dd>{{.Value}}</dd>{{end}}{{end}}
     {{with $d.Notes}}<dt>{{$.T "Notes"}}</dt><dd class="pre">{{.}}</dd>{{end}}
   </dl>
   {{if and .User.CanWrite .Data.Profile}}<div class="row mt"><a class="btn secondary" href="/devices/{{$d.ID}}/discover">{{template "icon" "refresh"}}{{.T "SNMP discovery"}}</a></div>{{end}}
+  {{if and .User.CanWrite .Data.Fields}}<details class="mt"><summary>{{.T "Custom fields"}}</summary>
+    <form method="post" action="/devices/{{$d.ID}}/fields" class="stack mt">
+      <div class="cols">{{range .Data.Fields}}<label>{{.Name}}<input name="f{{.ID}}" value="{{.Value}}" maxlength="500" {{if eq .Kind "date"}}type="date"{{else if eq .Kind "number"}}inputmode="decimal"{{end}}></label>{{end}}</div>
+      <div><button class="secondary sm">{{.T "Save"}}</button></div>
+    </form>
+  </details>{{end}}
 </section>
 {{with .Data.Problems}}
 <section class="panel">
