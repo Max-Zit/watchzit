@@ -106,3 +106,17 @@ func TestNewer(t *testing.T) {
 		}
 	}
 }
+
+func TestBase(t *testing.T) {
+	for _, c := range [][3]string{
+		{DefaultSource, "", DefaultSource + "/latest/download"},
+		{DefaultSource, "1.2.0", DefaultSource + "/download/v1.2.0"},
+		{ChannelSource("testing"), "", TestingSource},
+		{ChannelSource("testing"), "1.2.0", TestingSource},
+		{"https://mirror.example.com/wz/", "", "https://mirror.example.com/wz"},
+	} {
+		if got := Base(c[0], c[1]); got != c[2] {
+			t.Errorf("Base(%q, %q) = %q, want %q", c[0], c[1], got, c[2])
+		}
+	}
+}
