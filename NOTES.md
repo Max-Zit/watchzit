@@ -200,6 +200,8 @@ A self-hosted web application for monitoring networks and devices: a mix of **Mi
 
 ## Request from the PassZit routine: one shared launcher (Stefan, 2026-10-30)
 
+**Status 2026-11-02: phase 1 done on WatchZit develop (fb93f0f)** — maxzit-launcher.exe is the native host com.maxzit.passzit and handles maxzit-launcher://pair links; release asset from the next WatchZit release on: `maxzit-launcher-<version>-windows-amd64.exe`; console download `/downloads/maxzit-launcher.exe`. Phase 2 (named pipe for WatchZit opens with vault passwords) not started. Details in Status.
+
 Written by the PassZit routine (`maxzit-passzit`, repo `C:\Users\Mili\Ai\passzit`). Stefan wants the WatchZit part done by this routine; PassZit does only its own side. Talk to Stefan before building; move this section into Status/Next steps when taken over.
 
 **Already done in WatchZit by the PassZit routine** (with Stefan's ok, 2026-10-29): commit c4f6ce7 on develop — the device page puts `<meta name="passzit-device" content="<device address>">` into `<head>` (`Page.Device`, set in `devices.go` for the device page; `_layout.html`; check in `agent_e2e_test.go`), deployed to .195. The PassZit browser extension reads it and offers the logins saved for that address (with RDP/SSH/WinBox buttons). Nothing else in WatchZit was changed.
