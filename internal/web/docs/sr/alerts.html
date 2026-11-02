@@ -16,16 +16,17 @@
   <tr><td>HA grupa bez redundanse</td><td>HA grupa na mapi ima članove koji ne rade, ali ne sve, 1 minut (problem pripada članu koji ne radi)</td><td>upozorenje</td></tr>
 </table>
 <p>Dodajte svoje: <b>vrednost</b> (opterećenje procesora, vreme odziva, saobraćaj, konekcije …), <b>iznad</b> ili <b>ispod</b> praga, <b>najmanje</b> nekoliko minuta (kratak pad ne otvara problem), ozbiljnost i da li važi za sve uređaje, grupu ili jedan uređaj.</p>
+<p><b>Nema novih podataka</b> otvara problem kada provera ne dobije novu vrednost za zadati broj minuta — agent koji je prestao da javlja, uređaj koji više ne odgovara na SNMP, izvor podataka koji je stao; po želji ga ograničite na vrste provera.</p>
 <p><b>Vrednost će dostići prag (predviđanje)</b> gleda unapred: povlači pravu liniju kroz poslednju nedelju vrednosti (najmanje šest sati istorije) i otvara problem kada ta linija dostigne prag <b>u roku</b> od zadatih dana — disk koji će biti pun za deset dana, pool koji se puni, temperatura koja stalno raste. Problem navodi trenutnu vrednost, koliko se menja dnevno i datum kada će stići do praga; zatvara se kada trend više ne stiže na vreme.</p>
 
 <h2 id="problems">Problemi</h2>
 <p><a href="/problems">Problemi</a> prikazuje šta je otvoreno, najgore prvo; broj u meniju broji poslate probleme (crven kada je neki kritičan). <b>Potvrdite</b> problem uz napomenu da drugi znaju da neko radi na njemu. Rešeni problemi ostaju u istoriji godinu dana.</p>
 
 <h2 id="dependencies">Zavisnosti</h2>
-<p>Podesite <b>Zavisi od</b> na uređaju (na primer ruter filijale). Kada taj ruter ne radi, uređaji iza njega su samo <b>nedostupni</b>: njihovi problemi se beleže ali ne šalju — dobijate jednu poruku za ruter, a ne pedeset.</p>
+<p>Podesite <b>Zavisi od</b> na uređaju (na primer ruter filijale). Kada taj ruter ne radi, uređaji iza njega su samo <b>nedostupni</b>: njihovi problemi se beleže ali ne šalju — dobijate jednu poruku za ruter, a ne pedeset. Na mapama su takvi uređaji sivi sa isprekidanom ivicom umesto crveni, a njihov panel kaže da je problem iznad njih.</p>
 
 <h2 id="maintenance">Održavanje</h2>
-<p>U <a href="/alerts/maintenance">Problemi → Održavanje</a> zakažite period za uređaje ili grupe. Tokom njega se uređaji i dalje prate i problemi beleže, ali se ništa ne šalje; problemi koji su još otvoreni kada održavanje završi šalju se tada. Izveštaji o dostupnosti prikazuju vreme održavanja posebno.</p>
+<p>U <a href="/alerts/maintenance">Problemi → Održavanje</a> zakažite period za uređaje ili grupe. Tokom njega se uređaji i dalje prate i problemi beleže, ali se ništa ne šalje; problemi koji su još otvoreni kada održavanje završi šalju se tada. Izveštaji o dostupnosti prikazuju vreme održavanja posebno. <b>Ponavljanje</b> vraća termin svakog dana, nedelje ili meseca (noćni backup, mesečni dan za zakrpe), po želji do poslednjeg dana; lista prikazuje sledeći termin, a <b>Ukloni</b> završava celu seriju.</p>
 
 <h2 id="notifications">Obaveštenja</h2>
 <p>U <a href="/settings/notifications">Podešavanja → Obaveštenja</a> (administratori):</p>

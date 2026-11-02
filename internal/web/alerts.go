@@ -265,6 +265,7 @@ type maintenanceData struct {
 	In      store.Maintenance
 	From    string
 	To      string
+	Until   string // last day of a repetition
 	Now     time.Time
 }
 
@@ -332,7 +333,18 @@ func (s *Server) handleMaintenanceCreate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	d.In.StartsAt, d.In.EndsAt = from, to
-	if !to.After(s.now()) {
+	d.In.Repeat = r.FormValue("repeat")
+	d.Until = r.FormValue("repeat_until")
+	if d.In.Repeat != "" && d.Until != "" {
+		u, err := time.ParseInLocation("2006-01-02", d.Until, time.Local)
+		if err != nil {
+			s.showMaintenance(w, r, http.StatusBadRequest, d, "Enter the last day of the repetition.")
+			return
+		}
+		u = u.AddDate(0, 0, 1).Add(-time.Second) // the whole last day
+		d.In.RepeatUntil = &u
+	}
+	if !to.After(s.now()) && d.In.Repeat == "" {
 		s.showMaintenance(w, r, http.StatusBadRequest, d, "The end is already past.")
 		return
 	}
@@ -341,8 +353,8 @@ func (s *Server) handleMaintenanceCreate(w http.ResponseWriter, r *http.Request)
 		s.showMaintenance(w, r, http.StatusBadRequest, d, storeErr(err))
 		return
 	}
-	s.audit(r, "maintenance.create", "maintenance:"+strconv.FormatInt(id, 10), "maintenance %q %s – %s, devices %v, groups %v", d.In.Name,
-		from.Format(time.RFC3339), to.Format(time.RFC3339), d.In.DeviceIDs, d.In.GroupIDs)
+	s.audit(r, "maintenance.create", "maintenance:"+strconv.FormatInt(id, 10), "maintenance %q %s – %s (repeat %q), devices %v, groups %v", d.In.Name,
+		from.Format(time.RFC3339), to.Format(time.RFC3339), d.In.Repeat, d.In.DeviceIDs, d.In.GroupIDs)
 	s.kickAlerts()
 	s.redirect(w, r, "/alerts/maintenance", "Maintenance planned.")
 }

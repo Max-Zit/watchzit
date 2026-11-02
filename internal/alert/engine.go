@@ -323,6 +323,22 @@ func (e *Engine) match(t *store.Trigger, d *store.AlertDevice, cs []*store.Alert
 				out = append(out, &condition{trigger: t, device: d, check: c, detail: c.Name + ": " + c.LastText})
 			}
 		}
+	case store.TriggerNoData:
+		if d.Status == store.StatusDown {
+			return nil // the device-down problem says it all
+		}
+		for _, c := range cs {
+			if c.Paused || !typeIn(t.CheckTypes, c.Type) {
+				continue
+			}
+			last := c.StatusSince
+			if c.LastRun != nil {
+				last = *c.LastRun
+			}
+			if age := now.Sub(last); age >= time.Duration(t.ForS)*time.Second {
+				out = append(out, &condition{trigger: t, device: d, check: c, detail: fmt.Sprintf("%s: no new value for %d min", c.Name, int(age.Minutes()))})
+			}
+		}
 	case store.TriggerMetric:
 		for _, c := range cs {
 			if c.Paused || c.Status != store.StatusUp || !typeIn(t.CheckTypes, c.Type) {

@@ -646,6 +646,9 @@ type LiveDevice struct {
 	Tools      []LiveTool `json:"tools,omitempty"` // filled by the console, not for kiosks
 	HAState    string     `json:"ha,omitempty"`    // master or backup (VRRP), when the device reports it
 	HASince    *time.Time `json:"ha_since,omitempty"`
+	// Unreachable: down while a device it depends on is down too (the
+	// problem is above it); the map shows it grey.
+	Unreachable bool `json:"unreachable,omitempty"`
 }
 
 // LiveTool is a tool that opens a device from the map.
@@ -763,7 +766,9 @@ func (s *Store) MapLiveData(ctx context.Context, l *MapLayout) (*MapLive, error)
 	}
 	if len(ids) > 0 {
 		rows, err := s.db.Query(ctx, `SELECT d.id, d.name, d.address, d.kind, d.status, d.web_url, d.web_name, d.web_links, COALESCE(d.facts->>'vendor',''),
-			(SELECT count(*) FROM checks c WHERE c.device_id=d.id), (SELECT count(*) FROM checks c WHERE c.device_id=d.id AND c.status='down' AND NOT c.paused), d.ha_state, d.ha_changed
+			(SELECT count(*) FROM checks c WHERE c.device_id=d.id), (SELECT count(*) FROM checks c WHERE c.device_id=d.id AND c.status='down' AND NOT c.paused), d.ha_state, d.ha_changed,
+			d.status = 'down' AND EXISTS (WITH RECURSIVE up(id, n) AS (SELECT d.parent_id, 1 UNION ALL SELECT p.parent_id, up.n + 1 FROM devices p JOIN up ON p.id = up.id WHERE up.n < 20 AND p.parent_id IS NOT NULL)
+				SELECT 1 FROM up JOIN devices x ON x.id = up.id WHERE x.status = 'down')
 			FROM devices d WHERE d.id = ANY($1)`, ids)
 		if err != nil {
 			return nil, err
@@ -771,7 +776,7 @@ func (s *Store) MapLiveData(ctx context.Context, l *MapLayout) (*MapLive, error)
 		for rows.Next() {
 			d := &LiveDevice{}
 			var links []byte
-			if err := rows.Scan(&d.ID, &d.Name, &d.Address, &d.Kind, &d.Status, &d.WebURL, &d.WebName, &links, &d.Vendor, &d.Checks, &d.ChecksDown, &d.HAState, &d.HASince); err != nil {
+			if err := rows.Scan(&d.ID, &d.Name, &d.Address, &d.Kind, &d.Status, &d.WebURL, &d.WebName, &links, &d.Vendor, &d.Checks, &d.ChecksDown, &d.HAState, &d.HASince, &d.Unreachable); err != nil {
 				rows.Close()
 				return nil, err
 			}

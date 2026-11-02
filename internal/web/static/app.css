@@ -932,3 +932,9 @@ table.flowtop progress.meter { display: block; margin-top: 4px; height: 5px; }
 /* sign-in with single sign-on */
 .btn.wide { width: 100%; justify-content: center; }
 p.center { text-align: center; }
+/* down only because a device it depends on is down: grey, no alarm */
+.node.unreach.s-down .body { fill: var(--panel-2, #2a2f38); stroke: var(--muted); stroke-dasharray: 4 3; }
+.node.unreach.s-down .glyph { stroke: var(--muted); }
+.node.unreach.s-down .frame { stroke: var(--muted); stroke-dasharray: 5 4; }
+.node.unreach.s-down .dot, .node.mounted.unreach.s-down .stripe { fill: var(--muted); }
+.node.unreach .pulse { display: none; }

@@ -9,10 +9,10 @@
     <thead><tr><th>{{.T "Name"}}</th><th>{{.T "When"}}</th><th class="hide-sm">{{.T "Devices and groups"}}</th><th>{{.T "Status"}}</th>{{if .User.CanWrite}}<th></th>{{end}}</tr></thead>
     <tbody>{{range .Data.Windows}}<tr>
       <td><b>{{.Name}}</b><br><span class="small muted">{{.CreatedBy}}</span></td>
-      <td class="small nowrap">{{$.Time .StartsAt}}<br>{{$.Time .EndsAt}}</td>
+      <td class="small nowrap">{{$.Time .StartsAt}}<br>{{$.Time .EndsAt}}{{if .Repeat}}<br><b>{{if eq .Repeat "daily"}}{{$.T "Every day"}}{{else if eq .Repeat "weekly"}}{{$.T "Every week"}}{{else}}{{$.T "Every month"}}{{end}}</b>{{if .RepeatUntil}} {{$.T "until %s" ($.Time .LastDay)}}{{end}}{{if not (.Over $.Data.Now)}}<br><span class="muted">{{$.T "Next: %s" ($.Time (.Next $.Data.Now))}}</span>{{end}}{{end}}</td>
       <td class="hide-sm small">{{range $i, $id := .GroupIDs}}{{if $i}}, {{end}}{{$.T "Group"}} {{index $.Data.Names (printf "g%d" $id)}}{{end}}{{if and .GroupIDs .DeviceIDs}}; {{end}}{{range $i, $id := .DeviceIDs}}{{if $i}}, {{end}}{{index $.Data.Names (printf "d%d" $id)}}{{end}}</td>
-      <td>{{if .Active $.Data.Now}}<span class="badge warn"><i></i>{{$.T "Running"}}</span>{{else if .StartsAt.After $.Data.Now}}<span class="badge info"><i></i>{{$.T "Planned"}}</span>{{else}}<span class="badge muted"><i></i>{{$.T "Over"}}</span>{{end}}</td>
-      {{if $.User.CanWrite}}<td class="actions">{{if .EndsAt.After $.Data.Now}}<form method="post" action="/alerts/maintenance/{{.ID}}/end" data-confirm="{{if .Active $.Data.Now}}{{$.T "End this maintenance now?"}}{{else}}{{$.T "Remove this planned maintenance?"}}{{end}}"><button class="ghost sm">{{if .Active $.Data.Now}}{{$.T "End now"}}{{else}}{{$.T "Remove"}}{{end}}</button></form>{{end}}</td>{{end}}
+      <td>{{if .Active $.Data.Now}}<span class="badge warn"><i></i>{{$.T "Running"}}</span>{{else if not (.Over $.Data.Now)}}<span class="badge info"><i></i>{{$.T "Planned"}}</span>{{else}}<span class="badge muted"><i></i>{{$.T "Over"}}</span>{{end}}</td>
+      {{if $.User.CanWrite}}<td class="actions">{{if not (.Over $.Data.Now)}}<form method="post" action="/alerts/maintenance/{{.ID}}/end" data-confirm="{{if .Repeat}}{{$.T "Remove this repeating maintenance with all its windows?"}}{{else if .Active $.Data.Now}}{{$.T "End this maintenance now?"}}{{else}}{{$.T "Remove this planned maintenance?"}}{{end}}"><button class="ghost sm">{{if and (.Active $.Data.Now) (not .Repeat)}}{{$.T "End now"}}{{else}}{{$.T "Remove"}}{{end}}</button></form>{{end}}</td>{{end}}
     </tr>{{end}}</tbody>
   </table></div>
   {{else}}<p class="muted">{{.T "No maintenance planned."}}</p>{{end}}
@@ -26,6 +26,10 @@
       <label>{{.T "Name"}}<input name="name" value="{{.Data.In.Name}}" required maxlength="100" placeholder="{{.T "Name, for example Firmware update"}}"></label>
       <label>{{.T "From"}}<input type="datetime-local" name="from" value="{{.Data.From}}" required></label>
       <label>{{.T "Until"}}<input type="datetime-local" name="to" value="{{.Data.To}}" required></label>
+    </div>
+    <div class="cols">
+      <label>{{.T "Repeat"}}<select name="repeat" data-switch="mrep"><option value="">{{.T "Once"}}</option><option value="daily" {{if eq .Data.In.Repeat "daily"}}selected{{end}}>{{.T "Every day"}}</option><option value="weekly" {{if eq .Data.In.Repeat "weekly"}}selected{{end}}>{{.T "Every week"}}</option><option value="monthly" {{if eq .Data.In.Repeat "monthly"}}selected{{end}}>{{.T "Every month"}}</option></select></label>
+      <label data-show="mrep" data-when="daily weekly monthly">{{.T "Last day (empty: no end)"}}<input type="date" name="repeat_until" value="{{.Data.Until}}"></label>
     </div>
     <p class="small muted">{{.T "Times are in the server's time zone."}}</p>
     {{if .Data.Groups}}<fieldset class="box"><legend>{{.T "Groups"}}</legend>

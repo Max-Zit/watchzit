@@ -448,7 +448,7 @@
   function drawNode(n) {
     var st = nodeStatus(n), b = box(n);
     var sel = selected && selected.type === "node" && selected.id === n.id;
-    var g = el("g", { "class": "node n-" + n.kind + (st ? " s-" + st : "") + (sel ? " sel" : "") + (connectFrom === n.id ? " from" : "") + (rackOf(n) ? " mounted" : "") + (hostOf(n) ? " guest" : "") + (n.virtual ? " virtual" : "") + onPath("nodes", n.id) + (vlan && deviceInVLAN(n, vlan) ? " invlan" : ""),
+    var g = el("g", { "class": "node n-" + n.kind + (st ? " s-" + st : "") + (sel ? " sel" : "") + (connectFrom === n.id ? " from" : "") + (rackOf(n) ? " mounted" : "") + (hostOf(n) ? " guest" : "") + (n.kind === "device" && live.devices[n.device] && live.devices[n.device].unreachable ? " unreach" : "") + (n.virtual ? " virtual" : "") + onPath("nodes", n.id) + (vlan && deviceInVLAN(n, vlan) ? " invlan" : ""),
       transform: "translate(" + n.x + " " + n.y + ")", "data-node": n.id }, gNodes);
     if (n.kind === "label") {
       el("text", { "class": "maplabel", y: 6, "text-anchor": "middle" }, g).textContent = n.label;
@@ -678,6 +678,7 @@
     if (n.kind === "device") {
       var d = live.devices[n.device] || deviceMeta(n.device) || {};
       row(dl, T("Address"), d.address || "");
+      if (d.unreachable) p.appendChild(h("p", { "class": "muted small" }, T("Down because a device it depends on is down: the problem is there.")));
       row(dl, T("Kind"), T("kind:" + (d.kind || "other")));
       if (d.vendor) row(dl, T("Vendor"), d.vendor);
       if (d.checks !== undefined) row(dl, T("Checks"), d.checks + (d.down ? " · " + d.down + " " + T("down") : ""));

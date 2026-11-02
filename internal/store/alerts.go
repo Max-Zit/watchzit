@@ -33,6 +33,7 @@ const (
 	TriggerMetric     = "metric"
 	TriggerHADegraded = "ha_degraded" // a HA group of a map runs on fewer members than it has
 	TriggerForecast   = "forecast"    // a value's trend reaches a threshold within for_s seconds
+	TriggerNoData     = "nodata"      // a check got no new value for for_s seconds
 )
 
 // checkParent refuses a parent that is the device itself or depends on it.
@@ -137,6 +138,22 @@ func (in *TriggerInput) clean() error {
 		if in.Kind != TriggerCheckDown {
 			in.CheckTypes = nil
 		}
+	case TriggerNoData:
+		in.Metric, in.Op, in.Threshold = "", ">", 0
+		if in.ForS < 120 {
+			return errors.New("no data needs at least 2 minutes")
+		}
+		for _, t := range in.CheckTypes {
+			if !slices.Contains(allCheckTypes, t) {
+				return errors.New("unknown check type")
+			}
+		}
+		slices.Sort(in.CheckTypes)
+		in.CheckTypes = slices.Compact(in.CheckTypes)
+		if in.CheckTypes == nil {
+			in.CheckTypes = []string{}
+		}
+		return nil
 	case TriggerLog:
 		// metric: the text to look for; threshold: the least important level;
 		// check types: syslog and/or trap; for: how long the problem stays
@@ -294,6 +311,7 @@ type AlertCheck struct {
 	StatusSince time.Time
 	LastText    string
 	Values      map[string]float64
+	LastRun     *time.Time // the last result (nil: none yet)
 }
 
 // AlertInputs loads every device and check for one evaluation.
@@ -315,7 +333,7 @@ func (s *Store) AlertInputs(ctx context.Context) ([]AlertDevice, []AlertCheck, e
 	if err := rows.Err(); err != nil {
 		return nil, nil, err
 	}
-	rows, err = s.db.Query(ctx, `SELECT id, device_id, type, name, params, paused, status, status_since, last_text, last_values FROM checks`)
+	rows, err = s.db.Query(ctx, `SELECT id, device_id, type, name, params, paused, status, status_since, last_text, last_values, last_run FROM checks`)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -324,7 +342,7 @@ func (s *Store) AlertInputs(ctx context.Context) ([]AlertDevice, []AlertCheck, e
 	for rows.Next() {
 		var c AlertCheck
 		var params, vals []byte
-		if err := rows.Scan(&c.ID, &c.DeviceID, &c.Type, &c.Name, &params, &c.Paused, &c.Status, &c.StatusSince, &c.LastText, &vals); err != nil {
+		if err := rows.Scan(&c.ID, &c.DeviceID, &c.Type, &c.Name, &params, &c.Paused, &c.Status, &c.StatusSince, &c.LastText, &vals, &c.LastRun); err != nil {
 			return nil, nil, err
 		}
 		_ = json.Unmarshal(params, &c.Params)
@@ -525,10 +543,71 @@ type Maintenance struct {
 	GroupIDs  []int64
 	CreatedBy string
 	CreatedAt time.Time
+	// Repeat makes the window come back every day, week or month (in the
+	// server's time zone) until RepeatUntil, if set.
+	Repeat      string
+	RepeatUntil *time.Time
+}
+
+// Repeats of maintenance windows.
+var MaintenanceRepeats = []string{"", "daily", "weekly", "monthly"}
+
+// occurrence is the start of the k-th window of a repeating one.
+func (m *Maintenance) occurrence(k int) time.Time {
+	st := m.StartsAt.In(time.Local)
+	switch m.Repeat {
+	case "daily":
+		return st.AddDate(0, 0, k)
+	case "weekly":
+		return st.AddDate(0, 0, 7*k)
+	case "monthly":
+		return st.AddDate(0, k, 0)
+	}
+	return st
+}
+
+// Window returns the start and end of the window that is on at t or comes
+// next (ok false when none is left).
+func (m *Maintenance) Window(t time.Time) (from, to time.Time, ok bool) {
+	d := m.EndsAt.Sub(m.StartsAt)
+	if m.Repeat == "" {
+		return m.StartsAt, m.EndsAt, t.Before(m.EndsAt)
+	}
+	k := 0
+	if t.After(m.StartsAt) {
+		days := int(t.Sub(m.StartsAt).Hours() / 24)
+		switch m.Repeat {
+		case "daily":
+			k = days - 1
+		case "weekly":
+			k = days/7 - 1
+		case "monthly":
+			k = days/31 - 1
+		}
+		k = max(k, 0)
+	}
+	for ; ; k++ {
+		from = m.occurrence(k)
+		if m.RepeatUntil != nil && from.After(*m.RepeatUntil) {
+			return time.Time{}, time.Time{}, false
+		}
+		if to = from.Add(d); t.Before(to) {
+			return from, to, true
+		}
+	}
 }
 
 // Active reports whether the window is on at t.
-func (m *Maintenance) Active(t time.Time) bool { return !t.Before(m.StartsAt) && t.Before(m.EndsAt) }
+func (m *Maintenance) Active(t time.Time) bool {
+	from, _, ok := m.Window(t)
+	return ok && !t.Before(from)
+}
+
+// Over reports whether no window is left after t.
+func (m *Maintenance) Over(t time.Time) bool {
+	_, _, ok := m.Window(t)
+	return !ok
+}
 
 // Covers reports whether the window holds the device.
 func (m *Maintenance) Covers(deviceID, groupID int64) bool {
@@ -537,8 +616,8 @@ func (m *Maintenance) Covers(deviceID, groupID int64) bool {
 
 // Maintenances lists windows that end after the cut-off, soonest first.
 func (s *Store) Maintenances(ctx context.Context, endsAfter time.Time) ([]*Maintenance, error) {
-	rows, err := s.db.Query(ctx, `SELECT id, name, starts_at, ends_at, device_ids, group_ids, created_by, created_at FROM maintenance
-		WHERE ends_at > $1 ORDER BY starts_at, id`, endsAfter)
+	rows, err := s.db.Query(ctx, `SELECT id, name, starts_at, ends_at, device_ids, group_ids, created_by, created_at, repeat, repeat_until FROM maintenance
+		WHERE ends_at > $1 OR (repeat <> '' AND (repeat_until IS NULL OR repeat_until > $1)) ORDER BY starts_at, id`, endsAfter)
 	if err != nil {
 		return nil, err
 	}
@@ -546,7 +625,7 @@ func (s *Store) Maintenances(ctx context.Context, endsAfter time.Time) ([]*Maint
 	var out []*Maintenance
 	for rows.Next() {
 		m := &Maintenance{}
-		if err := rows.Scan(&m.ID, &m.Name, &m.StartsAt, &m.EndsAt, &m.DeviceIDs, &m.GroupIDs, &m.CreatedBy, &m.CreatedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.Name, &m.StartsAt, &m.EndsAt, &m.DeviceIDs, &m.GroupIDs, &m.CreatedBy, &m.CreatedAt, &m.Repeat, &m.RepeatUntil); err != nil {
 			return nil, err
 		}
 		out = append(out, m)
@@ -566,6 +645,17 @@ func (s *Store) CreateMaintenance(ctx context.Context, m Maintenance) (int64, er
 	if m.EndsAt.Sub(m.StartsAt) > 366*24*time.Hour {
 		return 0, errors.New("a maintenance window can last at most a year")
 	}
+	if !slices.Contains(MaintenanceRepeats, m.Repeat) {
+		return 0, errors.New("unknown repeat")
+	}
+	if period := map[string]time.Duration{"daily": 24 * time.Hour, "weekly": 7 * 24 * time.Hour, "monthly": 28 * 24 * time.Hour}[m.Repeat]; period > 0 && m.EndsAt.Sub(m.StartsAt) >= period {
+		return 0, errors.New("a repeating window must be shorter than the time between two of them")
+	}
+	if m.Repeat == "" {
+		m.RepeatUntil = nil
+	} else if m.RepeatUntil != nil && m.RepeatUntil.Before(m.StartsAt) {
+		return 0, errors.New("the repetition must end after the first window")
+	}
 	if len(m.DeviceIDs)+len(m.GroupIDs) == 0 {
 		return 0, errors.New("choose at least one device or group")
 	}
@@ -576,20 +666,20 @@ func (s *Store) CreateMaintenance(ctx context.Context, m Maintenance) (int64, er
 		m.GroupIDs = []int64{}
 	}
 	var id int64
-	err = s.db.QueryRow(ctx, `INSERT INTO maintenance(name, starts_at, ends_at, device_ids, group_ids, created_by) VALUES($1,$2,$3,$4,$5,$6) RETURNING id`,
-		m.Name, m.StartsAt, m.EndsAt, m.DeviceIDs, m.GroupIDs, m.CreatedBy).Scan(&id)
+	err = s.db.QueryRow(ctx, `INSERT INTO maintenance(name, starts_at, ends_at, device_ids, group_ids, created_by, repeat, repeat_until) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+		m.Name, m.StartsAt, m.EndsAt, m.DeviceIDs, m.GroupIDs, m.CreatedBy, m.Repeat, m.RepeatUntil).Scan(&id)
 	return id, err
 }
 
 // EndMaintenance ends a running window now, or removes a planned one.
 func (s *Store) EndMaintenance(ctx context.Context, id int64) (*Maintenance, error) {
 	m := &Maintenance{}
-	err := s.db.QueryRow(ctx, `SELECT id, name, starts_at, ends_at FROM maintenance WHERE id=$1`, id).Scan(&m.ID, &m.Name, &m.StartsAt, &m.EndsAt)
+	err := s.db.QueryRow(ctx, `SELECT id, name, starts_at, ends_at, repeat FROM maintenance WHERE id=$1`, id).Scan(&m.ID, &m.Name, &m.StartsAt, &m.EndsAt, &m.Repeat)
 	if err != nil {
 		return nil, notFound(err)
 	}
 	now := s.now()
-	if m.StartsAt.After(now) {
+	if m.StartsAt.After(now) || m.Repeat != "" { // a repetition is removed as a whole
 		_, err = s.db.Exec(ctx, `DELETE FROM maintenance WHERE id=$1`, id)
 	} else {
 		_, err = s.db.Exec(ctx, `UPDATE maintenance SET ends_at=GREATEST(starts_at + interval '1 second', $2) WHERE id=$1`, id, now)
@@ -792,4 +882,19 @@ func (s *Store) Sent(ctx context.Context, now time.Time) (map[int64]map[int64]ti
 		out[ch][p] = at
 	}
 	return out, rows.Err()
+}
+
+// Next is the start of the window that is on at t or comes next (zero when
+// none is left).
+func (m *Maintenance) Next(t time.Time) time.Time {
+	from, _, _ := m.Window(t)
+	return from
+}
+
+// LastDay is the end of a repetition (zero without one).
+func (m *Maintenance) LastDay() time.Time {
+	if m.RepeatUntil == nil {
+		return time.Time{}
+	}
+	return *m.RepeatUntil
 }
