@@ -322,3 +322,20 @@ document.addEventListener("click", function (ev) {
   window.WatchZitPassZit = { refresh: function () { paintAll(); ask(); } };
   if (document.querySelector("[data-pz-badge]") || document.querySelector(".mapview, #map")) ask();
 })();
+
+// Device list: tick all, and ask before the bulk delete.
+(function () {
+  "use strict";
+  document.addEventListener("change", function (ev) {
+    var all = ev.target.closest && ev.target.closest("input[data-checkall]");
+    if (!all) return;
+    var form = all.form || document;
+    Array.prototype.forEach.call(form.querySelectorAll('input[type=checkbox][name="' + all.getAttribute("data-checkall") + '"]'), function (c) { c.checked = all.checked; });
+  });
+  document.addEventListener("click", function (ev) {
+    var b = ev.target.closest && ev.target.closest("button[data-confirm-when]");
+    if (!b || !b.form) return;
+    var sel = b.form.querySelector("select[name=action]");
+    if (sel && sel.value === b.getAttribute("data-confirm-when") && !window.confirm(b.getAttribute("data-confirm-text"))) ev.preventDefault();
+  });
+})();

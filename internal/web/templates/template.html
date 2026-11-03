@@ -1,0 +1,91 @@
+{{template "app" .}}
+{{define "content"}}
+{{$t := .Data.T}}
+<p class="back"><a href="/templates">{{.T "Templates"}}</a></p>
+<h1>{{$t.Name}}{{if $t.Auto}} <span class="badge info">{{.T "new devices"}}</span>{{end}}</h1>
+
+<section class="panel">
+  <h2>{{.T "Checks"}}</h2>
+  {{if $t.Checks}}<div class="table-wrap"><table>
+    <thead><tr><th>{{.T "Check"}}</th><th>{{.T "Settings"}}</th><th>{{.T "Interval"}}</th>{{if .User.CanWrite}}<th></th>{{end}}</tr></thead>
+    <tbody>{{range $t.Checks}}<tr>
+      <td><b>{{$.T (checkKind .Type)}}</b>{{with .Name}} <span class="muted">· {{.}}</span>{{end}}</td>
+      <td class="small mono">{{with .Params.Port}}{{$.T "port"}} {{.}} {{end}}{{with .Params.URL}}{{.}} {{end}}{{with .Params.Query}}{{.}} {{end}}{{with .Params.Contains}}“{{.}}”{{end}}</td>
+      <td class="small">{{.IntervalS}} s</td>
+      {{if $.User.CanWrite}}<td class="actions"><form method="post" action="/templates/{{$t.ID}}/checks/{{.ID}}/delete"><button class="ghost sm" title="{{$.T "Remove"}}">{{template "icon" "trash"}}</button></form></td>{{end}}
+    </tr>{{end}}</tbody>
+  </table></div>
+  {{else}}<p class="muted">{{.T "No checks yet."}}</p>{{end}}
+
+  {{if .User.CanWrite}}
+  <details class="mt addcheck" {{if .Error}}open{{end}}>
+    <summary class="btn secondary">{{template "icon" "plus"}}{{.T "Add a check"}}</summary>
+    <form method="post" action="/templates/{{$t.ID}}/checks" class="stack mt">
+      <div class="cols">
+        <label>{{.T "Type"}}<select name="type" data-switch="checktype">{{range .Data.CheckTypes}}<option value="{{.}}" {{if eq . $.Data.New.Type}}selected{{end}}>{{$.T (checkKind .)}}</option>{{end}}</select></label>
+        <label>{{.T "Name"}} <small>{{.T "optional"}}</small><input name="name" value="{{.Data.New.Name}}" maxlength="100"></label>
+        <label>{{.T "Interval (seconds)"}}<input type="number" name="interval" min="10" max="3600" value="60"></label>
+      </div>
+      <div class="cols" data-show="checktype" data-when="tcp">
+        <label>{{.T "Port"}}<input type="number" name="port" min="1" max="65535" placeholder="443"></label>
+      </div>
+      <div class="cols" data-show="checktype" data-when="icmp">
+        <label>{{.T "Pings per run"}}<input type="number" name="count" min="1" max="20" value="3"></label>
+      </div>
+      <div class="stack" data-show="checktype" data-when="http">
+        <label>{{.T "Address (URL)"}} <small>{{.T "optional"}}</small><input name="url" type="url" maxlength="2000" class="mono" spellcheck="false" placeholder="https://…/"><small>{{.T "Empty: the device's address over HTTPS."}}</small></label>
+        <div class="cols">
+          <label>{{.T "Expected status"}} <small>{{.T "optional"}}</small><input type="number" name="expect" min="100" max="599" placeholder="200"></label>
+          <label>{{.T "Text on the page"}} <small>{{.T "optional"}}</small><input name="contains" maxlength="200"></label>
+        </div>
+        <label class="check"><input type="checkbox" name="insecure" value="1">{{.T "Accept certificates that are not trusted (self-signed)"}}</label>
+      </div>
+      <div class="stack" data-show="checktype" data-when="tls">
+        <div class="cols">
+          <label>{{.T "Port"}}<input type="number" name="port" min="1" max="65535" placeholder="443"></label>
+          <label>{{.T "Server name"}} <small>{{.T "optional"}}</small><input name="query" maxlength="253" class="mono" spellcheck="false"></label>
+        </div>
+        <label class="check"><input type="checkbox" name="insecure" value="1">{{.T "Only count the days (the certificate may be self-signed)"}}</label>
+      </div>
+      <div class="stack" data-show="checktype" data-when="dns">
+        <div class="cols">
+          <label>{{.T "Name to look up"}}<input name="query" maxlength="253" class="mono" spellcheck="false" placeholder="example.com"></label>
+          <label>{{.T "Record type"}}<select name="rtype">{{range dnsTypes}}<option>{{.}}</option>{{end}}</select></label>
+        </div>
+      </div>
+      <p class="small muted" data-show="checktype" data-when="snmp snmp_cpu snmp_ups">{{.T "SNMP checks need an SNMP profile on the device; interfaces and disks come from SNMP discovery on the device page."}}</p>
+      <div><button class="primary sm">{{.T "Add to the template"}}</button></div>
+    </form>
+  </details>
+  {{end}}
+</section>
+
+{{if .User.CanWrite}}
+<section class="panel">
+  <h2>{{.T "Apply"}}</h2>
+  <p class="small muted">{{.T "Applying adds the template's checks a device does not have yet; checks it has stay as they are."}}</p>
+  <form method="post" action="/templates/{{$t.ID}}/apply" class="row">
+    <select name="scope" aria-label="{{.T "Apply to"}}">
+      {{if $t.Kinds}}<option value="kinds">{{.T "All devices of its kinds"}}</option>{{end}}
+      {{if .Data.Devices}}<option value="linked">{{.T "Again to the devices that have it"}}</option>{{end}}
+      {{range .Data.Groups}}<option value="g{{.ID}}">{{$.T "Group"}} {{.Name}}</option>{{end}}
+    </select>
+    <button class="secondary">{{template "icon" "layers"}}{{.T "Apply"}}</button>
+  </form>
+  {{with .Data.Devices}}<p class="small mt">{{$.T "Applied to:"}} {{range $id, $n := .}}<a href="/devices/{{$id}}">{{$n}}</a> {{end}}</p>{{end}}
+</section>
+
+<section class="panel">
+  <h2>{{.T "Settings"}}</h2>
+  <form method="post" action="/templates/{{$t.ID}}" class="stack">
+    <label>{{.T "Name"}}<input name="name" required maxlength="100" value="{{$t.Name}}"></label>
+    <fieldset class="box"><legend>{{.T "For these kinds of devices"}}</legend>
+      <div class="pickers">{{range .Data.Kinds}}<label class="check"><input type="checkbox" name="kind" value="{{.}}" {{if inStrings $t.Kinds .}}checked{{end}}>{{$.KindName .}}</label>{{end}}</div>
+    </fieldset>
+    <label class="check"><input type="checkbox" name="auto" value="1" {{if $t.Auto}}checked{{end}}>{{.T "Apply to new devices of these kinds by itself"}}</label>
+    <div class="row"><button class="primary">{{.T "Save"}}</button></div>
+  </form>
+  <form method="post" action="/templates/{{$t.ID}}/delete" class="mt" data-confirm="{{.T "Remove the template %s? The checks it added stay on the devices." $t.Name}}"><button class="danger sm">{{template "icon" "trash"}}{{.T "Remove template"}}</button></form>
+</section>
+{{end}}
+{{end}}

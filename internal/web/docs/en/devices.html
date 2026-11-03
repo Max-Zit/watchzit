@@ -19,6 +19,10 @@
 
 <h2 id="fields">Custom fields</h2>
 <p>Administrators add your own fields for devices under <a href="/settings/fields">Settings → Custom fields</a>: text, a number or a date — an asset number, the end of the warranty, the rack, a contract. Operators fill them in on the device page under <b>Custom fields</b>; the values show with the device's details, and the search on the device list finds them. Removing a field removes its values.</p>
+<h2 id="templates">Templates</h2>
+<p>A template is a set of checks for a kind of device — a Linux server, a MikroTik router, a printer. Create one under <a href="/templates">Templates</a>, choose the kinds of devices it is for and add its checks (ping, TCP, web page, TLS certificate, DNS and SNMP checks; checks with passwords are added per device). <b>Apply to</b> adds the checks to all devices of its kinds, to a group, or again to the devices that already have it; on a device page, <b>Apply template</b> does it for one device. Applying only adds the checks a device does not have yet — checks it already has stay as they are, so applying twice does no harm. With <b>Apply to new devices of these kinds by itself</b>, every device added later (by hand or from discovery) gets the checks at once. Removing a template leaves the checks on the devices.</p>
+<h2 id="bulk">Changing many devices at once</h2>
+<p>Tick devices in the <a href="/devices">device list</a> (the box in the header ticks all shown) and choose under <b>Change selected</b>: the group, the SNMP profile, the device they depend on, the type, pause or resume monitoring, apply a template, or — for administrators — delete them with their checks and data. Filter the list first to tick, for example, all printers of one site.</p>
 <h2 id="checks">Check types</h2>
 <table>
   <tr><th>Check</th><th>Measures</th></tr>
@@ -31,6 +35,7 @@
   <tr><td>MikroTik RouterOS (API)</td><td>CPU, memory, uptime and temperature over the REST API of RouterOS 7.</td></tr>
   <tr><td>JSON API value</td><td>One number from any JSON API (FortiGate, vCenter, your own services): an address, a path like <code>results.cpu.0.current</code>, and optional Bearer or basic sign-in.</td></tr>
   <tr><td>Hypervisor (vSphere, Proxmox VE)</td><td>Hosts, virtual machines and containers, datastores of VMware ESXi or vCenter (web services API) or Proxmox VE (REST API): CPU and memory of the hosts, machines running, hosts down, the fullest datastore. See <a href="#hypervisor">Hypervisors</a>.</td></tr>
+  <tr><td>Web scenario</td><td>Several steps through a web application like a user: sign in, open a page behind the sign-in, check the text. One step per line, for example <code>GET /login | 200 | Sign in</code>, <code>POST /login | 302 | | user=monitor&amp;password={secret}</code>, <code>GET /dashboard | | Welcome</code> — the method and address, then the expected status, the text the page must contain and the form data. Cookies are kept from step to step; <code>{secret}</code> is the check's password. Measures the time of all steps and how many passed; the alert names the step that failed.</td></tr>
   <tr><td>SNMP</td><td>Availability and uptime; interfaces, CPU and storage found by discovery; any numeric OID.</td></tr>
 </table>
 <p>Passwords and tokens of checks are stored encrypted and never shown again; leave the field empty when you edit a check to keep the stored one.</p>

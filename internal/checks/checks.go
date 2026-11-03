@@ -58,6 +58,8 @@ func Run(ctx context.Context, typ string, p store.CheckParams, t Target, timeout
 	switch typ {
 	case store.CheckHTTP:
 		return HTTP(ctx, p, t)
+	case store.CheckScenario:
+		return Scenario(ctx, p, t)
 	case store.CheckTLS:
 		return TLS(ctx, p, t)
 	case store.CheckDNS:

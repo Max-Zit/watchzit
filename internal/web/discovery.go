@@ -312,6 +312,7 @@ func (s *Server) handleDiscoveryHosts(w http.ResponseWriter, r *http.Request) {
 		} else if len(h.Ports) > 0 {
 			_, _ = s.store.CreateCheck(ctx, id, store.CheckInput{Type: store.CheckTCP, Params: store.CheckParams{Port: int(h.Ports[0])}})
 		}
+		_, _ = s.store.ApplyAutoTemplates(ctx, id, in.Kind)
 		added++
 		s.audit(r, "device.create", "device:"+strconv.FormatInt(id, 10), "added %s (%s) from discovery", in.Name, in.Address)
 	}

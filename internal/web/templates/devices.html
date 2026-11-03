@@ -16,9 +16,12 @@
     <button class="secondary">{{.T "Search"}}</button>
   </form>
   {{if .Data.Devices}}
+  {{if .User.CanWrite}}<form method="post" action="/devices/bulk" id="bulk">
+  <input type="hidden" name="back" value="{{.Data.Back}}">{{end}}
   <div class="table-wrap mt"><table>
-    <thead><tr><th>{{.T "Device"}}</th><th>{{.T "Status"}}</th><th class="hide-sm">{{.T "Address"}}</th><th class="hide-sm">{{.T "Type"}}</th><th class="hide-sm">{{.T "Group"}}</th><th class="hide-sm num">{{.T "Checks"}}</th></tr></thead>
+    <thead><tr>{{if .User.CanWrite}}<th class="sel"><input type="checkbox" data-checkall="id" aria-label="{{.T "Select all"}}"></th>{{end}}<th>{{.T "Device"}}</th><th>{{.T "Status"}}</th><th class="hide-sm">{{.T "Address"}}</th><th class="hide-sm">{{.T "Type"}}</th><th class="hide-sm">{{.T "Group"}}</th><th class="hide-sm num">{{.T "Checks"}}</th></tr></thead>
     <tbody>{{range .Data.Devices}}<tr>
+      {{if $.User.CanWrite}}<td class="sel"><input type="checkbox" name="id" value="{{.ID}}" aria-label="{{.Name}}"></td>{{end}}
       <td><a href="/devices/{{.ID}}">{{.Name}}</a></td>
       <td>{{template "status" (statusOf $ .Status)}}</td>
       <td class="hide-sm mono">{{.Address}}</td>
@@ -27,6 +30,26 @@
       <td class="hide-sm num">{{if .ChecksDown}}<span class="bad-text">{{.ChecksDown}}</span> / {{end}}{{.Checks}}</td>
     </tr>{{end}}</tbody>
   </table></div>
+  {{if .User.CanWrite}}<div class="bulkbar row mt">
+    <span class="small muted">{{.T "Change selected:"}}</span>
+    <select name="action" data-switch="bulk" aria-label="{{.T "Change"}}">
+      <option value="group">{{.T "Group"}}</option>
+      <option value="snmp">{{.T "SNMP profile"}}</option>
+      <option value="parent">{{.T "Depends on"}}</option>
+      <option value="kind">{{.T "Type"}}</option>
+      {{if .Data.Templates}}<option value="template">{{.T "Apply template"}}</option>{{end}}
+      <option value="pause">{{.T "Pause monitoring"}}</option>
+      <option value="resume">{{.T "Resume monitoring"}}</option>
+      {{if .User.IsAdmin}}<option value="delete">{{.T "Delete"}}</option>{{end}}
+    </select>
+    <select name="group" data-show="bulk" data-when="group" aria-label="{{.T "Group"}}"><option value="0">{{.T "Without a group"}}</option>{{range .Data.Groups}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
+    <select name="snmp" data-show="bulk" data-when="snmp" aria-label="{{.T "SNMP profile"}}"><option value="0">{{.T "None"}}</option>{{range .Data.Profiles}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
+    <select name="parent" data-show="bulk" data-when="parent" aria-label="{{.T "Depends on"}}"><option value="0">{{.T "None"}}</option>{{range .Data.All}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
+    <select name="kind" data-show="bulk" data-when="kind" aria-label="{{.T "Type"}}">{{range .Data.Kinds}}<option value="{{.}}">{{$.KindName .}}</option>{{end}}</select>
+    <select name="template" data-show="bulk" data-when="template" aria-label="{{.T "Template"}}">{{range .Data.Templates}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
+    <button class="secondary" data-confirm-when="delete" data-confirm-text="{{.T "Delete the selected devices with their checks and data?"}}">{{.T "Apply to selected"}}</button>
+  </div>
+  </form>{{end}}
   {{else}}<div class="empty">{{template "icon" "devices"}}<p>{{if or .Data.Q .Data.Status .Data.GroupID}}{{.T "No device matches."}}{{else}}{{.T "No devices yet."}}{{end}}</p></div>{{end}}
 </section>
 {{end}}

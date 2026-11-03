@@ -1,0 +1,30 @@
+{{template "app" .}}
+{{define "content"}}
+<h1>{{.T "Templates"}}</h1>
+<p class="muted">{{.T "A template is a set of checks for a kind of device, for example a Linux server, a MikroTik router or a printer. Apply it to a device, a group or all devices of its kinds; with Apply to new devices by itself, every new device of those kinds gets its checks when it is added."}}</p>
+<section class="panel">
+  {{if .Data.Templates}}<div class="table-wrap"><table>
+    <thead><tr><th>{{.T "Name"}}</th><th>{{.T "For"}}</th><th>{{.T "Checks"}}</th><th>{{.T "Devices"}}</th></tr></thead>
+    <tbody>{{range .Data.Templates}}<tr>
+      <td><a href="/templates/{{.ID}}"><b>{{.Name}}</b></a>{{if .Auto}} <span class="badge info">{{$.T "new devices"}}</span>{{end}}</td>
+      <td class="small">{{range $i, $k := .Kinds}}{{if $i}}, {{end}}{{$.KindName $k}}{{else}}<span class="muted">—</span>{{end}}</td>
+      <td>{{.NChecks}}</td>
+      <td>{{.NDevices}}</td>
+    </tr>{{end}}</tbody>
+  </table></div>
+  {{else}}<p class="muted">{{.T "No templates yet."}}</p>{{end}}
+</section>
+{{if .User.CanWrite}}
+<section class="panel">
+  <h2>{{.T "New template"}}</h2>
+  <form method="post" action="/templates" class="stack">
+    <label>{{.T "Name"}}<input name="name" required maxlength="100" placeholder="{{.T "Name, for example Linux server"}}"></label>
+    <fieldset class="box"><legend>{{.T "For these kinds of devices"}}</legend>
+      <div class="pickers">{{range .Data.Kinds}}<label class="check"><input type="checkbox" name="kind" value="{{.}}">{{$.KindName .}}</label>{{end}}</div>
+    </fieldset>
+    <label class="check"><input type="checkbox" name="auto" value="1">{{.T "Apply to new devices of these kinds by itself"}}</label>
+    <div><button class="primary">{{template "icon" "plus"}}{{.T "Add template"}}</button></div>
+  </form>
+</section>
+{{end}}
+{{end}}

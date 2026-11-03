@@ -19,6 +19,10 @@
 
 <h2 id="fields">Prilagođena polja</h2>
 <p>Administratori dodaju svoja polja za uređaje pod <a href="/settings/fields">Podešavanja → Prilagođena polja</a>: tekst, broj ili datum — inventarski broj, kraj garancije, rek, ugovor. Operateri ih popunjavaju na stranici uređaja pod <b>Prilagođena polja</b>; vrednosti se vide u podacima uređaja, a pretraga na listi uređaja ih pronalazi. Brisanjem polja brišu se i njegove vrednosti.</p>
+<h2 id="templates">Šabloni</h2>
+<p>Šablon je skup provera za jednu vrstu uređaja — Linux server, MikroTik ruter, štampač. Napravite ga pod <a href="/templates">Šabloni</a>, izaberite vrste uređaja za koje je i dodajte njegove provere (ping, TCP, veb stranica, TLS sertifikat, DNS i SNMP provere; provere sa lozinkama se dodaju po uređaju). <b>Primeni na</b> dodaje provere svim uređajima njegovih vrsta, grupi ili ponovo uređajima koji ga već imaju; na stranici uređaja <b>Primeni šablon</b> to radi za jedan uređaj. Primena dodaje samo provere koje uređaj još nema — postojeće ostaju kakve jesu, pa dvostruka primena ne smeta. Uz <b>Primenjuj na nove uređaje ovih vrsta samo</b>, svaki kasnije dodat uređaj (ručno ili iz otkrivanja) odmah dobija provere. Uklanjanje šablona ostavlja provere na uređajima.</p>
+<h2 id="bulk">Izmena više uređaja odjednom</h2>
+<p>Označite uređaje na <a href="/devices">listi uređaja</a> (polje u zaglavlju označava sve prikazane) i izaberite pod <b>Izmeni izabrane</b>: grupu, SNMP profil, uređaj od kog zavise, vrstu, pauziranje ili nastavak nadzora, primenu šablona ili — za administratore — brisanje sa proverama i podacima. Prvo filtrirajte listu da biste označili, na primer, sve štampače jedne lokacije.</p>
 <h2 id="checks">Vrste provera</h2>
 <table>
   <tr><th>Provera</th><th>Meri</th></tr>
@@ -31,6 +35,7 @@
   <tr><td>MikroTik RouterOS (API)</td><td>Procesor, memorija, vreme rada i temperatura preko REST API-ja RouterOS-a 7.</td></tr>
   <tr><td>Vrednost iz JSON API-ja</td><td>Jedan broj iz bilo kog JSON API-ja (FortiGate, vCenter, vaši servisi): adresa, putanja kao <code>results.cpu.0.current</code> i, po želji, Bearer ili basic prijava.</td></tr>
   <tr><td>Hipervizor (vSphere, Proxmox VE)</td><td>Hostovi, virtuelne mašine i kontejneri, datastore-ovi sa VMware ESXi ili vCenter-a (web services API) ili Proxmox VE (REST API): procesor i memorija hostova, mašine koje rade, hostovi u kvaru, najpuniji datastore. Pogledajte <a href="#hypervisor">Hipervizori</a>.</td></tr>
+  <tr><td>Veb scenario</td><td>Više koraka kroz veb aplikaciju kao korisnik: prijava, otvaranje stranice iza prijave, provera teksta. Jedan korak po redu, na primer <code>GET /login | 200 | Sign in</code>, <code>POST /login | 302 | | user=monitor&amp;password={secret}</code>, <code>GET /dashboard | | Welcome</code> — metoda i adresa, pa očekivani status, tekst koji stranica mora da sadrži i podaci forme. Kolačići se čuvaju od koraka do koraka; <code>{secret}</code> je lozinka provere. Meri vreme svih koraka i koliko ih je prošlo; upozorenje navodi korak koji nije prošao.</td></tr>
   <tr><td>SNMP</td><td>Dostupnost i vreme rada; interfejsi, procesor i skladišta koje pronađe otkrivanje; bilo koji numerički OID.</td></tr>
 </table>
 <p>Lozinke i tokeni provera se čuvaju šifrovani i više se ne prikazuju; kada menjate proveru, ostavite polje prazno da zadržite sačuvanu.</p>

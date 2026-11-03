@@ -113,6 +113,14 @@ func (p *CheckParams) cleanService(typ string) error {
 			return keep(8006)
 		}
 		return keep(443)
+	case CheckScenario:
+		p.Port, p.Query, p.RType, p.User, p.Database, p.Path, p.Auth, p.TLS, p.Unit, p.Scale, p.Expect, p.Contains = 0, "", "", "", "", "", "", false, "", 0, 0, ""
+		if p.URL != "" {
+			if err := checkURL(p.URL); err != nil {
+				return err
+			}
+		}
+		return cleanSteps(p.Steps)
 	case CheckJSON:
 		p.Expect, p.Contains, p.Query, p.RType, p.Database, p.TLS = 0, "", "", "", "", false
 		if err := checkURL(p.URL); err != nil {
@@ -164,6 +172,8 @@ func (p *CheckParams) defaultName(typ string) string {
 		return "RouterOS"
 	case CheckJSON:
 		return "API " + p.Path
+	case CheckScenario:
+		return "Web scenario"
 	case CheckHypervisor:
 		if p.HV == "proxmox" {
 			return "Proxmox VE"
@@ -175,7 +185,7 @@ func (p *CheckParams) defaultName(typ string) string {
 
 // HasSecret reports whether a check type takes a password or token.
 func HasSecret(typ string) bool {
-	return typ == CheckPostgres || typ == CheckMySQL || typ == CheckRouterOS || typ == CheckJSON || typ == CheckHypervisor
+	return typ == CheckPostgres || typ == CheckMySQL || typ == CheckRouterOS || typ == CheckJSON || typ == CheckHypervisor || typ == CheckScenario
 }
 
 const checkSecretPurpose = "check.secret"
@@ -200,8 +210,112 @@ func (s *Store) CheckSecret(c *Check) (string, error) {
 // IsService tells whether a check type is a service check (internal/checks).
 func IsService(typ string) bool {
 	switch typ {
-	case CheckHTTP, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON, CheckHypervisor:
+	case CheckHTTP, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON, CheckHypervisor, CheckScenario:
 		return true
 	}
 	return false
+}
+
+// WebStep is one request of a web scenario.
+type WebStep struct {
+	Method   string `json:"method"`             // GET or POST
+	URL      string `json:"url"`                // absolute, or a path from the scenario's address
+	Body     string `json:"body,omitempty"`     // POST form, e.g. user=admin&password={secret}
+	Expect   int    `json:"expect,omitempty"`   // status (0: any below 400)
+	Contains string `json:"contains,omitempty"` // text the answer must contain
+}
+
+// cleanSteps checks the steps of a web scenario.
+func cleanSteps(steps []WebStep) error {
+	if len(steps) == 0 || len(steps) > 10 {
+		return errors.New("a web scenario has 1–10 steps")
+	}
+	for i := range steps {
+		s := &steps[i]
+		s.Method, s.URL, s.Contains = strings.ToUpper(strings.TrimSpace(s.Method)), strings.TrimSpace(s.URL), strings.TrimSpace(s.Contains)
+		n := strconv.Itoa(i + 1)
+		if s.Method != "GET" && s.Method != "POST" {
+			return errors.New("step " + n + ": the method must be GET or POST")
+		}
+		if strings.HasPrefix(s.URL, "/") {
+			if strings.HasPrefix(s.URL, "//") || len(s.URL) > 2000 || strings.ContainsAny(s.URL, " \t\r\n") {
+				return errors.New("step " + n + ": the address is not a path")
+			}
+		} else if err := checkURL(s.URL); err != nil {
+			return errors.New("step " + n + ": " + err.Error())
+		}
+		if len(s.Body) > 4000 || strings.ContainsAny(s.Body, "\r\n") {
+			return errors.New("step " + n + ": the form data is too long")
+		}
+		if s.Method == "GET" {
+			s.Body = ""
+		}
+		if s.Expect != 0 && (s.Expect < 100 || s.Expect > 599) {
+			return errors.New("step " + n + ": the expected status must be 100–599")
+		}
+		if len(s.Contains) > 200 {
+			return errors.New("step " + n + ": the text to look for is too long")
+		}
+	}
+	return nil
+}
+
+// ParseSteps reads the steps of a web scenario, one per line:
+//
+//	METHOD URL | expected status | text on the page | form data
+//
+// for example "POST /login | 302 | | user=admin&password={secret}".
+func ParseSteps(text string) ([]WebStep, error) {
+	var out []WebStep
+	for _, line := range strings.Split(strings.ReplaceAll(text, "\r", ""), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.SplitN(line, "|", 4)
+		head := strings.Fields(parts[0])
+		if len(head) != 2 {
+			return nil, errors.New("each step starts with GET or POST and the address: " + line)
+		}
+		s := WebStep{Method: head[0], URL: head[1]}
+		if len(parts) > 1 {
+			if v := strings.TrimSpace(parts[1]); v != "" {
+				n, err := strconv.Atoi(v)
+				if err != nil {
+					return nil, errors.New("the expected status must be a number: " + line)
+				}
+				s.Expect = n
+			}
+		}
+		if len(parts) > 2 {
+			s.Contains = strings.TrimSpace(parts[2])
+		}
+		if len(parts) > 3 {
+			s.Body = strings.TrimSpace(parts[3])
+		}
+		out = append(out, s)
+	}
+	return out, nil
+}
+
+// StepsText writes steps back in the form ParseSteps reads.
+func StepsText(steps []WebStep) string {
+	var b strings.Builder
+	for _, s := range steps {
+		b.WriteString(s.Method + " " + s.URL)
+		if s.Expect != 0 || s.Contains != "" || s.Body != "" {
+			b.WriteString(" | ")
+			if s.Expect != 0 {
+				b.WriteString(strconv.Itoa(s.Expect))
+			}
+			if s.Contains != "" || s.Body != "" {
+				b.WriteString(" | " + s.Contains)
+			}
+			if s.Body != "" {
+				b.WriteString(" | " + s.Body)
+			}
+		}
+		b.WriteString("\n")
+	}
+	return b.String()
 }

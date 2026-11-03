@@ -31,7 +31,7 @@ func TestCustomFields(t *testing.T) {
 		t.Fatal("values not shown")
 	}
 	list := c.get("/devices?q=inv-47").body
-	if !strings.Contains(list, "core-sw") || strings.Contains(list, ">edge<") {
+	if !strings.Contains(list, "core-sw") || strings.Contains(list, `">edge</a>`) {
 		t.Fatal("search by a field value")
 	}
 	c.post("/settings/fields", "action", "delete", "id", "1")

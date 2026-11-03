@@ -380,11 +380,12 @@ const (
 	CheckMySQL        = "mysql"         // MySQL or MariaDB
 	CheckRouterOS     = "routeros"      // MikroTik RouterOS REST API: CPU, memory, uptime
 	CheckJSON         = "jsonapi"       // a number from any JSON API
+	CheckScenario     = "web_scenario"  // steps through a web application: sign in, open pages
 	CheckHypervisor   = "hypervisor"    // VMware vSphere or Proxmox VE: hosts, machines, datastores
 )
 
 // CheckTypes are the types a user can add by hand.
-var CheckTypes = []string{CheckICMP, CheckTCP, CheckHTTP, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON, CheckHypervisor, CheckSNMP, CheckSNMPOID}
+var CheckTypes = []string{CheckICMP, CheckTCP, CheckHTTP, CheckScenario, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON, CheckHypervisor, CheckSNMP, CheckSNMPOID}
 
 // IsSNMP tells whether a check type polls SNMP.
 func IsSNMP(typ string) bool { return strings.HasPrefix(typ, "snmp") }
@@ -409,19 +410,21 @@ type CheckParams struct {
 	Unit    string  `json:"unit,omitempty"`
 	Scale   float64 `json:"scale,omitempty"` // value × scale (0 = 1)
 	// HTTP, TLS, DNS, databases, APIs
-	URL      string `json:"url,omitempty"`      // HTTP, JSON API (empty: https://<address>/)
-	Expect   int    `json:"expect,omitempty"`   // HTTP status code (0: any below 400)
-	Contains string `json:"contains,omitempty"` // HTTP body / DNS answer must contain it
-	Insecure bool   `json:"insecure,omitempty"` // accept certificates that are not trusted
-	Query    string `json:"query,omitempty"`    // DNS name; TLS server name (SNI)
-	RType    string `json:"rtype,omitempty"`    // DNS record type
-	User     string `json:"user,omitempty"`     // databases, RouterOS, JSON API (basic)
-	Secret   string `json:"secret,omitempty"`   // password or token, sealed (never shown)
-	Database string `json:"database,omitempty"`
-	Path     string `json:"path,omitempty"` // JSON API: where the number is (a.b.0.c)
-	Auth     string `json:"auth,omitempty"` // JSON API: "", "basic" or "bearer"
-	TLS      bool   `json:"tls,omitempty"`  // RouterOS: HTTPS (else HTTP)
-	HV       string `json:"hv,omitempty"`   // hypervisor platform: vsphere or proxmox
+	// web scenario: the steps (URL above is the base for steps that start with /)
+	Steps    []WebStep `json:"steps,omitempty"`
+	URL      string    `json:"url,omitempty"`      // HTTP, JSON API (empty: https://<address>/)
+	Expect   int       `json:"expect,omitempty"`   // HTTP status code (0: any below 400)
+	Contains string    `json:"contains,omitempty"` // HTTP body / DNS answer must contain it
+	Insecure bool      `json:"insecure,omitempty"` // accept certificates that are not trusted
+	Query    string    `json:"query,omitempty"`    // DNS name; TLS server name (SNI)
+	RType    string    `json:"rtype,omitempty"`    // DNS record type
+	User     string    `json:"user,omitempty"`     // databases, RouterOS, JSON API (basic)
+	Secret   string    `json:"secret,omitempty"`   // password or token, sealed (never shown)
+	Database string    `json:"database,omitempty"`
+	Path     string    `json:"path,omitempty"` // JSON API: where the number is (a.b.0.c)
+	Auth     string    `json:"auth,omitempty"` // JSON API: "", "basic" or "bearer"
+	TLS      bool      `json:"tls,omitempty"`  // RouterOS: HTTPS (else HTTP)
+	HV       string    `json:"hv,omitempty"`   // hypervisor platform: vsphere or proxmox
 }
 
 // Check is one thing polled on a device.
@@ -580,6 +583,8 @@ func metricsOf(typ string, p CheckParams) []Series {
 		return []Series{{Metric: "cpu_pct", Unit: "%"}, {Metric: "mem_pct", Unit: "%"}, {Metric: "uptime_s", Unit: "s"}, {Metric: "temperature", Unit: "°C"}}
 	case CheckJSON:
 		return []Series{{Metric: "value", Unit: p.Unit}, {Metric: "response_ms", Unit: "ms"}}
+	case CheckScenario:
+		return []Series{{Metric: "response_ms", Unit: "ms"}, {Metric: "steps_ok", Unit: ""}}
 	case CheckHypervisor:
 		return []Series{{Metric: "cpu_pct", Unit: "%"}, {Metric: "mem_pct", Unit: "%"}, {Metric: "ds_used_pct", Unit: "%"}, {Metric: "vms_running", Unit: ""}, {Metric: "vms_total", Unit: ""}, {Metric: "hosts_down", Unit: ""}}
 	}
@@ -625,7 +630,7 @@ func (in *CheckInput) clean() error {
 		if strings.TrimSpace(in.Name) == "" {
 			in.Name = "TCP " + strconv.Itoa(p.Port)
 		}
-	case CheckHTTP, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON, CheckHypervisor:
+	case CheckHTTP, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON, CheckHypervisor, CheckScenario:
 		if err := p.cleanService(in.Type); err != nil {
 			return err
 		}

@@ -53,6 +53,12 @@ type devicesData struct {
 	Q       string
 	GroupID int64
 	Status  string
+	// for "Change selected" (operators and administrators)
+	Profiles  []*store.SNMPProfile
+	Templates []*store.Template
+	All       []*store.Device // every device, for "depends on"
+	Kinds     []string
+	Back      string
 }
 
 func (s *Server) handleDevices(w http.ResponseWriter, r *http.Request) {
@@ -75,6 +81,14 @@ func (s *Server) handleDevices(w http.ResponseWriter, r *http.Request) {
 	if d.Groups, err = s.store.Groups(ctx); err != nil {
 		s.serverError(w, r, err)
 		return
+	}
+	if u := userFrom(r); u != nil && u.CanWrite() {
+		d.Profiles, _ = s.store.SNMPProfiles(ctx)
+		d.Templates, _ = s.store.Templates(ctx)
+		d.All, _ = s.store.Devices(ctx, store.DeviceFilter{})
+		sort.Slice(d.All, func(i, j int) bool { return strings.ToLower(d.All[i].Name) < strings.ToLower(d.All[j].Name) })
+		d.Kinds = store.DeviceKinds
+		d.Back = r.URL.RequestURI()
 	}
 	s.render(w, r, http.StatusOK, "devices", &Page{Title: "Devices", Nav: "devices", Data: d})
 }
@@ -104,7 +118,9 @@ type deviceData struct {
 	Processes  []string        // process names the agent reports
 	Problems   []*store.Problem
 	Fields     []store.CustomField
-	Links      []DeviceLink // the links on every device, filled in
+	Templates  []*store.Template // applied to the device
+	AllTempl   []*store.Template // to apply (operators and administrators)
+	Links      []DeviceLink      // the links on every device, filled in
 	Now        time.Time
 	Tools      []deviceTool
 	AccessUser string
@@ -225,6 +241,10 @@ func (s *Server) showDevice(w http.ResponseWriter, r *http.Request, status int, 
 	data := &deviceData{D: d, Checks: cs, Graphs: arrangeGraphs(d.ID, cs, layout), Range: rg, Ranges: graphRanges, New: in, CheckTypes: store.CheckTypes, Traffic: map[int]*store.Check{}}
 	data.Problems = s.deviceProblems(r.Context(), d.ID)
 	data.Fields, _ = s.store.FieldValues(r.Context(), d.ID)
+	data.Templates, _ = s.store.DeviceTemplates(r.Context(), d.ID)
+	if u := userFrom(r); u != nil && u.CanWrite() {
+		data.AllTempl, _ = s.store.Templates(r.Context())
+	}
 	for _, l := range s.deviceLinks(r.Context()) {
 		data.Links = append(data.Links, linkFor(l, d))
 	}
@@ -453,6 +473,11 @@ func (s *Server) handleDeviceCreate(w http.ResponseWriter, r *http.Request) {
 		}
 		checks = append(checks, "tcp "+strconv.Itoa(p))
 	}
+	if n, err := s.store.ApplyAutoTemplates(ctx, id, d.In.Kind); err != nil {
+		s.log.Warn("templates", "device", id, "err", err)
+	} else if n > 0 {
+		checks = append(checks, strconv.Itoa(n)+" from templates")
+	}
 	s.poller.Reload()
 	s.audit(r, "device.create", "device:"+strconv.FormatInt(id, 10), "added %s (%s), checks: %s", d.In.Name, d.In.Address, strings.Join(checks, ", "))
 	if d.In.SNMP != 0 {
@@ -511,12 +536,16 @@ func (s *Server) handleDeviceDelete(w http.ResponseWriter, r *http.Request) {
 // ---- checks
 
 func checkInput(r *http.Request) store.CheckInput {
-	return store.CheckInput{Type: r.FormValue("type"), Name: r.FormValue("name"), IntervalS: formInt(r, "interval"), Paused: r.FormValue("paused") == "1",
+	in := store.CheckInput{Type: r.FormValue("type"), Name: r.FormValue("name"), IntervalS: formInt(r, "interval"), Paused: r.FormValue("paused") == "1",
 		Params: store.CheckParams{Count: formInt(r, "count"), TimeoutMS: formInt(r, "timeout_ms"), Port: formInt(r, "port"),
 			OID: r.FormValue("oid"), Rate: r.FormValue("rate") == "1", Unit: r.FormValue("unit"), Scale: formFloat(r, "scale"),
 			URL: r.FormValue("url"), Expect: formInt(r, "expect"), Contains: r.FormValue("contains"), Insecure: r.FormValue("insecure") == "1",
 			Query: r.FormValue("query"), RType: r.FormValue("rtype"), User: r.FormValue("user"), Secret: r.FormValue("secret"),
 			Database: r.FormValue("database"), Path: r.FormValue("path"), Auth: r.FormValue("auth"), TLS: r.FormValue("tls") == "1", HV: r.FormValue("hv")}}
+	if in.Type == store.CheckScenario {
+		in.Params.Steps, _ = store.ParseSteps(r.FormValue("steps"))
+	}
+	return in
 }
 
 func formFloat(r *http.Request, k string) float64 {

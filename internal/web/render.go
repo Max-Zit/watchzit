@@ -470,6 +470,7 @@ func init() {
 		return h
 	}
 	funcs["minutes"] = minutesText
+	funcs["stepsText"] = store.StepsText
 	funcs["days"] = func(sec int) int { return sec / 86400 }
 	funcs["sevOf"] = func(p *Page, sev string) sevCtx { return sevCtx{P: p, Sev: sev} }
 	funcs["severities"] = func() []string { return store.Severities }
@@ -547,13 +548,13 @@ var metricNames = map[string]string{"rtt_ms": "Response time", "loss_pct": "Pack
 	"cpu_pct": "CPU load", "used_pct": "Used", "used_b": "Used space", "value": "Value",
 	"mem_pct": "Memory used", "swap_pct": "Swap used", "mem_used_b": "Memory used (bytes)", "load1": "Load average", "running": "Running",
 	"status_code": "Status code", "cert_days": "Certificate valid (days)", "handshake_ms": "Handshake time", "connections": "Connections", "temperature": "Temperature",
-	"ds_used_pct": "Fullest datastore", "vms_running": "Machines running", "vms_total": "Machines", "hosts_down": "Hosts down", "level_pct": "Supply level", "charge_pct": "Battery charge", "runtime_min": "Runtime left", "on_battery": "On battery", "load_pct": "Load", "count": "Running instances", "mem_b": "Memory"}
+	"ds_used_pct": "Fullest datastore", "vms_running": "Machines running", "vms_total": "Machines", "hosts_down": "Hosts down", "steps_ok": "Steps passed", "level_pct": "Supply level", "charge_pct": "Battery charge", "runtime_min": "Runtime left", "on_battery": "On battery", "load_pct": "Load", "count": "Running instances", "mem_b": "Memory"}
 
 // checkKinds name the check types.
 var checkKinds = map[string]string{"icmp": "Ping (ICMP)", "tcp": "TCP port", "snmp": "SNMP availability", "snmp_if": "Interface traffic",
 	"snmp_cpu": "CPU load", "snmp_storage": "Memory or disk", "snmp_oid": "SNMP value (OID)", "snmp_supply": "Printer supply", "snmp_ups": "UPS",
 	"agent": "Agent", "agent_cpu": "CPU load", "agent_mem": "Memory", "agent_disk": "Disk", "agent_net": "Interface traffic", "agent_service": "Service", "agent_process": "Process",
-	"http": "Web page (HTTP)", "tls": "TLS certificate", "dns": "DNS", "pgsql": "PostgreSQL", "mysql": "MySQL / MariaDB", "routeros": "MikroTik RouterOS (API)", "jsonapi": "JSON API value", "hypervisor": "Hypervisor (vSphere, Proxmox VE)"}
+	"http": "Web page (HTTP)", "web_scenario": "Web scenario (several steps)", "tls": "TLS certificate", "dns": "DNS", "pgsql": "PostgreSQL", "mysql": "MySQL / MariaDB", "routeros": "MikroTik RouterOS (API)", "jsonapi": "JSON API value", "hypervisor": "Hypervisor (vSphere, Proxmox VE)"}
 
 // groupNames name the kinds of items discovery finds.
 var groupNames = map[string]string{"system": "System", "interface": "Interface", "memory": "Memory", "disk": "Disk", "printer": "Printer", "ups": "UPS", "health": "Health"}

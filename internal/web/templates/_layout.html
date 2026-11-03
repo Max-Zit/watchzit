@@ -30,6 +30,7 @@
     <a href="/devices" class="{{if eq .Nav "devices"}}on{{end}}">{{template "icon" "devices"}}{{.T "Devices"}}</a>
     <a href="/agents" class="{{if eq .Nav "agents"}}on{{end}}">{{template "icon" "cpu"}}{{.T "Agents"}}</a>
     <a href="/groups" class="{{if eq .Nav "groups"}}on{{end}}">{{template "icon" "folder"}}{{.T "Groups"}}</a>
+    <a href="/templates" class="{{if eq .Nav "templates"}}on{{end}}">{{template "icon" "layers"}}{{.T "Templates"}}</a>
     {{if .User.IsAdmin}}
     <span class="navlabel">{{.T "Administration"}}</span>
     <a href="/users" class="{{if eq .Nav "users"}}on{{end}}">{{template "icon" "users"}}{{.T "Users"}}</a>
