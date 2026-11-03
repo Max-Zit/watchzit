@@ -1278,7 +1278,7 @@
 
   // linkHistory draws the traffic of a link over time in the side panel,
   // from the interface check of either end (A → B is what A sends).
-  var histRange = "24h";
+  var histRange = "24h", histCache = null; // the panel is redrawn every refresh: reuse the last minute's data
   function linkHistory(p, s, a, b) {
     var abID = (s.a && s.a.sout) || (s.b && s.b.sin) || 0, baID = (s.a && s.a.sin) || (s.b && s.b.sout) || 0;
     if (!abID && !baID) return;
@@ -1304,7 +1304,15 @@
         .then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
     }
     function load() {
-      Promise.all([get(abID), get(baID)]).then(function (res) { draw(res[0], res[1]); });
+      var key = abID + "|" + baID + "|" + histRange;
+      if (histCache && histCache.key === key) {
+        draw(histCache.ab, histCache.ba);
+        if (Date.now() - histCache.at < 60000) return;
+      }
+      Promise.all([get(abID), get(baID)]).then(function (res) {
+        histCache = { key: key, at: Date.now(), ab: res[0], ba: res[1] };
+        if (wrap.isConnected) draw(res[0], res[1]);
+      });
     }
     function draw(ab, ba) {
       clear(graph); clear(legend);
@@ -1315,7 +1323,7 @@
         d.avg.forEach(function (v) { if (v !== null && v > max) max = v; });
       });
       if (!from || !max) { graph.appendChild(h("p", { "class": "muted small" }, T("No data yet."))); return; }
-      var svg = el("svg", { viewBox: "0 0 " + W + " " + H, "class": "linkhist-svg", role: "img", "aria-label": T("Traffic history") });
+      var svg = el("svg", { viewBox: "0 0 " + W + " " + H, preserveAspectRatio: "none", "class": "linkhist-svg", role: "img", "aria-label": T("Traffic history") });
       el("line", { x1: 0, y1: H - 0.5, x2: W, y2: H - 0.5, "class": "lh-axis" }, svg);
       el("line", { x1: 0, y1: 0.5, x2: W, y2: 0.5, "class": "lh-grid" }, svg);
       [[ab, "lh-ab"], [ba, "lh-ba"]].forEach(function (x) {
