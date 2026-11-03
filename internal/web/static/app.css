@@ -938,3 +938,11 @@ p.center { text-align: center; }
 .node.unreach.s-down .frame { stroke: var(--muted); stroke-dasharray: 5 4; }
 .node.unreach.s-down .dot, .node.mounted.unreach.s-down .stripe { fill: var(--muted); }
 .node.unreach .pulse { display: none; }
+/* PassZit badge next to Open with */
+.pz-badge:empty { display: none; }
+.pz-badge .badge { display: inline-flex; align-items: center; gap: 4px; }
+.pz-badge .badge .ic { width: 13px; height: 13px; }
+.pz-hint summary { cursor: pointer; list-style: none; }
+.pz-hint summary::-webkit-details-marker { display: none; }
+.pz-hint[open] .pz-help { position: absolute; z-index: 30; max-width: 320px; margin-top: 6px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+.pz-hint .pz-help p { margin: 0 0 8px; }

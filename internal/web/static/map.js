@@ -708,7 +708,9 @@
           ta.setAttribute("data-open-user", t.user || ""); ta.setAttribute("data-open-device", d.name || "");
           acts.appendChild(ta);
         });
+        if (d.tools && d.tools.length) acts.appendChild(h("span", { "class": "pz-badge", "data-pz-badge": "" }));
         p.appendChild(acts);
+        if (d.tools && d.tools.length && window.WatchZitPassZit) window.WatchZitPassZit.refresh();
         if (d.tools && d.tools.length) {
           // the tools need the Launcher paired with this console
           var lp = h("p", { "class": "muted small" }, T("SSH, Remote Desktop and the other tools open through the MaxZit Launcher.") + " ");

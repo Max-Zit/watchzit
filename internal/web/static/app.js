@@ -261,3 +261,64 @@ document.addEventListener("click", function (ev) {
     setTimeout(function () { finish(false); }, 400);
   });
 })();
+
+// The PassZit badge next to Open with: the PassZit extension (on consoles
+// the user allowed in it) tells the page whether it is there and unlocked
+// — {type: "maxzit-passzit", state: "ready" | "locked"}, nothing else —
+// and answers again when asked. Without an answer a dismissible hint
+// explains how to use it.
+(function () {
+  "use strict";
+  var texts = document.getElementById("pz-texts");
+  if (!texts) return;
+  var state = "", answered = false, HINT_OFF = "wz-pz-hint-off";
+  function t(k) { return texts.getAttribute("data-" + k) || ""; }
+  function hintOff() { try { return window.localStorage.getItem(HINT_OFF) === "1"; } catch (e) { return false; } }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; }
+  var KEY = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 9.2-9.2M17 6l3 3M14 9l2 2"/></svg>';
+  function paint(b) {
+    b.textContent = "";
+    b.className = "pz-badge";
+    if (state === "ready" || state === "locked") {
+      var s = el("span", "badge " + (state === "ready" ? "ok" : "muted"));
+      s.innerHTML = KEY; // a fixed icon, no data
+      s.appendChild(document.createTextNode(t(state)));
+      s.title = t(state + "-tip");
+      b.appendChild(s);
+      return;
+    }
+    if (!answered || hintOff()) return;
+    var d = el("details", "pz-hint");
+    d.appendChild(el("summary", "small muted", t("hint")));
+    var p = el("div", "pz-help small");
+    p.appendChild(el("p", "", t("help")));
+    var off = el("button", "ghost sm", t("dismiss"));
+    off.type = "button";
+    off.addEventListener("click", function () {
+      try { window.localStorage.setItem(HINT_OFF, "1"); } catch (e) { /* private mode */ }
+      paintAll();
+    });
+    p.appendChild(off);
+    d.appendChild(p);
+    b.appendChild(d);
+  }
+  function paintAll() { Array.prototype.forEach.call(document.querySelectorAll("[data-pz-badge]"), paint); }
+  var timer = 0;
+  function ask() {
+    window.postMessage({ type: "maxzit-passzit-ask" }, window.location.origin);
+    clearTimeout(timer);
+    timer = setTimeout(function () { answered = true; paintAll(); }, 300); // no answer: not installed or not allowed here
+  }
+  window.addEventListener("message", function (e) {
+    var d = e.data;
+    if (e.source !== window || e.origin !== window.location.origin || !d || d.type !== "maxzit-passzit") return;
+    if (d.state !== "ready" && d.state !== "locked") return;
+    clearTimeout(timer);
+    state = d.state; answered = true;
+    paintAll();
+  });
+  window.addEventListener("focus", ask);
+  // the map's side panel adds badges when a device opens
+  window.WatchZitPassZit = { refresh: function () { paintAll(); ask(); } };
+  if (document.querySelector("[data-pz-badge]") || document.querySelector(".mapview, #map")) ask();
+})();

@@ -18,6 +18,7 @@
   <span class="muted small">{{.T "Open with"}}</span>
   {{range .Data.Tools}}<a class="btn secondary sm" href="/devices/{{$d.ID}}/open/{{.ID}}" data-open-tool="{{or .Builtin "custom"}}" data-open-host="{{$d.Address}}" data-open-port="{{.DevPort}}" data-open-user="{{$.Data.AccessUser}}" data-open-device="{{$d.Name}}" title="{{if not .Builtin}}{{.Program}}{{else}}{{$d.Address}}:{{.DevPort}}{{end}}">{{template "icon" (toolIcon .Builtin)}}{{.Name}}</a>{{if eq .Builtin "rdp"}}<a class="btn ghost sm" href="/devices/{{$d.ID}}/rdp" title="{{$.T "Download a Remote Desktop file (works without the launcher)"}}">{{template "icon" "download"}}.rdp</a>{{end}}{{end}}
   <a class="small" href="/launcher">{{.T "Launcher"}}</a>
+  <span class="pz-badge" data-pz-badge></span>
 </div>
 {{end}}
 <section class="panel">

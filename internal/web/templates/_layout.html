@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 {{if .Device}}<meta name="passzit-device" content="{{.Device}}">{{end}}
+<meta name="maxzit-console" content="watchzit">
 {{if .Refresh}}<meta http-equiv="refresh" content="{{.Refresh}}">{{end}}
 <title>{{.T .Title}} · WatchZit</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
@@ -14,6 +15,7 @@
 
 {{define "app"}}{{template "head" .}}
 <body class="app">
+<div id="pz-texts" hidden data-ready="{{.T "PassZit"}}" data-ready-tip="{{.T "Passwords from PassZit: Open with signs in by itself."}}" data-locked="{{.T "PassZit locked"}}" data-locked-tip="{{.T "Unlock PassZit (the browser icon or the PassZit web vault) to sign in with saved passwords."}}" data-hint="{{.T "Sign in with PassZit passwords?"}}" data-help="{{.T "Install the PassZit browser extension, open this page, click the PassZit icon in the browser toolbar and choose Allow on this console."}}" data-dismiss="{{.T "Don't show again"}}"></div>
 <aside class="side" id="side">
   <a class="brand" href="/">{{template "logo"}}<span>Watch<b>Zit</b></span></a>
   <nav>
