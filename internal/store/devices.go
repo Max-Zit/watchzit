@@ -127,15 +127,19 @@ type Device struct {
 	CreatedAt   time.Time
 	Checks      int
 	ChecksDown  int
+	Collector   bool   // this agent runs the checks of other devices
+	CollectorID int64  // the collector that runs this device's checks (0 = the console)
+	CollectedBy string // its name
 }
 
 const deviceCols = `d.id, d.group_id, COALESCE(g.name,''), d.name, d.address, d.kind, d.web_url, d.web_name, d.web_links, d.notes, d.paused, COALESCE(d.snmp_profile_id,0), COALESCE(d.parent_id,0), COALESCE((SELECT p.name FROM devices p WHERE p.id=d.parent_id),''), d.status, d.status_since, d.created_at,
-	(SELECT count(*) FROM checks c WHERE c.device_id=d.id), (SELECT count(*) FROM checks c WHERE c.device_id=d.id AND c.status='down' AND NOT c.paused)`
+	(SELECT count(*) FROM checks c WHERE c.device_id=d.id), (SELECT count(*) FROM checks c WHERE c.device_id=d.id AND c.status='down' AND NOT c.paused),
+	d.collector, COALESCE(d.collector_id,0), COALESCE((SELECT x.name FROM devices x WHERE x.id=d.collector_id),'')`
 
 func scanDevice(row interface{ Scan(...any) error }) (*Device, error) {
 	d := &Device{}
 	var links []byte
-	err := row.Scan(&d.ID, &d.GroupID, &d.Group, &d.Name, &d.Address, &d.Kind, &d.WebURL, &d.WebName, &links, &d.Notes, &d.Paused, &d.SNMPProfile, &d.Parent, &d.ParentName, &d.Status, &d.StatusSince, &d.CreatedAt, &d.Checks, &d.ChecksDown)
+	err := row.Scan(&d.ID, &d.GroupID, &d.Group, &d.Name, &d.Address, &d.Kind, &d.WebURL, &d.WebName, &links, &d.Notes, &d.Paused, &d.SNMPProfile, &d.Parent, &d.ParentName, &d.Status, &d.StatusSince, &d.CreatedAt, &d.Checks, &d.ChecksDown, &d.Collector, &d.CollectorID, &d.CollectedBy)
 	_ = json.Unmarshal(links, &d.WebLinks)
 	return d, err
 }
@@ -446,6 +450,7 @@ type Check struct {
 	CreatedAt   time.Time
 	SNMPProfile int64 // of the device
 	Series      []Series
+	Collector   int64 // the remote collector that runs it (0 = the console)
 }
 
 // Series is a metric of a check.
@@ -455,12 +460,12 @@ type Series struct {
 	Unit   string
 }
 
-const checkCols = `c.id, c.device_id, d.name, d.address, c.type, c.name, c.params, c.interval_s, c.paused, d.paused, c.status, c.status_since, c.last_run, c.last_text, c.created_at, COALESCE(d.snmp_profile_id,0)`
+const checkCols = `c.id, c.device_id, d.name, d.address, c.type, c.name, c.params, c.interval_s, c.paused, d.paused, c.status, c.status_since, c.last_run, c.last_text, c.created_at, COALESCE(d.snmp_profile_id,0), COALESCE(d.collector_id,0)`
 
 func scanCheck(row interface{ Scan(...any) error }) (*Check, error) {
 	c := &Check{}
 	var raw []byte
-	err := row.Scan(&c.ID, &c.DeviceID, &c.Device, &c.Address, &c.Type, &c.Name, &raw, &c.IntervalS, &c.Paused, &c.DevPaused, &c.Status, &c.StatusSince, &c.LastRun, &c.LastText, &c.CreatedAt, &c.SNMPProfile)
+	err := row.Scan(&c.ID, &c.DeviceID, &c.Device, &c.Address, &c.Type, &c.Name, &raw, &c.IntervalS, &c.Paused, &c.DevPaused, &c.Status, &c.StatusSince, &c.LastRun, &c.LastText, &c.CreatedAt, &c.SNMPProfile, &c.Collector)
 	if err == nil {
 		err = json.Unmarshal(raw, &c.Params)
 	}

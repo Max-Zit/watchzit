@@ -99,6 +99,9 @@ func New(ctx context.Context, st *store.Store, db *tsdb.DB, p *poller.Poller, lo
 	ag, _ := netacl.Parse(n.AgentAllowed)
 	s.AgentACL = netacl.NewOptional(ag)
 	s.hub = newHub()
+	if p != nil {
+		p.OnReload = func() { go s.syncCollectors() }
+	}
 	db.SetRetention(s.retention(ctx))
 	return s, nil
 }
@@ -438,6 +441,7 @@ func (s *Server) Handler() http.Handler {
 	write("POST /alerts/maintenance", s.handleMaintenanceCreate)
 	write("POST /alerts/maintenance/{id}/end", s.handleMaintenanceEnd)
 	write("POST /devices/bulk", s.handleDevicesBulk)
+	write("POST /devices/{id}/collector", s.handleDeviceCollector)
 	app("GET /templates", s.handleTemplates)
 	write("POST /templates", s.handleTemplateCreate)
 	app("GET /templates/{id}", s.handleTemplate)

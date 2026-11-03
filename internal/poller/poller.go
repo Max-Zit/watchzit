@@ -33,6 +33,8 @@ type Poller struct {
 	Workers int
 	// OnChange is told about checks that went up or down.
 	OnChange func([]store.StatusChange)
+	// OnReload is told when the checks changed (remote collectors get theirs).
+	OnReload func()
 
 	mu       sync.Mutex
 	entries  map[int64]*entry
@@ -42,6 +44,11 @@ type Poller struct {
 	vlanSync map[int64]time.Time     // last read of a router's VLANs per device
 	hvSync   map[int64]time.Time     // last full read of a hypervisor per device
 	haLast   map[int64][2]string     // HA role and its source last stored per device
+
+	// a remote collector (no store): what the console sent, where results go
+	results func([]RemoteResult)
+	snmpCfg map[int64]RemoteSNMP
+	secrets map[int64]string
 }
 
 type counterState struct {
@@ -65,6 +72,9 @@ func (p *Poller) Reload() {
 	select {
 	case p.reload <- struct{}{}:
 	default:
+	}
+	if p.OnReload != nil {
+		p.OnReload()
 	}
 }
 
@@ -98,6 +108,9 @@ func (p *Poller) load(ctx context.Context) error {
 		if store.IsAgent(c.Type) {
 			continue // the agent reports these itself
 		}
+		if c.Collector != 0 && RemoteType(c.Type) {
+			continue // a remote collector runs it
+		}
 		seen[c.ID] = true
 		if e := p.entries[c.ID]; e != nil {
 			if e.c.IntervalS != c.IntervalS {
@@ -125,6 +138,10 @@ func (p *Poller) load(ctx context.Context) error {
 
 // Run polls until ctx ends.
 func (p *Poller) Run(ctx context.Context) {
+	if p.store == nil {
+		p.runRemote(ctx)
+		return
+	}
 	if err := p.load(ctx); err != nil {
 		p.log.Error("poller: cannot load checks", "err", err)
 	}
@@ -349,7 +366,16 @@ func (p *Poller) runCheck(ctx context.Context, c *store.Check) outcome {
 func (p *Poller) snmpClient(profileID int64, addr netip.Addr, timeout time.Duration) (*snmp.Client, error) {
 	p.mu.Lock()
 	pr := p.profiles[profileID]
+	rs, remote := p.snmpCfg[profileID]
 	p.mu.Unlock()
+	if p.store == nil {
+		if !remote || rs.Port < 1 || rs.Port > 65535 {
+			return nil, errors.New("the device has no SNMP profile")
+		}
+		cfg := rs.Config
+		cfg.Timeout = timeout
+		return snmp.Dial(netip.AddrPortFrom(addr, uint16(rs.Port)), cfg) // #nosec G115 -- port is 1–65535
+	}
 	if pr == nil {
 		return nil, errors.New("the device has no SNMP profile")
 	}
@@ -380,7 +406,7 @@ func (p *Poller) runSNMP(ctx context.Context, c *store.Check, addr netip.Addr, t
 			p.haState(ctx, c.DeviceID, st, "vrrp")
 		}
 	}
-	if r.Params != nil {
+	if r.Params != nil && p.store != nil {
 		if err := p.store.UpdateCheckParams(ctx, c.ID, *r.Params); err != nil {
 			p.log.Warn("poller: cannot save check parameters", "check", c.ID, "err", err)
 		}
@@ -456,7 +482,7 @@ func (p *Poller) Refresh(ctx context.Context, id int64) {
 	sem := make(chan struct{}, 4)
 	var wg sync.WaitGroup
 	for _, d := range devs {
-		if (id != 0 && d.ID != id) || d.Paused {
+		if (id != 0 && d.ID != id) || d.Paused || d.CollectorID != 0 {
 			continue
 		}
 		wg.Add(1)
@@ -518,12 +544,16 @@ func (p *Poller) runService(ctx context.Context, c *store.Check, o *outcome, sam
 		}
 		t.Addr = addr
 	}
-	secret, err := p.store.CheckSecret(c)
+	secret, err := p.checkSecret(c)
 	if err != nil {
 		o.res.Text = "the saved password cannot be read; enter it again"
 		return
 	}
 	t.Secret = secret
+	if c.Type == store.CheckHypervisor && p.store == nil {
+		o.res.Text = "hypervisors are read by the console"
+		return
+	}
 	if c.Type == store.CheckHypervisor {
 		p.runHypervisor(ctx, c, secret, o, sample)
 		return
@@ -548,6 +578,9 @@ func (p *Poller) runService(ctx context.Context, c *store.Check, o *outcome, sam
 // at most every ten minutes, and keeps the VLANs with the ports matched by
 // interface name.
 func (p *Poller) routerVLANs(ctx context.Context, c *store.Check, t checks.Target) {
+	if p.store == nil {
+		return // a collector: the console reads VLANs itself
+	}
 	p.mu.Lock()
 	due := p.now().Sub(p.vlanSync[c.DeviceID]) >= 10*time.Minute
 	if due {
@@ -594,6 +627,9 @@ func (p *Poller) routerVLANs(ctx context.Context, c *store.Check, t checks.Targe
 // haState stores the HA role a device reports when it changed. A source
 // that finds nothing does not clear what another source found.
 func (p *Poller) haState(ctx context.Context, deviceID int64, state, source string) {
+	if p.store == nil {
+		return // a collector: the console keeps HA roles
+	}
 	p.mu.Lock()
 	last, seen := p.haLast[deviceID]
 	if state == "" && (!seen || last[1] != source) {
@@ -659,4 +695,15 @@ func (p *Poller) runHypervisor(ctx context.Context, c *store.Check, secret strin
 	if m["hosts_down"] > 0 {
 		o.res.Text += fmt.Sprintf(", %.0f hosts down", m["hosts_down"])
 	}
+}
+
+// checkSecret is the opened password of a check (a collector got it from
+// the console).
+func (p *Poller) checkSecret(c *store.Check) (string, error) {
+	if p.store == nil {
+		p.mu.Lock()
+		defer p.mu.Unlock()
+		return p.secrets[c.ID], nil
+	}
+	return p.store.CheckSecret(c)
 }

@@ -34,6 +34,9 @@ const (
 	TypeInventory        = "inventory" // agent → server: what the machine is
 	TypeInventoryRequest = "inventory-request"
 	TypeUpdate           = "update" // server → agent: install the agent of the server's version (AgentUpdate)
+	// remote collector (poller.RemoteConfig and poller.RemoteResults)
+	TypeCollectorConfig  = "collector-config"  // server → agent: the checks to run for other devices
+	TypeCollectorResults = "collector-results" // agent → server: their results
 )
 
 // EnrollRequest joins a machine with an enrollment token.

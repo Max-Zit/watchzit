@@ -28,7 +28,7 @@ func (p *Poller) Topology(ctx context.Context, ids ...int64) {
 	sem := make(chan struct{}, 4)
 	var wg sync.WaitGroup
 	for _, d := range devs {
-		if (len(ids) > 0 && !want[d.ID]) || d.Paused {
+		if (len(ids) > 0 && !want[d.ID]) || d.Paused || d.CollectorID != 0 {
 			continue
 		}
 		wg.Add(1)

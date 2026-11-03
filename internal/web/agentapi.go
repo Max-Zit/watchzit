@@ -18,6 +18,7 @@ import (
 	"github.com/coder/websocket"
 
 	"github.com/max-zit/watchzit/internal/hypervisor"
+	"github.com/max-zit/watchzit/internal/poller"
 	"github.com/max-zit/watchzit/internal/proto"
 	"github.com/max-zit/watchzit/internal/store"
 	"github.com/max-zit/watchzit/internal/tsdb"
@@ -42,6 +43,7 @@ type agentConn struct {
 	guHash   string // the machines or containers last stored
 	// what the agent said in its hello
 	version, os, arch string
+	coll              collectorState // what it runs as a remote collector
 }
 
 func newHub() *hub { return &hub{conns: map[int64]*agentConn{}} }
@@ -183,6 +185,11 @@ func (s *Server) handleAgentConnect(w http.ResponseWriter, r *http.Request) {
 		cancel()
 		if s.hub.remove(c) {
 			s.agentOffline(a.DeviceID)
+			if c.coll.hash != "" {
+				octx, ocancel := context.WithTimeout(context.Background(), 30*time.Second)
+				s.collectorOffline(octx, a.DeviceID)
+				ocancel()
+			}
 		}
 		_ = ws.CloseNow()
 	}()
@@ -264,6 +271,9 @@ func (s *Server) agentMessage(ctx context.Context, c *agentConn, env proto.Envel
 			return err
 		}
 		s.offerAgentUpdate(ctx, c, false)
+		if err := s.sendCollectorConfig(ctx, c); err != nil {
+			s.log.Warn("cannot send the remote collector its checks", "device", c.deviceID, "err", err)
+		}
 		return nil
 	case proto.TypeReport:
 		var r proto.Report
@@ -277,6 +287,12 @@ func (s *Server) agentMessage(ctx context.Context, c *agentConn, env proto.Envel
 			return err
 		}
 		return s.agentReport(ctx, c, &r)
+	case proto.TypeCollectorResults:
+		var rr poller.RemoteResults
+		if err := json.Unmarshal(env.Data, &rr); err != nil {
+			return err
+		}
+		return s.collectorResults(ctx, c, &rr)
 	case proto.TypeInventory:
 		var inv proto.Inventory
 		if err := json.Unmarshal(env.Data, &inv); err != nil {

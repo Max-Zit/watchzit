@@ -60,11 +60,12 @@ type devicesData struct {
 	GroupID int64
 	Status  string
 	// for "Change selected" (operators and administrators)
-	Profiles  []*store.SNMPProfile
-	Templates []*store.Template
-	All       []*store.Device // every device, for "depends on"
-	Kinds     []string
-	Back      string
+	Profiles   []*store.SNMPProfile
+	Templates  []*store.Template
+	All        []*store.Device // every device, for "depends on"
+	Collectors []*store.Device
+	Kinds      []string
+	Back       string
 }
 
 func (s *Server) handleDevices(w http.ResponseWriter, r *http.Request) {
@@ -94,6 +95,7 @@ func (s *Server) handleDevices(w http.ResponseWriter, r *http.Request) {
 		d.All, _ = s.store.Devices(ctx, store.DeviceFilter{})
 		sort.Slice(d.All, func(i, j int) bool { return strings.ToLower(d.All[i].Name) < strings.ToLower(d.All[j].Name) })
 		d.Kinds = store.DeviceKinds
+		d.Collectors, _ = s.store.Collectors(ctx)
 		d.Back = r.URL.RequestURI()
 	}
 	s.render(w, r, http.StatusOK, "devices", &Page{Title: "Devices", Nav: "devices", Data: d})
@@ -126,6 +128,8 @@ type deviceData struct {
 	Fields     []store.CustomField
 	Templates  []*store.Template // applied to the device
 	AllTempl   []*store.Template // to apply (operators and administrators)
+	Collectors []*store.Device   // remote collectors to choose from
+	Collected  int               // devices this collector runs
 	Links      []DeviceLink      // the links on every device, filled in
 	Now        time.Time
 	Tools      []deviceTool
@@ -250,6 +254,12 @@ func (s *Server) showDevice(w http.ResponseWriter, r *http.Request, status int, 
 	data.Templates, _ = s.store.DeviceTemplates(r.Context(), d.ID)
 	if u := userFrom(r); u != nil && u.CanWrite() {
 		data.AllTempl, _ = s.store.Templates(r.Context())
+	}
+	data.Collectors, _ = s.store.Collectors(r.Context())
+	if d.Collector {
+		if n, err := s.store.CollectorDevices(r.Context()); err == nil {
+			data.Collected = n[d.ID]
+		}
 	}
 	for _, l := range s.deviceLinks(r.Context()) {
 		data.Links = append(data.Links, linkFor(l, d))

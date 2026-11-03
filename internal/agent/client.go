@@ -15,6 +15,7 @@ import (
 
 	"github.com/coder/websocket"
 
+	"github.com/max-zit/watchzit/internal/poller"
 	"github.com/max-zit/watchzit/internal/proto"
 )
 
@@ -153,6 +154,16 @@ func (a *Agent) session(ctx context.Context) error {
 		}
 	}()
 
+	// remote collector: the checks the server gives this agent for other
+	// devices run in a poller; its results come back through coll
+	var collector *poller.Poller
+	var stopCollector context.CancelFunc // nil while not collecting
+	coll := make(chan []poller.RemoteResult, 16)
+	defer func() {
+		if stopCollector != nil {
+			stopCollector()
+		}
+	}()
 	interval := 60 * time.Second
 	var services, processes []string
 	ticker := time.NewTicker(interval)
@@ -210,10 +221,40 @@ func (a *Agent) session(ctx context.Context) error {
 						}
 					}()
 				}
+			case proto.TypeCollectorConfig:
+				var cfg poller.RemoteConfig
+				if json.Unmarshal(env.Data, &cfg) != nil {
+					break
+				}
+				if len(cfg.Checks) == 0 {
+					if stopCollector != nil {
+						stopCollector()
+						collector, stopCollector = nil, nil
+						a.Log.Info("no longer a remote collector")
+					}
+					break
+				}
+				if collector == nil {
+					collector = poller.NewCollector(a.Log, func(rs []poller.RemoteResult) {
+						select {
+						case coll <- rs:
+						case <-sctx.Done():
+						}
+					})
+					cctx, cancelColl := context.WithCancel(sctx)
+					stopCollector = cancelColl
+					go collector.Run(cctx)
+				}
+				collector.SetRemote(cfg)
+				a.Log.Info("remote collector checks", "count", collector.Remote())
 			case proto.TypeInventoryRequest:
 				if err := inventory(); err != nil {
 					return err
 				}
+			}
+		case rs := <-coll:
+			if err := sendMsg(sctx, ws, proto.TypeCollectorResults, poller.RemoteResults{Results: rs}); err != nil {
+				return err
 			}
 		case <-first:
 			first = nil
