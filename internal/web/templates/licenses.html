@@ -1,0 +1,14 @@
+{{template "app" .}}
+{{define "content"}}
+<h1>{{.T "Licenses"}}</h1>
+<section class="panel">
+  <p>{{.T "WatchZit is free software by MaxZit under the GNU Affero General Public License v3.0. The source code is on GitHub:"}} <a href="https://github.com/Max-Zit/watchzit" target="_blank" rel="noopener">github.com/Max-Zit/watchzit</a></p>
+  <p class="small muted">{{.T "Product names, logos and model names shown on device pictures belong to their owners; they only name the devices they stand for."}}</p>
+</section>
+<section class="panel">
+  <h2>{{.T "Third-party licenses"}}</h2>
+  <p class="small muted">{{.T "WatchZit uses these libraries and icons; their copyright notices and licenses:"}}</p>
+  {{if .Data.Text}}<pre class="output">{{.Data.Text}}</pre>
+  {{else}}<p class="muted">{{.T "The file THIRD_PARTY_LICENSES.md is not on this server; it is part of every release on GitHub."}}</p>{{end}}
+</section>
+{{end}}

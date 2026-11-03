@@ -214,3 +214,5 @@ WatchZit checks for new releases itself and shows them under **Settings → Upda
 - Paid support is offered by [MaxZit](https://maxzit.com).
 
 GNU Affero General Public License v3.0 — see [LICENSE](LICENSE). Third-party components and their licenses: [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+
+WatchZit is original code by MaxZit; it uses only libraries under permissive licenses (MIT, BSD, ISC, Apache-2.0, MPL-2.0), listed with their notices in THIRD_PARTY_LICENSES.md, which also ships in every package and installer and is shown in the console (*Licenses*, at the bottom of the menu). The device pictures are drawn by WatchZit's own generator (`tools/devicons`); product names, logos and model names belong to their owners and only name the devices they stand for — WatchZit is not affiliated with or endorsed by those manufacturers.

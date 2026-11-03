@@ -47,6 +47,7 @@
           </Component>
           <Component Id="License" Guid="9A4C6E20-1D7B-4F35-8E92-C3B5A7D10F68">
             <File Id="LicenseFile" Source="$(var.RootDir)\LICENSE" Name="LICENSE.txt" />
+            <File Id="ThirdPartyFile" Source="$(var.RootDir)\THIRD_PARTY_LICENSES.md" Name="THIRD_PARTY_LICENSES.txt" />
             <RegistryValue Root="HKCU" Key="Software\MaxZit\MaxZit Launcher" Name="License" Value="1" Type="integer" KeyPath="yes" />
           </Component>
           <!-- watchzit: links of the WatchZit console -->

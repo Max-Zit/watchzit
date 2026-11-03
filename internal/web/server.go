@@ -382,6 +382,7 @@ func (s *Server) Handler() http.Handler {
 	app("GET /devices/{id}/open/{tool}", s.handleOpen)
 	app("GET /devices/{id}/rdp", s.handleRDP)
 	app("GET /launcher", s.handleLauncher)
+	app("GET /licenses", s.handleLicenses)
 	app("GET /dashboards", s.handleDashboards)
 	write("POST /dashboards", s.handleDashboardCreate)
 	app("GET /dashboards/{id}", s.handleDashboard)
