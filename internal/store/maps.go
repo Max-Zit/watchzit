@@ -656,6 +656,8 @@ type LiveTool struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
 	Kind string `json:"kind"` // built-in tool or "custom"
+	Port int    `json:"port,omitempty"` // the device's port for it
+	User string `json:"user,omitempty"` // the device's sign-in user (never a password)
 }
 
 // LivePort is an interface with its latest traffic.

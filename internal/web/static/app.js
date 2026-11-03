@@ -224,3 +224,40 @@ document.addEventListener("click", function (ev) {
   }
   if (ev.target.closest && ev.target.closest("[data-closewin]")) window.close();
 });
+
+// Open with: the PassZit extension may take the connection and open it
+// signed in with a login from the vault (through the MaxZit Launcher).
+// The page asks it with a message — never a password — and waits briefly
+// for its answer; without one the watchzit:// link opens as always.
+(function () {
+  "use strict";
+  var tools = { rdp: 1, ssh: 1, winbox: 1, vnc: 1, telnet: 1, winscp: 1 };
+  document.addEventListener("click", function (ev) {
+    var a = ev.target.closest && ev.target.closest("a[data-open-tool]");
+    if (!a || ev.defaultPrevented || ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey) return;
+    ev.preventDefault();
+    var href = a.getAttribute("href"), tool = a.getAttribute("data-open-tool");
+    var nonce = "";
+    var rnd = new Uint8Array(16);
+    window.crypto.getRandomValues(rnd);
+    for (var i = 0; i < rnd.length; i++) nonce += ("0" + rnd[i].toString(16)).slice(-2);
+    var done = false;
+    function finish(taken) {
+      if (done) return;
+      done = true;
+      window.removeEventListener("message", onMessage);
+      if (!taken) window.location.href = href;
+    }
+    function onMessage(e) {
+      var d = e.data;
+      if (e.source === window && e.origin === window.location.origin && d && d.type === "maxzit-open-taken" && d.nonce === nonce) finish(true);
+    }
+    window.addEventListener("message", onMessage);
+    window.postMessage({
+      type: "maxzit-open", nonce: nonce, tool: tools[tool] ? tool : "custom",
+      host: a.getAttribute("data-open-host") || "", port: parseInt(a.getAttribute("data-open-port"), 10) || 0,
+      user: a.getAttribute("data-open-user") || "", device: a.getAttribute("data-open-device") || ""
+    }, window.location.origin);
+    setTimeout(function () { finish(false); }, 400);
+  });
+})();

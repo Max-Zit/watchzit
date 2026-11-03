@@ -701,7 +701,13 @@
         acts.appendChild(btn(T("Metrics"), "/devices/" + n.device + fromMap(), "primary"));
         if (d.web) { var wa = btn(d.web_name || T("Open web interface"), d.web); wa.target = "_blank"; wa.rel = "noopener noreferrer"; acts.appendChild(wa); }
         (d.links || []).forEach(function (l) { var la = btn(l.name, l.url); la.target = "_blank"; la.rel = "noopener noreferrer"; acts.appendChild(la); });
-        (d.tools || []).forEach(function (t) { acts.appendChild(btn(t.name, "/devices/" + n.device + "/open/" + t.id)); });
+        (d.tools || []).forEach(function (t) {
+          var ta = btn(t.name, "/devices/" + n.device + "/open/" + t.id);
+          // PassZit may open it signed in (see openWith in app.js)
+          ta.setAttribute("data-open-tool", t.kind); ta.setAttribute("data-open-host", d.address || ""); ta.setAttribute("data-open-port", String(t.port || 0));
+          ta.setAttribute("data-open-user", t.user || ""); ta.setAttribute("data-open-device", d.name || "");
+          acts.appendChild(ta);
+        });
         p.appendChild(acts);
         if (d.tools && d.tools.length) {
           // the tools need the Launcher paired with this console

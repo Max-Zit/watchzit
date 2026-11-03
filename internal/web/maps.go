@@ -264,13 +264,14 @@ func (s *Server) writeMapLive(w http.ResponseWriter, r *http.Request, m *store.M
 	if withTools {
 		if ts, err := s.store.Tools(r.Context()); err == nil {
 			for _, d := range live.Devices {
+				access, _ := s.store.DeviceAccess(r.Context(), d.ID)
 				for _, t := range ts {
 					if t.For(d.Kind) {
 						k := t.Builtin
 						if k == "" {
 							k = "custom"
 						}
-						d.Tools = append(d.Tools, store.LiveTool{ID: t.ID, Name: t.Name, Kind: k})
+						d.Tools = append(d.Tools, store.LiveTool{ID: t.ID, Name: t.Name, Kind: k, Port: access.PortFor(t), User: access.User})
 					}
 				}
 			}
