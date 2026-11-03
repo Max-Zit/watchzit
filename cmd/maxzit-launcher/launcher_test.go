@@ -158,3 +158,28 @@ func TestToolCommands(t *testing.T) {
 		t.Fatalf("missing: %v", err)
 	}
 }
+
+// TestPairMoved: the same console under a new address (moved, or restored
+// from a backup) updates the pairing after a question instead of saying it
+// is paired already.
+func TestPairMoved(t *testing.T) {
+	pub, _, _ := ed25519.GenerateKey(nil)
+	l, ui, _ := newLauncher(t, nil)
+	if err := l.handle(launch.PairURL(pub, "127.0.0.1")); err != nil || len(l.cfg.Servers) != 1 {
+		t.Fatalf("pairing: %v", err)
+	}
+	ui.answer = false
+	if err := l.handle(launch.PairURL(pub, "192.168.101.195")); err != nil || l.cfg.Servers[0].Name != "127.0.0.1" {
+		t.Fatalf("refused move: %v %+v", err, l.cfg.Servers)
+	}
+	ui.answer = true
+	if err := l.handle(launch.PairURL(pub, "192.168.101.195")); err != nil || len(l.cfg.Servers) != 1 || l.cfg.Servers[0].Name != "192.168.101.195" {
+		t.Fatalf("move: %v %+v", err, l.cfg.Servers)
+	}
+	if !strings.Contains(ui.asked[len(ui.asked)-1], "127.0.0.1") || !strings.Contains(ui.told[len(ui.told)-1], "192.168.101.195") {
+		t.Fatalf("question %q / answer %q", ui.asked[len(ui.asked)-1], ui.told[len(ui.told)-1])
+	}
+	if err := l.handle(launch.PairURL(pub, "192.168.101.195")); err != nil || !strings.Contains(ui.told[len(ui.told)-1], "already paired") {
+		t.Fatal("same address again should only say it is paired")
+	}
+}

@@ -6,7 +6,9 @@
   <ol class="steps">
     <li>
       <h3>{{.T "Install it on your computer"}}</h3>
-      {{if .Data.Download}}<p><a class="btn primary" href="/downloads/maxzit-launcher.exe">{{template "icon" "download"}}{{.T "Download the launcher"}}</a></p>
+      {{if .Data.DownloadMSI}}<p><a class="btn primary" href="/downloads/maxzit-launcher-x64.msi">{{template "icon" "download"}}{{.T "Download the installer"}}</a>{{if .Data.Download}} <a class="small" href="/downloads/maxzit-launcher.exe">{{.T "or the program alone (.exe)"}}</a>{{end}}</p>
+      <p class="small muted">{{.T "The installer sets the launcher up for your Windows user, without administrator rights, and puts it in Apps with its icon, where it can be removed again. Windows may warn that the publisher is unknown; choose More info → Run anyway."}}</p>
+      {{else if .Data.Download}}<p><a class="btn primary" href="/downloads/maxzit-launcher.exe">{{template "icon" "download"}}{{.T "Download the launcher"}}</a></p>
       <p class="small muted">{{.T "Run the downloaded file once: it copies itself to your user's programs and registers watchzit:// links. Windows may warn that the publisher is unknown; choose More info → Run anyway."}}</p>
       {{else}}<p class="small muted">{{.T "The launcher is not on this server yet: copy maxzit-launcher.exe into the downloads folder of the data directory."}}</p>{{end}}
     </li>

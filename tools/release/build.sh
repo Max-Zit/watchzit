@@ -16,7 +16,9 @@ cp bin/msi/watchzit-agent.exe "dist/watchzit-agent-$V-windows-amd64.exe"
 for arch in amd64 arm64; do
   GOOS=linux GOARCH=$arch go build -trimpath -ldflags "-s -w -X main.version=$V" -o "dist/watchzit-agent-$V-linux-$arch" ./cmd/watchzit-agent
 done
-GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "-s -w -H windowsgui -X main.version=$V" -o "dist/maxzit-launcher-$V-windows-amd64.exe" ./cmd/maxzit-launcher
+# the MaxZit Launcher with its icon, and its per-user MSI with the setup wizard
+powershell -NoProfile -ExecutionPolicy Bypass -File packaging/windows/build-launcher.ps1 -Version "$V" | tail -1
+cp bin/launcher/maxzit-launcher.exe "dist/maxzit-launcher-$V-windows-amd64.exe"
 for os in linux windows; do
   ext=; [ $os = windows ] && ext=.exe
   GOOS=$os GOARCH=amd64 go build -trimpath -ldflags "-s -w -X main.version=$V" -o "dist/watchzit-server-$V-$os-amd64$ext" ./cmd/watchzit-server
@@ -33,6 +35,7 @@ cp "dist/watchzit-server-$V-linux-amd64" bin/pkg/watchzit-server
 cp "dist/watchzit-agent-$V-x64.msi" bin/pkg/downloads/watchzit-agent-x64.msi
 cp "dist/watchzit-agent-$V-windows-amd64.exe" bin/pkg/downloads/watchzit-agent-windows-amd64.exe
 cp "dist/maxzit-launcher-$V-windows-amd64.exe" bin/pkg/downloads/maxzit-launcher.exe
+cp "dist/maxzit-launcher-$V-x64.msi" bin/pkg/downloads/maxzit-launcher-x64.msi
 for arch in amd64 arm64; do cp "dist/watchzit-agent-$V-linux-$arch" "bin/pkg/downloads/watchzit-agent-linux-$arch"; done
 export VERSION=$V ARCH=amd64
 NFPM="go run github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.43.0"
@@ -52,7 +55,7 @@ done
 R="dist/release-$V"
 rm -rf "$R" && mkdir -p "$R"
 cp "dist/watchzit-agent-$V-x64.msi" "dist/watchzit-agent-$V-windows-amd64.exe" \
-   "dist/watchzit-agent-$V-linux-amd64" "dist/watchzit-agent-$V-linux-arm64" "dist/maxzit-launcher-$V-windows-amd64.exe" \
+   "dist/watchzit-agent-$V-linux-amd64" "dist/watchzit-agent-$V-linux-arm64" "dist/maxzit-launcher-$V-windows-amd64.exe" "dist/maxzit-launcher-$V-x64.msi" \
    "dist/watchzit-server-$V-linux-amd64" "dist/watchzit-server-$V-windows-amd64.exe" \
    "dist/watchzit-server_${V}_amd64.deb" "dist/watchzit-server-${V}-1.x86_64.rpm" \
    "dist/watchzit-agent_${V}_amd64.deb" "dist/watchzit-agent-${V}-1.x86_64.rpm" \

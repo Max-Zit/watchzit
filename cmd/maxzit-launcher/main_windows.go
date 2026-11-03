@@ -106,7 +106,16 @@ func main() {
 			os.Exit(1)
 		}
 		logf("installed %s", version)
-		ui.info(appName, "The WatchZit Launcher is installed for your Windows user.\n\nGo back to the console, open the Launcher page and click Pair this computer.")
+		ui.info(appName, "The MaxZit Launcher is installed for your Windows user.\n\nWatchZit: open the Launcher page of the console and click Pair this computer.\nPassZit: click Pair with the MaxZit Launcher in the extension's menu.")
+	case args[0] == "--after-install": // the MSI put the files in place
+		if self, err := os.Executable(); err == nil {
+			_ = registry.DeleteKey(registry.CURRENT_USER, uninstallKey) // the MSI has its own entry in Apps
+			takeOver(self)
+		}
+		logf("installed %s with the MSI", version)
+	case args[0] == "--before-remove": // the MSI removes the program
+		unregisterHost()
+		logf("removed with the MSI")
 	case args[0] == "--uninstall":
 		uninstall()
 		logf("uninstalled")
@@ -295,9 +304,15 @@ func install() error {
 		_ = k.SetDWordValue("NoRepair", 1)
 		_ = k.Close()
 	}
+	takeOver(dst)
+	return nil
+}
+
+// takeOver removes the WatchZit Launcher this one replaces and points the
+// extensions paired before an update, or with the older passzit-helper, at
+// the installed launcher.
+func takeOver(dst string) {
 	removeOld()
-	// extensions paired before an update, or with the older passzit-helper,
-	// now reach the installed launcher
 	for _, d := range []string{dataDir(), filepath.Join(os.Getenv("LOCALAPPDATA"), "PassZit")} {
 		if old, err := os.ReadFile(filepath.Join(d, "chrome-host.json")); err == nil { // #nosec G304 G703 -- the launcher's or passzit-helper's own file in the user's folders
 			for _, id := range chromeIDs(old) {
@@ -308,7 +323,6 @@ func install() error {
 			_ = registerHost(dst, pairing{Browser: "firefox", ID: connect.FirefoxID})
 		}
 	}
-	return nil
 }
 
 // removeOld removes the WatchZit Launcher this one replaces (its entry in

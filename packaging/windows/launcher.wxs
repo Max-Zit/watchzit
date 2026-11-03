@@ -1,0 +1,125 @@
+<!--
+  MaxZit Launcher MSI (publisher MaxZit): one program for WatchZit and
+  PassZit that opens devices with the programs of this computer.
+
+  Per user, without administrator rights: the program goes to
+  %LOCALAPPDATA%\Programs\MaxZit Launcher, the watchzit: and
+  maxzit-launcher: links are registered under HKCU. After the files are in
+  place the launcher takes over the settings and pairings of the older
+  WatchZit Launcher and passzit-helper (maxzit-launcher.exe - -after-install);
+  uninstalling also removes its registration with the browsers.
+
+  Silent: msiexec /i maxzit-launcher-x64.msi /qn
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="MaxZit Launcher"
+           Manufacturer="MaxZit"
+           Version="$(var.Version)"
+           UpgradeCode="3F6A1C2E-8B4D-4E7A-9C15-6D2B8E0F4A73"
+           Scope="perUser"
+           InstallerVersion="500"
+           Compressed="yes">
+
+    <SummaryInformation Description="MaxZit Launcher $(var.Version)" Manufacturer="MaxZit" />
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="LauncherIcon" SourceFile="$(var.LauncherExe)" />
+    <WixVariable Id="WixUIDialogBmp" Value="$(var.ArtDir)\dialog.bmp" />
+    <WixVariable Id="WixUIBannerBmp" Value="$(var.ArtDir)\banner.bmp" />
+    <Property Id="ARPPRODUCTICON" Value="LauncherIcon" />
+    <Property Id="ARPCOMMENTS" Value="Opens devices from WatchZit and connections from PassZit with the programs of this computer" />
+    <Property Id="ARPCONTACT" Value="MaxZit" />
+    <Property Id="ARPURLINFOABOUT" Value="https://maxzit.com" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+
+    <Launch Condition="VersionNT64" Message="This package requires 64-bit Windows." />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsDir" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="MaxZit Launcher">
+          <Component Id="LauncherExe" Guid="5B2E9D41-7C3F-4A86-B1E0-2D9F6C8A4E17">
+            <File Id="LauncherExeFile" Source="$(var.LauncherExe)" Name="maxzit-launcher.exe" />
+            <RegistryValue Root="HKCU" Key="Software\MaxZit\MaxZit Launcher" Name="InstallDir" Value="[INSTALLFOLDER]" Type="string" KeyPath="yes" />
+            <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
+            <RemoveFolder Id="RemoveProgramsDir" Directory="ProgramsDir" On="uninstall" />
+          </Component>
+          <Component Id="License" Guid="9A4C6E20-1D7B-4F35-8E92-C3B5A7D10F68">
+            <File Id="LicenseFile" Source="$(var.RootDir)\LICENSE" Name="LICENSE.txt" />
+            <RegistryValue Root="HKCU" Key="Software\MaxZit\MaxZit Launcher" Name="License" Value="1" Type="integer" KeyPath="yes" />
+          </Component>
+          <!-- watchzit: links of the WatchZit console -->
+          <Component Id="WatchZitLinks" Guid="C17E4B83-2F9A-4D60-A5C8-7E1B3D9F2064">
+            <RegistryValue Root="HKCU" Key="Software\Classes\watchzit" Value="URL:WatchZit (MaxZit Launcher)" Type="string" KeyPath="yes" />
+            <RegistryValue Root="HKCU" Key="Software\Classes\watchzit" Name="URL Protocol" Value="" Type="string" />
+            <RegistryValue Root="HKCU" Key="Software\Classes\watchzit\DefaultIcon" Value="[INSTALLFOLDER]maxzit-launcher.exe,0" Type="string" />
+            <RegistryValue Root="HKCU" Key="Software\Classes\watchzit\shell\open\command" Value="&quot;[INSTALLFOLDER]maxzit-launcher.exe&quot; &quot;%1&quot;" Type="string" />
+          </Component>
+          <!-- maxzit-launcher: pairing links of the PassZit extension -->
+          <Component Id="PairLinks" Guid="E4A92D16-8C3B-4F7E-B05D-1A6C9E2F8B35">
+            <RegistryValue Root="HKCU" Key="Software\Classes\maxzit-launcher" Value="URL:MaxZit Launcher" Type="string" KeyPath="yes" />
+            <RegistryValue Root="HKCU" Key="Software\Classes\maxzit-launcher" Name="URL Protocol" Value="" Type="string" />
+            <RegistryValue Root="HKCU" Key="Software\Classes\maxzit-launcher\DefaultIcon" Value="[INSTALLFOLDER]maxzit-launcher.exe,0" Type="string" />
+            <RegistryValue Root="HKCU" Key="Software\Classes\maxzit-launcher\shell\open\command" Value="&quot;[INSTALLFOLDER]maxzit-launcher.exe&quot; &quot;%1&quot;" Type="string" />
+          </Component>
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+
+    <!-- After the files: take over older settings and pairings, drop the
+         entry of a copy that installed itself without the MSI. -->
+    <CustomAction Id="AfterInstall" FileRef="LauncherExeFile" ExeCommand="--after-install"
+                  Execute="deferred" Impersonate="yes" Return="ignore" />
+    <!-- Uninstall (not an upgrade): remove the registration with the browsers. -->
+    <CustomAction Id="BeforeRemove" FileRef="LauncherExeFile" ExeCommand="--before-remove"
+                  Execute="deferred" Impersonate="yes" Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="AfterInstall" After="InstallFiles" Condition="NOT REMOVE~=&quot;ALL&quot;" />
+      <Custom Action="BeforeRemove" Before="RemoveFiles" Condition="REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+    </InstallExecuteSequence>
+
+    <UI Id="LauncherUI">
+      <TextStyle Id="WixUI_Font_Normal" FaceName="Segoe UI" Size="9" />
+      <TextStyle Id="WixUI_Font_Bigger" FaceName="Segoe UI" Size="12" />
+      <TextStyle Id="WixUI_Font_Title" FaceName="Segoe UI" Size="9" Bold="yes" />
+      <Property Id="DefaultUIFont" Value="WixUI_Font_Normal" />
+      <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value="WatchZit: open the Launcher page of your console and click Pair this computer. PassZit: click Pair with the MaxZit Launcher in the extension's menu." />
+
+      <DialogRef Id="ErrorDlg" />
+      <DialogRef Id="FatalError" />
+      <DialogRef Id="FilesInUse" />
+      <DialogRef Id="MsiRMFilesInUse" />
+      <DialogRef Id="PrepareDlg" />
+      <DialogRef Id="ProgressDlg" />
+      <DialogRef Id="ResumeDlg" />
+      <DialogRef Id="UserExit" />
+      <DialogRef Id="ExitDialog" />
+      <DialogRef Id="CancelDlg" />
+      <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999" />
+
+      <Dialog Id="LauncherWelcomeDlg" Width="370" Height="270" Title="[ProductName] Setup">
+        <Control Id="Bitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="234" TabSkip="no" Text="!(loc.WelcomeDlgBitmap)" />
+        <Control Id="Title" Type="Text" X="135" Y="20" Width="220" Height="40" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Bigger}Welcome to the MaxZit Launcher" />
+        <Control Id="Intro" Type="Text" X="135" Y="64" Width="220" Height="80" Transparent="yes" NoPrefix="yes"
+                 Text="The launcher opens devices from WatchZit and connections from PassZit with the programs of this computer: Remote Desktop, SSH (PuTTY or OpenSSH), WinSCP, WinBox, VNC and Telnet." />
+        <Control Id="Who" Type="Text" X="135" Y="150" Width="220" Height="70" Transparent="yes" NoPrefix="yes"
+                 Text="It installs for your Windows user only, without administrator rights. It never keeps passwords: PassZit hands them over for one start." />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Disabled="yes" Text="!(loc.WixUIBack)" />
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="Install">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+      </Dialog>
+
+      <InstallUISequence>
+        <Show Dialog="LauncherWelcomeDlg" Before="ProgressDlg" Condition="NOT Installed" />
+      </InstallUISequence>
+    </UI>
+    <UIRef Id="WixUI_Common" />
+  </Package>
+</Wix>

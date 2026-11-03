@@ -143,6 +143,7 @@ type launcherData struct {
 	PairURL     template.URL // built by the server: a watchzit:// link html/template would otherwise blank
 	Fingerprint string
 	Download    bool
+	DownloadMSI bool // the installer with the setup wizard
 	Tools       []*store.Tool
 }
 
@@ -165,7 +166,9 @@ func (s *Server) handleLauncher(w http.ResponseWriter, r *http.Request) {
 		d.PairURL = template.URL(launch.PairURL(pub, serverName(r))) // #nosec G203 -- own link, fields are encoded
 		d.Fingerprint = launch.Fingerprint(pub)
 	}
-	_, d.Download = s.agentDownloads()["launcher"]
+	files := s.agentDownloads()
+	_, d.Download = files["launcher"]
+	_, d.DownloadMSI = files["launcher-msi"]
 	d.Tools, _ = s.store.Tools(r.Context())
 	s.render(w, r, http.StatusOK, "launcher", &Page{Title: "Launcher", Nav: "launcher", Data: d})
 }

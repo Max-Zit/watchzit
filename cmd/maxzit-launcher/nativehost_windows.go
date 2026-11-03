@@ -264,7 +264,7 @@ func registerHost(exe string, p pairing) error {
 			return err
 		}
 		f := filepath.Join(dataDir(), "firefox-host.json")
-		if err := os.WriteFile(f, m, 0o600); err != nil {
+		if err := os.WriteFile(f, m, 0o600); err != nil { // #nosec G703 -- the launcher's own file in %APPDATA%
 			return err
 		}
 		return set(firefoxHostKey, f)
@@ -279,7 +279,7 @@ func registerHost(exe string, p pairing) error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(f, m, 0o600); err != nil {
+	if err := os.WriteFile(f, m, 0o600); err != nil { // #nosec G703 -- the launcher's own file in %APPDATA%
 		return err
 	}
 	for _, k := range chromeHostKeys {

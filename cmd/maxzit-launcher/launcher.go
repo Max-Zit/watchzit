@@ -59,7 +59,23 @@ func (l *launcher) handle(raw string) error {
 func (l *launcher) pair(link *launch.Link) error {
 	id := launch.KeyID(link.Key)
 	if s := l.cfg.server(id); s != nil {
-		l.ui.info(appName, fmt.Sprintf("This computer is already paired with %s.", s.Name))
+		if s.Name == link.Name {
+			l.ui.info(appName, fmt.Sprintf("This computer is already paired with %s.", s.Name))
+			return nil
+		}
+		// the same console (same key) under another address: it was moved
+		// or restored from a backup
+		if !l.ui.ask(appName, fmt.Sprintf("This computer is paired with this console under the address %s. Use the new address %s from now on?\n\nFingerprint:\n%s",
+			s.Name, link.Name, launch.Fingerprint(link.Key))) {
+			return nil
+		}
+		old := s.Name
+		s.Name = link.Name
+		if err := l.cfg.save(); err != nil {
+			return err
+		}
+		l.log("pairing %s moved from %s to %s", id, old, link.Name)
+		l.ui.info(appName, fmt.Sprintf("Paired with %s. Devices now open from its console.", link.Name))
 		return nil
 	}
 	text := fmt.Sprintf("Pair this computer with the WatchZit server %s?\n\nFingerprint:\n%s\n\nCompare it with the Launcher page of the console. "+
