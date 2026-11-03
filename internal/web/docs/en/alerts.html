@@ -19,11 +19,15 @@
 <p><b>No new data</b> opens a problem when a check got no new value for the minutes you set — an agent that stopped reporting, a device that no longer answers SNMP, a data source that stopped; limit it to check types if you like.</p>
 <p><b>Value will reach a threshold (forecast)</b> looks ahead instead: it draws a straight line through the last week of the value (at least six hours of history) and opens a problem when that line reaches the threshold <b>within</b> the days you set — a disk that will be full in ten days, a pool that is filling up, a temperature that keeps rising. The problem says the value now, how fast it changes a day and the date it gets there; it closes when the trend no longer gets there in time.</p>
 
+<p><b>One check.</b> The bell button next to a check on the device page adds a trigger for that check alone — needed for SNMP OID values (a temperature in °C, a voltage in V), since each has its own unit, and handy for one important disk or port. Such a trigger lists the device and the check under Applies to; it is removed together with its check.</p>
+
 <h2 id="problems">Problems</h2>
 <p><a href="/problems">Problems</a> lists what is open, worst first; the number in the menu counts the problems that were sent (red when one is critical). <b>Acknowledge</b> a problem with a note so others know someone is on it. Resolved problems stay in the history for a year.</p>
 
 <h2 id="dependencies">Dependencies</h2>
 <p>Set <b>Depends on</b> on a device (for example the router of a branch office). When that router is down, the devices behind it are only <b>unreachable</b>: their problems are recorded but not sent — you get one message for the router, not fifty. On maps such devices are grey with a dashed outline instead of red, and their panel says the problem is above them.</p>
+
+<p>To set them for a whole network at once, open a map and click <b>Dependencies</b>: following the cables from the device the network hangs on (by default the router or firewall with the most cables; choose another if you like), each device is offered the one before it — the switch depends on the router, the access points on the switch, virtual machines on their server. Power, HA and VXLAN cables do not count. Devices without a dependency are ticked; ones that already depend on another device are shown but not ticked. Click <b>Set the ticked dependencies</b>.</p>
 
 <h2 id="maintenance">Maintenance</h2>
 <p>Under <a href="/alerts/maintenance">Problems → Maintenance</a> plan a window for devices or groups. During it the devices are still monitored and problems recorded, but nothing is sent; problems still open when it ends are sent then. Availability reports show maintenance time apart. <b>Repeat</b> makes the window come back every day, week or month (a nightly backup, the monthly patch day), optionally until a last day; the list shows the next window, and <b>Remove</b> ends the whole series.</p>

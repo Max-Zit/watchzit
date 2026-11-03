@@ -949,3 +949,22 @@ p.center { text-align: center; }
 /* device list: ticks and "Change selected" */
 th.sel, td.sel { width: 28px; }
 .bulkbar { flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* link traffic history in the map side panel */
+.seg button { padding: 5px 11px; font-size: 13px; color: var(--muted); border: 0; border-left: 1px solid var(--line); background: none; cursor: pointer; }
+.seg button:first-child { border-left: 0; }
+.seg button:hover { color: var(--text); background: var(--panel-2); }
+.seg button.on { background: var(--accent); color: var(--on-accent); }
+.linkhist { margin-top: 12px; }
+.linkhist .seg { margin: 4px 0 8px; }
+.linkhist-graph { position: relative; }
+.linkhist-svg { display: block; width: 100%; height: 110px; background: var(--panel-2); border-radius: var(--radius-sm); }
+.linkhist-svg path { fill: none; stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+.linkhist-svg .lh-axis, .linkhist-svg .lh-grid { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.linkhist-svg .lh-grid { stroke-dasharray: 3 3; }
+.lh-scale { position: absolute; top: 2px; right: 6px; }
+path.lh-ab { stroke: var(--series-1); }
+path.lh-ba { stroke: var(--series-2); }
+.lh-key::before { content: ""; display: inline-block; width: 10px; height: 3px; margin-right: 6px; vertical-align: middle; border-radius: 2px; }
+.lh-key.lh-ab::before { background: var(--series-1); }
+.lh-key.lh-ba::before { background: var(--series-2); }

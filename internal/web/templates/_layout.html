@@ -19,7 +19,7 @@
 <aside class="side" id="side">
   <a class="brand" href="/">{{template "logo"}}<span>Watch<b>Zit</b></span></a>
   <nav>
-    <a href="/" class="{{if eq .Nav "overview"}}on{{end}}">{{template "icon" "overview"}}{{.T "Overview"}}</a>
+    <a href="/overview" class="{{if eq .Nav "overview"}}on{{end}}">{{template "icon" "overview"}}{{.T "Overview"}}</a>
     <a href="/problems" class="{{if eq .Nav "problems"}}on{{end}}">{{template "icon" "bell"}}{{.T "Problems"}}{{if .Problems}} <span class="navcount{{if not .ProblemsCritical}} warn{{end}}">{{.Problems}}</span>{{end}}</a>
     <a href="/logs" class="{{if eq .Nav "logs"}}on{{end}}">{{template "icon" "file"}}{{.T "Logs"}}</a>
     <a href="/flows" class="{{if eq .Nav "flows"}}on{{end}}">{{template "icon" "route"}}{{.T "Traffic flows"}}</a>

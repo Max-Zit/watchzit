@@ -73,6 +73,8 @@ type Trigger struct {
 	Group      string
 	DeviceID   int64 // 0 = every device
 	Device     string
+	CheckID    int64 // 0 = every check that fits
+	Check      string
 	Enabled    bool
 	CreatedAt  time.Time
 }
@@ -89,6 +91,7 @@ type TriggerInput struct {
 	Severity   string
 	GroupID    int64
 	DeviceID   int64
+	CheckID    int64 // one check only (its device is set from it)
 	Enabled    bool
 }
 
@@ -129,8 +132,17 @@ func (in *TriggerInput) clean() error {
 	if in.Kind != TriggerForecast && (in.ForS < 0 || in.ForS > 86400) {
 		return errors.New("the delay must be 0–86400 seconds")
 	}
+	if in.CheckID != 0 {
+		in.GroupID = 0 // the device comes from the check
+	}
 	if in.GroupID != 0 && in.DeviceID != 0 {
 		return errors.New("choose a group or a device, not both")
+	}
+	if in.Kind == TriggerDeviceDown || in.Kind == TriggerHADegraded || in.Kind == TriggerLog {
+		in.CheckID = 0
+	}
+	if in.Metric == "value" && in.CheckID == 0 && (in.Kind == TriggerMetric || in.Kind == TriggerForecast) {
+		return errors.New("an SNMP OID value has its own unit: add the trigger from the check on the device page")
 	}
 	switch in.Kind {
 	case TriggerDeviceDown, TriggerCheckDown, TriggerHADegraded:
@@ -211,17 +223,19 @@ func (in *TriggerInput) clean() error {
 }
 
 const triggerCols = `t.id, t.name, t.kind, t.check_types, t.metric, t.op, t.threshold, t.for_s, t.severity, COALESCE(t.group_id,0), COALESCE(g.name,''),
-	COALESCE(t.device_id,0), COALESCE(d.name,''), t.enabled, t.created_at`
+	COALESCE(t.device_id,0), COALESCE(d.name,''), COALESCE(t.check_id,0), COALESCE(c.name,''), t.enabled, t.created_at`
+
+const triggerFrom = ` FROM triggers t LEFT JOIN device_groups g ON g.id=t.group_id LEFT JOIN devices d ON d.id=t.device_id LEFT JOIN checks c ON c.id=t.check_id`
 
 func scanTrigger(row pgx.Row) (*Trigger, error) {
 	t := &Trigger{}
-	err := row.Scan(&t.ID, &t.Name, &t.Kind, &t.CheckTypes, &t.Metric, &t.Op, &t.Threshold, &t.ForS, &t.Severity, &t.GroupID, &t.Group, &t.DeviceID, &t.Device, &t.Enabled, &t.CreatedAt)
+	err := row.Scan(&t.ID, &t.Name, &t.Kind, &t.CheckTypes, &t.Metric, &t.Op, &t.Threshold, &t.ForS, &t.Severity, &t.GroupID, &t.Group, &t.DeviceID, &t.Device, &t.CheckID, &t.Check, &t.Enabled, &t.CreatedAt)
 	return t, err
 }
 
 // Triggers lists the triggers.
 func (s *Store) Triggers(ctx context.Context) ([]*Trigger, error) {
-	rows, err := s.db.Query(ctx, `SELECT `+triggerCols+` FROM triggers t LEFT JOIN device_groups g ON g.id=t.group_id LEFT JOIN devices d ON d.id=t.device_id
+	rows, err := s.db.Query(ctx, `SELECT `+triggerCols+triggerFrom+`
 		ORDER BY array_position(ARRAY['device_down','check_down','metric','forecast'], t.kind), lower(t.name), t.id`)
 	if err != nil {
 		return nil, err
@@ -240,19 +254,22 @@ func (s *Store) Triggers(ctx context.Context) ([]*Trigger, error) {
 
 // TriggerByID loads a trigger.
 func (s *Store) TriggerByID(ctx context.Context, id int64) (*Trigger, error) {
-	t, err := scanTrigger(s.db.QueryRow(ctx, `SELECT `+triggerCols+` FROM triggers t LEFT JOIN device_groups g ON g.id=t.group_id LEFT JOIN devices d ON d.id=t.device_id WHERE t.id=$1`, id))
+	t, err := scanTrigger(s.db.QueryRow(ctx, `SELECT `+triggerCols+triggerFrom+` WHERE t.id=$1`, id))
 	return t, notFound(err)
 }
 
 // CreateTrigger adds a trigger.
 func (s *Store) CreateTrigger(ctx context.Context, in TriggerInput) (int64, error) {
+	if err := s.triggerCheck(ctx, &in); err != nil {
+		return 0, err
+	}
 	if err := in.clean(); err != nil {
 		return 0, err
 	}
 	var id int64
-	err := s.db.QueryRow(ctx, `INSERT INTO triggers(name, kind, check_types, metric, op, threshold, for_s, severity, group_id, device_id, enabled)
-		VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
-		in.Name, in.Kind, in.CheckTypes, in.Metric, in.Op, in.Threshold, in.ForS, in.Severity, nullID(in.GroupID), nullID(in.DeviceID), in.Enabled).Scan(&id)
+	err := s.db.QueryRow(ctx, `INSERT INTO triggers(name, kind, check_types, metric, op, threshold, for_s, severity, group_id, device_id, check_id, enabled)
+		VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,
+		in.Name, in.Kind, in.CheckTypes, in.Metric, in.Op, in.Threshold, in.ForS, in.Severity, nullID(in.GroupID), nullID(in.DeviceID), nullID(in.CheckID), in.Enabled).Scan(&id)
 	if isFK(err) {
 		return 0, errors.New("the group or device does not exist")
 	}
@@ -261,11 +278,14 @@ func (s *Store) CreateTrigger(ctx context.Context, in TriggerInput) (int64, erro
 
 // UpdateTrigger changes a trigger.
 func (s *Store) UpdateTrigger(ctx context.Context, id int64, in TriggerInput) error {
+	if err := s.triggerCheck(ctx, &in); err != nil {
+		return err
+	}
 	if err := in.clean(); err != nil {
 		return err
 	}
-	tag, err := s.db.Exec(ctx, `UPDATE triggers SET name=$2, kind=$3, check_types=$4, metric=$5, op=$6, threshold=$7, for_s=$8, severity=$9, group_id=$10, device_id=$11, enabled=$12 WHERE id=$1`,
-		id, in.Name, in.Kind, in.CheckTypes, in.Metric, in.Op, in.Threshold, in.ForS, in.Severity, nullID(in.GroupID), nullID(in.DeviceID), in.Enabled)
+	tag, err := s.db.Exec(ctx, `UPDATE triggers SET name=$2, kind=$3, check_types=$4, metric=$5, op=$6, threshold=$7, for_s=$8, severity=$9, group_id=$10, device_id=$11, check_id=$12, enabled=$13 WHERE id=$1`,
+		id, in.Name, in.Kind, in.CheckTypes, in.Metric, in.Op, in.Threshold, in.ForS, in.Severity, nullID(in.GroupID), nullID(in.DeviceID), nullID(in.CheckID), in.Enabled)
 	if isFK(err) {
 		return errors.New("the group or device does not exist")
 	}
@@ -897,4 +917,23 @@ func (m *Maintenance) LastDay() time.Time {
 		return time.Time{}
 	}
 	return *m.RepeatUntil
+}
+
+// triggerCheck sets the device of a trigger that watches one check and
+// makes sure the check has the value it watches.
+func (s *Store) triggerCheck(ctx context.Context, in *TriggerInput) error {
+	if in.CheckID == 0 || in.Kind == TriggerDeviceDown || in.Kind == TriggerHADegraded || in.Kind == TriggerLog {
+		return nil
+	}
+	c, err := s.CheckByID(ctx, in.CheckID)
+	if err != nil {
+		return errors.New("the check does not exist")
+	}
+	in.DeviceID, in.CheckTypes = c.DeviceID, []string{c.Type}
+	if in.Kind == TriggerMetric || in.Kind == TriggerForecast {
+		if !slices.ContainsFunc(metricsOf(c.Type, c.Params), func(m Series) bool { return m.Metric == in.Metric }) {
+			return errors.New("the check has no such value")
+		}
+	}
+	return nil
 }

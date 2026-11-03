@@ -40,6 +40,16 @@
   <form method="post" action="/account/sessions/signout" class="mt"><button class="secondary">{{.T "Sign out all other sessions"}}</button></form>
 </section>
 
+<section class="panel" id="home">
+  <h2>{{template "icon" "overview"}}{{.T "Start page"}}</h2>
+  <form method="post" action="/account/home" class="row">
+    <label>{{.T "After sign-in and with the logo, open"}}<select name="home"><option value="">{{.T "Overview"}}</option>
+      {{with .Data.HomeMaps}}<optgroup label="{{$.T "Maps"}}">{{range .}}<option value="{{.Value}}" {{if eq .Value $.User.Home}}selected{{end}}>{{.Name}}</option>{{end}}</optgroup>{{end}}
+      {{with .Data.HomeDash}}<optgroup label="{{$.T "Dashboards"}}">{{range .}}<option value="{{.Value}}" {{if eq .Value $.User.Home}}selected{{end}}>{{.Name}}</option>{{end}}</optgroup>{{end}}</select></label>
+    <button class="secondary">{{.T "Save"}}</button>
+  </form>
+</section>
+
 <section class="panel" id="launcher">
   <h2>{{template "icon" "terminal"}}MaxZit Launcher</h2>
   <p class="muted">{{.T "SSH, Remote Desktop, WinBox and the other tools open devices through the MaxZit Launcher on your Windows computer. Install it once and pair it with this console."}}</p>

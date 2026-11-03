@@ -92,6 +92,8 @@ type triggersData struct {
 	Devices  []*store.Device
 	Metrics  []metricChoice
 	Types    []string
+	Check    *store.Check // the trigger watches this check only
+	CheckDev string
 }
 
 type metricChoice struct {
@@ -106,7 +108,7 @@ func metricChoices() []metricChoice {
 	var out []metricChoice
 	for m, types := range store.TriggerMetrics() {
 		if m == "value" {
-			continue // SNMP OID values have their own units; a later version
+			continue // SNMP OID values have their own units: such a trigger watches one check (device page)
 		}
 		out = append(out, metricChoice{Metric: m, Name: metricNames[m], Unit: store.MetricUnit(types[0], m, store.CheckParams{}), Types: types})
 	}
@@ -124,10 +126,15 @@ func (s *Server) handleTriggers(w http.ResponseWriter, r *http.Request) {
 		}
 		d.Edit = t
 		d.In = store.TriggerInput{Name: t.Name, Kind: t.Kind, CheckTypes: t.CheckTypes, Metric: t.Metric, Op: t.Op, Threshold: t.Threshold, ForS: t.ForS,
-			Severity: t.Severity, GroupID: t.GroupID, DeviceID: t.DeviceID, Enabled: t.Enabled}
+			Severity: t.Severity, GroupID: t.GroupID, DeviceID: t.DeviceID, CheckID: t.CheckID, Enabled: t.Enabled}
 		d.ForMin = minutesText(t.ForS)
 		if t.Kind == store.TriggerForecast {
 			d.ForMin, d.Days = "5", strconv.Itoa(t.ForS/86400)
+		}
+	} else if cid, err := strconv.ParseInt(r.URL.Query().Get("check"), 10, 64); err == nil {
+		// "Add trigger" on a check of the device page
+		if c, err := s.store.CheckByID(r.Context(), cid); err == nil && len(c.Series) > 0 {
+			d.In.CheckID, d.In.DeviceID, d.In.Metric, d.In.Name = c.ID, c.DeviceID, c.Series[0].Metric, c.Name
 		}
 	}
 	s.showTriggers(w, r, http.StatusOK, d, "")
@@ -160,6 +167,18 @@ func (s *Server) showTriggers(w http.ResponseWriter, r *http.Request, status int
 		}
 	}
 	d.Metrics = metricChoices()
+	if d.In.CheckID != 0 {
+		if c, err := s.store.CheckByID(ctx, d.In.CheckID); err == nil {
+			d.Check = c
+			if dev, err := s.store.DeviceByID(ctx, c.DeviceID); err == nil {
+				d.CheckDev = dev.Name
+			}
+			d.Metrics = nil
+			for _, m := range c.Series {
+				d.Metrics = append(d.Metrics, metricChoice{Metric: m.Metric, Name: metricNames[m.Metric], Unit: m.Unit, Types: []string{c.Type}})
+			}
+		}
+	}
 	d.Types = []string{store.CheckICMP, store.CheckTCP, store.CheckSNMP, store.CheckSNMPIf, store.CheckSNMPCPU, store.CheckSNMPStor, store.CheckSNMPOID, store.CheckSNMPSupply, store.CheckSNMPUPS,
 		store.CheckAgent, store.CheckAgentCPU, store.CheckAgentMem, store.CheckAgentDisk, store.CheckAgentNet, store.CheckAgentService,
 		store.CheckHTTP, store.CheckScenario, store.CheckTLS, store.CheckDNS, store.CheckPostgres, store.CheckMySQL, store.CheckRouterOS, store.CheckJSON, store.CheckHypervisor}
@@ -187,6 +206,7 @@ func triggerInput(r *http.Request) (store.TriggerInput, string) {
 		in.DeviceID, _ = strconv.ParseInt(scope[1:], 10, 64)
 	}
 	in.CheckTypes = append(in.CheckTypes, r.Form["type"]...)
+	in.CheckID, _ = strconv.ParseInt(r.FormValue("check"), 10, 64)
 	if in.Kind == store.TriggerForecast {
 		days, err := strconv.ParseFloat(strings.ReplaceAll(strings.TrimSpace(r.FormValue("days")), ",", "."), 64)
 		if err != nil || days < 0 || days > 365 {

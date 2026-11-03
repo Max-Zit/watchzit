@@ -23,6 +23,7 @@
     </div>
     <select class="mapvlan" data-vlan hidden aria-label="VLAN"></select>
     <button type="button" class="btn secondary sm" data-act="path" title="{{.T "Show only how two devices are connected"}}">{{template "icon" "route"}}<span>{{.T "Path"}}</span></button>
+    {{if .User.CanWrite}}<a class="btn secondary sm" href="/maps/{{.Data.M.ID}}/parents" title="{{.T "Dependencies from the map"}}">{{template "icon" "network"}}<span>{{.T "Dependencies"}}</span></a>{{end}}
     <button type="button" class="btn secondary sm" data-act="layers" aria-expanded="false">{{template "icon" "layers"}}<span>{{.T "Layers"}}</span></button>
     <button type="button" class="btn secondary sm" data-act="fullscreen" title="{{.T "Full screen"}}">{{template "icon" "expand"}}</button>
     {{if .User.CanWrite}}<button type="button" class="btn primary sm" data-act="edit">{{template "icon" "edit"}}<span data-edit-label>{{if .Data.Edit}}{{.T "Done"}}{{else}}{{.T "Edit"}}{{end}}</span></button>{{end}}

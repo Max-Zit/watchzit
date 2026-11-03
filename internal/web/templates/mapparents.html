@@ -1,0 +1,28 @@
+{{template "app" .}}
+{{define "content"}}
+{{$d := .Data}}
+<p class="small"><a href="/maps/{{$d.M.ID}}">{{template "icon" "chevl"}}{{$d.M.Name}}</a></p>
+<h1>{{.T "Dependencies from the map"}}</h1>
+<p class="muted">{{.T "Following the cables from the device the network hangs on, each device depends on the one before it. When a switch or uplink fails, the devices behind it are shown as unreachable instead of each opening a problem of its own."}}</p>
+<section class="panel">
+  <form method="get" class="row">
+    <label>{{.T "The network hangs on"}}<select name="root">{{range $d.Roots}}<option value="{{.ID}}" {{if eq .ID $d.Root}}selected{{end}}>{{.Name}}</option>{{end}}</select></label>
+    <button class="secondary">{{.T "Show"}}</button>
+  </form>
+  {{if $d.Rows}}
+  <form method="post" action="/maps/{{$d.M.ID}}/parents?root={{$d.Root}}" class="mt">
+    <div class="table-wrap"><table>
+      <thead><tr><th class="sel"><input type="checkbox" data-checkall="set" aria-label="{{.T "Select all"}}"></th><th>{{.T "Device"}}</th><th>{{.T "Depends on now"}}</th><th>{{.T "Suggested"}}</th></tr></thead>
+      <tbody>{{range $d.Rows}}<tr>
+        <td class="sel"><input type="checkbox" name="set" value="{{.Device.ID}}" {{if .Set}}checked{{end}} aria-label="{{.Device.Name}}"></td>
+        <td><a href="/devices/{{.Device.ID}}">{{.Device.Name}}</a></td>
+        <td>{{if .Device.ParentName}}{{.Device.ParentName}}{{else}}<span class="muted">{{$.T "None"}}</span>{{end}}</td>
+        <td><b>{{.Suggested.Name}}</b></td>
+      </tr>{{end}}</tbody>
+    </table></div>
+    <div class="row mt"><button class="primary">{{.T "Set the ticked dependencies"}}</button></div>
+  </form>
+  {{else}}<p class="muted mt">{{.T "Nothing to change: every device on the map already depends on the suggested one."}}</p>{{end}}
+  {{if or $d.Unchanged $d.Unlinked}}<p class="small muted mt">{{if $d.Unchanged}}{{.T "Already set: %d." $d.Unchanged}} {{end}}{{if $d.Unlinked}}{{.T "Without a cable path to it: %d." $d.Unlinked}}{{end}}</p>{{end}}
+</section>
+{{end}}

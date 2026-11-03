@@ -19,11 +19,15 @@
 <p><b>Nema novih podataka</b> otvara problem kada provera ne dobije novu vrednost za zadati broj minuta — agent koji je prestao da javlja, uređaj koji više ne odgovara na SNMP, izvor podataka koji je stao; po želji ga ograničite na vrste provera.</p>
 <p><b>Vrednost će dostići prag (predviđanje)</b> gleda unapred: povlači pravu liniju kroz poslednju nedelju vrednosti (najmanje šest sati istorije) i otvara problem kada ta linija dostigne prag <b>u roku</b> od zadatih dana — disk koji će biti pun za deset dana, pool koji se puni, temperatura koja stalno raste. Problem navodi trenutnu vrednost, koliko se menja dnevno i datum kada će stići do praga; zatvara se kada trend više ne stiže na vreme.</p>
 
+<p><b>Jedna provera.</b> Dugme sa zvoncetom pored provere na stranici uređaja dodaje okidač samo za tu proveru — potrebno za vrednosti SNMP OID-a (temperatura u °C, napon u V), jer svaka ima svoju jedinicu, a korisno i za jedan važan disk ili port. Takav okidač pod Važi za navodi uređaj i proveru; briše se zajedno sa svojom proverom.</p>
+
 <h2 id="problems">Problemi</h2>
 <p><a href="/problems">Problemi</a> prikazuje šta je otvoreno, najgore prvo; broj u meniju broji poslate probleme (crven kada je neki kritičan). <b>Potvrdite</b> problem uz napomenu da drugi znaju da neko radi na njemu. Rešeni problemi ostaju u istoriji godinu dana.</p>
 
 <h2 id="dependencies">Zavisnosti</h2>
 <p>Podesite <b>Zavisi od</b> na uređaju (na primer ruter filijale). Kada taj ruter ne radi, uređaji iza njega su samo <b>nedostupni</b>: njihovi problemi se beleže ali ne šalju — dobijate jednu poruku za ruter, a ne pedeset. Na mapama su takvi uređaji sivi sa isprekidanom ivicom umesto crveni, a njihov panel kaže da je problem iznad njih.</p>
+
+<p>Da ih podesite za celu mrežu odjednom, otvorite mapu i kliknite <b>Zavisnosti</b>: prateći kablove od uređaja na kome mreža visi (podrazumevano ruter ili firewall sa najviše kablova; po želji izaberite drugi), svakom uređaju se predlaže onaj pre njega — svič zavisi od rutera, pristupne tačke od sviča, virtuelne mašine od svog servera. Kablovi za napajanje, HA i VXLAN se ne računaju. Uređaji bez zavisnosti su označeni; oni koji već zavise od drugog uređaja su prikazani ali nisu označeni. Kliknite <b>Postavi označene zavisnosti</b>.</p>
 
 <h2 id="maintenance">Održavanje</h2>
 <p>U <a href="/alerts/maintenance">Problemi → Održavanje</a> zakažite period za uređaje ili grupe. Tokom njega se uređaji i dalje prate i problemi beleže, ali se ništa ne šalje; problemi koji su još otvoreni kada održavanje završi šalju se tada. Izveštaji o dostupnosti prikazuju vreme održavanja posebno. <b>Ponavljanje</b> vraća termin svakog dana, nedelje ili meseca (noćni backup, mesečni dan za zakrpe), po želji do poslednjeg dana; lista prikazuje sledeći termin, a <b>Ukloni</b> završava celu seriju.</p>

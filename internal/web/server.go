@@ -312,6 +312,8 @@ func (s *Server) Handler() http.Handler {
 	write := func(pattern string, h http.HandlerFunc) { mux.Handle(pattern, s.requireUser(s.requireWrite(h))) }
 	admin := func(pattern string, h http.HandlerFunc) { mux.Handle(pattern, s.requireUser(s.requireAdmin(h))) }
 	app("GET /{$}", s.handleOverview)
+	app("GET /overview", s.handleOverview)
+	app("POST /account/home", s.handleAccountHome)
 	app("GET /devices", s.handleDevices)
 	write("GET /devices/new", s.handleDeviceForm)
 	write("POST /devices/new", s.handleDeviceCreate)
@@ -337,6 +339,8 @@ func (s *Server) Handler() http.Handler {
 	app("GET /maps/{id}/live", s.handleMapLive)
 	write("POST /maps/{id}/layout", s.handleMapSave)
 	write("GET /maps/{id}/suggest", s.handleMapSuggest)
+	write("GET /maps/{id}/parents", s.handleMapParents)
+	write("POST /maps/{id}/parents", s.handleMapParentsApply)
 	write("POST /maps/{id}/auto", s.handleMapAuto)
 	app("GET /assets", s.handleAssets)
 	write("POST /assets", s.handleAssetUpload)

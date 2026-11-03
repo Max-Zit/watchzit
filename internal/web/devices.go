@@ -28,6 +28,12 @@ type overviewData struct {
 
 func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	if r.URL.Path == "/" {
+		if to := s.homePage(r); to != "" {
+			http.Redirect(w, r, to, http.StatusFound)
+			return
+		}
+	}
 	c, err := s.store.StatusCounts(ctx)
 	if err != nil {
 		s.serverError(w, r, err)

@@ -87,7 +87,7 @@ func (e *Engine) matchForecast(ctx context.Context, t *store.Trigger, d *store.A
 	}
 	var out []*condition
 	for _, c := range cs {
-		if c.Paused || c.Status != store.StatusUp || !typeIn(t.CheckTypes, c.Type) {
+		if c.Paused || c.Status != store.StatusUp || !typeIn(t.CheckTypes, c.Type) || !checkIn(t, c) {
 			continue
 		}
 		v, ok := c.Values[t.Metric]

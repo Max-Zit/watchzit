@@ -316,7 +316,7 @@ func (e *Engine) match(t *store.Trigger, d *store.AlertDevice, cs []*store.Alert
 			return nil // the device-down problem says it all
 		}
 		for _, c := range cs {
-			if c.Paused || c.Status != store.StatusDown || !typeIn(t.CheckTypes, c.Type) {
+			if c.Paused || c.Status != store.StatusDown || !typeIn(t.CheckTypes, c.Type) || !checkIn(t, c) {
 				continue
 			}
 			if now.Sub(c.StatusSince) >= time.Duration(t.ForS)*time.Second {
@@ -328,7 +328,7 @@ func (e *Engine) match(t *store.Trigger, d *store.AlertDevice, cs []*store.Alert
 			return nil // the device-down problem says it all
 		}
 		for _, c := range cs {
-			if c.Paused || !typeIn(t.CheckTypes, c.Type) {
+			if c.Paused || !typeIn(t.CheckTypes, c.Type) || !checkIn(t, c) {
 				continue
 			}
 			last := c.StatusSince
@@ -341,7 +341,7 @@ func (e *Engine) match(t *store.Trigger, d *store.AlertDevice, cs []*store.Alert
 		}
 	case store.TriggerMetric:
 		for _, c := range cs {
-			if c.Paused || c.Status != store.StatusUp || !typeIn(t.CheckTypes, c.Type) {
+			if c.Paused || c.Status != store.StatusUp || !typeIn(t.CheckTypes, c.Type) || !checkIn(t, c) {
 				continue
 			}
 			v, ok := c.Values[t.Metric]
@@ -371,6 +371,9 @@ func (e *Engine) match(t *store.Trigger, d *store.AlertDevice, cs []*store.Alert
 	}
 	return out
 }
+
+// checkIn: a trigger for one check only matches that check.
+func checkIn(t *store.Trigger, c *store.AlertCheck) bool { return t.CheckID == 0 || t.CheckID == c.ID }
 
 func typeIn(types []string, t string) bool {
 	if len(types) == 0 {

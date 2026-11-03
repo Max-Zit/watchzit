@@ -152,6 +152,8 @@ type accountData struct {
 	Codes    []string
 	Tokens   []store.APIToken
 	NewToken string // shown once after it is created
+	HomeMaps []homeChoice
+	HomeDash []homeChoice
 }
 
 func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
@@ -170,6 +172,7 @@ func (s *Server) showAccount(w http.ResponseWriter, r *http.Request, status int,
 		s.serverError(w, r, err)
 		return
 	}
+	d.HomeMaps, d.HomeDash = s.homeChoices(r)
 	p := &Page{Title: "My account", Nav: "account", Data: d}
 	if errMsg != "" {
 		p.Error = translate(s.lang(r, u), errMsg)

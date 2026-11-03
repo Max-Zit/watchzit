@@ -36,6 +36,7 @@ type User struct {
 	LastLoginAt        *time.Time
 	Source             string // local, ldap or sso
 	Email              string
+	Home               string // start page: "" (overview), "map:<id>" or "dashboard:<id>"
 }
 
 // IsAdmin reports the admin role.
@@ -54,12 +55,12 @@ func ValidUsername(u string) error {
 	return nil
 }
 
-const userCols = `id, username, display_name, role, totp_enabled, must_change_password, disabled, lang, created_at, last_login_at, source, email`
+const userCols = `id, username, display_name, role, totp_enabled, must_change_password, disabled, lang, created_at, last_login_at, source, email, home`
 
 func scanUser(row interface{ Scan(...any) error }) (*User, error) {
 	u := &User{}
 	err := row.Scan(&u.ID, &u.Username, &u.DisplayName, &u.Role, &u.TOTPEnabled, &u.MustChangePassword,
-		&u.Disabled, &u.Lang, &u.CreatedAt, &u.LastLoginAt, &u.Source, &u.Email)
+		&u.Disabled, &u.Lang, &u.CreatedAt, &u.LastLoginAt, &u.Source, &u.Email, &u.Home)
 	return u, err
 }
 
@@ -214,6 +215,17 @@ func (s *Store) SetLang(ctx context.Context, userID int64, lang string) error {
 	_, err := s.db.Exec(ctx, `UPDATE users SET lang=$2 WHERE id=$1`, userID, lang)
 	return err
 }
+
+// SetHome stores the page a user starts on.
+func (s *Store) SetHome(ctx context.Context, userID int64, home string) error {
+	if home != "" && !homeRE.MatchString(home) {
+		return errors.New("unknown start page")
+	}
+	_, err := s.db.Exec(ctx, `UPDATE users SET home=$2 WHERE id=$1`, userID, home)
+	return err
+}
+
+var homeRE = regexp.MustCompile(`^(map|dashboard):[1-9][0-9]{0,17}$`)
 
 // MarkLogin records a successful sign-in.
 func (s *Store) MarkLogin(ctx context.Context, userID int64) error {

@@ -1258,6 +1258,7 @@
     var warn = vlanMismatch(k, s);
     if (warn) row(dl2, T("Warning"), h("span", { "class": "warntext" }, warn));
     p.appendChild(dl2);
+    if (!kioskBase && !editing) linkHistory(p, s, a, b);
     if (editing) {
       field(p, T("Cable"), select(["ethernet", "fiber", "fiber-sm", "dac", "wireless", "vpn", "vxlan", "ha", "wan", "serial", "power"].map(function (x) { return [x, T("cable:" + x)]; }), k.kind || "ethernet", function (v) { k.kind = v; render(); changed(); showSelection(); }));
       field(p, T("Route"), select([["straight", T("Straight")], ["ortho", T("90° bends")], ["diagonal", T("45° bends")], ["curve", T("Curved")]], k.route || "straight", function (v) { k.route = v; render(); changed(); }));
@@ -1273,6 +1274,79 @@
       if (s.b && s.b.check) acts.appendChild(btn(T("Graphs") + " · " + nodeName(b), "/devices/" + b.device + fromMap() + "#graph-" + s.b.check, "secondary"));
       p.appendChild(acts);
     }
+  }
+
+  // linkHistory draws the traffic of a link over time in the side panel,
+  // from the interface check of either end (A → B is what A sends).
+  var histRange = "24h";
+  function linkHistory(p, s, a, b) {
+    var abID = (s.a && s.a.sout) || (s.b && s.b.sin) || 0, baID = (s.a && s.a.sin) || (s.b && s.b.sout) || 0;
+    if (!abID && !baID) return;
+    var wrap = h("div", { "class": "linkhist" });
+    wrap.appendChild(h("h3", {}, T("Traffic history")));
+    var bar = h("div", { "class": "seg" }), graph = h("div", { "class": "linkhist-graph" }), legend = h("dl", { "class": "facts" });
+    ["1h", "24h", "7d", "30d"].forEach(function (r) {
+      var bt = h("button", { type: "button", "class": r === histRange ? "on" : "" }, r);
+      bt.addEventListener("click", function () {
+        histRange = r;
+        Array.prototype.forEach.call(bar.children, function (x) { x.className = x === bt ? "on" : ""; });
+        load();
+      });
+      bar.appendChild(bt);
+    });
+    wrap.appendChild(bar);
+    wrap.appendChild(graph);
+    wrap.appendChild(legend);
+    p.appendChild(wrap);
+    function get(id) {
+      if (!id) return Promise.resolve(null);
+      return fetch("/series/" + id + "?range=" + histRange + "&points=150", { credentials: "same-origin", headers: { "Accept": "application/json" } })
+        .then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+    }
+    function load() {
+      Promise.all([get(abID), get(baID)]).then(function (res) { draw(res[0], res[1]); });
+    }
+    function draw(ab, ba) {
+      clear(graph); clear(legend);
+      var W = 300, H = 110, from = 0, to = 0, max = 0;
+      [ab, ba].forEach(function (d) {
+        if (!d) return;
+        from = from ? Math.min(from, d.from) : d.from; to = Math.max(to, d.to);
+        d.avg.forEach(function (v) { if (v !== null && v > max) max = v; });
+      });
+      if (!from || !max) { graph.appendChild(h("p", { "class": "muted small" }, T("No data yet."))); return; }
+      var svg = el("svg", { viewBox: "0 0 " + W + " " + H, "class": "linkhist-svg", role: "img", "aria-label": T("Traffic history") });
+      el("line", { x1: 0, y1: H - 0.5, x2: W, y2: H - 0.5, "class": "lh-axis" }, svg);
+      el("line", { x1: 0, y1: 0.5, x2: W, y2: 0.5, "class": "lh-grid" }, svg);
+      [[ab, "lh-ab"], [ba, "lh-ba"]].forEach(function (x) {
+        var d = x[0];
+        if (!d) return;
+        var path = "", pen = false;
+        for (var i = 0; i < d.t.length; i++) {
+          var v = d.avg[i];
+          if (v === null) { pen = false; continue; }
+          var px = (d.t[i] - from) / (to - from) * W, py = H - 2 - v / max * (H - 6);
+          path += (pen ? "L" : "M") + px.toFixed(1) + " " + py.toFixed(1);
+          pen = true;
+        }
+        if (path) el("path", { d: path, "class": x[1] }, svg);
+      });
+      graph.appendChild(svg);
+      graph.appendChild(h("div", { "class": "lh-scale small muted" }, bits(max)));
+      function stats(d) {
+        if (!d) return "—";
+        var last = null, peak = 0, sum = 0, n = 0;
+        d.avg.forEach(function (v) { if (v === null) return; last = v; sum += v; n++; if (v > peak) peak = v; });
+        return n ? bits(last) + " · " + T("avg") + " " + bits(sum / n) + " · " + T("max") + " " + bits(peak) : "—";
+      }
+      [[ab, "lh-ab", nodeName(a) + " → " + nodeName(b)], [ba, "lh-ba", nodeName(b) + " → " + nodeName(a)]].forEach(function (x) {
+        var dt = h("dt");
+        dt.appendChild(h("span", { "class": "lh-key " + x[1] }, x[2]));
+        legend.appendChild(dt);
+        legend.appendChild(h("dd", {}, stats(x[0])));
+      });
+    }
+    load();
   }
 
   function showSelection() {

@@ -670,6 +670,8 @@ type LivePort struct {
 	In     *float64   `json:"in,omitempty"`  // bit/s
 	Out    *float64   `json:"out,omitempty"` // bit/s
 	Check  int64      `json:"check,omitempty"`
+	SIn    int32      `json:"sin,omitempty"` // series of in_bps (history in the map panel)
+	SOut   int32      `json:"sout,omitempty"`
 	Status string     `json:"status,omitempty"` // of the interface check
 	VLANs  []PortVLAN `json:"vlans,omitempty"`
 }
@@ -714,7 +716,9 @@ func (s *Store) DevicePorts(ctx context.Context, ids []int64) (map[int64]map[int
 		return nil, err
 	}
 	// traffic from the interface checks
-	rows, err = s.db.Query(ctx, `SELECT device_id, id, params, last_values, status, paused FROM checks WHERE type IN ($1, $3) AND device_id = ANY($2)`, CheckSNMPIf, ids, CheckAgentNet)
+	rows, err = s.db.Query(ctx, `SELECT device_id, id, params, last_values, status, paused,
+		COALESCE((SELECT s.id FROM series s WHERE s.check_id=checks.id AND s.metric='in_bps'),0), COALESCE((SELECT s.id FROM series s WHERE s.check_id=checks.id AND s.metric='out_bps'),0)
+		FROM checks WHERE type IN ($1, $3) AND device_id = ANY($2)`, CheckSNMPIf, ids, CheckAgentNet)
 	if err != nil {
 		return nil, err
 	}
@@ -724,7 +728,8 @@ func (s *Store) DevicePorts(ctx context.Context, ids []int64) (map[int64]map[int
 		var rawP, rawV []byte
 		var status string
 		var paused bool
-		if err := rows.Scan(&dev, &id, &rawP, &rawV, &status, &paused); err != nil {
+		var sin, sout int32
+		if err := rows.Scan(&dev, &id, &rawP, &rawV, &status, &paused, &sin, &sout); err != nil {
 			return nil, err
 		}
 		var p CheckParams
@@ -740,6 +745,7 @@ func (s *Store) DevicePorts(ctx context.Context, ids []int64) (map[int64]map[int
 			out[dev][p.IfIndex] = lp
 		}
 		lp.Check = id
+		lp.SIn, lp.SOut = sin, sout
 		lp.Status = status
 		if paused {
 			lp.Status = StatusPaused

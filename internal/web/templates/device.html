@@ -204,6 +204,7 @@
       <td class="hide-sm muted nowrap">{{$.Ago .LastRun}}</td>
       {{if $.User.CanWrite}}<td class="actions nowrap">
         {{if not (isAgent .Type)}}<form method="post" action="/checks/{{.ID}}/run" class="inline"><button class="ghost sm" title="{{$.T "Run now"}}">{{template "icon" "refresh"}}<span class="hide-sm">{{$.T "Run now"}}</span></button></form>{{end}}
+        {{if .Series}}<a class="btn ghost sm" href="/alerts/triggers?check={{.ID}}#form" title="{{$.T "Add trigger"}}">{{template "icon" "bell"}}</a>{{end}}
         <details class="pop right"><summary class="btn ghost sm" title="{{$.T "Settings"}}">{{template "icon" "edit"}}</summary>
           <div class="pop-body">
             <form method="post" action="/checks/{{.ID}}" class="stack">
