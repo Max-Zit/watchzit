@@ -46,6 +46,8 @@ func (s *Server) handleDevicesBulk(w http.ResponseWriter, r *http.Request) {
 		n, err = s.store.BulkUpdate(ctx, ids, store.BulkPause, v, "")
 	case "collector":
 		n, err = s.store.SetDeviceCollector(ctx, ids, num("collector"))
+	case "backup":
+		n, err = s.store.SetDeviceBackup(ctx, ids, num("backup"))
 	case "template":
 		t, terr := s.store.TemplateByID(ctx, num("template"))
 		if terr != nil {

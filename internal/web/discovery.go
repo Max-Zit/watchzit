@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/max-zit/watchzit/internal/discovery"
+	"github.com/max-zit/watchzit/internal/poller"
 	"github.com/max-zit/watchzit/internal/probe"
 	"github.com/max-zit/watchzit/internal/snmp"
 	"github.com/max-zit/watchzit/internal/snmpmon"
@@ -105,7 +106,25 @@ func (s *Server) scanRange(ctx context.Context, r *store.DiscoveryRange) error {
 	}
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Minute)
 	defer cancel()
-	found := s.prober(ctx).Scan(ctx, addrs)
+	var found []discovery.Host
+	if r.CollectorID != 0 {
+		// a network of a remote site: its collector scans it
+		res, err := s.collectorJob(ctx, r.CollectorID, poller.RemoteJob{Kind: poller.JobDiscover, CIDR: r.CIDR, SNMP: s.snmpProfiles(ctx, 0)}, 16*time.Minute)
+		if err != nil {
+			return err
+		}
+		in := map[netip.Addr]bool{}
+		for _, a := range addrs {
+			in[a] = true
+		}
+		for _, h := range res.Hosts {
+			if in[h.Address] {
+				found = append(found, h)
+			}
+		}
+	} else {
+		found = s.prober(ctx).Scan(ctx, addrs)
+	}
 	var hosts []store.DiscoveredHost
 	for _, h := range found {
 		var ports []int32
@@ -150,17 +169,19 @@ func (s *Server) ScanDue(ctx context.Context) {
 }
 
 type discoveryData struct {
-	Ranges    []*store.DiscoveryRange
-	Hosts     []*store.DiscoveredHost
-	Dismissed []*store.DiscoveredHost
-	Busy      map[int64]bool
-	Profiles  map[int64]string
-	Groups    []store.Group
+	Ranges     []*store.DiscoveryRange
+	Hosts      []*store.DiscoveredHost
+	Dismissed  []*store.DiscoveredHost
+	Busy       map[int64]bool
+	Profiles   map[int64]string
+	Groups     []store.Group
+	Collectors []*store.Device
 }
 
 func (s *Server) handleDiscovery(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	d := &discoveryData{Busy: s.scans.busy(), Profiles: map[int64]string{}}
+	d.Collectors, _ = s.store.Collectors(r.Context())
 	var err error
 	if d.Ranges, err = s.store.DiscoveryRanges(ctx); err == nil {
 		d.Hosts, err = s.store.DiscoveredHosts(ctx, false)
@@ -197,7 +218,14 @@ func (s *Server) handleDiscoveryRangeAdd(w http.ResponseWriter, r *http.Request)
 	} else if p, err := netip.ParsePrefix(cidr); err == nil {
 		cidr = p.Masked().String()
 	}
-	id, err := s.store.CreateDiscoveryRange(r.Context(), cidr, r.FormValue("every"))
+	coll, _ := strconv.ParseInt(r.FormValue("collector"), 10, 64)
+	if coll != 0 {
+		if d, err := s.store.DeviceByID(r.Context(), coll); err != nil || !d.Collector {
+			s.redirectErr(w, r, back, "That device is not a remote collector.")
+			return
+		}
+	}
+	id, err := s.store.CreateDiscoveryRange(r.Context(), cidr, r.FormValue("every"), coll)
 	if err != nil {
 		s.redirectErr(w, r, back, storeErr(err))
 		return
@@ -306,6 +334,9 @@ func (s *Server) handleDiscoveryHosts(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			failed = append(failed, h.Address.String()+": "+translate(s.lang(r, userFrom(r)), storeErr(err)))
 			continue
+		}
+		if h.Collector != 0 {
+			_, _ = s.store.SetDeviceCollector(ctx, []int64{id}, h.Collector)
 		}
 		if h.Ping {
 			_, _ = s.store.CreateCheck(ctx, id, store.CheckInput{Type: store.CheckICMP})

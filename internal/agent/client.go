@@ -35,6 +35,7 @@ type Agent struct {
 
 	key           ed25519.PrivateKey
 	lastInventory time.Time
+	coll          *collectorRun // remote collector (lives across channels)
 }
 
 var errUnknownAgent = errors.New("unknown agent")
@@ -60,6 +61,8 @@ func (a *Agent) Run(ctx context.Context) error {
 	if a.Events == nil {
 		a.Events = NewEventReader().Read
 	}
+	a.coll = newCollectorRun()
+	defer a.coll.close()
 	backoff := 2 * time.Second
 	for ctx.Err() == nil {
 		start := time.Now()
@@ -154,16 +157,23 @@ func (a *Agent) session(ctx context.Context) error {
 		}
 	}()
 
-	// remote collector: the checks the server gives this agent for other
-	// devices run in a poller; its results come back through coll
-	var collector *poller.Poller
-	var stopCollector context.CancelFunc // nil while not collecting
-	coll := make(chan []poller.RemoteResult, 16)
-	defer func() {
-		if stopCollector != nil {
-			stopCollector()
+	// remote collector: results queued while the channel was down go
+	// first; jobs (a discovery scan, an SNMP read) answer through jobDone
+	jobDone := make(chan poller.RemoteJobResult, 4)
+	sendQueued := func() error {
+		for {
+			rs := a.coll.take(collectorBatch)
+			if len(rs) == 0 {
+				return nil
+			}
+			if err := sendMsg(sctx, ws, proto.TypeCollectorResults, poller.RemoteResults{Results: rs}); err != nil {
+				a.coll.putBack(rs)
+				return err
+			}
 		}
-	}()
+	}
+	collTick := time.NewTicker(5 * time.Second)
+	defer collTick.Stop()
 	interval := 60 * time.Second
 	var services, processes []string
 	ticker := time.NewTicker(interval)
@@ -226,34 +236,40 @@ func (a *Agent) session(ctx context.Context) error {
 				if json.Unmarshal(env.Data, &cfg) != nil {
 					break
 				}
-				if len(cfg.Checks) == 0 {
-					if stopCollector != nil {
-						stopCollector()
-						collector, stopCollector = nil, nil
-						a.Log.Info("no longer a remote collector")
-					}
+				a.coll.configure(ctx, a, cfg)
+				if n := a.coll.waiting(); n > 0 {
+					a.Log.Info("sending results kept while the console was away", "count", n)
+				}
+				if err := sendQueued(); err != nil {
+					return err
+				}
+			case proto.TypeCollectorJob:
+				var j poller.RemoteJob
+				if json.Unmarshal(env.Data, &j) != nil {
 					break
 				}
-				if collector == nil {
-					collector = poller.NewCollector(a.Log, func(rs []poller.RemoteResult) {
-						select {
-						case coll <- rs:
-						case <-sctx.Done():
-						}
-					})
-					cctx, cancelColl := context.WithCancel(sctx)
-					stopCollector = cancelColl
-					go collector.Run(cctx)
-				}
-				collector.SetRemote(cfg)
-				a.Log.Info("remote collector checks", "count", collector.Remote())
+				go func() {
+					r := poller.RunJob(sctx, j)
+					select {
+					case jobDone <- r:
+					case <-sctx.Done():
+					}
+				}()
 			case proto.TypeInventoryRequest:
 				if err := inventory(); err != nil {
 					return err
 				}
 			}
-		case rs := <-coll:
-			if err := sendMsg(sctx, ws, proto.TypeCollectorResults, poller.RemoteResults{Results: rs}); err != nil {
+		case <-a.coll.notify:
+			if err := sendQueued(); err != nil {
+				return err
+			}
+		case <-collTick.C:
+			if err := sendQueued(); err != nil {
+				return err
+			}
+		case r := <-jobDone:
+			if err := sendMsg(sctx, ws, proto.TypeCollectorJobDone, r); err != nil {
 				return err
 			}
 		case <-first:

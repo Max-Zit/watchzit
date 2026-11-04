@@ -9,7 +9,7 @@
   <div class="table-wrap"><table>
     <thead><tr><th>{{.T "Range"}}</th><th>{{.T "Schedule"}}</th><th>{{.T "Last scan"}}</th><th></th></tr></thead>
     <tbody>{{range .Data.Ranges}}<tr>
-      <td class="mono"><b>{{.CIDR}}</b></td>
+      <td class="mono"><b>{{.CIDR}}</b>{{with .Collector}}<br><span class="small muted">{{$.T "from"}} {{.}}</span>{{end}}</td>
       <td><form method="post" action="/discovery/ranges/{{.ID}}" class="inline"><input type="hidden" name="do" value="every"><select name="every" data-autosubmit aria-label="{{$.T "Schedule"}}">
         <option value="" {{if eq .Every ""}}selected{{end}}>{{$.T "Only by hand"}}</option><option value="day" {{if eq .Every "day"}}selected{{end}}>{{$.T "Every day"}}</option><option value="week" {{if eq .Every "week"}}selected{{end}}>{{$.T "Every week"}}</option></select></form></td>
       <td class="small">{{if index $.Data.Busy .ID}}<span class="badge info"><i></i>{{$.T "scanning…"}}</span>{{else if .LastRun}}{{$.Ago .LastRun}} · {{$.T "%d new" .LastFound}}{{else}}<span class="muted">{{$.T "never"}}</span>{{end}}</td>
@@ -23,10 +23,11 @@
   <form method="post" action="/discovery/ranges" class="row wrap mt">
     <input name="cidr" required maxlength="43" placeholder="192.168.1.0/24" class="mono" aria-label="{{.T "Range"}}">
     <select name="every" aria-label="{{.T "Schedule"}}"><option value="">{{.T "Only by hand"}}</option><option value="day">{{.T "Every day"}}</option><option value="week" selected>{{.T "Every week"}}</option></select>
+    {{with .Data.Collectors}}<select name="collector" aria-label="{{$.T "Scanned from"}}"><option value="0">{{$.T "Scanned from this console"}}</option>{{range .}}<option value="{{.ID}}">{{$.T "Scanned from"}} {{.Name}}</option>{{end}}</select>{{end}}
     <input type="hidden" name="now" value="1">
     <button class="primary">{{template "icon" "plus"}}{{.T "Add and scan"}}</button>
   </form>
-  <p class="small muted">{{.T "A network up to /22 (1024 addresses) or one address."}}</p>
+  <p class="small muted">{{.T "A network up to /22 (1024 addresses) or one address."}}{{if .Data.Collectors}} {{.T "A range scanned from a remote collector is a network of its site: the devices added from it are monitored from that collector."}}{{end}}</p>
 </section>
 <section class="panel">
   <h2>{{.T "Found hosts"}} <span class="muted small">({{len .Data.Hosts}})</span></h2>

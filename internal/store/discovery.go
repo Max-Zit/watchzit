@@ -11,11 +11,13 @@ import (
 
 // DiscoveryRange is an address range to scan.
 type DiscoveryRange struct {
-	ID        int64
-	CIDR      string
-	Every     string // "", day, week
-	LastRun   *time.Time
-	LastFound int
+	ID          int64
+	CIDR        string
+	Every       string // "", day, week
+	LastRun     *time.Time
+	LastFound   int
+	CollectorID int64  // scanned by this remote collector (0: the console)
+	Collector   string // its name
 }
 
 // Due reports whether a scheduled range should run at now.
@@ -45,13 +47,15 @@ type DiscoveredHost struct {
 	Ports     []int32
 	Ping      bool
 	SNMP      int64
+	Collector int64 // the remote collector that found it (its devices run there)
 	FirstSeen time.Time
 	LastSeen  time.Time
 }
 
 // DiscoveryRanges lists the ranges.
 func (s *Store) DiscoveryRanges(ctx context.Context) ([]*DiscoveryRange, error) {
-	rows, err := s.db.Query(ctx, `SELECT id, cidr, every, last_run, last_found FROM discovery_ranges ORDER BY cidr`)
+	rows, err := s.db.Query(ctx, `SELECT r.id, r.cidr, r.every, r.last_run, r.last_found, COALESCE(r.collector_id,0), COALESCE(d.name,'')
+		FROM discovery_ranges r LEFT JOIN devices d ON d.id=r.collector_id ORDER BY r.cidr`)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +63,7 @@ func (s *Store) DiscoveryRanges(ctx context.Context) ([]*DiscoveryRange, error) 
 	var out []*DiscoveryRange
 	for rows.Next() {
 		r := &DiscoveryRange{}
-		if err := rows.Scan(&r.ID, &r.CIDR, &r.Every, &r.LastRun, &r.LastFound); err != nil {
+		if err := rows.Scan(&r.ID, &r.CIDR, &r.Every, &r.LastRun, &r.LastFound, &r.CollectorID, &r.Collector); err != nil {
 			return nil, err
 		}
 		out = append(out, r)
@@ -68,12 +72,12 @@ func (s *Store) DiscoveryRanges(ctx context.Context) ([]*DiscoveryRange, error) 
 }
 
 // CreateDiscoveryRange adds a range (already checked by the caller).
-func (s *Store) CreateDiscoveryRange(ctx context.Context, cidr, every string) (int64, error) {
+func (s *Store) CreateDiscoveryRange(ctx context.Context, cidr, every string, collectorID int64) (int64, error) {
 	if every != "" && every != "day" && every != "week" {
 		return 0, errors.New("unknown schedule")
 	}
 	var id int64
-	err := s.db.QueryRow(ctx, `INSERT INTO discovery_ranges(cidr, every) VALUES($1,$2) RETURNING id`, cidr, every).Scan(&id)
+	err := s.db.QueryRow(ctx, `INSERT INTO discovery_ranges(cidr, every, collector_id) VALUES($1,$2,$3) RETURNING id`, cidr, every, nullID(collectorID)).Scan(&id)
 	if isUnique(err) {
 		return 0, ErrConflict
 	}
@@ -117,10 +121,10 @@ func (s *Store) SaveDiscovery(ctx context.Context, rangeID int64, hosts []Discov
 		if h.SNMP != 0 {
 			prof = &h.SNMP
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO discovered_hosts(address, range_id, name, dns_name, sys_name, sys_descr, vendor, kind, ports, ping, snmp_profile, first_seen, last_seen)
-			VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$12)
+		if _, err := tx.Exec(ctx, `INSERT INTO discovered_hosts(address, range_id, name, dns_name, sys_name, sys_descr, vendor, kind, ports, ping, snmp_profile, first_seen, last_seen, collector_id)
+			VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$12,(SELECT collector_id FROM discovery_ranges WHERE id=$2))
 			ON CONFLICT (address) DO UPDATE SET range_id=EXCLUDED.range_id, name=EXCLUDED.name, dns_name=EXCLUDED.dns_name, sys_name=EXCLUDED.sys_name,
-			sys_descr=EXCLUDED.sys_descr, vendor=EXCLUDED.vendor, kind=EXCLUDED.kind, ports=EXCLUDED.ports, ping=EXCLUDED.ping, snmp_profile=EXCLUDED.snmp_profile, last_seen=EXCLUDED.last_seen`,
+			sys_descr=EXCLUDED.sys_descr, vendor=EXCLUDED.vendor, kind=EXCLUDED.kind, ports=EXCLUDED.ports, ping=EXCLUDED.ping, snmp_profile=EXCLUDED.snmp_profile, last_seen=EXCLUDED.last_seen, collector_id=EXCLUDED.collector_id`,
 			h.Address.String(), rangeID, cutText(h.Name, 100), cutText(h.DNSName, 255), cutText(h.SysName, 255), cutText(h.SysDescr, 500), h.Vendor, h.Kind, h.Ports, h.Ping, prof, at); err != nil {
 			return err
 		}
@@ -139,7 +143,7 @@ func (s *Store) SaveDiscovery(ctx context.Context, rangeID int64, hosts []Discov
 // ones only when asked).
 func (s *Store) DiscoveredHosts(ctx context.Context, dismissed bool) ([]*DiscoveredHost, error) {
 	rows, err := s.db.Query(ctx, `SELECT host(h.address), COALESCE(h.range_id,0), h.name, h.dns_name, h.sys_name, h.sys_descr, h.vendor, h.kind, h.ports, h.ping,
-		COALESCE(h.snmp_profile,0), h.first_seen, h.last_seen FROM discovered_hosts h
+		COALESCE(h.snmp_profile,0), h.first_seen, h.last_seen, COALESCE(h.collector_id,0) FROM discovered_hosts h
 		WHERE h.dismissed = $1 AND NOT EXISTS (SELECT 1 FROM devices d WHERE d.address = host(h.address)) ORDER BY h.address`, dismissed)
 	if err != nil {
 		return nil, err
@@ -149,7 +153,7 @@ func (s *Store) DiscoveredHosts(ctx context.Context, dismissed bool) ([]*Discove
 	for rows.Next() {
 		h := &DiscoveredHost{}
 		var a string
-		if err := rows.Scan(&a, &h.RangeID, &h.Name, &h.DNSName, &h.SysName, &h.SysDescr, &h.Vendor, &h.Kind, &h.Ports, &h.Ping, &h.SNMP, &h.FirstSeen, &h.LastSeen); err != nil {
+		if err := rows.Scan(&a, &h.RangeID, &h.Name, &h.DNSName, &h.SysName, &h.SysDescr, &h.Vendor, &h.Kind, &h.Ports, &h.Ping, &h.SNMP, &h.FirstSeen, &h.LastSeen, &h.Collector); err != nil {
 			return nil, err
 		}
 		h.Address, _ = netip.ParseAddr(a)

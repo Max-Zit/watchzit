@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/max-zit/watchzit/internal/poller"
 	"github.com/max-zit/watchzit/internal/probe"
 	"github.com/max-zit/watchzit/internal/snmp"
 	"github.com/max-zit/watchzit/internal/snmpmon"
@@ -198,6 +199,21 @@ func sameCheck(c *store.Check, in store.CheckInput) bool {
 }
 
 func (s *Server) discover(ctx context.Context, d *store.Device, pr *store.SNMPProfile) (store.Facts, []store.Interface, []snmpmon.Proposal, error) {
+	if d.CollectorID != 0 {
+		// a device of a remote site: its collector asks it
+		r, err := s.collectorJob(ctx, s.collectorOf(d), poller.RemoteJob{Kind: poller.JobSNMP, Address: d.Address, Profile: pr.ID, SNMP: s.snmpProfiles(ctx, pr.ID)}, time.Minute)
+		if err != nil {
+			return store.Facts{}, nil, nil, err
+		}
+		if r.SNMP == nil {
+			return store.Facts{}, nil, nil, errors.New("the remote collector found nothing")
+		}
+		var ferr error
+		if r.SNMP.Error != "" {
+			ferr = errors.New(r.SNMP.Error)
+		}
+		return r.SNMP.Facts, r.SNMP.Interfaces, r.SNMP.Proposals, ferr
+	}
 	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
 	defer cancel()
 	addr, err := probe.Resolve(ctx, d.Address)

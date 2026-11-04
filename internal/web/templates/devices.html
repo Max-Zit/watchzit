@@ -38,7 +38,7 @@
       <option value="parent">{{.T "Depends on"}}</option>
       <option value="kind">{{.T "Type"}}</option>
       {{if .Data.Templates}}<option value="template">{{.T "Apply template"}}</option>{{end}}
-      {{if .Data.Collectors}}<option value="collector">{{.T "Monitored from"}}</option>{{end}}
+      {{if .Data.Collectors}}<option value="collector">{{.T "Monitored from"}}</option><option value="backup">{{.T "Backup collector"}}</option>{{end}}
       <option value="pause">{{.T "Pause monitoring"}}</option>
       <option value="resume">{{.T "Resume monitoring"}}</option>
       {{if .User.IsAdmin}}<option value="delete">{{.T "Delete"}}</option>{{end}}
@@ -48,6 +48,7 @@
     <select name="parent" data-show="bulk" data-when="parent" aria-label="{{.T "Depends on"}}"><option value="0">{{.T "None"}}</option>{{range .Data.All}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
     <select name="kind" data-show="bulk" data-when="kind" aria-label="{{.T "Type"}}">{{range .Data.Kinds}}<option value="{{.}}">{{$.KindName .}}</option>{{end}}</select>
     <select name="collector" data-show="bulk" data-when="collector" aria-label="{{.T "Monitored from"}}"><option value="0">{{.T "This console"}}</option>{{range .Data.Collectors}}<option value="{{.ID}}">{{$.T "Remote collector"}} {{.Name}}</option>{{end}}</select>
+    <select name="backup" data-show="bulk" data-when="backup" aria-label="{{.T "Backup collector"}}"><option value="0">{{.T "None"}}</option>{{range .Data.Collectors}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
     <select name="template" data-show="bulk" data-when="template" aria-label="{{.T "Template"}}">{{range .Data.Templates}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
     <button class="secondary" data-confirm-when="delete" data-confirm-text="{{.T "Delete the selected devices with their checks and data?"}}">{{.T "Apply to selected"}}</button>
   </div>

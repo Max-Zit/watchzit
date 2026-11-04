@@ -35,6 +35,9 @@ type Poller struct {
 	OnChange func([]store.StatusChange)
 	// OnReload is told when the checks changed (remote collectors get theirs).
 	OnReload func()
+	// RemoteRefresh reads a device that a remote collector runs (SNMP facts
+	// and interfaces) and stores it.
+	RemoteRefresh func(ctx context.Context, d *store.Device) error
 
 	mu       sync.Mutex
 	entries  map[int64]*entry
@@ -482,7 +485,20 @@ func (p *Poller) Refresh(ctx context.Context, id int64) {
 	sem := make(chan struct{}, 4)
 	var wg sync.WaitGroup
 	for _, d := range devs {
-		if (id != 0 && d.ID != id) || d.Paused || d.CollectorID != 0 {
+		if (id != 0 && d.ID != id) || d.Paused {
+			continue
+		}
+		if d.CollectorID != 0 {
+			// read by its remote collector (when the console can reach it)
+			if p.RemoteRefresh != nil {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					if err := p.RemoteRefresh(ctx, d); err != nil {
+						p.log.Debug("poller: SNMP refresh through the collector failed", "device", d.Name, "err", err)
+					}
+				}()
+			}
 			continue
 		}
 		wg.Add(1)
@@ -500,36 +516,66 @@ func (p *Poller) Refresh(ctx context.Context, id int64) {
 func (p *Poller) refreshDevice(ctx context.Context, d *store.Device) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
-	addr, err := probe.Resolve(ctx, d.Address)
-	if err != nil {
-		return err
-	}
-	cl, err := p.snmpClient(d.SNMPProfile, addr, 3*time.Second)
+	cl, err := p.dialDevice(ctx, d)
 	if err != nil {
 		return err
 	}
 	defer cl.Close()
-	f, err := snmpmon.Facts(ctx, cl)
+	rd, err := ReadDevice(ctx, cl)
 	if err != nil {
 		return err
 	}
-	f.Updated = p.now()
-	if err := p.store.SetFacts(ctx, d.ID, f); err != nil {
-		return err
+	return p.SaveDeviceRead(ctx, d, rd)
+}
+
+func (p *Poller) dialDevice(ctx context.Context, d *store.Device) (*snmp.Client, error) {
+	addr, err := probe.Resolve(ctx, d.Address)
+	if err != nil {
+		return nil, err
+	}
+	return p.snmpClient(d.SNMPProfile, addr, 3*time.Second)
+}
+
+// DeviceRead is what an SNMP refresh reads from a device (a remote
+// collector reads it and sends it to the console).
+type DeviceRead struct {
+	Facts      store.Facts       `json:"facts"`
+	Interfaces []store.Interface `json:"interfaces"`
+	VLANs      []store.VLANPort  `json:"vlans,omitempty"`
+	VLANsRead  bool              `json:"vlans_read"`
+}
+
+// ReadDevice reads the facts, interfaces and VLANs of a device.
+func ReadDevice(ctx context.Context, cl *snmp.Client) (*DeviceRead, error) {
+	f, err := snmpmon.Facts(ctx, cl)
+	if err != nil {
+		return nil, err
 	}
 	ifs, err := snmpmon.Interfaces(ctx, cl)
 	if err != nil {
+		return nil, err
+	}
+	rd := &DeviceRead{Facts: f, Interfaces: ifs}
+	if vs, err := snmpmon.VLANs(ctx, cl); err == nil {
+		rd.VLANs, rd.VLANsRead = vs, true
+	}
+	return rd, nil
+}
+
+// SaveDeviceRead stores what a refresh read.
+func (p *Poller) SaveDeviceRead(ctx context.Context, d *store.Device, rd *DeviceRead) error {
+	rd.Facts.Updated = p.now()
+	if err := p.store.SetFacts(ctx, d.ID, rd.Facts); err != nil {
 		return err
 	}
-	if err := p.store.SetInterfaces(ctx, d.ID, ifs); err != nil {
+	if err := p.store.SetInterfaces(ctx, d.ID, rd.Interfaces); err != nil {
 		return err
 	}
-	vs, err := snmpmon.VLANs(ctx, cl)
-	if err != nil {
-		p.log.Debug("poller: SNMP VLANs not read", "device", d.Name, "err", err)
+	if !rd.VLANsRead {
+		p.log.Debug("poller: SNMP VLANs not read", "device", d.Name)
 		return nil
 	}
-	return p.store.SetDeviceVLANs(ctx, d.ID, store.VLANFromSNMP, vs)
+	return p.store.SetDeviceVLANs(ctx, d.ID, store.VLANFromSNMP, rd.VLANs)
 }
 
 // runService runs a check of a service (web page, certificate, DNS,

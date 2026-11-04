@@ -27,6 +27,9 @@ func (s *Store) SetCollector(ctx context.Context, deviceID int64, on bool) error
 		if _, err := tx.Exec(ctx, `UPDATE devices SET collector_id=NULL WHERE collector_id=$1`, deviceID); err != nil {
 			return err
 		}
+		if _, err := tx.Exec(ctx, `UPDATE devices SET collector_backup_id=NULL WHERE collector_backup_id=$1`, deviceID); err != nil {
+			return err
+		}
 	}
 	return tx.Commit(ctx)
 }
@@ -61,7 +64,11 @@ func (s *Store) SetDeviceCollector(ctx context.Context, ids []int64, collectorID
 			return 0, errors.New("that device is not a remote collector")
 		}
 	}
-	tag, err := s.db.Exec(ctx, `UPDATE devices SET collector_id=$2 WHERE id = ANY($1) AND id <> COALESCE($2, 0)`, ids, nullID(collectorID))
+	// back to the console: no backup either; a backup equal to the new
+	// collector means nothing
+	tag, err := s.db.Exec(ctx, `UPDATE devices SET collector_id=$2,
+		collector_backup_id = CASE WHEN $2::bigint IS NULL OR collector_backup_id = $2 THEN NULL ELSE collector_backup_id END
+		WHERE id = ANY($1) AND id <> COALESCE($2, 0)`, ids, nullID(collectorID))
 	if err != nil {
 		return 0, err
 	}
@@ -115,4 +122,30 @@ func (s *Store) RemoteCheckSeries(ctx context.Context, collectorID int64) (map[i
 		}
 	}
 	return out, rows.Err()
+}
+
+// SetDeviceBackup chooses the collector that takes over the checks of
+// devices while their own collector is offline (0: none).
+func (s *Store) SetDeviceBackup(ctx context.Context, ids []int64, backupID int64) (int, error) {
+	if len(ids) > 5000 {
+		return 0, errors.New("too many devices at once")
+	}
+	if backupID != 0 {
+		var ok bool
+		if err := s.db.QueryRow(ctx, `SELECT collector FROM devices WHERE id=$1`, backupID).Scan(&ok); err != nil || !ok {
+			return 0, errors.New("that device is not a remote collector")
+		}
+	}
+	tag, err := s.db.Exec(ctx, `UPDATE devices SET collector_backup_id=$2 WHERE id = ANY($1) AND id <> COALESCE($2, 0)
+		AND collector_id IS NOT NULL AND collector_id <> COALESCE($2, 0)`, ids, nullID(backupID))
+	if err != nil {
+		return 0, err
+	}
+	return int(tag.RowsAffected()), nil
+}
+
+// BackupChecks are the checks a collector takes over when their own
+// collector is offline.
+func (s *Store) BackupChecks(ctx context.Context, backupID int64) ([]*Check, error) {
+	return s.checks(ctx, `WHERE d.collector_backup_id=$1`, backupID)
 }

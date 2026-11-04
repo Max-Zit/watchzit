@@ -101,6 +101,7 @@ func New(ctx context.Context, st *store.Store, db *tsdb.DB, p *poller.Poller, lo
 	s.hub = newHub()
 	if p != nil {
 		p.OnReload = func() { go s.syncCollectors() }
+		p.RemoteRefresh = s.remoteRefresh
 	}
 	db.SetRetention(s.retention(ctx))
 	return s, nil

@@ -996,3 +996,6 @@ hr.panel-sep { border: 0; border-top: 1px solid var(--line); margin: 2px 0; widt
 .collector-box h3 .ic { flex: none; margin-right: 0; }
 #collectors .steps { margin: 12px 0 0; }
 #collectors .table-wrap { margin-top: 16px; }
+/* guide: previous / next with long titles on a phone */
+.docpager { flex-wrap: wrap; gap: 8px; }
+.docpager .btn { white-space: normal; max-width: 100%; text-align: left; }

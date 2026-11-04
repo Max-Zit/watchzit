@@ -2,14 +2,17 @@ package web
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/max-zit/watchzit/internal/discovery"
 	"github.com/max-zit/watchzit/internal/poller"
 	"github.com/max-zit/watchzit/internal/proto"
 	"github.com/max-zit/watchzit/internal/store"
@@ -77,6 +80,14 @@ func (s *Server) collectorConfig(ctx context.Context, deviceID int64) (poller.Re
 	if err != nil {
 		return cfg, nil, err
 	}
+	// and, as a backup, the checks of devices whose own collector is offline
+	if bs, err := s.store.BackupChecks(ctx, deviceID); err == nil {
+		for _, c := range bs {
+			if s.hub.get(c.Collector) == nil {
+				cs = append(cs, c)
+			}
+		}
+	}
 	for _, c := range cs {
 		if !poller.RemoteType(c.Type) {
 			continue
@@ -125,8 +136,9 @@ func (s *Server) collectorResults(ctx context.Context, c *agentConn, rr *poller.
 		if !ok || (r.Result.Status != store.StatusUp && r.Result.Status != store.StatusDown) {
 			continue
 		}
-		// the collector's clock may be off: keep times near the console's
-		if at := r.Result.At; at.After(now.Add(time.Minute)) || at.Before(now.Add(-time.Hour)) {
+		// results kept while the channel was down are up to a day old; a
+		// clock far off is set to the console's
+		if at := r.Result.At; at.After(now.Add(time.Minute)) || at.Before(now.Add(-25*time.Hour)) {
 			r.Result.At = now
 		}
 		if len(r.Result.Text) > 500 {
@@ -160,11 +172,23 @@ func (s *Server) collectorResults(ctx context.Context, c *agentConn, rr *poller.
 // unknown until it is back (not down: the site may be fine).
 func (s *Server) collectorOffline(ctx context.Context, deviceID int64) {
 	cs, err := s.store.CollectorChecks(ctx, deviceID)
-	if err != nil || len(cs) == 0 {
+	if err != nil {
 		return
+	}
+	// the devices it was running for another collector that is offline too
+	if bs, err := s.store.BackupChecks(ctx, deviceID); err == nil {
+		for _, c := range bs {
+			if s.hub.get(c.Collector) == nil {
+				cs = append(cs, c)
+			}
+		}
 	}
 	var res []store.CheckResult
 	for _, c := range cs {
+		// a connected backup takes them over
+		if c.Collector == deviceID && c.Backup != 0 && s.hub.get(c.Backup) != nil {
+			continue
+		}
 		if poller.RemoteType(c.Type) {
 			res = append(res, store.CheckResult{CheckID: c.ID, At: s.now(), Status: store.StatusUnknown, Text: "the remote collector is offline"})
 		}
@@ -198,12 +222,130 @@ func (s *Server) handleDeviceCollector(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	_ = r.ParseForm()
 	id, _ := strconv.ParseInt(r.FormValue("collector"), 10, 64)
 	if _, err := s.store.SetDeviceCollector(ctx, []int64{d.ID}, id); err != nil {
 		s.redirectErr(w, r, back, storeErr(err))
 		return
 	}
+	if r.Form.Has("backup") {
+		b, _ := strconv.ParseInt(r.FormValue("backup"), 10, 64)
+		if _, err := s.store.SetDeviceBackup(ctx, []int64{d.ID}, b); err != nil {
+			s.redirectErr(w, r, back, storeErr(err))
+			return
+		}
+	}
 	s.audit(r, "device.collector", "device:"+strconv.FormatInt(d.ID, 10), "checks of %s run by collector %d (0 = console)", d.Name, id)
 	s.poller.Reload()
 	s.redirect(w, r, back, "Saved.")
+}
+
+// ---- jobs: discovery scans and SNMP reads done by a collector
+
+var collectorJobs = struct {
+	sync.Mutex
+	wait map[string]chan poller.RemoteJobResult
+	from map[string]int64 // job → the collector that must answer it
+}{wait: map[string]chan poller.RemoteJobResult{}, from: map[string]int64{}}
+
+// snmpProfiles opens the SNMP profiles for a collector (all of them, or
+// just one).
+func (s *Server) snmpProfiles(ctx context.Context, only int64) map[int64]poller.RemoteSNMP {
+	out := map[int64]poller.RemoteSNMP{}
+	prs, err := s.store.SNMPProfiles(ctx)
+	if err != nil {
+		return out
+	}
+	for _, pr := range prs {
+		if only != 0 && pr.ID != only {
+			continue
+		}
+		if sc, err := s.store.SNMPConfig(pr); err == nil {
+			out[pr.ID] = poller.RemoteSNMP{Config: sc, Port: pr.Port}
+		}
+	}
+	return out
+}
+
+// collectorJob gives a job to a connected collector and waits for its answer.
+func (s *Server) collectorJob(ctx context.Context, collectorID int64, j poller.RemoteJob, timeout time.Duration) (poller.RemoteJobResult, error) {
+	c := s.hub.get(collectorID)
+	if c == nil {
+		return poller.RemoteJobResult{}, errors.New("the remote collector is offline")
+	}
+	var b [12]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return poller.RemoteJobResult{}, err
+	}
+	j.ID = hex.EncodeToString(b[:])
+	ch := make(chan poller.RemoteJobResult, 1)
+	collectorJobs.Lock()
+	collectorJobs.wait[j.ID], collectorJobs.from[j.ID] = ch, collectorID
+	collectorJobs.Unlock()
+	defer func() {
+		collectorJobs.Lock()
+		delete(collectorJobs.wait, j.ID)
+		delete(collectorJobs.from, j.ID)
+		collectorJobs.Unlock()
+	}()
+	if err := sendAgent(ctx, c.ws, proto.TypeCollectorJob, j); err != nil {
+		return poller.RemoteJobResult{}, err
+	}
+	t := time.NewTimer(timeout)
+	defer t.Stop()
+	select {
+	case r := <-ch:
+		if r.Error != "" {
+			return r, errors.New(r.Error)
+		}
+		return r, nil
+	case <-t.C:
+		return poller.RemoteJobResult{}, errors.New("the remote collector did not answer in time")
+	case <-ctx.Done():
+		return poller.RemoteJobResult{}, ctx.Err()
+	}
+}
+
+// collectorJobDone takes a collector's answer (only to a job it was given).
+func (s *Server) collectorJobDone(c *agentConn, r poller.RemoteJobResult) {
+	collectorJobs.Lock()
+	ch, ok := collectorJobs.wait[r.ID]
+	if ok && collectorJobs.from[r.ID] != c.deviceID {
+		ok = false
+	}
+	collectorJobs.Unlock()
+	if !ok {
+		return
+	}
+	if len(r.Hosts) > discovery.MaxHosts {
+		r.Hosts = r.Hosts[:discovery.MaxHosts]
+	}
+	select {
+	case ch <- r:
+	default:
+	}
+}
+
+// remoteRefresh reads a device through its collector (poller.RemoteRefresh).
+func (s *Server) remoteRefresh(ctx context.Context, d *store.Device) error {
+	if d.SNMPProfile == 0 {
+		return nil
+	}
+	r, err := s.collectorJob(ctx, s.collectorOf(d), poller.RemoteJob{Kind: poller.JobRead, Address: d.Address, Profile: d.SNMPProfile, SNMP: s.snmpProfiles(ctx, d.SNMPProfile)}, 3*time.Minute)
+	if err != nil {
+		return err
+	}
+	if r.Read == nil {
+		return errors.New("the remote collector read nothing")
+	}
+	return s.poller.SaveDeviceRead(ctx, d, r.Read)
+}
+
+// collectorOf is the collector that runs a device now: its own, or its
+// backup while the own one is offline.
+func (s *Server) collectorOf(d *store.Device) int64 {
+	if d.CollectorID != 0 && s.hub.get(d.CollectorID) == nil && d.BackupID != 0 && s.hub.get(d.BackupID) != nil {
+		return d.BackupID
+	}
+	return d.CollectorID
 }

@@ -190,6 +190,7 @@ func (s *Server) handleAgentConnect(w http.ResponseWriter, r *http.Request) {
 				s.collectorOffline(octx, a.DeviceID)
 				ocancel()
 			}
+			go s.syncCollectors() // a backup may take over its devices
 		}
 		_ = ws.CloseNow()
 	}()
@@ -274,6 +275,7 @@ func (s *Server) agentMessage(ctx context.Context, c *agentConn, env proto.Envel
 		if err := s.sendCollectorConfig(ctx, c); err != nil {
 			s.log.Warn("cannot send the remote collector its checks", "device", c.deviceID, "err", err)
 		}
+		go s.syncCollectors() // #nosec G118 -- a backup hands its devices back; own timeout, outlives this message
 		return nil
 	case proto.TypeReport:
 		var r proto.Report
@@ -287,6 +289,13 @@ func (s *Server) agentMessage(ctx context.Context, c *agentConn, env proto.Envel
 			return err
 		}
 		return s.agentReport(ctx, c, &r)
+	case proto.TypeCollectorJobDone:
+		var jr poller.RemoteJobResult
+		if err := json.Unmarshal(env.Data, &jr); err != nil {
+			return err
+		}
+		s.collectorJobDone(c, jr)
+		return nil
 	case proto.TypeCollectorResults:
 		var rr poller.RemoteResults
 		if err := json.Unmarshal(env.Data, &rr); err != nil {
