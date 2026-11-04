@@ -54,6 +54,21 @@
   {{else}}<p class="muted">{{.T "No computers with the agent yet."}}</p>{{end}}
 </section>
 
+<section class="panel" id="collectors">
+  <h2>{{template "icon" "network"}}{{.T "Remote collectors"}}</h2>
+  <p class="muted">{{.T "A remote collector checks the devices of a network the console cannot reach (a branch office, a site behind NAT) and sends the results here. It is an agent like any other: it needs no open port at the site and has no web interface."}}</p>
+  <ol class="steps">
+    <li>{{.T "Install the agent on a computer in that network (above)."}}</li>
+    <li>{{.T "Open its device page and click Use as a remote collector in the Agent box."}}</li>
+    <li>{{.T "On the devices of that network choose it under Monitored from, or tick them in the device list and use Change selected."}}</li>
+  </ol>
+  {{if .Data.Collectors}}<div class="table-wrap mt"><table>
+    <thead><tr><th>{{.T "Remote collector"}}</th><th>{{.T "Status"}}</th><th class="num">{{.T "Devices"}}</th></tr></thead>
+    <tbody>{{range .Data.Collectors}}<tr><td><a href="/devices/{{.ID}}"><b>{{.Name}}</b></a> <span class="muted mono small">{{.Address}}</span></td>
+      <td>{{template "status" (statusOf $ .Status)}}</td><td class="num">{{index $.Data.Collected .ID}}</td></tr>{{end}}</tbody>
+  </table></div>{{else}}<p class="small muted">{{.T "No remote collectors yet."}}</p>{{end}}
+</section>
+
 {{if .User.IsAdmin}}<section class="panel" id="updates">
   <h2>{{template "icon" "refresh"}}{{.T "Agent updates"}}</h2>
   <p class="muted small">{{.T "An agent older than the server gets the agent of the server's version: it downloads it from this server over its own encrypted channel, checks it and installs it. Windows agents installed with the MSI and Linux agents (systemd) update themselves; agents before 1.2 are updated once by hand."}}{{with .Data.Latest}} {{$.T "Agent version of this server"}}: <b>{{.}}</b>.{{end}}</p>

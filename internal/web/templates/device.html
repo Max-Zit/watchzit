@@ -67,8 +67,6 @@
       <form method="post" action="/devices/{{$d.ID}}/agent/remove" class="inline" data-confirm="{{$.T "Remove the agent from %s? Its data stays; to use the agent again, enroll the computer with a new code." $d.Name}}"><button class="ghost sm">{{template "icon" "trash"}}{{$.T "Remove agent"}}</button></form>
     </div>{{end}}
   </div>
-  {{if $d.Collector}}<p class="small"><span class="badge info">{{$.T "Remote collector"}}</span> {{$.T "Runs the checks of %d devices of its network and sends the results here." $.Data.Collected}}</p>{{end}}
-  {{if $.User.CanWrite}}<form method="post" action="/devices/{{$d.ID}}/collector" class="row small mb">{{if $d.Collector}}<input type="hidden" name="role" value="off"><button class="ghost sm">{{$.T "Stop collecting"}}</button>{{else}}<input type="hidden" name="role" value="on"><button class="ghost sm">{{template "icon" "network"}}{{$.T "Use as a remote collector"}}</button><span class="muted">{{$.T "It then runs the checks of the devices you assign to it from its own network (a branch office, a site behind NAT) and sends the results here. It needs no open port and has no web interface."}}</span>{{end}}</form>{{end}}
   <dl class="facts">
     <dt>{{$.T "Operating system"}}</dt><dd>{{with .Inventory.OS}}{{.}}{{else}}{{$a.OS}}{{end}}{{with .Inventory.Kernel}} <span class="muted small">· {{.}}</span>{{end}}</dd>
     {{with .Inventory.CPUModel}}<dt>CPU</dt><dd>{{.}} <span class="muted small">· {{$a.Inventory.CPUs}} {{$.T "logical processors"}}</span></dd>{{end}}
@@ -101,6 +99,11 @@
     </form>
   </details>
   {{end}}
+  {{if or $d.Collector $.User.CanWrite}}<div class="collector-box">
+    <div class="titlebar"><h3>{{template "icon" "network"}}{{$.T "Remote collector"}}{{if $d.Collector}} <span class="badge ok"><i></i>{{$.T "On"}}</span>{{end}}</h3>
+      {{if $.User.CanWrite}}<form method="post" action="/devices/{{$d.ID}}/collector" class="inline"><input type="hidden" name="role" value="{{if $d.Collector}}off{{else}}on{{end}}"><button class="{{if $d.Collector}}ghost{{else}}secondary{{end}} sm">{{if $d.Collector}}{{$.T "Stop collecting"}}{{else}}{{$.T "Use as a remote collector"}}{{end}}</button></form>{{end}}</div>
+    <p class="small muted">{{if $d.Collector}}{{$.T "Runs the checks of %d devices of its network and sends the results here." $.Data.Collected}} {{$.T "Choose it under Monitored from on the devices of its network."}}{{else}}{{$.T "It then runs the checks of the devices you assign to it from its own network (a branch office, a site behind NAT) and sends the results here. It needs no open port and has no web interface."}}{{end}}</p>
+  </div>{{end}}
 </section>
 {{end}}
 

@@ -992,3 +992,7 @@ form.row:has(> select, > input:not([type=hidden]):not([type=checkbox]), > label:
 .mappanel > * { flex: none; }
 hr.panel-sep { border: 0; border-top: 1px solid var(--line); margin: 2px 0; width: 100%; }
 .panel-foot { margin-top: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.collector-box .titlebar h3 { display: flex; align-items: center; gap: 8px; }
+.collector-box h3 .ic { flex: none; margin-right: 0; }
+#collectors .steps { margin: 12px 0 0; }
+#collectors .table-wrap { margin-top: 16px; }

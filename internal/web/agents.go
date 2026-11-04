@@ -130,6 +130,8 @@ type agentsData struct {
 	CodeName   string
 	AgentURL   string
 	AgentLocal bool
+	Collectors []*store.Device // remote collectors
+	Collected  map[int64]int   // devices each collector runs
 	Files      map[string]agentFile
 	Name       string
 	GroupID    int64
@@ -167,6 +169,10 @@ func (s *Server) showAgents(w http.ResponseWriter, r *http.Request, status int, 
 	}
 	for _, a := range d.Agents {
 		d.Outdated[a.DeviceID] = s.agentOutdated(a.Version)
+	}
+	d.Collectors, _ = s.store.Collectors(ctx)
+	if d.Collected, err = s.store.CollectorDevices(ctx); err != nil {
+		d.Collected = map[int64]int{}
 	}
 	if h, _, err := net.SplitHostPort(strings.TrimPrefix(d.AgentURL, "https://")); err == nil {
 		h = strings.Trim(h, "[]")
