@@ -1,0 +1,39 @@
+<h1>サーバーのインストール</h1>
+<p class="lead">WatchZit は、PostgreSQL を備えた 64 ビットの Linux サーバー（小さな仮想マシンで十分です）で動作します。インストールスクリプトがすべてをセットアップします。パッケージや、すぐに使えるアプライアンスイメージも用意されています。</p>
+
+<h2 id="requirements">要件</h2>
+<ul>
+  <li>Debian 12 以降、Ubuntu 22.04 以降、AlmaLinux または Rocky Linux 9 以降、x86-64。</li>
+  <li>数百台のデバイスであれば CPU 2 コアとメモリー 2 GB、ディスク 10 GB（測定値はコンパクトに保存されます。Ping 時間 1 時間分で約 100 バイトです）。</li>
+  <li>ポート：コンソール用に <b>8443</b>（管理用ネットワーク向け）、エージェント用に <b>8444</b>（エージェントがある場所のみ）。</li>
+</ul>
+
+<h2 id="script">インストールスクリプト</h2>
+<p>サーバー上で root として実行します。</p>
+<pre>curl -fsSL https://github.com/Max-Zit/watchzit/releases/latest/download/install.sh | sudo sh</pre>
+<p>スクリプトは PostgreSQL をインストールし、最新のリリースをダウンロードして、WatchZit のリリースキーで<b>署名を確認し</b>、パッケージをインストールします。さらに、ランダムなパスワードでデータベースを作成し、firewalld または ufw でポートを開けて、サービスを起動します。最後にコンソールのアドレスと<b>セットアップトークン</b>を表示します。</p>
+<p>オプション：<code>--version X</code>（指定したリリース）、<code>--db postgres://…</code>（ローカルの PostgreSQL の代わりに既存のデータベースを使用）、<code>--no-auto-updates</code>（OS のセキュリティ更新を有効にしない）、<code>--source URL</code>（リリースファイルを置いたミラーまたはローカルフォルダー）。スクリプトをもう一度実行すると、データを保持したまま WatchZit を更新します。</p>
+
+<h2 id="packages">パッケージ</h2>
+<p>各リリースには、サーバーの <code>.deb</code> と <code>.rpm</code> があります。これらはプログラム、systemd サービス、エージェントのインストーラーをインストールします。<code>/etc/watchzit/server.env</code> で <code>WATCHZIT_DB</code> を設定し、<code>watchzit-server</code> を起動してください。</p>
+
+<h2 id="appliance">アプライアンス</h2>
+<p>アプライアンスは、すぐに使えるイメージです（WatchZit、PostgreSQL、自動セキュリティ更新を備えた Debian）。VMware、Proxmox、Hyper-V にインポートして起動し、画面のメニューに従ってください。メニューにはコンソールのアドレスとセットアップトークンが表示され、ネットワークも設定できます。</p>
+<p>イメージ：<b>OVA</b>（VMware ESXi、Workstation、VirtualBox）、<b>qcow2</b>（Proxmox、KVM）、<b>VHDX</b>（Hyper-V 第 1 世代）、および新しい VM や物理サーバーにアプライアンスをインストールする <b>ISO</b>（最初のディスクは消去されます）。CPU 2 個、メモリー 2 GB、16 GB 以上のディスクを割り当ててください。より大きなディスクは自動的に使用されます。画面で <code>wzadmin</code> として初期パスワード <code>watchzit</code> でサインインすると、すぐに新しいパスワードを設定するよう求められます。メニューでは、ネットワーク（DHCP または固定アドレス）、サーバー名、タイムゾーン、SSH（オン／オフ、ポート）を設定でき、admin などのコンソールユーザーに新しいパスワードを設定することもできます（その際、すべてのサインインブロックが解除されます）。ネットワーク、SSH、OS の更新、信頼された証明書はコンソールでも設定できます（「ユーザー、設定、更新」を参照）。SSH では root でのサインインはできません。</p>
+
+<h2 id="first-sign-in">最初のサインイン</h2>
+<ol>
+  <li><code>https://&lt;サーバー&gt;:8443</code> を開きます。ブラウザーが自己署名証明書について一度だけ警告するので、受け入れます。</li>
+  <li>セットアップトークンを入力し、最初の管理者を作成します。</li>
+  <li>認証アプリで QR コードをスキャンし（2 要素サインインは必須です）、リカバリーコードを保管します。</li>
+</ol>
+
+<h2 id="files">ファイルとサービス</h2>
+<table>
+  <tr><th>パス</th><th>内容</th></tr>
+  <tr><td><code>/etc/watchzit/server.env</code></td><td>データベースのアドレスと更新元。</td></tr>
+  <tr><td><code>/var/lib/watchzit</code></td><td>証明書、秘密鍵（データベースと一緒にバックアップしてください）、ダウンロード、ログ。</td></tr>
+  <tr><td><code>watchzit-server.service</code></td><td>サーバー本体。<code>journalctl -u watchzit-server</code> でログを表示できます。</td></tr>
+  <tr><td><code>watchzit-helper.path</code></td><td>コンソールからの更新、タイムゾーン変更、再起動を行う root ヘルパー。</td></tr>
+</table>
+<div class="callout warn"><p>データベース<b>と</b> <code>/var/lib/watchzit/secret.key</code> をバックアップしてください。保存されたパスワード（SNMP、データベース、通知チャネル）はこの鍵で暗号化されています。</p></div>

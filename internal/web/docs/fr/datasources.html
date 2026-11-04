@@ -1,0 +1,58 @@
+<h1>Sources de données</h1>
+<p class="lead">Les graphiques et tableaux de bord peuvent aussi afficher des séries temporelles venant de l'extérieur de WatchZit : des tables de vos propres bases de données, Prometheus, InfluxDB ou toute adresse qui répond en JSON — à côté des valeurs des agents et des contrôles.</p>
+
+<h2 id="add">Ajouter une source de données</h2>
+<p>Les administrateurs ajoutent des sources de données dans <a href="/settings/datasources">Paramètres → Sources de données</a> :</p>
+<table>
+  <tr><th>Genre</th><th>Adresse</th><th>Connexion</th></tr>
+  <tr><td>PostgreSQL</td><td>hôte ou hôte:port (5432), et la base de données</td><td>utilisateur et mot de passe</td></tr>
+  <tr><td>MySQL / MariaDB</td><td>hôte ou hôte:port (3306), et la base de données</td><td>utilisateur et mot de passe</td></tr>
+  <tr><td>Microsoft SQL Server</td><td>hôte ou hôte:port (1433), et la base de données</td><td>utilisateur SQL Server et mot de passe</td></tr>
+  <tr><td>Prometheus</td><td>l'URL, par exemple <code>http://prometheus:9090</code> ; également Thanos, VictoriaMetrics, Mimir</td><td>aucune, utilisateur et mot de passe, ou un jeton bearer</td></tr>
+  <tr><td>InfluxDB</td><td>l'URL, par exemple <code>http://influx:8086</code>, et la base de données (InfluxDB 2/3 : le bucket)</td><td>InfluxDB 1 : utilisateur et mot de passe ; 2 et 3 : le jeton seul</td></tr>
+  <tr><td>JSON sur HTTP</td><td>l'URL de base de votre service</td><td>aucune, utilisateur et mot de passe, ou un jeton bearer</td></tr>
+</table>
+<p><b>Tester la connexion</b> essaie les paramètres sans les enregistrer. Le mot de passe ou le jeton est stocké chiffré et n'est plus jamais affiché ; laissez le champ vide pour le conserver.</p>
+<p>Pour les bases de données SQL, choisissez le chiffrement : lorsque le serveur le propose (par défaut), toujours avec n'importe quel certificat, toujours avec un certificat de confiance, ou jamais. Pour les adresses en https://, un certificat auto-signé peut être accepté.</p>
+<p><b>Donnez à la console un utilisateur en lecture seule</b> sur les tables dont elle a besoin. WatchZit exécute les requêtes PostgreSQL et MySQL dans une transaction en lecture seule ; SQL Server n'offre rien de tel, seuls les droits de l'utilisateur y protègent donc les données. Les opérateurs écrivent les requêtes ; les lecteurs ne voient que les graphiques.</p>
+
+<h2 id="graphs">Requêtes dans les graphiques</h2>
+<p>Sur la page d'un appareil, cliquez sur <b>Modifier les graphiques</b>, puis sur ✎ sur un graphique ou sur <b>Ajouter un graphique</b>. Dans <b>Sources de données</b>, cliquez sur <b>Ajouter une requête</b>, choisissez la source de données et écrivez la requête. <b>Essayer</b> l'exécute sur la période de la page et indique les séries qu'elle renvoie (avec leur nombre de points) ou l'erreur de la base de données. Un graphique peut afficher jusqu'à 6 requêtes à côté des valeurs de l'appareil, chacune avec un nom de série, une unité et une couleur.</p>
+<p>Sur les tableaux de bord, ajoutez le widget <b>Graphique d'une source de données</b>.</p>
+<p>Les réponses sont conservées 20 secondes, si bien qu'un tableau de bord affiché sur plusieurs écrans n'interroge la base de données qu'une fois. Une requête renvoie au plus 200 000 lignes et 50 séries et peut durer 20 secondes ; les valeurs sont réduites à la largeur du graphique.</p>
+
+<h2 id="sql">SQL (PostgreSQL, MySQL, SQL Server)</h2>
+<p>La requête renvoie une <b>colonne de temps</b> (nommée <code>time</code>, ou la première colonne contenant des horodatages ; les secondes ou millisecondes Unix fonctionnent aussi), une ou plusieurs <b>colonnes numériques</b> (une série chacune) et, éventuellement, une <b>colonne de texte</b> qui nomme la série (<code>metric</code>, ou la première colonne de texte) pour les tables à une ligne par série et par instant. Triez par temps.</p>
+<p>Les macros insèrent la période du graphique dans la requête :</p>
+<table>
+  <tr><th>Macro</th><th>Devient</th></tr>
+  <tr><td><code>$__timeFilter(col)</code></td><td><code>col</code> entre le début et la fin de la période</td></tr>
+  <tr><td><code>$__timeGroup(col)</code></td><td><code>col</code> arrondi à l'intervalle du graphique ; <code>$__timeGroup(col, 300)</code> à 5 minutes</td></tr>
+  <tr><td><code>$__timeFrom</code>, <code>$__timeTo</code></td><td>le début et la fin sous forme d'horodatage</td></tr>
+  <tr><td><code>$__unixFrom</code>, <code>$__unixTo</code></td><td>le début et la fin en secondes Unix</td></tr>
+  <tr><td><code>$__interval_s</code></td><td>l'intervalle du graphique en secondes</td></tr>
+</table>
+<p>Exemples :</p>
+<pre>-- commandes par intervalle (identique pour PostgreSQL, MySQL et SQL Server)
+SELECT $__timeGroup(created_at) AS time, count(*) AS orders
+FROM orders WHERE $__timeFilter(created_at)
+GROUP BY 1 ORDER BY 1
+
+-- une série par entrepôt
+SELECT $__timeGroup(ts) AS time, warehouse AS metric, avg(temp) AS value
+FROM sensor_readings WHERE $__timeFilter(ts)
+GROUP BY 1, 2 ORDER BY 1</pre>
+
+<h2 id="prometheus">Prometheus</h2>
+<p>Écrivez du PromQL, par exemple <code>rate(node_network_receive_bytes_total{device="eth0"}[5m]) * 8</code>. Chaque série est nommée comme Prometheus l'écrit (<code>name{label="value"}</code>) ; un nom de série saisi dans l'éditeur le remplace. Le pas suit la largeur du graphique.</p>
+
+<h2 id="influxdb">InfluxDB</h2>
+<p>Écrivez de l'InfluxQL avec <code>$timeFilter</code> et <code>$__interval</code> :</p>
+<pre>SELECT mean("usage_idle") FROM "cpu" WHERE $timeFilter GROUP BY time($__interval), "host"</pre>
+<p>InfluxDB 2 et 3 répondent à l'InfluxQL via leur API 1.x : associez-y le bucket à une base de données s'il ne l'est pas encore.</p>
+
+<h2 id="json">JSON sur HTTP</h2>
+<p>La requête est un chemin ou des paramètres ajoutés à l'adresse (par exemple <code>/api/temps?room=server</code>) ; WatchZit ajoute <code>from</code>, <code>to</code> et <code>step</code> en secondes Unix et lit n'importe laquelle de ces réponses (horodatages en secondes ou en millisecondes) :</p>
+<pre>[{"target": "temp", "datapoints": [[21.5, 1793268000000], ...]}, ...]
+{"temp": [[1793268000, 21.5], ...], "humidity": [[1793268000, 40], ...]}
+[[1793268000, 21.5], [1793268060, 21.7], ...]</pre>

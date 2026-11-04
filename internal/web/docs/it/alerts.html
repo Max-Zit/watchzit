@@ -1,0 +1,65 @@
+<h1>Problemi, avvisi e notifiche</h1>
+<p class="lead">I trigger sorvegliano i risultati dei controlli e aprono <b>problemi</b>. Un problema si chiude da solo quando la condizione cessa; finché è aperto può essere preso in carico e viene inviato ai tuoi canali di notifica.</p>
+
+<h2 id="triggers">Trigger</h2>
+<p>In <a href="/alerts/triggers">Problemi → Trigger</a>. WatchZit parte con questi:</p>
+<table>
+  <tr><th>Trigger</th><th>Quando</th><th>Gravità</th></tr>
+  <tr><td>Dispositivo non raggiungibile</td><td>tutti i controlli di un dispositivo non sono attivi per 1 minuto</td><td>critico</td></tr>
+  <tr><td>Controllo non riuscito</td><td>un controllo non è attivo per 1 minuto</td><td>avviso</td></tr>
+  <tr><td>Carico CPU elevato, Memoria quasi piena</td><td>oltre il 90 % per 5 minuti</td><td>avviso</td></tr>
+  <tr><td>Disco quasi pieno / Disco pieno</td><td>oltre il 90 % / 97 %</td><td>avviso / critico</td></tr>
+  <tr><td>Disco pieno entro due settimane</td><td>la tendenza dell'ultima settimana di un disco di un agente raggiunge il 98 % entro 14 giorni</td><td>avviso</td></tr>
+  <tr><td>Perdita di pacchetti</td><td>oltre il 20 % per 5 minuti</td><td>avviso</td></tr>
+  <tr><td>Il certificato scade presto / scade</td><td>meno di 21 / 7 giorni</td><td>avviso / critico</td></tr>
+  <tr><td>Temperatura elevata</td><td>RouterOS oltre 70 °C per 5 minuti</td><td>avviso</td></tr>
+  <tr><td>Gruppo HA senza ridondanza</td><td>un gruppo HA di una mappa ha membri non attivi, ma non tutti, per 1 minuto (il problema appartiene al membro non attivo)</td><td>avviso</td></tr>
+</table>
+<p>Aggiungi i tuoi: un <b>Valore</b> (carico CPU, tempo di risposta, traffico, connessioni …), <b>sopra</b> o <b>sotto</b> una soglia, <b>per almeno</b> alcuni minuti (un breve calo non apre un problema), una gravità, e se si applica a tutti i dispositivi, a un gruppo o a un singolo dispositivo.</p>
+<p><b>Nessun dato nuovo</b> apre un problema quando un controllo non riceve nuovi valori per i minuti impostati: un agente che ha smesso di inviare dati, un dispositivo che non risponde più a SNMP, un'origine dati che si è fermata; se vuoi, limitalo a determinati tipi di controllo.</p>
+<p><b>Il valore raggiungerà una soglia (previsione)</b> guarda invece avanti: traccia una retta attraverso l'ultima settimana del valore (almeno sei ore di storico) e apre un problema quando quella retta raggiunge la soglia <b>entro</b> i giorni impostati: un disco che sarà pieno tra dieci giorni, un pool che si sta riempiendo, una temperatura che continua a salire. Il problema indica il valore attuale, quanto cambia al giorno e la data in cui arriverà alla soglia; si chiude quando la tendenza non ci arriva più in tempo.</p>
+
+<p><b>Un solo controllo.</b> Il pulsante con la campanella accanto a un controllo sulla pagina del dispositivo aggiunge un trigger solo per quel controllo: serve per i valori OID SNMP (una temperatura in °C, una tensione in V), poiché ognuno ha la sua unità, ed è comodo per un disco o una porta importante. Un trigger di questo tipo riporta il dispositivo e il controllo in Si applica a; viene rimosso insieme al suo controllo.</p>
+
+<h2 id="problems">Problemi</h2>
+<p><a href="/problems">Problemi</a> elenca ciò che è aperto, prima i più gravi; il numero nel menu conta i problemi inviati (rosso se uno è critico). <b>Prendi in carico</b> un problema con una nota, così gli altri sanno che qualcuno se ne sta occupando. I problemi risolti restano nello storico per un anno.</p>
+
+<h2 id="dependencies">Dipendenze</h2>
+<p>Imposta <b>Dipende da</b> su un dispositivo (ad esempio il router di una filiale). Quando quel router non è attivo, i dispositivi dietro di esso sono solo <b>irraggiungibili</b>: i loro problemi vengono registrati ma non inviati, e ricevi un solo messaggio per il router, non cinquanta. Sulle mappe questi dispositivi sono grigi con un contorno tratteggiato invece che rossi, e il loro pannello indica che il problema sta più a monte.</p>
+
+<p>Per impostarle per un'intera rete in una volta, apri una mappa e fai clic su <b>Dipendenze</b>: seguendo i cavi a partire dal dispositivo da cui dipende la rete (di default il router o il firewall con più cavi; se vuoi, scegline un altro), a ogni dispositivo viene proposto quello che lo precede: lo switch dipende dal router, gli access point dallo switch, le macchine virtuali dal loro server. I cavi di alimentazione, HA e VXLAN non contano. I dispositivi senza dipendenza sono spuntati; quelli che dipendono già da un altro dispositivo sono mostrati ma non spuntati. Fai clic su <b>Imposta le dipendenze spuntate</b>.</p>
+
+<h2 id="maintenance">Manutenzione</h2>
+<p>In <a href="/alerts/maintenance">Problemi → Manutenzione</a> pianifica una finestra per dispositivi o gruppi. Durante la finestra i dispositivi restano monitorati e i problemi vengono registrati, ma non viene inviato nulla; i problemi ancora aperti al termine vengono inviati allora. I rapporti di disponibilità mostrano a parte il tempo di manutenzione. <b>Ripetizione</b> fa tornare la finestra ogni giorno, settimana o mese (un backup notturno, il giorno mensile delle patch), facoltativamente fino a un ultimo giorno; l'elenco mostra la finestra successiva, e <b>Rimuovi</b> termina l'intera serie.</p>
+
+<h2 id="notifications">Notifiche</h2>
+<p>In <a href="/settings/notifications">Impostazioni → Notifiche</a> (amministratori):</p>
+<ul>
+  <li><b>Server email</b>: SMTP con STARTTLS, TLS o nessuna cifratura; la password è salvata cifrata. Invia un'email di prova.</li>
+  <li><b>Canali</b>: destinatari email, un <b>webhook</b> (JSON, firmato con HMAC-SHA256 in <code>X-WatchZit-Signature</code> se imposti una chiave), <b>Slack</b>, <b>Microsoft Teams</b>, <b>Discord</b>, <b>Telegram</b> (un token bot di @BotFather e l'ID della chat), <b>ntfy</b> (notifiche sul telefono tramite ntfy.sh o il tuo server ntfy), <b>PagerDuty</b> (una chiave di integrazione Events API v2; i problemi aprono e risolvono incidenti), <b>SMS tramite Twilio</b> (SID dell'account, token di autenticazione, mittente, numeri di telefono) o <b>SMS tramite il tuo gateway</b> (qualsiasi indirizzo HTTP con <code>{text}</code> nel punto in cui va il messaggio). Ogni canale ha una gravità minima e può segnalare anche quando i problemi vengono risolti.</li>
+  <li><b>Lingua</b> delle notifiche e l'<b>indirizzo della console</b> usato per i link al loro interno.</li>
+</ul>
+
+<h2 id="escalation">Escalation e reperibilità</h2>
+<p>In <b>Escalation e orari di reperibilità</b> di un canale:</p>
+<ul>
+  <li><b>Avvisa dopo (minuti)</b>: il canale viene informato solo dei problemi ancora aperti dopo quel tempo, ad es. il team leader dopo 15 minuti se il primo livello non ha reagito. <b>Ripeti ogni</b> lo avvisa di nuovo finché il problema resta aperto.</li>
+  <li>I problemi presi in carico non vengono inoltrati né ripetuti, a meno che non sia attivo <b>Anche problemi già presi in carico</b>.</li>
+  <li><b>Solo alcuni giorni e orari</b> trasforma il canale in un turno di reperibilità: ad es. SMS al turno di notte dal lunedì al venerdì dalle 18 alle 08 e per tutto il fine settimana. I problemi che iniziano fuori dal suo orario gli arrivano quando inizia il turno, se sono ancora aperti. Per una rotazione aggiungi un canale per persona o team con i propri giorni e orari.</li>
+  <li>Un canale che è stato avvisato di un problema viene avvisato anche quando si risolve; gli altri no.</li>
+</ul>
+
+<h2 id="logs">Syslog e trap SNMP</h2>
+<p>I dispositivi possono inviare a WatchZit i loro messaggi di log e le trap SNMP. Attiva la ricezione in <a href="/settings/logs">Impostazioni → Syslog e trap</a>: di default syslog su UDP 514 e trap (SNMP v1 e v2c; agli inform viene data risposta) su UDP 162, facoltativamente solo trap con determinate community, conservati per 30 giorni. Apri queste porte nel firewall del server e imposta WatchZit come destinazione sui dispositivi, ad es. su MikroTik <code>/system logging action set remote remote=&lt;server&gt;</code> e una regola di logging con azione <code>remote</code>, su FortiGate <code>config log syslogd setting</code>, su Linux una riga rsyslog <code>*.* @&lt;server&gt;:514</code>.</p>
+<ul>
+  <li><a href="/logs">Log</a> elenca i messaggi, prima i più recenti, con una ricerca, un dispositivo, l'origine (syslog o trap) e il livello meno importante (0 emergency … 7 debug). Un messaggio da un indirizzo che non è un dispositivo viene mostrato con il suo indirizzo. Ogni pagina di dispositivo ha un pulsante <b>Log</b>.</li>
+  <li>Un trigger di tipo <b>Messaggio syslog o trap</b> apre un problema quando un messaggio contiene un testo (o corrisponde a un'espressione regolare tra barre, ad es. <code>/link (down|failure)/</code>) a un livello importante almeno quanto quello scelto. Il problema resta aperto finché continuano ad arrivare messaggi simili e si chiude quando non ne arrivano per il tempo del trigger. Questi problemi non contano come tempo di fermo nei rapporti.</li>
+</ul>
+
+<h2 id="flows">Flussi di traffico (NetFlow, IPFIX, sFlow)</h2>
+<p>Router, switch e firewall possono riferire quale traffico passa attraverso di loro. Attiva il collettore in <a href="/settings/flows">Impostazioni → Flussi di traffico</a>: di default NetFlow v5, NetFlow v9 e IPFIX su UDP 2055 e sFlow v5 su UDP 6343, conservati per 7 giorni (1–90). Apri queste porte nel firewall del server e imposta WatchZit come collettore, ad es. su MikroTik <code>/ip traffic-flow set enabled=yes</code> e <code>/ip traffic-flow target add dst-address=&lt;server&gt; port=2055 version=ipfix</code>, su FortiGate <code>config system netflow</code>, sugli switch con sFlow l'agente sFlow con questo server come collettore.</p>
+<ul>
+  <li>WatchZit somma i flussi per minuto ed esportatore per conversazione (origine, destinazione, protocollo e porta del servizio, la più bassa delle due porte). Ogni minuto conserva le 1.000 conversazioni più grandi di ciascun esportatore; il resto è una riga senza indirizzi, così i totali restano corretti. I flussi campionati (sFlow, o NetFlow con un tasso di campionamento) vengono moltiplicati per il tasso.</li>
+  <li><a href="/flows">Flussi di traffico</a> mostra il traffico nel tempo e le principali origini, destinazioni, servizi, esportatori e conversazioni dell'ultima ora, delle ultime 6 ore, del giorno o della settimana, di un esportatore o di tutti. Gli indirizzi dei dispositivi della console compaiono come il dispositivo. Gli esportatori hanno un pulsante <b>Flussi di traffico</b> sulla pagina del loro dispositivo.</li>
+  <li>I flussi di indirizzi che non sono dispositivi vengono esclusi, a meno che non sia attivo <b>Anche da indirizzi che non sono dispositivi</b>.</li>
+</ul>

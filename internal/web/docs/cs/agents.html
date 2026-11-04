@@ -1,0 +1,42 @@
+<h1>Instalace agentů</h1>
+<p class="lead">Agent WatchZit je volitelný. Hlásí to, co síť zvenku nevidí: CPU, paměť, disky, rozhraní a služby počítačů s Windows a Linuxem, každou minutu, přes jedno odchozí spojení.</p>
+
+<h2 id="code">Registrační kódy</h2>
+<p>V části <a href="/agents">Agenti</a> vytvořte <b>registrační kód</b>: název, kolik dní platí, kolik počítačů ho smí použít a skupinu, do které přijdou nová zařízení. Kód se zobrazí jen jednou; obsahuje adresu serveru a otisk certifikátu agentů, takže agent důvěřuje jen vašemu serveru.</p>
+
+<h2 id="windows">Windows</h2>
+<p>Stáhněte MSI ze stránky Agenti a nainstalujte ho; vyžádá si kód. Na mnoha počítačích ho instalujte potichu (GPO, Intune, skript):</p>
+<pre>msiexec /i watchzit-agent-x64.msi ENROLLCODE="WZ1-…" /qn</pre>
+<p>Agent běží jako služba <b>WatchZitAgent</b>.</p>
+
+<h2 id="linux">Linux</h2>
+<p>Stránka Agenti ukazuje příkaz, který stáhne agenta z portu agentů, ověří jeho SHA-256 a nainstaluje ho s kódem (služba systemd <code>watchzit-agent</code>):</p>
+<pre>curl -fsSk https://&lt;server&gt;:8444/agent/download/watchzit-agent-linux-amd64 -o /tmp/watchzit-agent &amp;&amp; … sudo /tmp/watchzit-agent install --code "WZ1-…"</pre>
+<p>Nebo nainstalujte balíček <b>deb</b> či <b>rpm</b> z vydání (amd64 a arm64, z GitHubu), pak agenta zaregistrujte a spusťte; aktualizace přicházejí přes správce balíčků nebo vlastní aktualizace agenta:</p>
+<pre>sudo apt install ./watchzit-agent_&lt;verze&gt;_amd64.deb      # nebo: sudo dnf install ./watchzit-agent-&lt;verze&gt;-1.x86_64.rpm
+sudo watchzit-agent enroll --code "WZ1-…"
+sudo systemctl start watchzit-agent</pre>
+
+<h2 id="what">Co agent hlásí</h2>
+<ul>
+  <li>Zatížení <b>CPU</b> (a na Linuxu průměrné zatížení), <b>paměť</b> a swap, každý <b>disk</b>, každé <b>síťové rozhraní</b> s provozem — samy se z nich stanou kontroly s grafy.</li>
+  <li><b>Inventář</b>: operační systém, model CPU, paměť, výrobce, model, sériové číslo, adresy, služby.</li>
+  <li>Stroje <b>Hyper-V</b> (Windows) a kontejnery <b>Docker</b> (Linux), každých pět minut, s jejich stavem, CPU, pamětí a adresami; zobrazují se na stránce zařízení a v polích hypervizorů na mapách.</li>
+  <li><b>Sledované služby</b>: zvolte je na stránce zařízení v části <b>Sledovat služby</b>; služba, která se zastaví, otevře problém.</li>
+  <li><b>Sledované procesy</b>: v části <b>Sledovat procesy</b> na stránce zařízení zadejte názvy programů (například <code>nginx, sqlservr.exe, java</code>); každý dostane kontrolu s počtem běžících instancí, jejich CPU a pamětí, a když žádná neběží, otevře se problém.</li>
+  <li><b>Chybové zprávy</b> systému — kritické a chybové události z logů Windows <b>Systém</b> a <b>Aplikace</b> a zprávy s prioritou <i>err</i> a horší ze žurnálu systemd — se s každým hlášením dostanou do <a href="/logs?kind=agent">Logy</a> (druh <b>Agenti</b>); spouštěč logů se zdrojem <b>Agenti</b> z nich otevírá problémy.</li>
+</ul>
+<p>Pokud existuje zařízení se stejnou adresou nebo názvem, agent se k němu připojí; jinak se vytvoří nové zařízení.</p>
+
+<h2 id="updates">Aktualizace agentů</h2>
+<p>Agent starší než server dostane při připojení agenta ve verzi serveru (nejvýše jednou za hodinu): stáhne instalátor ze serveru přes vlastní šifrované, připnuté spojení, ověří jeho velikost a SHA-256 a nainstaluje ho. Agenti Windows nainstalovaní z MSI spustí nové MSI; linuxoví agenti (systemd) ověří, že se nový program spustí, nahradí se jím a systemd je restartuje. Stránka <a href="/agents">Agenti</a> označuje starší agenty; správci tam v části <b>Aktualizace agentů</b> vypínají automatické aktualizace a jedním kliknutím aktualizují všechny agenty online. Agenti starší než 1.2 aktualizace ještě neznají a je třeba je jednou aktualizovat ručně.</p>
+
+<h2 id="collector">Vzdálené kolektory</h2>
+<p>Zařízení v jiné síti — na pobočce, u zákazníka za NAT, v uzavřené správcovské VLAN — často z konzole dosažitelné není. Nainstalujte agenta na libovolný počítač v té síti (Linux nebo Windows; stačí malý virtuální stroj nebo počítač třídy Raspberry Pi) a klikněte na <b>Použít jako vzdálený kolektor</b> v části Agent na stránce jeho zařízení. Pak ho zvolte v poli <b>Sledováno z</b> u zařízení této sítě (nebo pro mnoho najednou v seznamu zařízení v <b>Změnit vybrané</b>). Kolektor dostane jejich kontroly — ping, TCP, SNMP, webové stránky a scénáře, certifikáty, DNS, databáze, RouterOS, JSON API — s potřebnými hesly a nastavením SNMP, spouští je v jejich intervalech a výsledky posílá přes vlastní šifrované spojení. V lokalitě nepotřebuje žádný otevřený port a nemá vlastní webové rozhraní; vše se nastavuje v konzoli.</p>
+<p>Když je spojení s konzolí přerušeno, kolektor kontroly dál spouští; výsledky (až za jeden den, nejnovějších 200 000) na něm čekají a dorazí, jakmile se spojení obnoví, takže v grafech nevznikne mezera. Kontroly jeho zařízení mezitím ukazují <b>neznámý</b> místo nefunguje (v lokalitě může být vše v pořádku) a kontrola agenta kolektoru otevře problém. Uchované výsledky nepřežijí restart kolektoru: své kontroly si pak znovu načte z konzole.</p>
+<p><b>Záložní kolektor:</b> nainstalujte agenta na druhý počítač v lokalitě, také z něj udělejte kolektor a zvolte ho jako <b>Záložní</b> vedle <b>Sledováno z</b> (nebo pro mnoho zařízení v seznamu zařízení v <b>Změnit vybrané → Záložní kolektor</b>). Dokud je první offline, spouští jejich kontroly záložní; když se první vrátí, znovu je převezme.</p>
+<p><b>Zjišťování a SNMP:</b> v <a href="/discovery">Zařízení → Zjišťování</a> zvolte kolektor vedle nového rozsahu: prohledá tuto síť své lokality a zařízení, která z ní přidáte, jsou sledována z něj. Zjišťování SNMP na stránce zařízení a čtení údajů, rozhraní a VLAN také probíhá přes kolektor. Kontroly hypervizorů zůstávají u konzole. <b>Přestat sbírat</b> vrátí zařízení konzoli.</p>
+
+<h2 id="network">Síť</h2>
+<p>Agenti se připojují k <b>portu agentů 8444</b>. V <a href="/settings/network">Nastavení → Síť a přístup</a> nastavte <b>veřejnou adresu pro agenty</b>, pokud agenti dosáhnou na server pod jiným názvem (například přes firewall), a omezte sítě, ze kterých se agenti smějí připojovat.</p>
+<div class="callout"><p>Odebráním agenta na stránce zařízení se jeho klíč stane neznámým; chcete-li agenta znovu používat, zaregistrujte počítač novým kódem.</p></div>

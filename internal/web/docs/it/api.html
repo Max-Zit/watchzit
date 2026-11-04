@@ -1,0 +1,21 @@
+<h1>API REST</h1>
+<p class="lead">Script e altri sistemi leggono dispositivi, controlli, grafici e problemi, prendono in carico i problemi e pianificano manutenzioni tramite un'API JSON.</p>
+
+<h2 id="tokens">Token</h2>
+<p>Crea un token in <a href="/account#api">Il mio account → Token API</a>: un nome e per quanti giorni è valido. Viene mostrato una sola volta. Un token agisce come te, con il tuo ruolo (il token di un osservatore può solo leggere); revocalo quando non serve più. I token errati contano come accessi falliti e bloccano l'indirizzo per un po'.</p>
+<p>Invialo in un'intestazione; l'API non accetta mai il cookie di sessione della console:</p>
+<pre>curl -H "Authorization: Bearer wzat_…" https://monitor.example.com:8443/api/v1/status</pre>
+
+<h2 id="endpoints">Endpoint</h2>
+<table>
+  <tr><th>Richiesta</th><th>Risposta</th></tr>
+  <tr><td><code>GET /api/v1/status</code></td><td>versione, dispositivi per stato, problemi aperti per gravità</td></tr>
+  <tr><td><code>GET /api/v1/devices</code></td><td>dispositivi; filtri <code>q</code>, <code>status</code>, <code>group</code></td></tr>
+  <tr><td><code>GET /api/v1/devices/{id}</code></td><td>un dispositivo con i suoi controlli e gli id delle loro serie</td></tr>
+  <tr><td><code>GET /api/v1/series/{id}?range=24h</code></td><td>i punti di una serie: ora, minimo, media, massimo</td></tr>
+  <tr><td><code>GET /api/v1/problems</code></td><td>problemi aperti; <code>view=history</code>, <code>severity</code>, <code>device</code></td></tr>
+  <tr><td><code>POST /api/v1/problems/{id}/ack</code></td><td>prendi in carico: <code>{"note": "…"}</code></td></tr>
+  <tr><td><code>GET /api/v1/maintenance</code></td><td>finestre di manutenzione</td></tr>
+  <tr><td><code>POST /api/v1/maintenance</code></td><td>pianificane una: <code>{"name", "starts_at", "ends_at", "device_ids", "group_ids"}</code></td></tr>
+</table>
+<p>Gli orari sono in formato RFC 3339 (<code>2026-11-01T22:00:00+01:00</code>). Gli errori sono <code>{"error": "…"}</code> con lo stato HTTP corrispondente. Le modifiche vengono scritte nel registro di controllo con il nome del token.</p>

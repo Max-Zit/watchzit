@@ -1,0 +1,32 @@
+<h1>Apparaten openen</h1>
+<p class="lead">Vanaf een apparaatpagina of het zijpaneel van de kaart opent u een apparaat met het juiste programma: de webinterface, SSH, Extern bureaublad, WinBox, VNC of uw eigen tools.</p>
+
+<h2 id="launcher">De MaxZit Launcher</h2>
+<p>Een browser kan geen programma's starten, dus doet een klein Windows-programma dat: de <b>MaxZit Launcher</b>. Installeer hem één keer per computer vanaf de pagina <a href="/launcher">Launcher</a> — het <b>installatieprogramma</b> (MSI) met een korte installatiewizard zet hem met zijn pictogram in Apps, waar hij ook weer verwijderd kan worden — hij wordt voor uw Windows-gebruiker geïnstalleerd, zonder beheerdersrechten — en klik op <b>Deze computer koppelen</b>. De launcher toont de vingerafdruk van de server; die moet overeenkomen met die op de pagina.</p>
+<p>Daarna werken de knoppen <b>Openen met</b>. Wanneer een console naar een ander adres verhuist (of elders uit een back-up wordt hersteld), klikt u opnieuw op <b>Deze computer koppelen</b>: de launcher herkent hem aan zijn sleutel en vraagt of het nieuwe adres gebruikt mag worden. De eerste keer vraagt de browser of hij de launcher mag openen; sta dat toe.</p>
+<p>Dezelfde launcher bedient ook <b>PassZit</b>: klik in het menu van de PassZit-extensie op <b>Koppelen met de MaxZit Launcher</b> en stem in in het eigen venster van de launcher. PassZit opent dan Extern bureaublad, SSH, WinSCP, WinBox, VNC en Telnet met de aanmeldgegevens uit de kluis — Extern bureaublad via een Windows-referentie die maar enkele seconden bestaat, een SSH-wachtwoord of -sleutel via een bestand dat alleen u kunt lezen en dat direct na de start wordt verwijderd. De launcher vervangt de oudere WatchZit Launcher en passzit-helper: bij de installatie neemt hij hun instellingen en koppelingen over. Wanneer PassZit gekoppeld is en het adres van de console een van zijn vertrouwde MaxZit-consoles is, openen de knoppen <b>Openen met</b> van WatchZit al aangemeld met de bijbehorende aanmeldgegevens uit de kluis; zonder PassZit, of zonder aanmeldgegevens voor dat apparaat, openen ze zoals voorheen. De console geeft PassZit alleen de tool, het adres, de poort, de gebruikersnaam en de apparaatnaam door — nooit een wachtwoord. Naast de knoppen <b>Openen met</b> laat een klein <b>PassZit</b>-label zien dat PassZit ontgrendeld is en zal aanmelden; <b>PassZit vergrendeld</b> betekent dat het eerst ontgrendeld moet worden. Zonder PassZit op deze console legt een kleine hint uit hoe u het toestaat; <b>Niet meer tonen</b> verbergt die in deze browser.</p>
+
+<h2 id="safety">Hoe het veilig blijft</h2>
+<ul>
+  <li>Elke klik levert een door uw server <b>ondertekende</b> link op die een minuut geldig is en één keer werkt; de launcher accepteert alleen links van servers die u hebt gekoppeld.</li>
+  <li>Adressen en gebruikersnamen worden gecontroleerd tegen strikte tekensets; programma's starten met een argumentenlijst, nooit via een shell.</li>
+  <li>Wachtwoorden worden nooit opgeslagen of verzonden: het programma vraagt erom.</li>
+  <li>Voordat een programma dat uw beheerder heeft toegevoegd voor het eerst wordt uitgevoerd, vraagt de launcher het u.</li>
+</ul>
+
+<h2 id="tools">Ingebouwde tools</h2>
+<table>
+  <tr><th>Tool</th><th>Programma op uw computer</th></tr>
+  <tr><td>SSH</td><td>PuTTY als dat geïnstalleerd is, anders de SSH-client van Windows</td></tr>
+  <tr><td>Extern bureaublad</td><td>de Windows-client voor Extern bureaublad</td></tr>
+  <tr><td>WinBox</td><td>winbox64.exe uit Program Files, Downloads of het bureaublad</td></tr>
+  <tr><td>VNC</td><td>TightVNC-, TigerVNC- of RealVNC-viewer</td></tr>
+  <tr><td>Telnet</td><td>PuTTY</td></tr>
+</table>
+<p>Programma's op andere plaatsen: zet hun paden in <code>%APPDATA%\MaxZit Launcher\launcher.json</code>. Zonder de launcher werkt Extern bureaublad toch: de knop <b>.rdp</b> downloadt een bestand dat Windows opent.</p>
+
+<h2 id="own-tools">Uw eigen tools</h2>
+<p>Onder <a href="/settings/tools">Instellingen → Tools</a> schakelen beheerders ingebouwde tools uit, beperken ze tot apparaattypen en voegen ze hun eigen tools toe: een programmapad (bijvoorbeeld <code>%ProgramFiles%\Mozilla Firefox\firefox.exe</code>) en argumenten met <code>{host}</code>, <code>{port}</code>, <code>{user}</code> en <code>{name}</code>. De gebruikersnaam en poorten per apparaat stelt u in bij <b>Externe toegang</b> van het apparaat, waar u ook de tools uitvinkt die een apparaat niet heeft — een Proxmox- of Linux-server heeft geen Extern bureaublad — of er een aanvinkt die het type standaard niet krijgt; de knoppen op de apparaatpagina en op kaarten tonen dan alleen de aangevinkte tools.</p>
+
+<h2 id="device-links">Links op elk apparaat</h2>
+<p>Ook onder <a href="/settings/tools#links">Instellingen → Tools</a> voegt <b>Links op elk apparaat</b> aan elke apparaatpagina knoppen toe die het apparaat in een ander programma in de browser openen, bijvoorbeeld RMMZit of BackupZit. Geef een naam en een adres op; <code>{name}</code>, <code>{address}</code> en <code>{id}</code> worden vervangen door de naam, het adres en het nummer van het apparaat, bijv. <code>https://rmm.example.com:8443/devices?q={name}</code>. Alleen adressen met http:// en https:// worden geaccepteerd.</p>

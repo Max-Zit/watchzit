@@ -1,0 +1,72 @@
+<h1>Gebruikers, instellingen en updates</h1>
+<p class="lead">Wie wat mag, hoe de console beveiligd is en hoe WatchZit up-to-date blijft.</p>
+
+<h2 id="roles">Gebruikers en rollen</h2>
+<table>
+  <tr><th>Rol</th><th>Mag</th></tr>
+  <tr><td>Beheerder</td><td>alles, ook gebruikers en instellingen</td></tr>
+  <tr><td>Operator</td><td>apparaten, controles, kaarten, triggers, onderhoud en dashboards beheren</td></tr>
+  <tr><td>Kijker</td><td>alleen kijken</td></tr>
+</table>
+<p>Elke gebruiker meldt zich aan met een wachtwoord en aanmelden in twee stappen (een authenticator-app); herstelcodes helpen als de telefoon kwijt is. Beheerders voegen gebruikers toe onder <a href="/users">Gebruikers</a> en resetten wachtwoorden en het aanmelden in twee stappen. Het <a href="/audit">Auditlogboek</a> legt elke wijziging vast; de vermeldingen zijn aan elkaar geketend, zodat wijzigingen in het logboek zichtbaar worden.</p>
+
+<h2 id="directory">Active Directory / LDAP en eenmalige aanmelding</h2>
+<p>Naast lokale accounts kunnen gebruikers zich aanmelden met een directoryaccount. Lokale accounts blijven altijd werken, zodat een beheerder zich kan aanmelden als de directory of de identiteitsprovider niet beschikbaar is. Een gebruikersnaam die bij een lokaal account hoort, wordt nooit door een directoryaanmelding overgenomen.</p>
+<ul>
+  <li><b>Active Directory / LDAP</b> (<a href="/settings/ldap">Instellingen → Active Directory / LDAP</a>): de server (<code>ldaps://dc1.example.local</code>, of <code>ldap://</code> met StartTLS — wachtwoorden gaan nooit onversleuteld over het netwerk), eventueel het CA-certificaat van een bedrijfs-CA, een serviceaccount dat gebruikers en groepen mag lezen, de basis-DN en het gebruikersfilter (Active Directory <code>(&amp;(objectClass=user)(sAMAccountName={username}))</code>). Op Active Directory worden geneste groepen gevolgd. De directory controleert het wachtwoord; WatchZit vraagt nog steeds om zijn eigen tweede factor. <b>Test</b> controleert een account zonder aan te melden en toont de groepen en de rol die het zou krijgen.</li>
+  <li><b>Eenmalige aanmelding</b> (<a href="/settings/sso">Instellingen → Eenmalige aanmelding</a>): OpenID Connect (Microsoft Entra ID, Google, Okta, Keycloak …: de issuer, client-ID en secret; registreer <code>https://&lt;console&gt;/login/sso/callback</code> als redirect-URI) of SAML 2.0 (ADFS, Entra ID, Okta …: de metadata-URL of XML van de identiteitsprovider; geef die <code>https://&lt;console&gt;/login/sso/metadata</code>, het antwoordadres is <code>/login/sso/saml</code>). De aanmeldpagina krijgt een knop. Om de eigen tweede factor van WatchZit wordt alleen ook gevraagd als u dat aanvinkt; anders beslist het beleid van de identiteitsprovider.</li>
+  <li><b>Groepen en rollen</b>: bij elke aanmelding bepalen de groepen de rol — beheerders, operators of kijkers, de hoogste wint — en gebruikers in geen van de groepen krijgen de standaardrol of kunnen zich niet aanmelden. Een groep is zijn naam of volledige DN, of de naam of ID die de identiteitsprovider meestuurt (Entra ID stuurt ID's).</li>
+  <li>Directoryaccounts worden bij hun eerste aanmelding aangemaakt en tonen <b>LDAP</b> of <b>SSO</b> in de gebruikerslijst. Ze hebben geen WatchZit-wachtwoord; schakel ze in WatchZit uit om ze buiten te houden, ook als de directory ze binnenlaat.</li>
+</ul>
+
+<h2 id="settings">Instellingen</h2>
+<ul>
+  <li><b>Netwerk en toegang</b> — de console- en agentpoort, de netwerken die elk ervan mogen bereiken, het openbaar agentadres.</li>
+  <li><b>Aanmelden en beveiliging</b> — sessieduur, na hoeveel mislukte aanmeldingen een adres wordt geblokkeerd, en het opheffen van een blokkering.</li>
+  <li><b>Meetgegevens</b> — hoe lang ruwe waarden, 5-minuten- en uurwaarden worden bewaard, en hoeveel ruimte ze innemen.</li>
+  <li><b>Certificaat</b> — het eigen certificaat van de console, een dat u uploadt, of een van Let's Encrypt (zie hieronder).</li>
+  <li><b>Eigen velden</b> — uw eigen velden voor apparaten (zie Apparaten).</li>
+  <li><b>Diagnose</b> — waar de logboeken staan, de nieuwste regels van het serverlogboek met een filter, en een ZIP voor support (logboeken, apparaten, agents, problemen, auditlogboek) waaruit wachtwoorden, communities, tokens, aanmeldcodes en sleutels zijn verwijderd; opgeslagen apparaatconfiguraties zitten er niet in.</li>
+  <li><b>SNMP</b>, <b>Meldingen</b>, <b>Tools</b>, <b>Kioskschermen</b> — zie de betreffende hoofdstukken.</li>
+</ul>
+
+<h2 id="updates">Updates</h2>
+<p><a href="/settings/version">Instellingen → Updates en server</a> toont de draaiende versie en de nieuwste release. Als WatchZit met de Linux-pakketten is geïnstalleerd, werkt het zichzelf bij:</p>
+<ol>
+  <li>Alleen releases die met de releasesleutel van WatchZit zijn <b>ondertekend</b>, worden geaccepteerd.</li>
+  <li>De root-helper maakt een back-up van de database en het programma, installeert het nieuwe pakket en controleert of de console start.</li>
+  <li>Zo niet, dan keert hij vanzelf terug naar de oude versie.</li>
+</ol>
+<p>Het <b>updatekanaal</b> bepaalt wat de console installeert: <b>officiële versies</b>, of <b>test</b> — releasekandidaten die vóór een officiële versie komen, voor een testconsole. Houd productieconsoles op de officiële versies.</p>
+<p>Updates kunnen met een klik of automatisch op een gekozen uur worden geïnstalleerd. Een mirror of een lokale map kan de bron zijn (<code>WATCHZIT_UPDATE_SOURCE</code> in <code>/etc/watchzit/server.env</code>). Op dezelfde pagina stelt u de tijdzone van de server in en herstart u de service.</p>
+<p><b>Zonder internettoegang:</b> upload onder <b>Installeren uit bestanden</b> <code>manifest.json</code>, <code>manifest.json.sig</code> en het serverpakket (.deb of .rpm) van een release, gedownload op een andere computer. Ze worden net als een download gecontroleerd en op dezelfde manier geïnstalleerd.</p>
+
+<h2 id="os">Besturingssysteem en SSH</h2>
+<p>Dezelfde pagina toont de <b>besturingssysteemupdates</b> van de server (Debian, Ubuntu, AlmaLinux, Rocky Linux): hoeveel er wachten en hoeveel daarvan beveiligingsupdates zijn, of automatische beveiligingsupdates aan staan en wanneer ze voor het laatst zijn uitgevoerd. <b>Alle updates installeren</b> installeert ze nu; als ze een herstart vereisen, meldt de pagina dat en herstart <b>Server herstarten</b> de server. De lijst wordt twee keer per dag vanzelf vernieuwd, of met <b>Nu controleren</b>.</p>
+<p>Op de WatchZit-appliance stelt de pagina ook het <b>netwerk</b> in (DHCP of een vast adres, gateway, DNS, naam — instellingen die de appliance onbereikbaar maken, worden na 30 seconden teruggedraaid) en <b>SSH</b>: aan of uit en de poort; een poort die de SSH-server weigert, laat de oude instelling staan. Op andere servers horen deze bij het besturingssysteem.</p>
+
+<h2 id="certificate">Certificaat</h2>
+<p>Standaard gebruikt de console een eigen certificaat, waarvoor browsers waarschuwen. Onder <a href="/settings/certificate">Instellingen → Certificaat</a>:</p>
+<ul>
+  <li><b>Certificaat uploaden</b> van uw bedrijf: het certificaat met zijn keten en de privésleutel in PEM (bestanden of geplakt), voor de DNS-naam — of het IP-adres — die browsers gebruiken. Het wordt gecontroleerd voordat het wordt gebruikt.</li>
+  <li><b>Let's Encrypt</b>: voer de naam en een e-mailadres in. Let's Encrypt controleert de naam via <b>poort 80</b> van deze server (bereikbaar vanaf internet) of, als de console intern is, met een <b>DNS-record via Cloudflare</b> (een API-token met het recht Zone → DNS → Edit). Het certificaat wordt 30 dagen voor het verloopt vanzelf vernieuwd.</li>
+  <li><b>Poort 80 bedienen</b> stuurt ook browsers die http:// typen door naar de console.</li>
+</ul>
+<p>Het vertrouwde certificaat wordt gebruikt wanneer de console onder zijn naam wordt geopend; via het IP-adres geopend blijft de console zijn eigen certificaat gebruiken. Agents merken er niets van: zij gebruiken het eigen certificaat van de agentpoort, dat ze bij de aanmelding hebben vastgepind. Om de standaardpoort te gebruiken, stelt u de consolepoort in op 443 onder Netwerk en toegang.</p>
+
+<h2 id="backup">Back-up van de console</h2>
+<p><a href="/settings/console-backup">Instellingen → Back-up van de console</a> maakt een back-up van de hele console: de database met alle metingen, de geheime sleutel van de opgeslagen wachtwoorden, de launchersleutel en de certificaten die de agents vertrouwen — alles wat een nieuwe server nodig heeft om over te nemen. Back-ups worden elke dag op het gekozen uur (en met <b>Nu back-uppen</b>) naar <code>backups</code> in de gegevensmap geschreven; de nieuwste worden bewaard (standaard 7).</p>
+<ul>
+  <li><b>Versleuteling</b>: met een wachtwoordzin (minstens 12 tekens) wordt het bestand versleuteld (AES-256-GCM). Bewaar de wachtwoordzin ergens anders: zonder kan een back-up niet worden hersteld.</li>
+  <li><b>Kopie naar een SFTP-map</b>: elke back-up wordt ook gekopieerd naar een map op een andere server (wachtwoord of privésleutel). De eerste <b>SFTP-map testen</b> toont de hostsleutel van de server om te vertrouwen; kopieën gaan alleen naar een server met die sleutel. De map bewaart evenveel back-ups als de server.</li>
+  <li><b>Mail als een back-up mislukt</b> stuurt een bericht via de SMTP-server van Instellingen → Meldingen.</li>
+  <li><b>Herstel</b> wordt uitgevoerd met de server gestopt: op de appliance met het menu-item <b>Een back-up van de console herstellen</b> van het installatiemenu; met Linux-pakketten <code>systemctl stop watchzit-server</code>, daarna <code>watchzit-server --data-dir /var/lib/watchzit --restore FILE</code> als de gebruiker watchzit met <code>/etc/watchzit/server.env</code> geladen (een versleutelde back-up leest zijn wachtwoordzin uit <code>WATCHZIT_BACKUP_PASSPHRASE</code> of <code>--restore-passphrase-file</code>), en start daarna de server. Het herstel vervangt alles in één transactie; een back-up van een oudere versie wordt bijgewerkt wanneer de server start. Agents blijven werken: ze vertrouwen hetzelfde certificaat.</li>
+</ul>
+
+<h2 id="security">Beveiliging</h2>
+<ul>
+  <li>De console gebruikt alleen HTTPS, een strikte Content Security Policy en bescherming tegen cross-site-verzoeken; hij antwoordt alleen aan de toegestane netwerken.</li>
+  <li>Wachtwoorden worden gehasht met Argon2id; opgeslagen geheimen (SNMP-, database- en API-wachtwoorden, kanalen) worden versleuteld met de geheime sleutel van de server.</li>
+  <li>Agents worden geïdentificeerd aan hun eigen sleutel; ze vertrouwen de server aan de vastgepinde vingerafdruk van zijn agentcertificaat.</li>
+  <li>Meld kwetsbaarheden vertrouwelijk: zie SECURITY.md in de repository.</li>
+</ul>

@@ -1,0 +1,65 @@
+<h1>Probleme, Alarme und Benachrichtigungen</h1>
+<p class="lead">Trigger beobachten die Ergebnisse von Prüfungen und öffnen <b>Probleme</b>. Ein Problem schließt sich von selbst, wenn die Bedingung endet; solange es offen ist, kann es bestätigt werden, und es wird an Ihre Benachrichtigungskanäle gesendet.</p>
+
+<h2 id="triggers">Trigger</h2>
+<p>Unter <a href="/alerts/triggers">Probleme → Trigger</a>. WatchZit beginnt mit diesen:</p>
+<table>
+  <tr><th>Trigger</th><th>Wann</th><th>Schweregrad</th></tr>
+  <tr><td>Gerät ausgefallen</td><td>alle Prüfungen eines Geräts sind 1 Minute lang ausgefallen</td><td>kritisch</td></tr>
+  <tr><td>Prüfung ausgefallen</td><td>eine Prüfung ist 1 Minute lang ausgefallen</td><td>Warnung</td></tr>
+  <tr><td>Hohe CPU-Last, Speicher fast voll</td><td>über 90 % für 5 Minuten</td><td>Warnung</td></tr>
+  <tr><td>Laufwerk fast voll / Laufwerk voll</td><td>über 90 % / 97 %</td><td>Warnung / kritisch</td></tr>
+  <tr><td>Festplatte in zwei Wochen voll</td><td>der Trend der letzten Woche eines Agenten-Datenträgers erreicht 98 % innerhalb von 14 Tagen</td><td>Warnung</td></tr>
+  <tr><td>Paketverlust</td><td>über 20 % für 5 Minuten</td><td>Warnung</td></tr>
+  <tr><td>Zertifikat läuft bald ab / läuft ab</td><td>weniger als 21 / 7 Tage</td><td>Warnung / kritisch</td></tr>
+  <tr><td>Hohe Temperatur</td><td>RouterOS über 70 °C für 5 Minuten</td><td>Warnung</td></tr>
+  <tr><td>HA-Gruppe ohne Redundanz</td><td>bei einer HA-Gruppe einer Karte sind einige, aber nicht alle Mitglieder 1 Minute lang ausgefallen (das Problem gehört zu dem ausgefallenen Mitglied)</td><td>Warnung</td></tr>
+</table>
+<p>Fügen Sie eigene hinzu: einen <b>Wert</b> (CPU-Last, Antwortzeit, Datenverkehr, Verbindungen …), <b>über</b> oder <b>unter</b> einem Schwellenwert, <b>für mindestens</b> einige Minuten (ein kurzer Einbruch öffnet kein Problem), einen Schweregrad und ob er für alle Geräte, eine Gruppe oder ein Gerät gilt.</p>
+<p><b>Keine neuen Daten</b> öffnet ein Problem, wenn eine Prüfung für die eingestellten Minuten keinen neuen Wert erhalten hat — ein Agent, der sich nicht mehr meldet, ein Gerät, das nicht mehr auf SNMP antwortet, eine Datenquelle, die verstummt ist; bei Bedarf beschränken Sie ihn auf bestimmte Prüfungsarten.</p>
+<p><b>Wert wird einen Schwellenwert erreichen (Prognose)</b> schaut stattdessen voraus: Er legt eine Gerade durch die letzte Woche des Werts (mindestens sechs Stunden Verlauf) und öffnet ein Problem, wenn diese Gerade den Schwellenwert <b>innerhalb</b> der eingestellten Tage erreicht — ein Datenträger, der in zehn Tagen voll sein wird, ein Pool, der sich füllt, eine Temperatur, die immer weiter steigt. Das Problem nennt den aktuellen Wert, wie schnell er sich pro Tag ändert, und das Datum, an dem er die Schwelle erreicht; es schließt sich, wenn der Trend sie nicht mehr rechtzeitig erreicht.</p>
+
+<p><b>Eine einzelne Prüfung.</b> Die Glocken-Schaltfläche neben einer Prüfung auf der Geräteseite fügt einen Trigger nur für diese Prüfung hinzu — nötig für SNMP-OID-Werte (eine Temperatur in °C, eine Spannung in V), da jeder seine eigene Einheit hat, und praktisch für einen wichtigen Datenträger oder Port. Ein solcher Trigger führt unter Gilt für das Gerät und die Prüfung auf; er wird zusammen mit seiner Prüfung entfernt.</p>
+
+<h2 id="problems">Probleme</h2>
+<p><a href="/problems">Probleme</a> listet auf, was offen ist, das Schlimmste zuerst; die Zahl im Menü zählt die gesendeten Probleme (rot, wenn eines kritisch ist). <b>Bestätigen</b> Sie ein Problem mit einer Notiz, damit andere wissen, dass sich jemand darum kümmert. Gelöste Probleme bleiben ein Jahr lang im Verlauf.</p>
+
+<h2 id="dependencies">Abhängigkeiten</h2>
+<p>Setzen Sie <b>Hängt ab von</b> bei einem Gerät (zum Beispiel beim Router einer Zweigstelle). Ist dieser Router ausgefallen, sind die Geräte dahinter nur <b>nicht erreichbar</b>: Ihre Probleme werden erfasst, aber nicht gesendet — Sie erhalten eine Meldung für den Router, nicht fünfzig. Auf Karten sind solche Geräte grau mit gestrichelter Umrandung statt rot, und ihr Bereich sagt, dass das Problem weiter oben liegt.</p>
+
+<p>Um sie für ein ganzes Netzwerk auf einmal zu setzen, öffnen Sie eine Karte und klicken Sie auf <b>Abhängigkeiten</b>: Den Kabeln folgend, ausgehend von dem Gerät, an dem das Netzwerk hängt (standardmäßig der Router oder die Firewall mit den meisten Kabeln; wählen Sie bei Bedarf ein anderes), wird jedem Gerät das davor liegende angeboten — der Switch hängt vom Router ab, die Access Points vom Switch, virtuelle Maschinen von ihrem Server. Strom-, HA- und VXLAN-Kabel zählen nicht. Geräte ohne Abhängigkeit sind markiert; solche, die bereits von einem anderen Gerät abhängen, werden angezeigt, aber nicht markiert. Klicken Sie auf <b>Markierte Abhängigkeiten setzen</b>.</p>
+
+<h2 id="maintenance">Wartung</h2>
+<p>Planen Sie unter <a href="/alerts/maintenance">Probleme → Wartung</a> ein Fenster für Geräte oder Gruppen. Währenddessen werden die Geräte weiter überwacht und Probleme erfasst, aber nichts wird gesendet; Probleme, die am Ende noch offen sind, werden dann gesendet. Verfügbarkeitsberichte weisen die Wartungszeit gesondert aus. <b>Wiederholung</b> lässt das Fenster jeden Tag, jede Woche oder jeden Monat wiederkehren (eine nächtliche Sicherung, der monatliche Patchtag), optional bis zu einem letzten Tag; die Liste zeigt das nächste Fenster, und <b>Entfernen</b> beendet die ganze Serie.</p>
+
+<h2 id="notifications">Benachrichtigungen</h2>
+<p>Unter <a href="/settings/notifications">Einstellungen → Benachrichtigungen</a> (Administratoren):</p>
+<ul>
+  <li><b>E-Mail-Server</b> — SMTP mit STARTTLS, TLS oder ohne; das Passwort wird verschlüsselt gespeichert. Senden Sie eine Test-E-Mail.</li>
+  <li><b>Kanäle</b> — E-Mail-Empfänger, ein <b>Webhook</b> (JSON, mit HMAC-SHA256 in <code>X-WatchZit-Signature</code> signiert, wenn Sie einen Schlüssel festlegen), <b>Slack</b>, <b>Microsoft Teams</b>, <b>Discord</b>, <b>Telegram</b> (ein Bot-Token von @BotFather und die Chat-ID), <b>ntfy</b> (Push auf Telefone über ntfy.sh oder Ihren eigenen ntfy-Server), <b>PagerDuty</b> (ein Integrationsschlüssel der Events API v2; Probleme öffnen und lösen Incidents), <b>SMS über Twilio</b> (Konto-SID, Auth-Token, Absender, Telefonnummern) oder <b>SMS über Ihr eigenes Gateway</b> (eine beliebige HTTP-Adresse mit <code>{text}</code> an der Stelle der Nachricht). Jeder Kanal hat einen niedrigsten Schweregrad und kann auch melden, wenn Probleme gelöst sind.</li>
+  <li><b>Sprache</b> der Benachrichtigungen und die <b>Konsolenadresse</b>, die für Links darin verwendet wird.</li>
+</ul>
+
+<h2 id="escalation">Eskalation und Bereitschaft</h2>
+<p>Unter <b>Eskalation und Bereitschaftszeiten</b> eines Kanals:</p>
+<ul>
+  <li><b>Melden nach (Minuten)</b> — der Kanal erfährt nur von Problemen, die nach dieser Zeit noch offen sind, z. B. die Teamleitung nach 15 Minuten, wenn der First Level nicht reagiert hat. <b>Wiederholen alle</b> meldet es erneut, solange das Problem offen bleibt.</li>
+  <li>Bestätigte Probleme werden weder eskaliert noch wiederholt, es sei denn, <b>Auch bestätigte Probleme</b> ist eingeschaltet.</li>
+  <li><b>Nur an bestimmten Tagen und Stunden</b> macht den Kanal zu einem Bereitschaftsdienst: z. B. SMS an die Nachtschicht Montag–Freitag von 18 bis 08 Uhr und das ganze Wochenende. Probleme, die außerhalb seiner Zeiten beginnen, erreichen ihn bei Beginn seines Dienstes, wenn sie dann noch offen sind. Für einen Dienstplan legen Sie pro Person oder Team einen Kanal mit eigenen Tagen und Stunden an.</li>
+  <li>Ein Kanal, der über ein Problem informiert wurde, erfährt auch, wenn es gelöst ist; die anderen nicht.</li>
+</ul>
+
+<h2 id="logs">Syslog und SNMP-Traps</h2>
+<p>Geräte können ihre Protokollmeldungen und SNMP-Traps an WatchZit senden. Schalten Sie das unter <a href="/settings/logs">Einstellungen → Syslog und Traps</a> ein: standardmäßig Syslog auf UDP 514 und Traps (SNMP v1 und v2c, Informs werden beantwortet) auf UDP 162, optional nur Traps mit bestimmten Communities, aufbewahrt für 30 Tage. Öffnen Sie diese Ports in der Firewall des Servers und legen Sie WatchZit auf den Geräten als Ziel fest, z. B. auf MikroTik <code>/system logging action set remote remote=&lt;server&gt;</code> und eine Protokollierungsregel mit der Aktion <code>remote</code>, auf FortiGate <code>config log syslogd setting</code>, unter Linux eine rsyslog-Zeile <code>*.* @&lt;server&gt;:514</code>.</p>
+<ul>
+  <li><a href="/logs">Protokolle</a> listet die Meldungen auf, die neuesten zuerst, mit einer Suche, einem Gerät, der Quelle (Syslog oder Traps) und der unwichtigsten Stufe (0 Notfall … 7 Debug). Eine Meldung von einer Adresse, die kein Gerät ist, wird mit ihrer Adresse angezeigt. Jede Geräteseite hat eine Schaltfläche <b>Protokolle</b>.</li>
+  <li>Ein Trigger der Art <b>Syslog-Nachricht oder Trap</b> öffnet ein Problem, wenn eine Meldung einen Text enthält (oder auf einen regulären Ausdruck zwischen Schrägstrichen passt, z. B. <code>/link (down|failure)/</code>) und mindestens so wichtig ist wie die gewählte Stufe. Das Problem bleibt offen, solange solche Meldungen weiter eintreffen, und schließt sich, wenn für die Dauer des Triggers keine mehr kam. Diese Probleme zählen in Berichten nicht als Ausfallzeit.</li>
+</ul>
+
+<h2 id="flows">Traffic-Flows (NetFlow, IPFIX, sFlow)</h2>
+<p>Router, Switches und Firewalls können mitteilen, welcher Datenverkehr durch sie fließt. Schalten Sie den Kollektor unter <a href="/settings/flows">Einstellungen → Traffic-Flows</a> ein: standardmäßig NetFlow v5, NetFlow v9 und IPFIX auf UDP 2055 und sFlow v5 auf UDP 6343, aufbewahrt für 7 Tage (1–90). Öffnen Sie diese Ports in der Firewall des Servers und legen Sie WatchZit als Kollektor fest, z. B. auf MikroTik <code>/ip traffic-flow set enabled=yes</code> und <code>/ip traffic-flow target add dst-address=&lt;server&gt; port=2055 version=ipfix</code>, auf FortiGate <code>config system netflow</code>, auf Switches mit sFlow den sFlow-Agenten mit diesem Server als Kollektor.</p>
+<ul>
+  <li>WatchZit summiert die Flows pro Minute und Exporter nach Verbindung (Quelle, Ziel, Protokoll und der Dienst-Port — der niedrigere der beiden Ports). Jede Minute behält die 1.000 größten Verbindungen jedes Exporters; der Rest ist eine Zeile ohne Adressen, sodass die Summen stimmen. Gesampelte Flows (sFlow oder NetFlow mit einer Sampling-Rate) werden mit der Rate multipliziert.</li>
+  <li><a href="/flows">Traffic-Flows</a> zeigt den Datenverkehr im Zeitverlauf und die wichtigsten Quellen, Ziele, Dienste, Exporter und Verbindungen der letzten Stunde, der letzten 6 Stunden, des letzten Tages oder der letzten Woche, für einen Exporter oder alle. Adressen von Geräten der Konsole erscheinen als das jeweilige Gerät. Exporter haben auf ihrer Geräteseite eine Schaltfläche <b>Traffic-Flows</b>.</li>
+  <li>Flows von Adressen, die keine Geräte sind, werden weggelassen, es sei denn, <b>Auch von Adressen, die keine Geräte sind</b> ist eingeschaltet.</li>
+</ul>

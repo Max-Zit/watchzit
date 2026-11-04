@@ -1,0 +1,21 @@
+<h1>REST-API</h1>
+<p class="lead">Scripts en andere systemen lezen via een JSON-API apparaten, controles, grafieken en problemen uit, bevestigen problemen en plannen onderhoud.</p>
+
+<h2 id="tokens">Tokens</h2>
+<p>Maak een token aan onder <a href="/account#api">Mijn account → API-tokens</a>: een naam en hoeveel dagen het geldig is. Het wordt één keer getoond. Een token handelt als u, met uw rol (het token van een kijker kan alleen lezen); trek het in wanneer het niet meer nodig is. Mislukte tokens tellen als mislukte aanmeldingen en blokkeren het adres een tijdlang.</p>
+<p>Stuur het mee in een header; de API accepteert nooit de sessiecookie van de console:</p>
+<pre>curl -H "Authorization: Bearer wzat_…" https://monitor.example.com:8443/api/v1/status</pre>
+
+<h2 id="endpoints">Eindpunten</h2>
+<table>
+  <tr><th>Verzoek</th><th>Antwoord</th></tr>
+  <tr><td><code>GET /api/v1/status</code></td><td>versie, apparaten per status, open problemen per ernst</td></tr>
+  <tr><td><code>GET /api/v1/devices</code></td><td>apparaten; filters <code>q</code>, <code>status</code>, <code>group</code></td></tr>
+  <tr><td><code>GET /api/v1/devices/{id}</code></td><td>een apparaat met zijn controles en de id's van hun reeksen</td></tr>
+  <tr><td><code>GET /api/v1/series/{id}?range=24h</code></td><td>de punten van een reeks: tijd, minimum, gemiddelde, maximum</td></tr>
+  <tr><td><code>GET /api/v1/problems</code></td><td>open problemen; <code>view=history</code>, <code>severity</code>, <code>device</code></td></tr>
+  <tr><td><code>POST /api/v1/problems/{id}/ack</code></td><td>bevestigen: <code>{"note": "…"}</code></td></tr>
+  <tr><td><code>GET /api/v1/maintenance</code></td><td>onderhoudsvensters</td></tr>
+  <tr><td><code>POST /api/v1/maintenance</code></td><td>er een plannen: <code>{"name", "starts_at", "ends_at", "device_ids", "group_ids"}</code></td></tr>
+</table>
+<p>Tijden zijn in RFC 3339 (<code>2026-11-01T22:00:00+01:00</code>). Fouten zijn <code>{"error": "…"}</code> met een passende HTTP-status. Wijzigingen worden met de naam van het token in het auditlogboek vastgelegd.</p>

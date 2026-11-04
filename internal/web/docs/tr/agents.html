@@ -1,0 +1,42 @@
+<h1>Ajanların kurulumu</h1>
+<p class="lead">WatchZit ajanı isteğe bağlıdır. Ağın dışarıdan göremediği şeyleri bildirir: Windows ve Linux bilgisayarlarının CPU'su, belleği, diskleri, arayüzleri ve hizmetleri, her dakika, tek bir dışa giden bağlantı üzerinden.</p>
+
+<h2 id="code">Kayıt kodları</h2>
+<p><a href="/agents">Ajanlar</a> altında bir <b>kayıt kodu</b> oluşturun: bir ad, kaç gün geçerli olduğu, kaç bilgisayarın kullanabileceği ve yeni cihazların gireceği grup. Kod bir kez gösterilir; sunucu adresini ve ajan sertifikasının parmak izini içerir, böylece ajan yalnızca sizin sunucunuza güvenir.</p>
+
+<h2 id="windows">Windows</h2>
+<p>MSI'yı Ajanlar sayfasından indirin ve kurun; kurulum kodu sorar. Birçok bilgisayar için sessiz kurun (GPO, Intune, bir betik):</p>
+<pre>msiexec /i watchzit-agent-x64.msi ENROLLCODE="WZ1-…" /qn</pre>
+<p>Ajan <b>WatchZitAgent</b> hizmeti olarak çalışır.</p>
+
+<h2 id="linux">Linux</h2>
+<p>Ajanlar sayfası, ajanı ajan portundan indiren, SHA-256'sını denetleyen ve kodla kuran bir komut gösterir (systemd hizmeti <code>watchzit-agent</code>):</p>
+<pre>curl -fsSk https://&lt;sunucu&gt;:8444/agent/download/watchzit-agent-linux-amd64 -o /tmp/watchzit-agent &amp;&amp; … sudo /tmp/watchzit-agent install --code "WZ1-…"</pre>
+<p>Ya da sürümün <b>deb</b> veya <b>rpm</b> paketini kurun (amd64 ve arm64, GitHub'dan), ardından kaydedip başlatın; güncellemeler paket yöneticisi veya ajanın kendi güncellemeleri üzerinden gelir:</p>
+<pre>sudo apt install ./watchzit-agent_&lt;sürüm&gt;_amd64.deb      # veya: sudo dnf install ./watchzit-agent-&lt;sürüm&gt;-1.x86_64.rpm
+sudo watchzit-agent enroll --code "WZ1-…"
+sudo systemctl start watchzit-agent</pre>
+
+<h2 id="what">Ajanın bildirdikleri</h2>
+<ul>
+  <li><b>CPU</b> yükü (Linux'ta yük ortalaması da), <b>bellek</b> ve takas alanı, her <b>disk</b>, trafiğiyle her <b>ağ arayüzü</b> — bunlar kendiliğinden grafikli kontrollere dönüşür.</li>
+  <li><b>Envanter</b>: işletim sistemi, CPU modeli, bellek, üretici, model, seri numarası, adresler, hizmetler.</li>
+  <li><b>Hyper-V</b> makineleri (Windows) ve <b>Docker</b> konteynerleri (Linux), beş dakikada bir, durumları, CPU'ları, bellekleri ve adresleriyle; cihaz sayfasında ve haritalardaki hipervizör kutularında görünürler.</li>
+  <li><b>İzlenen hizmetler</b>: bunları cihaz sayfasında <b>Hizmetleri izle</b> altında seçin; duran bir hizmet bir sorun açar.</li>
+  <li><b>İzlenen işlemler</b>: cihaz sayfasında <b>İşlemleri izle</b> altında program adlarını girin (örneğin <code>nginx, sqlservr.exe, java</code>); her biri kaçının çalıştığını, CPU'larını ve belleklerini gösteren bir kontrol alır ve hiçbiri çalışmıyorsa bir sorun açılır.</li>
+  <li>Sistemin <b>hata mesajları</b> — Windows <b>Sistem</b> ve <b>Uygulama</b> günlüklerinin kritik ve hata olayları ile systemd journal'ın <i>err</i> ve daha ciddi öncelikli mesajları — her raporla <a href="/logs?kind=agent">Günlükler</a> bölümüne gider (tür <b>Ajanlar</b>); kaynağı <b>Ajanlar</b> olan bir günlük tetikleyicisi bunlardan sorun açar.</li>
+</ul>
+<p>Aynı adrese veya ada sahip bir cihaz varsa ajan ona katılır; yoksa yeni bir cihaz oluşturulur.</p>
+
+<h2 id="updates">Ajan güncellemeleri</h2>
+<p>Sunucudan eski bir ajan, bağlandığında (en fazla saatte bir) sunucunun sürümündeki ajanı alır: yükleyiciyi sunucudan kendi şifreli, sabitlenmiş bağlantısı üzerinden indirir, boyutunu ve SHA-256'sını denetler ve kurar. MSI ile kurulan Windows ajanları yeni MSI'yı çalıştırır; Linux ajanları (systemd) yeni programın başladığını denetler, kendilerini değiştirir ve systemd tarafından yeniden başlatılır. <a href="/agents">Ajanlar</a> sayfası eski ajanları işaretler; yöneticiler otomatik güncellemeleri orada <b>Ajan güncellemeleri</b> altında kapatabilir ve çevrimiçi tüm ajanları tek tıkla güncelleyebilir. 1.2'den önceki ajanlar güncellemeleri henüz bilmez ve bir kez elle güncellenir.</p>
+
+<h2 id="collector">Uzak toplayıcılar</h2>
+<p>Başka bir ağdaki bir cihaza — bir şube ofisi, NAT arkasındaki bir müşteri sahası, kapalı bir yönetim VLAN'ı — konsoldan çoğu zaman erişilemez. Ajanı oradaki herhangi bir bilgisayara kurun (Linux veya Windows; küçük bir sanal makine veya Raspberry Pi sınıfı bir makine yeterlidir) ve cihaz sayfasının Ajan kutusunda <b>Uzak toplayıcı olarak kullan</b> düğmesine tıklayın. Ardından o ağın cihazlarında <b>İzlendiği yer</b> altında onu seçin (ya da birçoğu için birden cihaz listesinde <b>Seçilenleri değiştir</b> altında). Toplayıcı onların kontrollerini — ping, TCP, SNMP, web sayfaları ve senaryolar, sertifikalar, DNS, veritabanları, RouterOS, JSON API'leri — gerekli parolalar ve SNMP ayarlarıyla birlikte alır, kendi aralıklarında çalıştırır ve sonuçları kendi şifreli bağlantısı üzerinden gönderir. Sahada açık port gerektirmez ve kendine ait bir web arayüzü yoktur; her şey konsolda ayarlanır.</p>
+<p>Konsolla bağlantı koptuğunda toplayıcı kontrolleri çalıştırmaya devam eder; sonuçlar (en fazla bir günlük, en yeni 200.000 tanesi) onda bekler ve bağlantı geri geldiğinde ulaşır, böylece grafiklerde boşluk oluşmaz. Bu arada cihazlarının kontrolleri çalışmıyor yerine <b>bilinmiyor</b> gösterir (saha sorunsuz olabilir) ve toplayıcının ajan kontrolü bir sorun açar. Saklanan sonuçlar toplayıcının yeniden başlatılmasından sonra korunmaz: kontrollerini konsoldan yeniden alır.</p>
+<p><b>Yedek toplayıcı:</b> ajanı sahadaki ikinci bir bilgisayara kurun, onu da toplayıcı yapın ve <b>İzlendiği yer</b> yanında <b>Yedek</b> olarak seçin (ya da birçok cihaz için cihaz listesinde <b>Seçilenleri değiştir → Yedek toplayıcı</b> altında). Birincisi çevrimdışıyken yedek onların kontrollerini çalıştırır; birincisi geri geldiğinde onları yeniden devralır.</p>
+<p><b>Keşif ve SNMP:</b> <a href="/discovery">Cihazlar → Keşif</a> altında yeni bir aralığın yanında toplayıcıyı seçin: sahasındaki o ağı tarar ve oradan eklediğiniz cihazlar ondan izlenir. Cihaz sayfasındaki SNMP keşfi ve bilgilerin, arayüzlerin ve VLAN'ların okunması da toplayıcı üzerinden yapılır. Hipervizör kontrolleri konsolda kalır. <b>Toplamayı durdur</b> cihazları konsola geri verir.</p>
+
+<h2 id="network">Ağ</h2>
+<p>Ajanlar <b>8444 numaralı ajan portuna</b> bağlanır. Ajanlar sunucuya başka bir adla ulaşıyorsa (örneğin bir güvenlik duvarı üzerinden) <a href="/settings/network">Ayarlar → Ağ ve erişim</a> altında <b>ajanlar için genel adresi</b> ayarlayın ve ajanların gelebileceği ağları sınırlayın.</p>
+<div class="callout"><p>Ajanı cihaz sayfasında kaldırmak anahtarını bilinmez kılar; ajanı yeniden kullanmak için bilgisayarı yeni bir kodla kaydedin.</p></div>

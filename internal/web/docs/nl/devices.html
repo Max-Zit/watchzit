@@ -1,0 +1,90 @@
+<h1>Apparaten, controles en SNMP</h1>
+<p class="lead">Een apparaat is alles met een adres: een router, switch, server, printer, camera of website. Controles meten het; hun resultaten kleuren het apparaat, de kaart en de grafieken.</p>
+
+<h2 id="add">Een apparaat toevoegen</h2>
+<p>Voer onder <a href="/devices">Apparaten → Apparaat toevoegen</a> een naam en een IP-adres of hostnaam in, kies het type en de groep, en laat <b>Ping</b> aan staan. Optioneel:</p>
+<ul>
+  <li><b>SNMP</b> — een profiel met de community of de SNMPv3-gebruiker; WatchZit leest dan de interfaces, het verkeer, de CPU, het geheugen en de schijven uit.</li>
+  <li><b>Afhankelijk van</b> — de router of switch via welke het apparaat bereikt wordt. Zolang die uitgevallen is, zijn de problemen van dit apparaat alleen "onbereikbaar" en worden ze niet verstuurd.</li>
+  <li><b>Externe toegang</b> — de gebruikersnaam en poorten die <a href="/docs/tools">tools</a> gebruiken.</li>
+  <li><b>TCP-poorten</b> — elke poort wordt een controle die elke minuut verbinding maakt.</li>
+</ul>
+<p>De status van het apparaat volgt uit zijn controles: <b>actief</b> als alle actief zijn, <b>gedeeltelijk uitgevallen</b> als sommige uitgevallen zijn, <b>uitgevallen</b> als alle uitgevallen zijn.</p>
+
+
+<h2 id="discovery">Detectie</h2>
+<p><a href="/discovery">Apparaten → Detectie</a> vindt de hosts van een netwerk: voeg een bereik toe (bijv. <code>192.168.1.0/24</code>, tot /22, of één adres) en scan het nu, elke dag of elke week. WatchZit pingt elk adres, probeert gangbare poorten (SSH, Telnet, web, RDP, WinBox, SMB, printers, VNC), vraagt via SNMP met uw SNMP-profielen de naam, beschrijving en fabrikant op en zoekt de DNS-naam op. Hosts die nog geen apparaat zijn, worden getoond met hun naam, een geschatte soort en wat er antwoordde; vink ze aan en klik op <b>Als apparaten toevoegen</b> (eventueel in een groep): elk krijgt een pingcontrole (of een TCP-controle als ping geblokkeerd is) en het SNMP-profiel dat antwoordde. <b>Verbergen</b> houdt een host uit de lijst; verborgen hosts kunnen weer getoond worden. Met een planning verschijnen nieuwe hosts die in het netwerk opduiken hier vanzelf. Met <a href="/docs/agents#collector">externe collectors</a> kiest u welke een bereik scant: die scant het netwerk van zijn eigen locatie.</p>
+<h2 id="links">Weblinks</h2>
+<p>Onder <b>Weblinks</b> bij een apparaat wordt het adres van de <b>Webinterface</b> geopend met de knop op de apparaatpagina en op kaarten; geef de knop desgewenst een andere <b>naam</b>. Voeg meer links toe voor een server met meerdere adressen, zijn iDRAC of iLO, of de pagina van een service; elke link wordt een eigen knop.</p>
+
+<h2 id="fields">Eigen velden</h2>
+<p>Beheerders voegen eigen velden voor apparaten toe onder <a href="/settings/fields">Instellingen → Eigen velden</a>: tekst, een getal of een datum — een inventarisnummer, het einde van de garantie, het rack, een contract. Operators vullen ze in op de apparaatpagina onder <b>Eigen velden</b>; de waarden worden bij de gegevens van het apparaat getoond, en de zoekfunctie in de apparatenlijst vindt ze. Als u een veld verwijdert, worden ook de waarden ervan verwijderd.</p>
+<h2 id="templates">Sjablonen</h2>
+<p>Een sjabloon is een set controles voor een soort apparaat — een Linux-server, een MikroTik-router, een printer. Maak er een aan onder <a href="/templates">Sjablonen</a>, kies voor welke soorten apparaten het is en voeg de controles toe (ping-, TCP-, webpagina-, TLS-certificaat-, DNS- en SNMP-controles; controles met wachtwoorden worden per apparaat toegevoegd). <b>Toepassen op</b> voegt de controles toe aan alle apparaten van die soorten, aan een groep, of opnieuw aan de apparaten die het sjabloon al hebben; op een apparaatpagina doet <b>Sjabloon toepassen</b> het voor één apparaat. Toepassen voegt alleen de controles toe die een apparaat nog niet heeft — bestaande controles blijven zoals ze zijn, dus twee keer toepassen kan geen kwaad. Met <b>Automatisch toepassen op nieuwe apparaten van deze soorten</b> krijgt elk later toegevoegd apparaat (met de hand of via detectie) de controles meteen. Als u een sjabloon verwijdert, blijven de controles op de apparaten staan.</p>
+<h2 id="bulk">Veel apparaten tegelijk wijzigen</h2>
+<p>Vink apparaten aan in de <a href="/devices">apparatenlijst</a> (het vakje in de kop vinkt alle getoonde aan) en kies onder <b>Selectie wijzigen</b>: de groep, het SNMP-profiel, het apparaat waarvan ze afhangen, het type, bewaking pauzeren of hervatten, een sjabloon toepassen, of — voor beheerders — ze met hun controles en gegevens verwijderen. Filter de lijst eerst om bijvoorbeeld alle printers van één locatie aan te vinken.</p>
+<h2 id="checks">Soorten controles</h2>
+<table>
+  <tr><th>Controle</th><th>Meet</th></tr>
+  <tr><td>Ping (ICMP)</td><td>Responstijd en pakketverlies.</td></tr>
+  <tr><td>TCP-poort</td><td>Of de poort verbindingen accepteert, en hoe snel.</td></tr>
+  <tr><td>Webpagina (HTTP)</td><td>Statuscode, responstijd, een tekst die op de pagina moet staan, dagen tot het certificaat verloopt.</td></tr>
+  <tr><td>TLS-certificaat</td><td>Dagen tot het verloopt en of het vertrouwd wordt (elke TLS-poort, met een servernaam voor SNI).</td></tr>
+  <tr><td>DNS</td><td>Het apparaat is een DNS-server: het moet een naam beantwoorden met een recordtype (A, AAAA, MX …) en, optioneel, een verwachte waarde.</td></tr>
+  <tr><td>PostgreSQL, MySQL / MariaDB</td><td>Aanmelden met een monitoringgebruiker, versie, aantal verbindingen, responstijd.</td></tr>
+  <tr><td>MikroTik RouterOS (API)</td><td>CPU, geheugen, uptime en temperatuur via de REST-API van RouterOS 7.</td></tr>
+  <tr><td>Waarde uit JSON-API</td><td>Eén getal uit een willekeurige JSON-API (FortiGate, vCenter, uw eigen services): een adres, een pad zoals <code>results.cpu.0.current</code>, en optioneel Bearer- of basic-aanmelding.</td></tr>
+  <tr><td>Hypervisor (vSphere, Proxmox VE)</td><td>Hosts, virtuele machines en containers, datastores van VMware ESXi of vCenter (webservices-API) of Proxmox VE (REST-API): CPU en geheugen van de hosts, draaiende machines, uitgevallen hosts, de volste datastore. Zie <a href="#hypervisor">Hypervisors</a>.</td></tr>
+  <tr><td>Webscenario</td><td>Meerdere stappen door een webapplicatie, zoals een gebruiker: aanmelden, een pagina achter de aanmelding openen, de tekst controleren. Eén stap per regel, bijvoorbeeld <code>GET /login | 200 | Sign in</code>, <code>POST /login | 302 | | user=monitor&amp;password={secret}</code>, <code>GET /dashboard | | Welcome</code> — de methode en het adres, daarna de verwachte status, de tekst die de pagina moet bevatten en de formuliergegevens. Cookies blijven van stap tot stap bewaard; <code>{secret}</code> is het wachtwoord van de controle. Meet de tijd van alle stappen en hoeveel er geslaagd zijn; de waarschuwing noemt de stap die mislukte.</td></tr>
+  <tr><td>SNMP</td><td>Beschikbaarheid en uptime; interfaces, CPU en opslag die bij de detectie gevonden zijn; elke numerieke OID.</td></tr>
+</table>
+<p>Wachtwoorden en tokens van controles worden versleuteld opgeslagen en nooit meer getoond; laat het veld leeg wanneer u een controle bewerkt om de opgeslagen waarde te behouden.</p>
+
+<h2 id="snmp">SNMP</h2>
+<ol>
+  <li>Maak een profiel aan onder <a href="/settings/snmp">Instellingen → SNMP</a>: v2c met een community, of v3 met een gebruiker (SHA-2 en AES worden ondersteund).</li>
+  <li>Kies het profiel bij het apparaat. WatchZit opent de <b>SNMP-detectie</b>: vink de interfaces, CPU, het geheugen en de schijven aan die bewaakt moeten worden (loopbacks en interfaces zonder link worden weggelaten).</li>
+  <li>De apparaatpagina toont dan <b>poorten</b> met linkstatus en live verkeer, en grafieken van elke waarde.</li>
+</ol>
+<p>De detectie vindt ook wat een apparaat van zijn soort rapporteert: de <b>verbruiksartikelen van printers</b> (toner, inkt, drums, afvalbakken, als niveau in procenten; de kant-en-klare trigger <b>Toner of inkt bijna op</b> waarschuwt onder 10 %), <b>UPS'en</b> (UPS-MIB, of de APC PowerNet MIB van APC-kaarten: batterijlading, resterende looptijd, belasting; de controle is uitgevallen zolang de UPS op de batterij draait of de batterij bijna leeg is, en <b>UPS-looptijd kort</b> waarschuwt onder 10 minuten) en de <b>gezondheidssensoren van MikroTik</b> (temperaturen, spanningen, ventilatoren, vermogen, elk als OID-controle met zijn eenheid).</p>
+<div class="callout tip"><p>MikroTik, Cisco, HP, Ubiquiti, printers en UPS-apparaten spreken SNMP. Installeer op Linux <code>snmpd</code>; op Windows de SNMP-service.</p></div>
+
+<h2 id="vlans">VLAN's</h2>
+<p>WatchZit leest de VLAN's van switches één keer per uur via SNMP (Q-BRIDGE-MIB: HP/Aruba, Cisco small business, Ubiquiti, Netgear, D-Link en de meeste managed switches; CISCO-VTP-MIB: access- en trunkpoorten van Cisco Catalyst), van agents (Linux-VLAN-interfaces zoals eth0.10, de VLAN-ID van Windows-netwerkadapters) en van MikroTik-bridges elke tien minuten via de RouterOS-API (met de controle <b>MikroTik RouterOS (API)</b> van het apparaat). De apparaatpagina toont elk VLAN met zijn tagged en untagged poorten, en elke poort met zijn <b>modus</b>: <b>Access</b> (één untagged VLAN), <b>Trunk</b> (tagged VLAN's; het untagged VLAN is het <b>native VLAN</b>) of <b>Hybride</b> (meerdere untagged VLAN's). Kaarten kunnen één VLAN tegelijk tonen.</p>
+
+<h2 id="ha-role">HA-rol</h2>
+<p>Apparaten die VRRP draaien, melden of ze <b>actief</b> (master) of <b>stand-by</b> (backup) zijn: uitgelezen via SNMP (VRRP-MIB en VRRPv3-MIB, met de SNMP-beschikbaarheidscontrole) en van MikroTik RouterOS via de API (met de RouterOS-API-controle). De apparaatpagina toont de rol en sinds wanneer; kaarten tonen ACTIVE of STANDBY naast het apparaat.</p>
+
+<h2 id="vxlan">VXLAN</h2>
+<p>VXLAN-interfaces (VTEP's) worden uitgelezen van MikroTik RouterOS 7 (met de RouterOS-API-controle, elke tien minuten) en van Linux-agents (met iproute2, elke vijf minuten): VNI, interface, eigen adres, UDP-poort en externe VTEP's, ook die in de forwardingtabel. De apparaatpagina toont ze; een externe VTEP die het adres van een ander apparaat is, linkt daarnaar. Een VXLAN zonder externe adressen gebruikt multicast of EVPN. Kaarten tekenen een tunnel tussen twee apparaten op de kaart die elkaars VTEP's zijn.</p>
+
+<h2 id="graphs">Grafieken</h2>
+<p>Elke waarde wordt bewaard: dagenlang ruw, daarna als minimum, gemiddelde en maximum per 5 minuten en per uur (Instellingen → Meetgegevens). Sleep in een grafiek om in te zoomen, dubbelklik om terug te gaan; de knoppen voor het tijdsbereik gaan van één uur tot een jaar.</p>
+<p>De knop ⤢ van een grafiek toont hem over het hele venster (Esc gaat terug).</p>
+<p><b>Grafieken bewerken</b> (operators en beheerders) rangschikt de grafieken van een apparaat als panelen van een dashboard:</p>
+<ul>
+  <li>✎ wijzigt een grafiek: de <b>titel</b>, de <b>soort</b> (lijn, vlak of staven), <b>waarden stapelen</b> (elke waarde boven op de vorige), de <b>waarden</b> die hij toont — ook van meerdere controles, bijvoorbeeld CPU en geheugen samen, en de <b>kleur</b> van elke waarde — het <b>asminimum en -maximum</b>, en een <b>waarschuwingslijn</b> en een <b>kritieke lijn</b>.</li>
+  <li>↔ maakt hem zo breed als de pagina, ↕ hoger of lager, ▲ ▼ verplaatsen hem, × verwijdert hem (zijn waarden worden niet in een grafiek getoond tot een grafiek ze weer toont).</li>
+  <li>Sleep de rechteronderhoek van een grafiek om de breedte (1–4 kolommen) en de hoogte in te stellen; dat wordt opgeslagen wanneer u loslaat.</li>
+  <li><b>Grafiek toevoegen</b> maakt een nieuwe grafiek van willekeurige waarden van het apparaat. Waarden van nieuwe controles krijgen hun automatische grafieken.</li>
+  <li><b>Automatische grafieken</b> verwijdert de indeling: weer één grafiek per controle.</li>
+</ul>
+
+<h2 id="config-backup">Configuratieback-ups</h2>
+<p>Operators en beheerders kunnen de configuratie van netwerkapparaten bewaren: kies in het onderdeel <b>Configuratieback-ups</b> van een apparaat de methode — <b>MikroTik RouterOS</b> (<code>/export terse show-sensitive</code>), <b>Cisco IOS</b> (<code>show running-config</code>), <b>FortiGate</b> (<code>show full-configuration</code>) of een eigen opdracht — en de SSH-gebruiker, -poort en het wachtwoord of de privésleutel. Het wachtwoord en de sleutel worden versleuteld bewaard. Gebruik een gebruiker die alleen mag lezen.</p>
+<ul>
+  <li>Back-ups worden elke nacht om 02:00 (servertijd) uitgevoerd en met <b>Nu back-uppen</b>. Een nieuwe versie wordt alleen bewaard als de configuratie gewijzigd is; de laatste 50 versies van elk apparaat worden bewaard.</li>
+  <li>De SSH-hostsleutel wordt bij de eerste back-up opgeslagen en daarna gecontroleerd. Als hij verandert, mislukt de back-up; als dat verwacht was (nieuw apparaat of nieuwe firmware), gebruik dan <b>Hostsleutel vergeten</b>.</li>
+  <li>Elke versie toont de wijzigingen ten opzichte van de vorige (+ toegevoegde, − verwijderde regels, met <b>Hele configuratie</b> voor alles) en kan als tekstbestand worden gedownload.</li>
+  <li>Wijzigingen en fouten worden in het logboek van het apparaat geschreven (tag <code>config-backup</code>), zodat een logtrigger er een melding voor kan versturen.</li>
+  <li>Kijkers zien de configuraties noch de back-upinstellingen.</li>
+</ul>
+
+<h2 id="hypervisor">Hypervisors</h2>
+<p>Voeg de controle <b>Hypervisor (vSphere, Proxmox VE)</b> toe aan het apparaat van een ESXi-host, een vCenter of een Proxmox VE-node (elke node van een cluster leest het hele cluster). Een gebruiker die alleen mag lezen volstaat: de rol <b>Read-only</b> in vSphere, <b>PVEAuditor</b> op <code>/</code> in Proxmox VE — of een API-token (<code>user@realm!name</code> als gebruiker en het secret ervan als wachtwoord). Laat de poort leeg voor 443 (vSphere) of 8006 (Proxmox VE); vink <b>Niet-vertrouwde certificaten accepteren</b> aan voor het zelfondertekende certificaat dat deze standaard hebben.</p>
+<ul>
+  <li>Elke uitvoering slaat de CPU en het geheugen van alle hosts op, het aantal draaiende en het totale aantal machines, de uitgevallen hosts en hoe vol de volste datastore is; de triggers <b>Datastore bijna vol</b> (boven 90 %) en <b>Hypervisorhost uitgevallen</b> horen erbij.</li>
+  <li>De apparaatpagina toont de hosts, elke virtuele machine en container (status, CPU, geheugen, adres, gastsysteem) en de datastores. Gastsystemen en adressen worden elke tien minuten uitgelezen (Proxmox VE leest adressen via de QEMU guest agent).</li>
+  <li><b>Hyper-V</b> en <b>Docker</b> hebben geen controle nodig: de WatchZit-agent op de Windows-host (met Hyper-V) of de Linux-host (met Docker) rapporteert elke vijf minuten zijn machines of containers.</li>
+  <li>Op kaarten kan een hypervisorvak deze machines vanzelf tonen (zie de handleiding voor kaarten).</li>
+</ul>

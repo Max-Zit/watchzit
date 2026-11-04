@@ -1,0 +1,83 @@
+<h1>Ağ haritaları</h1>
+<p class="lead">Harita, ağınızın aynı zamanda canlı izleme olan bir çizimidir: durumlarına göre renklenen cihazlar, trafiği gösteren kablolar, yakınlaştırabileceğiniz portlar.</p>
+
+<h2 id="edit">Harita çizme</h2>
+<ol>
+  <li><a href="/maps">Haritalar</a> altında bir harita ekleyin ve <b>Düzenle</b> düğmesine tıklayın.</li>
+  <li><b>Cihaz ekle</b> cihazları haritaya koyar; onları yerlerine sürükleyin. <b>Öğe ekle</b> izlenmeyen şeyleri ekler (patch paneller, PDU'lar). Düzenleme sırasında bir öğenin panelindeki <b>İzlenen cihaz</b> onu konsolun bir cihazına dönüştürür: resim, yer, kabin birimi ve kablolar kalır ve cihazın durumunu ve ölçümlerini gösterir. <b>Yok (yalnız resim)</b> bir cihazı yeniden öğeye dönüştürür.</li>
+  <li><b>Bağla</b>: iki cihaza tıklayın ve her iki uçtaki portları seçin (SNMP veya ajan arayüzlerinden). Kablo o portun trafiğini gösterir.</li>
+  <li><b>Önerilen bağlantılar</b> cihazların nereye takılı olduğunu gösterir (bkz. <a href="#found">Cihazlarda bulunan bağlantılar</a>) ve kabloları portlarıyla birlikte, ayrıca haritaya bağlı olup haritada olmayan cihazları önerir; <b>Tümünü ekle</b> hepsini alır.</li>
+  <li><b>Kaydet</b> düğmesine tıklayın (veya Ctrl+S). Değişiklikler siz kaydedene kadar yalnızca sayfada tutulur; <b>İptal</b> kaydedilmiş haritaya geri döner.</li>
+</ol>
+
+<h2 id="design">Resimler, kabinler ve kablolar</h2>
+<ul>
+  <li>Her cihazın yerleşik kitaplıktan bir resmi (portlarıyla anahtarlar, yönlendiriciler, sunucular, güvenlik duvarları, erişim noktaları, telefonlar, kameralar …) ya da sizin yüklediğiniz bir resmi vardır.</li>
+  <li>Kitaplıkta ayrıca 180'den fazla üreticinin yaklaşık 3.500 gerçek modeli bulunur: sunucular (G6'dan itibaren HPE ProLiant, Dell PowerEdge, Lenovo, Supermicro, Cisco UCS, Fujitsu, Huawei/xFusion, Inspur), NAS (Synology, QNAP, Asustor, TrueNAS ve diğerleri), SAN depolama ve FC anahtarları (HPE MSA/3PAR/Nimble/Alletra, IBM Storwize/FlashSystem, Dell PowerVault/Unity/PowerStore, NetApp, Pure Storage, Lenovo, Fujitsu ETERNUS, Huawei OceanStor, Hitachi, Brocade, Cisco MDS), anahtarlar (Cisco, HPE Aruba, Dell, Juniper, Ubiquiti, Netgear, TP-Link, D-Link, Zyxel, Huawei, Arista, Extreme, Ruckus, Alcatel-Lucent, Ruijie, FS (fs.com: kampüs, PoE, veri merkezi ve endüstriyel anahtarlar, Wi-Fi, medya dönüştürücüler, fiber kutuları), QNAP, TRENDnet, Hikvision, Dahua, Lancom, DrayTek, endüstriyel Moxa, Siemens SCALANCE, Hirschmann ve Phoenix Contact ve diğerleri), güvenlik duvarları (Fortinet, Palo Alto, Sophos, WatchGuard, SonicWall, Check Point, Cisco ASA/Firepower, Netgate ve diğerleri), MikroTik, ev ve ofis yönlendiricileri ve mesh Wi-Fi (TP-Link, ASUS, FRITZ!Box, Netgear, Linksys, D-Link, Huawei ve ZTE ONT'leri ve diğerleri), erişim noktaları, UPS'ler (kule ve kabin tipi), video kaydediciler ve IP kameralar, dış mekân noktadan noktaya, sektör ve çok yönlü antenler, yazıcılar, IP telefonlar ve santraller, blade kasaları, PDU'lar, KVM ve konsol sunucuları, ortam izleyicileri ve mini PC'ler, GPON OLT'leri ve ONT'leri, servis sağlayıcı yönlendiricileri, SD-WAN uç cihazları, NTP zaman sunucuları, interkomlar, video konferans, PLC'ler ve HMI'lar. Genel resimlerde kabin aksesuarları da vardır: kablo düzenleyiciler, fırçalı paneller, raflar, fan tepsileri, çekmeceler ve kör paneller. Genel resimlerde ayrıca fiber patch paneller (LC duplex tek modlu ve çok modlu, SC/APC ve SC/UPC, 12 ile 96 port arası) ve duvar tipi fiber kutuları bulunur. Resim panelinde <b>üreticiyi</b> (veya <b>Tüm üreticiler</b>) ve <b>türü</b> (anahtar, yönlendirici, güvenlik duvarı, sunucu, depolama / NAS, erişim noktası …) seçin ya da modeli arayın (örneğin "DL380 Gen10" veya "CRS326"); <b>Genel resimler</b> ile bir tür veya arama tüm üreticilere bakar; çizimlerde modelin portları ve disk yuvaları vardır, böylece kablolar doğru portta biter. Bir cihaz için panel onun üreticisiyle açılır; haritaya bir cihaz eklendiğinde SNMP açıklaması kitaplıktaki bir modeli (örneğin MikroTik) belirtiyorsa o resim kendiliğinden seçilir.</li>
+  <li>4 ile 48 birim arası <b>kabinler</b>: cihazları içlerine bırakın; boş birimlere oturur. Kabin için yapılmamış şeyler — bir NAS, küçük bir anahtar, rafta duran bir mini PC — cihaz panelinde kendi <b>Yükseklik</b> (1–20U, aksi hâlde resmin yüksekliği) ve <b>Genişlik</b> (tam genişlik, 1/2, 1/3 veya 1/4) değerini, soldan sağa bir <b>Konum</b> ile alır; böylece birkaçı aynı birimlerde yan yana durur; kabine bırakıldıklarında en yakın boş yeri alırlar.</li>
+  <li>Kabloların bir <b>türü</b> (bakır, fiber, DAC, kablosuz, VPN, WAN, seri, güç) ve bir <b>güzergâhı</b> vardır: düz, 90° veya 45° kıvrımlı, eğri; bükmek için noktaları sürükleyin; bir noktayı kaldırmak için çift tıklayın.</li>
+  <li>Boyutu, saydamlığı ve konumuyla bir <b>arka plan resmi</b> (bir kat planı, bir saha).</li>
+  <li><b>Alt haritalar</b> diğer haritalara bağlantı verir ve onların en kötü durumunu gösterir.</li>
+</ul>
+
+<h2 id="reading">Haritayı okuma</h2>
+<ul>
+  <li>Yeşil çalışıyor, kehribar kısmen çalışmıyor, kırmızı çalışmıyor (yanıp söner) demektir; gri bilinmiyor veya duraklatıldı anlamına gelir.</li>
+  <li>Kablolar kullanım oranıyla kalınlaşır ve renk değiştirir (%50'nin üstünde kehribar, %80'in üstünde kırmızı); portunda bağlantı olmayan bir kablo kırmızı ve kesik çizgilidir.</li>
+  <li>Tekerlekle veya iki parmakla yakınlaştırın; yeterince yaklaştığınızda adlar ve port etiketleri görünür. Kontroller, portlar ve araçlarla panelini açmak için bir cihaza tıklayın — operatörler ve yöneticiler orada <b>Cihazı düzenle</b> seçeneğini de görür ve kaydetmek onları haritaya geri getirir; cihazı açmak için çift tıklayın.</li>
+  <li>Panelini açmak için bir kabloya tıklayın: her iki yöndeki anlık trafik ve son saat, gün, hafta veya ay için <b>Trafik geçmişi</b> (iki uçtan birinin arayüz kontrolünden).</li>
+</ul>
+
+<h2 id="ha">HA grupları</h2>
+<ul>
+  <li>Birbirinin yerine geçen cihazlar — bir güvenlik duvarı HA çifti, VRRP veya HSRP yönlendiricileri, bir anahtar yığını veya MLAG/vPC çifti, bir sunucu veya depolama kümesi — bir <b>HA grubu</b> oluşturur: düzenleme sırasında ilk cihazın panelinde <b>HA grubu → Yeni HA grubu</b> seçin, ardından diğerlerinin panelinde aynı grubu. Grup, üyelerinin çevresinde kesik çizgili bir çerçevedir; kabine monte edilmiş üyeler yalnızca ince bir dış çizgi ve birinin diğerine değdiği yerde küçük bir <b>⇅ HA</b> etiketi alır, böylece çevredeki birimler açık kalır (grubu açmak için etikete tıklayın); VRRP rolü her üyede etiketin yanında küçük olarak durur — ETKİN yeşil, YEDEK kehribar. Grup paneli adı ve türü ayarlar.</li>
+  <li><b>Yol</b> bir grubun her üyesinden geçer ve her eşit güzergâhı gösterir (örneğin iki güvenlik duvarı üzerinden 2 güzergâh). Üyeler arasındaki kabloyu (heartbeat, sync, stack, peer link) <b>HA bağlantısı</b> kablo türüyle işaretleyin; bu bir trafik yolu değildir.</li>
+  <li>Çerçeve (veya etiket) tüm üyeler çalışırken yeşil, bazıları çalışmadığında <i>yedeklilik kayboldu</i> ile kehribar ve hepsi çalışmadığında kırmızıdır. <b>Yedekliliği olmayan HA grubu</b> tetikleyicisi o zaman bir sorun açar (bkz. Uyarılar).</li>
+  <li>VRRP bildiren üyeler <b>ETKİN</b> veya <b>YEDEK</b> gösterir ve grup paneli ne zamandan beri olduğunu söyler.</li>
+</ul>
+
+<h2 id="hypervisors">Hipervizörler ve sanal makineler</h2>
+<ul>
+  <li><b>Hipervizör ekle</b> (düzenleme sırasında) bir sanallaştırma ana bilgisayarı için bir kutu ekler: <b>hipervizörü</b> (VMware ESXi, Proxmox VE, Hyper-V, XCP-ng, KVM, Nutanix AHV, Docker, Kubernetes ve diğerleri) ve üzerinde çalıştığı <b>fiziksel sunucuyu</b> seçin (zorunlu; bir küme için diğer sunucuları <b>Küme</b> altında ekleyin; yollar herhangi birinden geçebilir); sunucunun durumu kutuda gösterilir, ölçümleri panelden açılır ve sunucu haritadaysa kesik bir çizgi ikisini birleştirir. <b>Yol</b> bir sanal makineden hipervizörü ve fiziksel sunucu üzerinden kablolar boyunca ilerler.</li>
+  <li>Sanal makineleri kutuya sürükleyin: konsolun cihazları (durumlarını görmek için) veya sistemlerinin resmine sahip öğeler (Windows Server, Ubuntu, Debian, Red Hat, MikroTik CHR, pfSense, konteynerler ve daha fazlası; resim panelinde tür <b>Sanal makine</b>). Kutunun içinde bir ızgarada sıralanırlar; sırayı değiştirmek için içinde, ana bilgisayardan çıkarmak için dışına sürükleyin. Bir cihazın panelinde ayrıca <b>Hipervizörde çalışır</b> vardır.</li>
+  <li><b>Hipervizörün makinelerini kendiliğinden göster</b> (yeni kutular için varsayılan olarak açık), kutuyu bir hipervizör kontrolünün, ajanın (Hyper-V, Docker) veya vCenter'ın fiziksel sunucusu için bildirdiği makinelerle doldurur: çalışanlar yeşil, durdurulmuşlar gri, askıya alınmışlar sarı. Adresi veya adı konsolda bir cihaz olan makine o cihaz olarak görünür. Bu makineler, birini taşıyana, bağlayana veya <b>Haritaya yerleştir</b> düğmesine basana kadar kaydedilmiş haritanın parçası değildir; <b>Makineleri haritaya yerleştir</b> hepsini yerleştirir. Bir makinenin adıyla kendi yerleştirdiğiniz öğeler de onun durumunu alır.</li>
+  <li>Kutu, sanal makinelerinin ve fiziksel sunucunun en kötü durumunu gösterir; <b>Hipervizörler</b> katmanı kutuları gizler.</li>
+</ul>
+
+<h2 id="pictures">Resim kitaplığı</h2>
+<p>Menüdeki <b>Resim kitaplığı</b> kendi cihaz resimlerinizi saklar. <b>Resim yükle</b> (PNG, JPEG, GIF, WebP veya SVG; en iyi sonucu önden görünüm verir) ya da yerleşik bir resim alın: <b>kalem</b>, yerleşik resmin kendisini kullanıldığı her haritada değiştirir (açmak hiçbir şeyi değiştirmez; değiştirilmiş sürüm yalnızca bir değişikliği kaydettiğinizde saklanır) (yerleşik resme dönmek için değiştirilmiş resmi silin) ve <b>Kopyala</b> benzer bir model için ondan kendinize ait yeni bir resim oluşturur. Düzenleyicide şunları ayarlayın:</p>
+<ul>
+  <li><b>Portlar</b>: port eklemek için resme tıklayın, önce 1. port; taşımak için bir portu sürükleyin, kaldırmak için çift tıklayın. Bir sıra için kaç port olduğunu girin ve ilkine ve sonuncusuna tıklayın; <b>iki satırda</b> onları bir anahtar gibi numaralar, 1 üstte 2 altta. Sondaki <b>SFP portları</b> turuncu çizilir ve bir fiber kablo önerir.</li>
+  <li><b>Raf birimi (U)</b> (cihaz kabine monte değilse 0), <b>üretici</b>, <b>tür</b> ve <b>haritadaki genişlik</b>.</li>
+  <li><b>Kopyala</b>, benzer bir model için sizin resimlerinizden birinden yeni bir resim oluşturur.</li>
+</ul>
+<p>Resimler, haritaların resim panelinde üreticileri ve türleri altında görünür ve haritadaki kablolar işaretlediğiniz portlarda biter.</p>
+
+<h2 id="layers">Katmanlar ve yollar</h2>
+<ul>
+  <li><b>Katmanlar</b> haritanın ne göstereceğini seçer: cihazlar, kabinler, öğeler, alt haritalar, kablolar, port adları, trafik, VLAN etiketleri, VXLAN tünelleri, adlar ve adresler, metin ve arka plan, herhangi bir birleşimde. Seçiminiz bu tarayıcıda saklanır.</li>
+  <li><b>Yol</b>: iki cihaza tıklayın; harita yalnızca aralarındaki kablo zincirini (yoldaki patch paneller, anahtarlar ve kabinlerle) gösterir ve ona yakınlaşır. Tüm haritayı görmek için Yol'a yeniden tıklayın veya Esc tuşuna basın.</li>
+  <li>Kablolardaki port adları yakınlaştırdığınızda görünür, böylece kalabalık bir harita okunaklı kalır. Tam olarak kablonun bittiği yerde dururlar: resmin portunda ya da kablonun portsuz bir resimden çıktığı yerde; tüm kabloların üstünde çizilirler, böylece hiçbir kablo onları gizlemez. Başka bir kablonun zaten kullandığı bir port yeniden seçilemez; liste kablosunun nereye gittiğini söyler.</li>
+  <li><b>VLAN'lar</b>: haritadaki anahtarlar veya yönlendiriciler VLAN bildirdiğinde araç çubuğunda bir VLAN listesi belirir. Bir VLAN seçin; harita yalnızca onu taşıyan kabloları etiketli veya etiketsiz olarak işaretleyerek gösterir; o VLAN'ı taşımayan cihazlar soluklaşır. Kablo paneli portlarının VLAN'larını listeler.</li>
+  <li>Kablolar VLAN modlarıyla etiketlenir, örneğin <i>Access 20</i> veya <i>Trunk · native 1 · 10, 20-25</i> (<b>VLAN etiketleri</b> katmanı). VLAN filtresi yalnızca etiketli veya yalnızca etiketsiz VLAN'ları da gösterebilir. Uçları uyuşmadığında kablo turuncu kesik çizgiyle çizilir: bir trunk'a karşı bir access portu ya da her uçta farklı bir native VLAN.</li>
+  <li>Düzenleme sırasında bir kablonun <b>VLAN modu</b> elle ayarlanabilir: VLAN'ıyla <b>Access</b> ya da native VLAN ve izin verilen (etiketli) VLAN'larla, 20-25 gibi aralıklar dahil, <b>Trunk</b>; <b>Otomatik</b> portların bildirdiğini kullanır. Bir kablo ayrıca bir <b>VXLAN VNI</b> taşıyabilir ve <b>VXLAN tüneli</b> kablo türü elle bir tünel çizer.</li>
+  <li>Cihazların bildirdiği VXLAN tünelleri, VNI'leriyle birlikte kesik çizgili mor yaylar olarak çizilir (<b>VXLAN tünelleri</b> katmanı).</li>
+</ul>
+
+<h2 id="kiosk">Kiosk ekranları</h2>
+<p><a href="/settings/kiosks">Ayarlar → Kiosk ekranları</a> altında, göstereceği haritaları ve bunlar arasında ne sıklıkla geçeceğini belirleyerek bir ekran oluşturun. Ekran, haritaları oturum açmadan tam ekran açan gizli bir bağlantı alır — bir izleme televizyonu için. Bağlantının çalışmasını durdurmak için ekranı silin.</p>
+
+<p>Genel bakış yerine bir haritayla başlamak için onu <a href="/account">Hesabım</a> sayfasında <b>Başlangıç sayfası</b> olarak seçin; oturum açma ve logo onu açar, menüdeki <b>Genel bakış</b> ise genel bakışı açmaya devam eder. Bir pano da başlangıç sayfası olabilir.</p>
+
+<h2 id="arrange">Haritayı düzenleme</h2>
+<p>Düzenleme sırasında <b>Düzenle</b> tüm haritayı kablolarına göre yerleştirir: en çok bağlantısı olan cihaz (eşitlikte anahtardan önce yönlendirici veya güvenlik duvarı) en üstte, ona bağlı olanlar alt sırada ve böyle devam eder; kabinler ve hipervizör kutuları içlerindekilerle birlikte taşınır, kablosu olmayan şeyler alttaki bir ızgaraya gider ve elle çizilen kıvrımlar kaldırılır. <b>Kaydet</b> düğmesine tıklayana kadar hiçbir şey kaydedilmez; <b>İptal</b> her şeyi geri koyar.</p>
+
+<h2 id="found">Cihazlarda bulunan bağlantılar</h2>
+<p>WatchZit her 15 dakikada bir SNMP'li cihazlardan (ve RouterOS API kontrolü olan MikroTik cihazlarından) neyin nereye takılı olduğunu, ne kadar emin olduğuna göre sırayla okur:</p>
+<ul>
+  <li><b>Komşu tabloları</b> — LLDP, Cisco CDP ve MikroTik keşfi: her iki uç ve portları. İki cihaz arasında, varsa yalnızca gerçek portlar sayılır (VLAN, VXLAN, köprü veya VRRP arayüzleri değil).</li>
+  <li>Anahtarların <b>MAC adresi tabloları</b>: bir cihazın MAC adresinin öğrenildiği port — kendi arayüzlerinin MAC'leri, bir ajanın bildirdiği ağ kartları veya bir yönlendiricinin ARP tablosunda o adres için bulunan MAC (böylece SNMP'siz yazıcılar, kameralar ve sunucular da bulunur). En az adrese sahip access portu alınır; diğer anahtarlara giden portlar (komşusu bir anahtar olan veya 8'den fazla adresi olan) alınmaz.</li>
+  <li>Başka bir cihazı adlandıran <b>port açıklamaları</b> (arayüz takma adı veya kaydedilmiş bir yapılandırmadaki açıklama), ör. "uplink to sw2 ether7" — açıklama bir portu belirtiyorsa o portla.</li>
+  <li><b>Kaydedilmiş yapılandırmalar</b> (MikroTik, Cisco, FortiGate yapılandırma yedekleri): aynı noktadan noktaya ağda (/30 veya /31) adresleri olan iki cihaz.</li>
+</ul>
+<p><b>Kendiliğinden çiz</b> (Önerilen bağlantılar panelinde): harita, cihazları arasında bulunan bağlantıları her 15 dakikada bir ekler ve <b>Götürdükleri cihazları da ekle</b> ile ona bağlı cihazları, takılı oldukları cihazın yanına yerleştirerek getirir. Böyle bir haritadan kaldırdığınız bağlantılar ve cihazlar kaldırılmış olarak kalır (seçeneği kapatıp yeniden açmak bunu unutturur). <b>Cihazları yeniden oku</b> haritanın cihazlarını hemen okur.</p>

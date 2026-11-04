@@ -1,0 +1,39 @@
+<h1>Sunucunun kurulumu</h1>
+<p class="lead">WatchZit, PostgreSQL ile 64 bit bir Linux sunucusunda çalışır (küçük bir sanal makine yeterlidir). Kurulum betiği her şeyi hazırlar; paketler ve hazır bir appliance imajı da mevcuttur.</p>
+
+<h2 id="requirements">Gereksinimler</h2>
+<ul>
+  <li>Debian 12+, Ubuntu 22.04+, AlmaLinux veya Rocky Linux 9+, x86-64.</li>
+  <li>Birkaç yüz cihaz için 2 CPU çekirdeği ve 2 GB bellek; 10 GB disk (ölçümler sıkıştırılarak saklanır: bir saatlik ping süreleri yaklaşık 100 bayt tutar).</li>
+  <li>Portlar: konsol için <b>8443</b> (yönetim ağlarınız), ajanlar için <b>8444</b> (yalnızca ajanların bulunduğu yerler).</li>
+</ul>
+
+<h2 id="script">Kurulum betiği</h2>
+<p>Sunucuda root olarak:</p>
+<pre>curl -fsSL https://github.com/Max-Zit/watchzit/releases/latest/download/install.sh | sudo sh</pre>
+<p>Betik PostgreSQL'i kurar, en yeni sürümü indirir, WatchZit sürüm anahtarıyla <b>imzasını denetler</b>, paketi kurar, rastgele bir parolayla veritabanını oluşturur, firewalld veya ufw'de portları açar ve hizmeti başlatır. Sonunda konsol adresini ve <b>kurulum belirtecini</b> yazdırır.</p>
+<p>Seçenekler: <code>--version X</code> (belirli bir sürüm), <code>--db postgres://…</code> (yerel PostgreSQL yerine mevcut bir veritabanı), <code>--no-auto-updates</code> (işletim sistemi güvenlik güncellemelerini açmaz), <code>--source URL</code> (sürüm dosyalarının bulunduğu bir ayna veya yerel klasör). Betiği yeniden çalıştırmak WatchZit'i günceller ve verileri korur.</p>
+
+<h2 id="packages">Paketler</h2>
+<p>Her sürümde sunucunun bir <code>.deb</code> ve bir <code>.rpm</code> paketi bulunur. Bunlar programı, systemd hizmetlerini ve ajan yükleyicilerini kurar; <code>/etc/watchzit/server.env</code> içinde <code>WATCHZIT_DB</code> değerini ayarlayın ve <code>watchzit-server</code> hizmetini başlatın.</p>
+
+<h2 id="appliance">Appliance</h2>
+<p>Appliance hazır bir imajdır (WatchZit, PostgreSQL ve otomatik güvenlik güncellemeleriyle Debian). VMware, Proxmox veya Hyper-V'ye içe aktarın, başlatın ve ekrandaki menüyü izleyin: menü konsol adresini ve kurulum belirtecini gösterir ve ağı ayarlar.</p>
+<p>İmajlar: <b>OVA</b> (VMware ESXi, Workstation, VirtualBox), <b>qcow2</b> (Proxmox, KVM), <b>VHDX</b> (Hyper-V 1. nesil) ve appliance'ı yeni bir sanal makineye veya fiziksel sunucuya kuran bir <b>ISO</b> (ilk diski siler). 2 CPU, 2 GB bellek ve 16 GB veya daha büyük bir disk verin; daha büyük bir disk otomatik olarak kullanılır. Ekranında <code>wzadmin</code> olarak ilk parola <code>watchzit</code> ile oturum açın; hemen yeni bir parola seçmeniz gerekir. Menü ağı (DHCP veya sabit adres), sunucu adını, saat dilimini ve SSH'yi (açık veya kapalı, port) ayarlar ve admin gibi bir konsol kullanıcısı için yeni parola belirler (tüm giriş engellerini kaldırarak). Ağ, SSH, işletim sistemi güncellemeleri ve güvenilir bir sertifika konsolda da ayarlanabilir (bkz. Kullanıcılar, ayarlar ve güncellemeler). SSH root girişine izin vermez.</p>
+
+<h2 id="first-sign-in">İlk giriş</h2>
+<ol>
+  <li><code>https://&lt;sunucu&gt;:8443</code> adresini açın. Tarayıcı kendinden imzalı sertifika için bir kez uyarır; kabul edin.</li>
+  <li>Kurulum belirtecini girin ve ilk yöneticiyi oluşturun.</li>
+  <li>QR kodunu bir kimlik doğrulama uygulamasıyla tarayın (iki adımlı giriş zorunludur) ve kurtarma kodlarını saklayın.</li>
+</ol>
+
+<h2 id="files">Dosyalar ve hizmetler</h2>
+<table>
+  <tr><th>Yol</th><th>Ne</th></tr>
+  <tr><td><code>/etc/watchzit/server.env</code></td><td>Veritabanı adresi ve güncelleme kaynağı.</td></tr>
+  <tr><td><code>/var/lib/watchzit</code></td><td>Sertifikalar, gizli anahtar (veritabanıyla birlikte yedekleyin), indirmeler, günlükler.</td></tr>
+  <tr><td><code>watchzit-server.service</code></td><td>Sunucu. <code>journalctl -u watchzit-server</code> günlüğünü gösterir.</td></tr>
+  <tr><td><code>watchzit-helper.path</code></td><td>Konsoldan yapılan güncellemeler, saat dilimi ve yeniden başlatmalar için root yardımcısı.</td></tr>
+</table>
+<div class="callout warn"><p>Veritabanını <b>ve</b> <code>/var/lib/watchzit/secret.key</code> dosyasını yedekleyin: saklanan parolalar (SNMP, veritabanları, kanallar) bu anahtarla şifrelenir.</p></div>

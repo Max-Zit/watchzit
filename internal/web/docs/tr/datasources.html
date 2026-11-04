@@ -1,0 +1,58 @@
+<h1>Veri kaynakları</h1>
+<p class="lead">Grafikler ve panolar WatchZit dışından gelen zaman serilerini de gösterebilir: kendi veritabanlarınızın tabloları, Prometheus, InfluxDB veya JSON ile yanıt veren herhangi bir adres — ajanların ve kontrollerin değerlerinin yanında.</p>
+
+<h2 id="add">Veri kaynağı ekleme</h2>
+<p>Yöneticiler veri kaynaklarını <a href="/settings/datasources">Ayarlar → Veri kaynakları</a> bölümünde ekler:</p>
+<table>
+  <tr><th>Tür</th><th>Adres</th><th>Oturum açma</th></tr>
+  <tr><td>PostgreSQL</td><td>ana bilgisayar veya ana bilgisayar:port (5432) ve veritabanı</td><td>kullanıcı ve parola</td></tr>
+  <tr><td>MySQL / MariaDB</td><td>ana bilgisayar veya ana bilgisayar:port (3306) ve veritabanı</td><td>kullanıcı ve parola</td></tr>
+  <tr><td>Microsoft SQL Server</td><td>ana bilgisayar veya ana bilgisayar:port (1433) ve veritabanı</td><td>SQL Server kullanıcısı ve parolası</td></tr>
+  <tr><td>Prometheus</td><td>URL, örneğin <code>http://prometheus:9090</code>; ayrıca Thanos, VictoriaMetrics, Mimir</td><td>yok, kullanıcı ve parola ya da bir bearer belirteci</td></tr>
+  <tr><td>InfluxDB</td><td>URL, örneğin <code>http://influx:8086</code> ve veritabanı (InfluxDB 2/3: bucket)</td><td>InfluxDB 1: kullanıcı ve parola; 2 ve 3: yalnızca belirteç</td></tr>
+  <tr><td>HTTP üzerinden JSON</td><td>hizmetinizin temel URL'si</td><td>yok, kullanıcı ve parola ya da bir bearer belirteci</td></tr>
+</table>
+<p><b>Bağlantıyı sına</b> ayarları kaydetmeden dener. Parola veya belirteç şifreli saklanır ve bir daha gösterilmez; korumak için alanı boş bırakın.</p>
+<p>SQL veritabanları için şifrelemeyi seçin: sunucu sunduğunda (varsayılan), her zaman herhangi bir sertifikayla, her zaman güvenilir bir sertifikayla veya hiçbir zaman. https:// ile başlayan adresler için kendinden imzalı bir sertifika kabul edilebilir.</p>
+<p><b>Konsola, yalnızca ihtiyaç duyduğu tabloları okuyabilen bir kullanıcı verin.</b> WatchZit PostgreSQL ve MySQL sorgularını salt okunur bir işlemde çalıştırır; SQL Server'da böyle bir şey yoktur, bu yüzden orada verileri yalnızca kullanıcının hakları korur. Operatörler sorgu yazar; izleyiciler yalnızca grafikleri görür.</p>
+
+<h2 id="graphs">Grafiklerde sorgular</h2>
+<p>Bir cihaz sayfasında <b>Grafikleri düzenle</b> düğmesine, ardından bir grafikteki ✎ simgesine veya <b>Grafik ekle</b> düğmesine tıklayın. <b>Veri kaynakları</b> altında <b>Sorgu ekle</b> düğmesine tıklayın, veri kaynağını seçin ve sorguyu yazın. <b>Dene</b> sorguyu sayfanın zaman aralığı üzerinde çalıştırır ve verdiği serileri (nokta sayılarıyla) ya da veritabanının hatasını bildirir. Bir grafik, cihazın değerlerinin yanında her biri bir seri adı, bir birim ve bir renkle en fazla 6 sorgu gösterebilir.</p>
+<p>Panolara <b>Veri kaynağından grafik</b> pencere öğesini ekleyin.</p>
+<p>Yanıtlar 20 saniye saklanır, böylece birkaç ekrandaki bir pano veritabanına bir kez sorar. Bir sorgu en fazla 200.000 satır ve 50 seri getirir ve 20 saniye sürebilir; değerler grafiğin genişliğine göre seyreltilir.</p>
+
+<h2 id="sql">SQL (PostgreSQL, MySQL, SQL Server)</h2>
+<p>Sorgu bir <b>zaman sütunu</b> (<code>time</code> adlı veya zaman içeren ilk sütun; Unix saniyeleri veya milisaniyeleri de olur), bir veya daha fazla <b>sayısal sütun</b> (her biri bir seri) ve isteğe bağlı olarak, seri ve zaman başına bir satır içeren tablolar için seriyi adlandıran bir <b>metin sütunu</b> (<code>metric</code> veya ilk metin sütunu) döndürür. Zamana göre sıralayın.</p>
+<p>Makrolar grafiğin zaman aralığını sorguya yerleştirir:</p>
+<table>
+  <tr><th>Makro</th><th>Dönüştüğü</th></tr>
+  <tr><td><code>$__timeFilter(col)</code></td><td>aralığın başı ile sonu arasındaki <code>col</code></td></tr>
+  <tr><td><code>$__timeGroup(col)</code></td><td>grafiğin aralığına aşağı yuvarlanmış <code>col</code>; 5 dakikaya <code>$__timeGroup(col, 300)</code></td></tr>
+  <tr><td><code>$__timeFrom</code>, <code>$__timeTo</code></td><td>zaman olarak başlangıç ve bitiş</td></tr>
+  <tr><td><code>$__unixFrom</code>, <code>$__unixTo</code></td><td>Unix saniyesi olarak başlangıç ve bitiş</td></tr>
+  <tr><td><code>$__interval_s</code></td><td>saniye cinsinden grafiğin aralığı</td></tr>
+</table>
+<p>Örnekler:</p>
+<pre>-- aralık başına siparişler (PostgreSQL, MySQL, SQL Server için aynı)
+SELECT $__timeGroup(created_at) AS time, count(*) AS orders
+FROM orders WHERE $__timeFilter(created_at)
+GROUP BY 1 ORDER BY 1
+
+-- depo başına bir seri
+SELECT $__timeGroup(ts) AS time, warehouse AS metric, avg(temp) AS value
+FROM sensor_readings WHERE $__timeFilter(ts)
+GROUP BY 1, 2 ORDER BY 1</pre>
+
+<h2 id="prometheus">Prometheus</h2>
+<p>PromQL yazın, örneğin <code>rate(node_network_receive_bytes_total{device="eth0"}[5m]) * 8</code>. Her seri Prometheus'un yazdığı gibi adlandırılır (<code>name{label="value"}</code>); düzenleyicideki bir seri adı bunun yerine geçer. Adım grafiğin genişliğini izler.</p>
+
+<h2 id="influxdb">InfluxDB</h2>
+<p><code>$timeFilter</code> ve <code>$__interval</code> ile InfluxQL yazın:</p>
+<pre>SELECT mean("usage_idle") FROM "cpu" WHERE $timeFilter GROUP BY time($__interval), "host"</pre>
+<p>InfluxDB 2 ve 3, InfluxQL'e 1.x API'leri üzerinden yanıt verir: bucket henüz eşlenmediyse orada onu bir veritabanına eşleyin.</p>
+
+<h2 id="json">HTTP üzerinden JSON</h2>
+<p>Sorgu, adrese eklenen bir yol veya parametrelerdir (örneğin <code>/api/temps?room=server</code>); WatchZit Unix saniyesi olarak <code>from</code>, <code>to</code> ve <code>step</code> ekler ve şu yanıtlardan herhangi birini okur (saniye veya milisaniye cinsinden zamanlar):</p>
+<pre>[{"target": "temp", "datapoints": [[21.5, 1793268000000], ...]}, ...]
+{"temp": [[1793268000, 21.5], ...], "humidity": [[1793268000, 40], ...]}
+[[1793268000, 21.5], [1793268060, 21.7], ...]</pre>

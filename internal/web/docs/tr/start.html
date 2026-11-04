@@ -1,0 +1,31 @@
+<h1>Başlarken</h1>
+<p class="lead">WatchZit, kendi sunucunuzda barındırdığınız bir ağ ve cihaz izleme sistemidir. Canlı bir ağ haritası neyin neye bağlı olduğunu ve nasıl çalıştığını gösterir; arkasında kontroller, grafikler, uyarılar, panolar ve raporlar bulunur — hepsi kendi sunucunuzda, AGPL-3.0 lisansı altında.</p>
+
+<h2 id="what">WatchZit ne yapar</h2>
+<table>
+  <tr><th>Alan</th><th>Neler sunar</th></tr>
+  <tr><td>Ağ haritaları</td><td>Ağınızı gerçek cihaz resimleri, kabinler ve porttan porta kablolarla çizin; harita canlı durumu ve trafiği gösterir. <a href="/docs/maps">Ağ haritaları</a></td></tr>
+  <tr><td>Kontroller</td><td>Ping, TCP portları, web sayfaları, TLS sertifikaları, DNS, PostgreSQL ve MySQL, SNMP (v1/v2c/v3: arayüzler, CPU, bellek, diskler, herhangi bir OID), MikroTik RouterOS API'si ve herhangi bir JSON API'sinden değerler. <a href="/docs/devices">Cihazlar ve kontroller</a></td></tr>
+  <tr><td>Ajan</td><td>Windows ve Linux için küçük, isteğe bağlı bir ajan CPU, bellek, diskler, arayüzler ve seçilen hizmetler hakkında bilgi gönderir. <a href="/docs/agents">Ajanlar</a></td></tr>
+  <tr><td>Uyarılar</td><td>Tetikleyiciler sorun açar; bağımlılıklar, bakım pencereleri ve üstlenmeler gürültüyü azaltır; bildirimler e-posta, webhook, Slack ve Teams ile gelir. <a href="/docs/alerts">Sorunlar ve uyarılar</a></td></tr>
+  <tr><td>Grafikler, panolar, raporlar</td><td>Her değerin bir saatten bir yıla kadar grafikleri, duvar ekranı için panolar, erişilebilirlik raporları. <a href="/docs/dashboards">Panolar ve raporlar</a></td></tr>
+  <tr><td>Cihazları açma</td><td>Bir cihazın web sayfasını, SSH'yi, Uzak Masaüstü'nü, WinBox'ı veya kendi araçlarınızı tek tıkla açın. <a href="/docs/tools">Cihazları açma</a></td></tr>
+</table>
+
+<h2 id="how">Nasıl çalışır</h2>
+<ul>
+  <li><b>Sunucu</b> Linux üzerinde PostgreSQL ile çalışır. İki portu vardır: <b>konsol</b> (web arayüzü ve REST API, TCP 8443) ve <b>ajan uç noktası</b> (TCP 8444).</li>
+  <li>Sunucu cihazları kendisi <b>sorgular</b> (ping, TCP, SNMP, HTTP, veritabanları, API'ler). Bunun için cihazlara hiçbir şey kurmanız gerekmez.</li>
+  <li><b>Ajanlar</b> isteğe bağlıdır. Ajan portuna <i>dışarı doğru</i> bağlanır ve her dakika bilgi gönderirler; bilgisayarlarda açık port gerekmez.</li>
+  <li>Konsoldaki her değişiklik, kurcalamaya karşı korumalı <a href="/audit">denetim günlüğüne</a> yazılır.</li>
+</ul>
+
+<h2 id="first-steps">İlk adımlar</h2>
+<ol>
+  <li><b>Sunucuyu kurun</b> — bkz. <a href="/docs/install">Sunucunun kurulumu</a>.</li>
+  <li>Yükleyicinin gösterdiği kurulum belirteciyle <b>ilk yöneticiyi oluşturun</b> ve bir kimlik doğrulama uygulamasıyla iki adımlı girişi ayarlayın.</li>
+  <li><a href="/devices">Cihazlar</a> altında <b>cihaz ekleyin</b>: bir ad ve bir adres yeterlidir; ping sizin için eklenir. Arayüzleri ve trafiği okumak için bir SNMP profili ekleyin.</li>
+  <li><a href="/maps">Haritalar</a> altında <b>bir harita çizin</b> ve cihazları porttan porta bağlayın.</li>
+  <li><a href="/settings/notifications">Ayarlar → Bildirimler</a> altında <b>bildirimleri ayarlayın</b>; yerleşik tetikleyiciler çalışmayan cihazları, dolu diskleri ve süresi dolmak üzere olan sertifikaları zaten izler.</li>
+</ol>
+<div class="callout tip"><p>Konsola varsayılan olarak yalnızca özel ağlardan erişilebilir. Bunu böyle bırakın ve yalnızca ajanların ihtiyaç duyduğu yerde ajan portunu (8444) açın.</p></div>

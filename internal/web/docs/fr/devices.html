@@ -1,0 +1,90 @@
+<h1>Appareils, contrôles et SNMP</h1>
+<p class="lead">Un appareil est tout ce qui possède une adresse : un routeur, un switch, un serveur, une imprimante, une caméra ou un site web. Les contrôles le mesurent ; leurs résultats colorent l'appareil, la carte et les graphiques.</p>
+
+<h2 id="add">Ajouter un appareil</h2>
+<p>Dans <a href="/devices">Appareils → Ajouter un appareil</a>, saisissez un nom et une adresse IP ou un nom d'hôte, choisissez son type et son groupe, et laissez <b>Ping</b> activé. Facultatif :</p>
+<ul>
+  <li><b>SNMP</b> — un profil avec la communauté ou l'utilisateur SNMPv3 ; WatchZit lit alors les interfaces, le trafic, le CPU, la mémoire et les disques.</li>
+  <li><b>Dépend de</b> — le routeur ou le switch par lequel on atteint l'appareil. Tant qu'il est en panne, les problèmes de cet appareil sont seulement « injoignables » et ne sont pas envoyés.</li>
+  <li><b>Accès à distance</b> — le nom d'utilisateur et les ports qu'utilisent les <a href="/docs/tools">outils</a>.</li>
+  <li><b>Ports TCP</b> — chacun devient un contrôle qui se connecte chaque minute.</li>
+</ul>
+<p>L'état de l'appareil découle de ses contrôles : <b>en marche</b> quand tous sont en marche, <b>partiellement en panne</b> quand certains sont en panne, <b>en panne</b> quand tous le sont.</p>
+
+
+<h2 id="discovery">Découverte</h2>
+<p><a href="/discovery">Appareils → Découverte</a> trouve les hôtes d'un réseau : ajoutez une plage (par ex. <code>192.168.1.0/24</code>, jusqu'à /22, ou une seule adresse) et analysez-la tout de suite, chaque jour ou chaque semaine. WatchZit envoie un ping à chaque adresse, essaie les ports courants (SSH, Telnet, web, RDP, WinBox, SMB, imprimantes, VNC), interroge SNMP avec vos profils SNMP pour obtenir le nom, la description et le fabricant, et recherche le nom DNS. Les hôtes qui ne sont pas encore des appareils sont listés avec leur nom, un genre supposé et ce qui a répondu ; cochez-les et cliquez sur <b>Ajouter comme équipements</b> (éventuellement dans un groupe) : chacun reçoit un contrôle ping (ou un contrôle TCP si le ping est bloqué) et le profil SNMP qui a répondu. <b>Masquer</b> retire un hôte de la liste ; les hôtes masqués peuvent être réaffichés. Avec une planification, les nouveaux hôtes qui apparaissent sur le réseau s'affichent ici d'eux-mêmes. Avec des <a href="/docs/agents#collector">collecteurs distants</a>, choisissez celui qui analyse une plage : il analyse le réseau de son propre site.</p>
+<h2 id="links">Liens web</h2>
+<p>Dans <b>Liens web</b> d'un appareil, l'adresse de l'<b>Interface web</b> s'ouvre avec le bouton de la page de l'appareil et sur les cartes ; donnez au bouton un autre <b>nom</b> si vous le souhaitez. Ajoutez d'autres liens pour un serveur à plusieurs adresses, son iDRAC ou son iLO, ou la page d'un service ; chacun devient un bouton distinct.</p>
+
+<h2 id="fields">Champs personnalisés</h2>
+<p>Les administrateurs ajoutent leurs propres champs pour les appareils dans <a href="/settings/fields">Paramètres → Champs personnalisés</a> : du texte, un nombre ou une date — un numéro d'inventaire, la fin de la garantie, la baie, un contrat. Les opérateurs les remplissent sur la page de l'appareil dans <b>Champs personnalisés</b> ; les valeurs s'affichent avec les détails de l'appareil, et la recherche de la liste des appareils les trouve. Supprimer un champ supprime ses valeurs.</p>
+<h2 id="templates">Modèles</h2>
+<p>Un modèle est un ensemble de contrôles pour un genre d'appareil — un serveur Linux, un routeur MikroTik, une imprimante. Créez-en un dans <a href="/templates">Modèles</a>, choisissez les genres d'appareils auxquels il s'adresse et ajoutez ses contrôles (ping, TCP, page web, certificat TLS, DNS et contrôles SNMP ; les contrôles avec mot de passe s'ajoutent appareil par appareil). <b>Appliquer à</b> ajoute les contrôles à tous les appareils de ses genres, à un groupe, ou à nouveau aux appareils qui l'ont déjà ; sur la page d'un appareil, <b>Appliquer le modèle</b> le fait pour un seul appareil. L'application n'ajoute que les contrôles qu'un appareil n'a pas encore — ceux qu'il a déjà restent tels quels, si bien qu'appliquer deux fois ne fait aucun mal. Avec <b>Appliquer automatiquement aux nouveaux appareils de ces types</b>, chaque appareil ajouté par la suite (à la main ou par la découverte) reçoit aussitôt les contrôles. Supprimer un modèle laisse les contrôles sur les appareils.</p>
+<h2 id="bulk">Modifier plusieurs appareils à la fois</h2>
+<p>Cochez des appareils dans la <a href="/devices">liste des appareils</a> (la case de l'en-tête coche tous ceux affichés) et choisissez dans <b>Modifier la sélection</b> : le groupe, le profil SNMP, l'appareil dont ils dépendent, le type, suspendre ou reprendre la surveillance, appliquer un modèle ou — pour les administrateurs — les supprimer avec leurs contrôles et leurs données. Filtrez d'abord la liste pour cocher, par exemple, toutes les imprimantes d'un site.</p>
+<h2 id="checks">Types de contrôles</h2>
+<table>
+  <tr><th>Contrôle</th><th>Mesure</th></tr>
+  <tr><td>Ping (ICMP)</td><td>Temps de réponse et perte de paquets.</td></tr>
+  <tr><td>Port TCP</td><td>Si le port accepte les connexions, et à quelle vitesse.</td></tr>
+  <tr><td>Page web (HTTP)</td><td>Code d'état, temps de réponse, un texte qui doit figurer sur la page, jours restants avant l'expiration du certificat.</td></tr>
+  <tr><td>Certificat TLS</td><td>Jours restants avant l'expiration et s'il est de confiance (n'importe quel port TLS, avec un nom de serveur pour SNI).</td></tr>
+  <tr><td>DNS</td><td>L'appareil est un serveur DNS : il doit répondre à un nom avec un type d'enregistrement (A, AAAA, MX …) et, éventuellement, une valeur attendue.</td></tr>
+  <tr><td>PostgreSQL, MySQL / MariaDB</td><td>Connexion avec un utilisateur de surveillance, version, nombre de connexions, temps de réponse.</td></tr>
+  <tr><td>MikroTik RouterOS (API)</td><td>CPU, mémoire, durée de fonctionnement et température via l'API REST de RouterOS 7.</td></tr>
+  <tr><td>Valeur d'une API JSON</td><td>Un nombre issu de n'importe quelle API JSON (FortiGate, vCenter, vos propres services) : une adresse, un chemin comme <code>results.cpu.0.current</code> et, éventuellement, une authentification Bearer ou Basic.</td></tr>
+  <tr><td>Hyperviseur (vSphere, Proxmox VE)</td><td>Hôtes, machines virtuelles et conteneurs, banques de données de VMware ESXi ou vCenter (API des services web) ou de Proxmox VE (API REST) : CPU et mémoire des hôtes, machines en fonctionnement, hôtes en panne, la banque de données la plus remplie. Voir <a href="#hypervisor">Hyperviseurs</a>.</td></tr>
+  <tr><td>Scénario web</td><td>Plusieurs étapes dans une application web, comme un utilisateur : se connecter, ouvrir une page derrière la connexion, vérifier le texte. Une étape par ligne, par exemple <code>GET /login | 200 | Sign in</code>, <code>POST /login | 302 | | user=monitor&amp;password={secret}</code>, <code>GET /dashboard | | Welcome</code> — la méthode et l'adresse, puis le statut attendu, le texte que la page doit contenir et les données du formulaire. Les cookies sont conservés d'une étape à l'autre ; <code>{secret}</code> est le mot de passe du contrôle. Mesure la durée de toutes les étapes et combien ont réussi ; l'alerte nomme l'étape qui a échoué.</td></tr>
+  <tr><td>SNMP</td><td>Disponibilité et durée de fonctionnement ; interfaces, CPU et stockage trouvés par la découverte ; n'importe quel OID numérique.</td></tr>
+</table>
+<p>Les mots de passe et jetons des contrôles sont stockés chiffrés et ne sont plus jamais affichés ; laissez le champ vide lorsque vous modifiez un contrôle pour conserver la valeur enregistrée.</p>
+
+<h2 id="snmp">SNMP</h2>
+<ol>
+  <li>Créez un profil dans <a href="/settings/snmp">Paramètres → SNMP</a> : v2c avec une communauté, ou v3 avec un utilisateur (SHA-2 et AES sont pris en charge).</li>
+  <li>Choisissez le profil sur l'appareil. WatchZit ouvre la <b>Découverte SNMP</b> : cochez les interfaces, le CPU, la mémoire et les disques à surveiller (les interfaces de bouclage et celles sans lien sont écartées).</li>
+  <li>La page de l'appareil affiche alors les <b>ports</b> avec l'état du lien et le trafic en direct, ainsi que des graphiques de chaque valeur.</li>
+</ol>
+<p>La découverte trouve aussi ce que remonte un appareil selon son genre : les <b>consommables des imprimantes</b> (toner, encre, tambours, bacs de récupération, sous forme de niveau en pourcentage ; le déclencheur prêt à l'emploi <b>Toner ou encre bas</b> avertit sous 10 %), les <b>onduleurs</b> (UPS-MIB, ou la MIB APC PowerNet des cartes APC : charge de la batterie, autonomie restante, charge ; le contrôle est en panne tant que l'onduleur fonctionne sur batterie ou que sa batterie est faible, et <b>Autonomie de l'onduleur courte</b> avertit sous 10 minutes) et les <b>capteurs d'état de MikroTik</b> (températures, tensions, ventilateurs, puissance, chacun sous forme de contrôle OID avec son unité).</p>
+<div class="callout tip"><p>MikroTik, Cisco, HP, Ubiquiti, les imprimantes et les onduleurs parlent SNMP. Sous Linux, installez <code>snmpd</code> ; sous Windows, le service SNMP.</p></div>
+
+<h2 id="vlans">VLAN</h2>
+<p>WatchZit lit les VLAN des switches via SNMP une fois par heure (Q-BRIDGE-MIB : HP/Aruba, Cisco Small Business, Ubiquiti, Netgear, D-Link et la plupart des switches administrables ; CISCO-VTP-MIB : ports d'accès et trunk Cisco Catalyst), depuis les agents (interfaces VLAN Linux comme eth0.10, l'ID VLAN des cartes réseau Windows) et, toutes les dix minutes, ceux des bridges MikroTik via l'API RouterOS (avec le contrôle <b>MikroTik RouterOS (API)</b> de l'appareil). La page de l'appareil liste chaque VLAN avec ses ports tagués et non tagués, et chaque port avec son <b>mode</b> : <b>Accès</b> (un VLAN non tagué), <b>Trunk</b> (VLAN tagués ; le non tagué est le <b>VLAN natif</b>) ou <b>Hybride</b> (plusieurs VLAN non tagués). Les cartes peuvent afficher un VLAN à la fois.</p>
+
+<h2 id="ha-role">Rôle HA</h2>
+<p>Les appareils qui utilisent VRRP indiquent s'ils sont <b>actif</b> (maître) ou en <b>secours</b> (backup) : lu via SNMP (VRRP-MIB et VRRPv3-MIB, avec le contrôle de disponibilité SNMP) et depuis MikroTik RouterOS via l'API (avec le contrôle de l'API RouterOS). La page de l'appareil affiche le rôle et depuis quand ; les cartes affichent ACTIVE ou STANDBY à côté de l'appareil.</p>
+
+<h2 id="vxlan">VXLAN</h2>
+<p>Les interfaces VXLAN (VTEP) sont lues depuis MikroTik RouterOS 7 (avec le contrôle de l'API RouterOS, toutes les dix minutes) et depuis les agents Linux (avec iproute2, toutes les cinq minutes) : VNI, interface, adresse propre, port UDP et VTEP distants, y compris ceux de la table de transfert. La page de l'appareil les liste ; un VTEP distant qui est l'adresse d'un autre appareil renvoie vers celui-ci. Un VXLAN sans adresse distante utilise le multicast ou EVPN. Les cartes dessinent un tunnel entre deux appareils de la carte qui sont mutuellement leurs VTEP.</p>
+
+<h2 id="graphs">Graphiques</h2>
+<p>Chaque valeur est conservée : brute pendant quelques jours, puis sous forme de minimum, moyenne et maximum par 5 minutes et par heure (Paramètres → Données de mesure). Sur un graphique, faites glisser pour zoomer, double-cliquez pour revenir ; les boutons de période vont d'une heure à un an.</p>
+<p>Le bouton ⤢ d'un graphique l'affiche sur toute la fenêtre (Échap pour revenir).</p>
+<p><b>Modifier les graphiques</b> (opérateurs et administrateurs) dispose les graphiques d'un appareil comme les panneaux d'un tableau de bord :</p>
+<ul>
+  <li>✎ modifie un graphique : son <b>titre</b>, son <b>genre</b> (ligne, aire ou barres), <b>empiler les valeurs</b> (chacune au-dessus des précédentes), les <b>valeurs</b> qu'il affiche — y compris issues de plusieurs contrôles, par exemple CPU et mémoire ensemble, et la <b>couleur</b> de chacune —, le <b>minimum et le maximum de l'axe</b>, ainsi qu'une <b>ligne d'avertissement</b> et une <b>ligne critique</b>.</li>
+  <li>↔ l'élargit à toute la page, ↕ le rend plus haut ou plus bas, ▲ ▼ le déplacent, × le supprime (ses valeurs ne sont plus tracées jusqu'à ce qu'un graphique les affiche de nouveau).</li>
+  <li>Faites glisser le coin inférieur droit d'un graphique pour régler sa largeur (1 à 4 colonnes) et sa hauteur ; l'enregistrement se fait quand vous relâchez.</li>
+  <li><b>Ajouter un graphique</b> en crée un nouveau à partir de n'importe quelles valeurs de l'appareil. Les valeurs des nouveaux contrôles reçoivent leurs graphiques automatiques.</li>
+  <li><b>Graphiques automatiques</b> supprime la disposition : de nouveau un graphique par contrôle.</li>
+</ul>
+
+<h2 id="config-backup">Sauvegardes de configuration</h2>
+<p>Les opérateurs et administrateurs peuvent conserver la configuration des équipements réseau : dans la section <b>Sauvegardes de configuration</b> d'un appareil, choisissez la méthode — <b>MikroTik RouterOS</b> (<code>/export terse show-sensitive</code>), <b>Cisco IOS</b> (<code>show running-config</code>), <b>FortiGate</b> (<code>show full-configuration</code>) ou une commande personnalisée — ainsi que l'utilisateur SSH, le port et le mot de passe ou la clé privée. Le mot de passe et la clé sont conservés chiffrés. Utilisez un utilisateur en lecture seule.</p>
+<ul>
+  <li>Les sauvegardes s'exécutent chaque nuit à 02:00 (heure du serveur) et avec <b>Sauvegarder maintenant</b>. Une nouvelle version n'est conservée que si la configuration a changé ; les 50 dernières versions de chaque appareil sont conservées.</li>
+  <li>La clé d'hôte SSH est enregistrée lors de la première sauvegarde puis vérifiée ensuite. Si elle change, la sauvegarde échoue ; si c'était prévu (nouvel appareil ou nouveau firmware), utilisez <b>Oublier la clé d'hôte</b>.</li>
+  <li>Chaque version affiche les modifications par rapport à la précédente (+ lignes ajoutées, − lignes supprimées, avec <b>Configuration complète</b> pour tout voir) et peut être téléchargée sous forme de fichier texte.</li>
+  <li>Les modifications et les échecs sont inscrits dans le journal de l'appareil (étiquette <code>config-backup</code>), de sorte qu'un déclencheur de journal peut envoyer une notification à leur sujet.</li>
+  <li>Les lecteurs ne voient ni les configurations ni les paramètres de sauvegarde.</li>
+</ul>
+
+<h2 id="hypervisor">Hyperviseurs</h2>
+<p>Ajoutez le contrôle <b>Hyperviseur (vSphere, Proxmox VE)</b> à l'appareil d'un hôte ESXi, d'un vCenter ou d'un nœud Proxmox VE (n'importe quel nœud d'un cluster lit tout le cluster). Un utilisateur en lecture seule suffit : le rôle <b>Read-only</b> dans vSphere, <b>PVEAuditor</b> sur <code>/</code> dans Proxmox VE — ou un jeton d'API (<code>user@realm!name</code> comme utilisateur et son secret comme mot de passe). Laissez le port vide pour 443 (vSphere) ou 8006 (Proxmox VE) ; cochez <b>Accepter les certificats non approuvés</b> pour le certificat auto-signé que ces systèmes ont par défaut.</p>
+<ul>
+  <li>Chaque exécution enregistre le CPU et la mémoire de tous les hôtes, les machines en fonctionnement et au total, les hôtes en panne et le taux de remplissage de la banque de données la plus pleine ; les déclencheurs <b>Banque de données presque pleine</b> (au-delà de 90 %) et <b>Hôte d'hyperviseur en panne</b> sont fournis avec.</li>
+  <li>La page de l'appareil liste les hôtes, chaque machine virtuelle et chaque conteneur (état, CPU, mémoire, adresse, système invité) ainsi que les banques de données. Les systèmes invités et les adresses sont lus toutes les dix minutes (Proxmox VE lit les adresses via l'agent invité QEMU).</li>
+  <li><b>Hyper-V</b> et <b>Docker</b> n'ont besoin d'aucun contrôle : l'agent WatchZit sur l'hôte Windows (avec Hyper-V) ou l'hôte Linux (avec Docker) remonte ses machines ou ses conteneurs toutes les cinq minutes.</li>
+  <li>Sur les cartes, un cadre d'hyperviseur peut afficher ces machines de lui-même (voir le guide des cartes).</li>
+</ul>

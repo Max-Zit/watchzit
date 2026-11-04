@@ -1,0 +1,31 @@
+<h1>Erste Schritte</h1>
+<p class="lead">WatchZit ist ein selbst gehostetes System zur Überwachung von Netzwerken und Geräten. Eine Live-Netzwerkkarte zeigt, was womit verbunden ist und wie es ihm geht; dahinter stehen Prüfungen, Diagramme, Alarme, Dashboards und Berichte — auf Ihrem eigenen Server, unter der Lizenz AGPL-3.0.</p>
+
+<h2 id="what">Was WatchZit leistet</h2>
+<table>
+  <tr><th>Bereich</th><th>Was Sie bekommen</th></tr>
+  <tr><td>Netzwerkkarten</td><td>Zeichnen Sie Ihr Netzwerk mit echten Gerätebildern, Racks und Kabeln von Port zu Port; die Karte zeigt Zustand und Datenverkehr live. <a href="/docs/maps">Netzwerkkarten</a></td></tr>
+  <tr><td>Prüfungen</td><td>Ping, TCP-Ports, Webseiten, TLS-Zertifikate, DNS, PostgreSQL und MySQL, SNMP (v1/v2c/v3: Schnittstellen, CPU, Arbeitsspeicher, Datenträger, beliebige OIDs), die MikroTik RouterOS API und Werte aus beliebigen JSON-APIs. <a href="/docs/devices">Geräte und Prüfungen</a></td></tr>
+  <tr><td>Agent</td><td>Ein kleiner, optionaler Agent für Windows und Linux meldet CPU, Arbeitsspeicher, Datenträger, Schnittstellen und ausgewählte Dienste. <a href="/docs/agents">Agenten</a></td></tr>
+  <tr><td>Alarme</td><td>Trigger öffnen Probleme; Abhängigkeiten, Wartungsfenster und Bestätigungen halten das Rauschen gering; Benachrichtigungen per E-Mail, Webhook, Slack und Teams. <a href="/docs/alerts">Probleme und Alarme</a></td></tr>
+  <tr><td>Diagramme, Dashboards, Berichte</td><td>Diagramme jedes Werts von einer Stunde bis zu einem Jahr, Dashboards für einen Wandbildschirm, Verfügbarkeitsberichte. <a href="/docs/dashboards">Dashboards und Berichte</a></td></tr>
+  <tr><td>Geräte öffnen</td><td>Öffnen Sie die Webseite eines Geräts, SSH, Remotedesktop, WinBox oder Ihre eigenen Werkzeuge mit einem Klick. <a href="/docs/tools">Geräte öffnen</a></td></tr>
+</table>
+
+<h2 id="how">So funktioniert es</h2>
+<ul>
+  <li><b>Der Server</b> läuft unter Linux mit PostgreSQL. Er hat zwei Ports: die <b>Konsole</b> (Weboberfläche und REST-API, TCP 8443) und den <b>Agenten-Endpunkt</b> (TCP 8444).</li>
+  <li>Der Server <b>fragt</b> die Geräte selbst <b>ab</b> (Ping, TCP, SNMP, HTTP, Datenbanken, APIs). Auf den Geräten muss dafür nichts installiert werden.</li>
+  <li><b>Agenten</b> sind optional. Sie verbinden sich <i>ausgehend</i> mit dem Agenten-Port und melden sich jede Minute; die Computer brauchen keine offenen Ports.</li>
+  <li>Jede Änderung in der Konsole wird in das manipulationssichere <a href="/audit">Prüfprotokoll</a> geschrieben.</li>
+</ul>
+
+<h2 id="first-steps">Erste Schritte</h2>
+<ol>
+  <li><b>Installieren Sie den Server</b> — siehe <a href="/docs/install">Server installieren</a>.</li>
+  <li><b>Legen Sie den ersten Administrator an</b> — mit dem Einrichtungstoken, das das Installationsprogramm anzeigt — und richten Sie die Zwei-Faktor-Anmeldung mit einer Authenticator-App ein.</li>
+  <li><b>Fügen Sie Geräte hinzu</b> unter <a href="/devices">Geräte</a>: Ein Name und eine Adresse genügen; Ping wird automatisch hinzugefügt. Fügen Sie ein SNMP-Profil hinzu, um Schnittstellen und Datenverkehr zu lesen.</li>
+  <li><b>Zeichnen Sie eine Karte</b> unter <a href="/maps">Karten</a> und verbinden Sie die Geräte von Port zu Port.</li>
+  <li><b>Richten Sie Benachrichtigungen ein</b> unter <a href="/settings/notifications">Einstellungen → Benachrichtigungen</a>; die eingebauten Trigger überwachen bereits ausgefallene Geräte, volle Datenträger und ablaufende Zertifikate.</li>
+</ol>
+<div class="callout tip"><p>Die Konsole ist standardmäßig nur aus privaten Netzwerken erreichbar. Belassen Sie es dabei und öffnen Sie nur den Agenten-Port (8444) dort, wo Agenten ihn brauchen.</p></div>

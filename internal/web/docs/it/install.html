@@ -1,0 +1,39 @@
+<h1>Installare il server</h1>
+<p class="lead">WatchZit gira su un server Linux a 64 bit (basta una piccola macchina virtuale) con PostgreSQL. Lo script di installazione prepara tutto; sono disponibili anche pacchetti e un'immagine appliance pronta all'uso.</p>
+
+<h2 id="requirements">Requisiti</h2>
+<ul>
+  <li>Debian 12+, Ubuntu 22.04+, AlmaLinux o Rocky Linux 9+, x86-64.</li>
+  <li>2 core CPU e 2 GB di memoria per qualche centinaio di dispositivi; 10 GB di disco (le misure sono salvate in modo compatto: un'ora di tempi di ping occupa circa 100 byte).</li>
+  <li>Porte: <b>8443</b> per la console (le tue reti di amministrazione), <b>8444</b> per gli agenti (solo dove ci sono agenti).</li>
+</ul>
+
+<h2 id="script">Script di installazione</h2>
+<p>Come root sul server:</p>
+<pre>curl -fsSL https://github.com/Max-Zit/watchzit/releases/latest/download/install.sh | sudo sh</pre>
+<p>Lo script installa PostgreSQL, scarica la versione più recente, <b>ne verifica la firma</b> con la chiave di rilascio di WatchZit, installa il pacchetto, crea il database con una password casuale, apre le porte in firewalld o ufw e avvia il servizio. Alla fine mostra l'indirizzo della console e il <b>token di configurazione</b>.</p>
+<p>Opzioni: <code>--version X</code> (una versione specifica), <code>--db postgres://…</code> (un database esistente invece di un PostgreSQL locale), <code>--no-auto-updates</code> (non attivare gli aggiornamenti di sicurezza del sistema operativo), <code>--source URL</code> (un mirror o una cartella locale con i file della versione). Eseguendo di nuovo lo script, WatchZit si aggiorna e conserva i dati.</p>
+
+<h2 id="packages">Pacchetti</h2>
+<p>Ogni versione include un <code>.deb</code> e un <code>.rpm</code> del server. Installano il programma, i servizi systemd e gli installer degli agenti; imposta <code>WATCHZIT_DB</code> in <code>/etc/watchzit/server.env</code> e avvia <code>watchzit-server</code>.</p>
+
+<h2 id="appliance">Appliance</h2>
+<p>L'appliance è un'immagine pronta all'uso (Debian con WatchZit, PostgreSQL e aggiornamenti di sicurezza automatici). Importala in VMware, Proxmox o Hyper-V, avviala e segui il menu sul suo schermo: mostra l'indirizzo della console e il token di configurazione, e imposta la rete.</p>
+<p>Immagini: <b>OVA</b> (VMware ESXi, Workstation, VirtualBox), <b>qcow2</b> (Proxmox, KVM), <b>VHDX</b> (Hyper-V generazione 1) e una <b>ISO</b> che installa l'appliance su una nuova VM o su un server fisico (cancella il primo disco). Assegnale 2 CPU, 2 GB di memoria e un disco di almeno 16 GB; un disco più grande viene usato automaticamente. Accedi sul suo schermo come <code>wzadmin</code> con la password iniziale <code>watchzit</code>; dovrai sceglierne subito una nuova. Il menu imposta la rete (DHCP o un indirizzo fisso), il nome del server, il fuso orario e SSH (attivo o no, porta), e imposta una nuova password per un utente della console come admin (rimuovendo tutti i blocchi di accesso). Rete, SSH, aggiornamenti del sistema operativo e un certificato attendibile si possono impostare anche nella console (vedi Utenti, impostazioni e aggiornamenti). SSH non consente l'accesso come root.</p>
+
+<h2 id="first-sign-in">Primo accesso</h2>
+<ol>
+  <li>Apri <code>https://&lt;server&gt;:8443</code>. Il browser avvisa una volta del certificato autofirmato; accettalo.</li>
+  <li>Inserisci il token di configurazione e crea il primo amministratore.</li>
+  <li>Scansiona il codice QR con un'app di autenticazione (l'accesso a due fattori è obbligatorio) e conserva i codici di recupero.</li>
+</ol>
+
+<h2 id="files">File e servizi</h2>
+<table>
+  <tr><th>Percorso</th><th>Cosa</th></tr>
+  <tr><td><code>/etc/watchzit/server.env</code></td><td>Indirizzo del database e origine degli aggiornamenti.</td></tr>
+  <tr><td><code>/var/lib/watchzit</code></td><td>Certificati, la chiave segreta (salvala insieme al database), download, log.</td></tr>
+  <tr><td><code>watchzit-server.service</code></td><td>Il server. <code>journalctl -u watchzit-server</code> ne mostra il log.</td></tr>
+  <tr><td><code>watchzit-helper.path</code></td><td>L'helper con privilegi di root per aggiornamenti, fuso orario e riavvii dalla console.</td></tr>
+</table>
+<div class="callout warn"><p>Fai il backup del database <b>e</b> di <code>/var/lib/watchzit/secret.key</code>: le password salvate (SNMP, database, canali) sono cifrate con questa chiave.</p></div>

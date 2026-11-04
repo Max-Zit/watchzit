@@ -1,0 +1,32 @@
+<h1>Abrir dispositivos</h1>
+<p class="lead">A partir da página de um dispositivo ou do painel lateral do mapa, abre um dispositivo com o programa certo: a sua interface web, SSH, Área de Trabalho Remota, WinBox, VNC ou as suas próprias ferramentas.</p>
+
+<h2 id="launcher">O MaxZit Launcher</h2>
+<p>Um navegador não pode iniciar programas, por isso é um pequeno programa do Windows que o faz: o <b>MaxZit Launcher</b>. Instale-o uma vez por computador a partir da página <a href="/launcher">Launcher</a> — o <b>instalador</b> (MSI), com um assistente de configuração curto, coloca-o com o seu ícone em Aplicações, de onde pode voltar a ser removido — instala-se para o seu utilizador do Windows, sem direitos de administrador — e clique em <b>Parear este computador</b>. O launcher mostra a impressão digital do servidor; tem de coincidir com a da página.</p>
+<p>A partir daí, os botões <b>Abrir com</b> funcionam. Quando uma consola muda para outro endereço (ou é restaurada a partir de uma cópia de segurança noutro lugar), clique novamente em <b>Parear este computador</b>: o launcher reconhece-a pela sua chave e pergunta se deve usar o novo endereço. Na primeira vez, o navegador pergunta se pode abrir o launcher; permita-o.</p>
+<p>O mesmo launcher serve o <b>PassZit</b>: no menu da extensão PassZit clique em <b>Pair with the MaxZit Launcher</b> e aceite na janela do próprio launcher. O PassZit abre então a Área de Trabalho Remota, SSH, WinSCP, WinBox, VNC e Telnet com as credenciais do cofre — a Área de Trabalho Remota através de uma credencial do Windows que existe apenas durante alguns segundos, uma palavra-passe ou chave SSH através de um ficheiro que só o utilizador pode ler e que é removido logo após o arranque. O launcher substitui o antigo WatchZit Launcher e o passzit-helper: ao instalá-lo, herda as suas definições e emparelhamentos. Quando o PassZit está emparelhado e o endereço da consola é uma das suas consolas MaxZit de confiança, os botões <b>Abrir com</b> do WatchZit abrem com sessão iniciada usando as credenciais correspondentes do cofre; sem PassZit, ou sem credenciais para esse dispositivo, abrem como antes. A consola só indica ao PassZit a ferramenta, o endereço, a porta, o nome de utilizador e o nome do dispositivo — nunca uma palavra-passe. Junto aos botões <b>Abrir com</b>, um pequeno distintivo <b>PassZit</b> mostra que o PassZit está desbloqueado e vai iniciar a sessão; <b>PassZit bloqueado</b> significa que tem de ser desbloqueado primeiro. Sem o PassZit nesta consola, uma pequena dica explica como o permitir; <b>Não mostrar de novo</b> oculta-a neste navegador.</p>
+
+<h2 id="safety">Como se mantém seguro</h2>
+<ul>
+  <li>Cada clique gera uma ligação <b>assinada</b> pelo seu servidor, válida durante um minuto e utilizável uma única vez; o launcher só aceita ligações de servidores que emparelhou.</li>
+  <li>Os endereços e os nomes de utilizador são verificados contra conjuntos de caracteres rigorosos; os programas arrancam com uma lista de argumentos, nunca através de uma shell.</li>
+  <li>As palavras-passe nunca são guardadas nem enviadas: é o programa que as pede.</li>
+  <li>Antes de um programa adicionado pelo seu administrador correr pela primeira vez, o launcher pergunta-lhe.</li>
+</ul>
+
+<h2 id="tools">Ferramentas incorporadas</h2>
+<table>
+  <tr><th>Ferramenta</th><th>Programa no seu computador</th></tr>
+  <tr><td>SSH</td><td>PuTTY, se estiver instalado; caso contrário, o cliente SSH do Windows</td></tr>
+  <tr><td>Área de Trabalho Remota</td><td>o cliente de Área de Trabalho Remota do Windows</td></tr>
+  <tr><td>WinBox</td><td>winbox64.exe a partir de Program Files, Transferências ou do Ambiente de trabalho</td></tr>
+  <tr><td>VNC</td><td>visualizador TightVNC, TigerVNC ou RealVNC</td></tr>
+  <tr><td>Telnet</td><td>PuTTY</td></tr>
+</table>
+<p>Programas noutros locais: escreva os seus caminhos em <code>%APPDATA%\MaxZit Launcher\launcher.json</code>. Sem o launcher, a Área de Trabalho Remota continua a funcionar: o botão <b>.rdp</b> transfere um ficheiro que o Windows abre.</p>
+
+<h2 id="own-tools">As suas próprias ferramentas</h2>
+<p>Em <a href="/settings/tools">Configurações → Ferramentas</a>, os administradores desligam ferramentas incorporadas, limitam-nas a tipos de dispositivo e adicionam as suas próprias: um caminho de programa (por exemplo <code>%ProgramFiles%\Mozilla Firefox\firefox.exe</code>) e argumentos com <code>{host}</code>, <code>{port}</code>, <code>{user}</code> e <code>{name}</code>. O nome de utilizador e as portas por dispositivo definem-se em <b>Acesso remoto</b> do dispositivo, onde também desmarca as ferramentas que um dispositivo não tem — um servidor Proxmox ou Linux não tem Área de Trabalho Remota — ou marca uma que o seu tipo não recebe por predefinição; os botões na página do dispositivo e nos mapas mostram então apenas as ferramentas marcadas.</p>
+
+<h2 id="device-links">Ligações em cada dispositivo</h2>
+<p>Também em <a href="/settings/tools#links">Configurações → Ferramentas</a>, <b>Ligações em cada dispositivo</b> adiciona a todas as páginas de dispositivo botões que abrem o dispositivo noutro programa no navegador, por exemplo RMMZit ou BackupZit. Indique um nome e um endereço; <code>{name}</code>, <code>{address}</code> e <code>{id}</code> são substituídos pelo nome, endereço e número do dispositivo, por exemplo <code>https://rmm.example.com:8443/devices?q={name}</code>. Só são aceites endereços http:// e https://.</p>

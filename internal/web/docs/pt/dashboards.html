@@ -1,0 +1,25 @@
+<h1>Painéis e relatórios</h1>
+<p class="lead">Os painéis reúnem num só ecrã os valores que lhe interessam; os relatórios mostram quão disponíveis estiveram os seus dispositivos ao longo de um período.</p>
+
+<h2 id="dashboards">Painéis</h2>
+<p>Em <a href="/dashboards">Painéis</a> adicione um painel e clique em <b>Editar</b>. Widgets:</p>
+<table>
+  <tr><th>Widget</th><th>Mostra</th></tr>
+  <tr><td>Gráfico</td><td>o gráfico de uma verificação, com o intervalo de tempo do painel</td></tr>
+  <tr><td>Valor atual</td><td>um valor em números grandes, colorido pelo estado da sua verificação</td></tr>
+  <tr><td>Estados dos dispositivos</td><td>os dispositivos de um grupo (ou todos) como mosaicos coloridos</td></tr>
+  <tr><td>Problemas abertos</td><td>os problemas abertos, de um grupo ou todos</td></tr>
+  <tr><td>Mapa</td><td>um mosaico com o pior estado do mapa, que o abre</td></tr>
+  <tr><td>Gráfico de uma fonte de dados</td><td>uma consulta de uma <a href="/docs/datasources">fonte de dados</a> (uma base de dados, Prometheus, InfluxDB, JSON)</td></tr>
+</table>
+<p>Os widgets são pequenos, médios ou grandes numa grelha; mova-os para cima e para baixo. O painel recarrega a cada minuto, por isso pode ficar aberto num ecrã de parede.</p>
+
+<h2 id="reports">Relatórios de disponibilidade</h2>
+<p><a href="/reports">Relatórios</a> mostra, para cada dispositivo, para os últimos 7, 30 ou 90 dias, este mês ou o mês passado:</p>
+<ul>
+  <li><b>Disponibilidade</b> — a parte do tempo em que o dispositivo não esteve em baixo. O tempo em que esteve inacessível atrás de um dispositivo em baixo conta como em baixo; o tempo em <b>Manutenção</b> é mostrado à parte e não conta.</li>
+  <li><b>Tempo fora</b>, o número de <b>Problemas</b> e o tempo médio de <b>Ping</b>.</li>
+</ul>
+<p>Transfira-o como <b>CSV</b> para uma folha de cálculo ou <b>imprima-o ou guarde-o como PDF</b>.</p>
+<p><b>SLA:</b> atribua a um grupo um <b>Objetivo SLA</b> (por exemplo 99,9 %) em <a href="/groups">Grupos</a>. O relatório mostra então <b>SLA por grupo</b> — a disponibilidade de todos os seus dispositivos em conjunto (ponderada pelo tempo) face ao objetivo, <b>cumprido</b> ou <b>falhado</b> — e colore cada dispositivo segundo o objetivo do seu grupo.</p>
+<p><b>Por email:</b> em <b>Enviar por email</b>, os administradores definem se o relatório é enviado todas as segundas-feiras (os últimos 7 dias) ou em cada dia 1 do mês (o último mês), para todos os dispositivos ou um grupo, e para que endereços. É enviado às 07:00, hora do servidor, com o CSV em anexo; <b>Enviar agora</b> envia-o de imediato.</p>

@@ -1,0 +1,21 @@
+<h1>API REST</h1>
+<p class="lead">Los scripts y otros sistemas leen dispositivos, comprobaciones, gráficos y problemas, reconocen problemas y planifican mantenimientos a través de una API JSON.</p>
+
+<h2 id="tokens">Tokens</h2>
+<p>Cree un token en <a href="/account#api">Mi cuenta → Tokens de API</a>: un nombre y cuántos días es válido. Se muestra una sola vez. Un token actúa en su nombre, con su rol (el token de un observador solo puede leer); revóquelo cuando ya no lo necesite. Los tokens fallidos cuentan como inicios de sesión fallidos y bloquean la dirección durante un tiempo.</p>
+<p>Envíelo en una cabecera; la API nunca acepta la cookie de sesión de la consola:</p>
+<pre>curl -H "Authorization: Bearer wzat_…" https://monitor.example.com:8443/api/v1/status</pre>
+
+<h2 id="endpoints">Endpoints</h2>
+<table>
+  <tr><th>Petición</th><th>Respuesta</th></tr>
+  <tr><td><code>GET /api/v1/status</code></td><td>versión, dispositivos por estado, problemas abiertos por gravedad</td></tr>
+  <tr><td><code>GET /api/v1/devices</code></td><td>dispositivos; filtros <code>q</code>, <code>status</code>, <code>group</code></td></tr>
+  <tr><td><code>GET /api/v1/devices/{id}</code></td><td>un dispositivo con sus comprobaciones y los id de sus series</td></tr>
+  <tr><td><code>GET /api/v1/series/{id}?range=24h</code></td><td>los puntos de una serie: hora, mínimo, media, máximo</td></tr>
+  <tr><td><code>GET /api/v1/problems</code></td><td>problemas abiertos; <code>view=history</code>, <code>severity</code>, <code>device</code></td></tr>
+  <tr><td><code>POST /api/v1/problems/{id}/ack</code></td><td>reconocer: <code>{"note": "…"}</code></td></tr>
+  <tr><td><code>GET /api/v1/maintenance</code></td><td>ventanas de mantenimiento</td></tr>
+  <tr><td><code>POST /api/v1/maintenance</code></td><td>planificar una: <code>{"name", "starts_at", "ends_at", "device_ids", "group_ids"}</code></td></tr>
+</table>
+<p>Las horas siguen RFC 3339 (<code>2026-11-01T22:00:00+01:00</code>). Los errores son <code>{"error": "…"}</code> con el código de estado HTTP correspondiente. Los cambios se escriben en el registro de auditoría con el nombre del token.</p>

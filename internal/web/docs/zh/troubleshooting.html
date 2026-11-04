@@ -1,0 +1,35 @@
+<h1>故障排除与常见问题</h1>
+
+<h2 id="ping">Ping 显示“ICMP is not allowed”</h2>
+<p>服务器需要发送 ICMP 的权限。软件包安装的服务已具备该权限（<code>CAP_NET_RAW</code>）。在其他环境中，可使用 <code>setcap cap_net_raw+ep /usr/bin/watchzit-server</code> 授予权限，或允许非特权 Ping：<code>sysctl net.ipv4.ping_group_range="0 2147483647"</code>。</p>
+
+<h2 id="snmp">SNMP 显示“无应答”</h2>
+<ul>
+  <li>检查配置文件中的团体名，或 SNMPv3 用户、协议和密码。</li>
+  <li>在设备上允许 WatchZit 服务器的地址（许多设备只应答列表中的管理站），并在防火墙上放行 UDP 161。</li>
+  <li>当 v3 用户未知或密码错误时，消息中会注明。</li>
+</ul>
+
+<h2 id="agent">代理无法连接</h2>
+<ul>
+  <li>计算机必须能访问服务器的代理端口 8444；请检查<a href="/settings/network">设置 → 网络与访问</a>（允许的网络、代理公共地址）。</li>
+  <li>Windows：<code>Get-Service WatchZitAgent</code> 以及 <code>C:\ProgramData\WatchZit Agent</code> 中的日志。Linux：<code>journalctl -u watchzit-agent</code>。</li>
+  <li>“the server does not know this agent”：该设备已被删除；请使用新的注册码重新注册。</li>
+</ul>
+
+<h2 id="notify">收不到通知</h2>
+<ul>
+  <li>从<a href="/settings/notifications">设置 → 通知</a>发送测试；渠道列表会显示最后一次错误。</li>
+  <li>处于维护期间或位于宕机设备之后的问题不会发送；请检查渠道的最低严重程度。</li>
+</ul>
+
+<h2 id="blocked">我把自己锁在外面了</h2>
+<p>登录失败次数过多后，该地址会被暂时封锁。在服务器上运行：<code>watchzit-server --unblock-ip all</code>。如果允许的网络把您排除在外：<code>watchzit-server --reset-allowlist</code>。</p>
+
+<h2 id="logs">日志在哪里？</h2>
+<p><code>journalctl -u watchzit-server</code> 和 <code>/var/lib/watchzit/logs/server.log</code>；更新助手写入 <code>/var/log/watchzit-helper/helper.log</code>。<a href="/settings/diagnostics">设置 → 诊断</a>会显示最新的日志行，并提供一个不含机密信息的 ZIP，可发送给技术支持。</p>
+
+<h2 id="faq">常见问题</h2>
+<p><b>设备需要安装代理吗？</b>不需要。Ping、端口、SNMP、Web、DNS、数据库和 API 检查都从服务器运行；代理补充只有计算机自身才知道的信息。</p>
+<p><b>能监控多少台设备？</b>一台服务器每分钟可轮询数千项检查；测量数据经过压缩，因此一年的数据也很小。</p>
+<p><b>它是免费的吗？</b>是的，采用 AGPL-3.0 许可证。MaxZit 提供付费支持。</p>

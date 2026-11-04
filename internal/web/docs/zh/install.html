@@ -1,0 +1,39 @@
+<h1>安装服务器</h1>
+<p class="lead">WatchZit 运行在带有 PostgreSQL 的 64 位 Linux 服务器上（一台小型虚拟机即可）。安装脚本会完成全部设置；此外还提供软件包和现成的设备镜像。</p>
+
+<h2 id="requirements">系统要求</h2>
+<ul>
+  <li>Debian 12+、Ubuntu 22.04+、AlmaLinux 或 Rocky Linux 9+，x86-64。</li>
+  <li>监控几百台设备需要 2 个 CPU 核心和 2 GB 内存；10 GB 磁盘空间（测量数据以紧凑方式存储：一小时的 Ping 时间约占 100 字节）。</li>
+  <li>端口：<b>8443</b> 用于控制台（面向您的管理网络），<b>8444</b> 用于代理（仅在有代理的地方开放）。</li>
+</ul>
+
+<h2 id="script">安装脚本</h2>
+<p>在服务器上以 root 身份运行：</p>
+<pre>curl -fsSL https://github.com/Max-Zit/watchzit/releases/latest/download/install.sh | sudo sh</pre>
+<p>该脚本会安装 PostgreSQL，下载最新版本，使用 WatchZit 发布密钥<b>验证其签名</b>，安装软件包，以随机密码创建数据库，在 firewalld 或 ufw 中开放端口并启动服务。最后它会显示控制台地址和<b>设置令牌</b>。</p>
+<p>选项：<code>--version X</code>（指定版本）、<code>--db postgres://…</code>（使用现有数据库而不是本地 PostgreSQL）、<code>--no-auto-updates</code>（不开启操作系统安全更新）、<code>--source URL</code>（存放发布文件的镜像或本地文件夹）。再次运行该脚本会更新 WatchZit 并保留数据。</p>
+
+<h2 id="packages">软件包</h2>
+<p>每个版本都提供服务器的 <code>.deb</code> 和 <code>.rpm</code> 包。它们会安装程序、systemd 服务和代理安装程序；在 <code>/etc/watchzit/server.env</code> 中设置 <code>WATCHZIT_DB</code>，然后启动 <code>watchzit-server</code>。</p>
+
+<h2 id="appliance">设备镜像</h2>
+<p>设备镜像（Appliance）是现成的镜像（包含 WatchZit、PostgreSQL 和自动安全更新的 Debian）。将其导入 VMware、Proxmox 或 Hyper-V，启动后按照屏幕上的菜单操作：菜单会显示控制台地址和设置令牌，并可设置网络。</p>
+<p>镜像格式：<b>OVA</b>（VMware ESXi、Workstation、VirtualBox）、<b>qcow2</b>（Proxmox、KVM）、<b>VHDX</b>（Hyper-V 第 1 代）以及 <b>ISO</b>，后者可将设备镜像安装到新虚拟机或物理服务器上（会擦除第一块磁盘）。请为其分配 2 个 CPU、2 GB 内存和 16 GB 或更大的磁盘；更大的磁盘会被自动使用。在其屏幕上以 <code>wzadmin</code> 登录，初始密码为 <code>watchzit</code>；登录后必须立即设置新密码。菜单可设置网络（DHCP 或固定地址）、服务器名称、时区和 SSH（开启或关闭、端口），还可为 admin 等控制台用户设置新密码（同时解除所有登录封锁）。网络、SSH、操作系统更新和受信任证书也可以在控制台中设置（请参阅“用户、设置与更新”）。SSH 不允许 root 登录。</p>
+
+<h2 id="first-sign-in">首次登录</h2>
+<ol>
+  <li>打开 <code>https://&lt;服务器&gt;:8443</code>。浏览器会对自签名证书提示一次警告；请接受。</li>
+  <li>输入设置令牌并创建第一个管理员。</li>
+  <li>使用身份验证器应用扫描二维码（必须启用双因素登录），并妥善保存恢复代码。</li>
+</ol>
+
+<h2 id="files">文件与服务</h2>
+<table>
+  <tr><th>路径</th><th>说明</th></tr>
+  <tr><td><code>/etc/watchzit/server.env</code></td><td>数据库地址和更新源。</td></tr>
+  <tr><td><code>/var/lib/watchzit</code></td><td>证书、密钥（请与数据库一起备份）、下载文件、日志。</td></tr>
+  <tr><td><code>watchzit-server.service</code></td><td>服务器。<code>journalctl -u watchzit-server</code> 可查看其日志。</td></tr>
+  <tr><td><code>watchzit-helper.path</code></td><td>root 助手，用于从控制台执行更新、修改时区和重启。</td></tr>
+</table>
+<div class="callout warn"><p>请备份数据库<b>和</b> <code>/var/lib/watchzit/secret.key</code>：存储的密码（SNMP、数据库、通知渠道）都使用它加密。</p></div>

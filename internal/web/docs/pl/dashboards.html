@@ -1,0 +1,25 @@
+<h1>Pulpity i raporty</h1>
+<p class="lead">Pulpity zbierają na jednym ekranie wartości, które są dla ciebie ważne; raporty pokazują, jak dostępne były twoje urządzenia w danym okresie.</p>
+
+<h2 id="dashboards">Pulpity</h2>
+<p>W sekcji <a href="/dashboards">Pulpity</a> dodaj pulpit i kliknij <b>Edytuj</b>. Widżety:</p>
+<table>
+  <tr><th>Widżet</th><th>Pokazuje</th></tr>
+  <tr><td>Wykres</td><td>wykres sprawdzenia w zakresie czasu pulpitu</td></tr>
+  <tr><td>Bieżąca wartość</td><td>jedną wartość dużymi cyframi, w kolorze stanu jej sprawdzenia</td></tr>
+  <tr><td>Stany urządzeń</td><td>urządzenia grupy (lub wszystkie) jako kolorowe kafelki</td></tr>
+  <tr><td>Otwarte problemy</td><td>otwarte problemy grupy lub wszystkie</td></tr>
+  <tr><td>Mapa</td><td>kafelek z najgorszym stanem mapy, który ją otwiera</td></tr>
+  <tr><td>Wykres ze źródła danych</td><td>zapytanie do <a href="/docs/datasources">źródła danych</a> (baza danych, Prometheus, InfluxDB, JSON)</td></tr>
+</table>
+<p>Widżety są małe, średnie lub duże i układają się w siatce; przesuwaj je w górę i w dół. Pulpit odświeża się co minutę, więc może być stale otwarty na ekranie ściennym.</p>
+
+<h2 id="reports">Raporty dostępności</h2>
+<p><a href="/reports">Raporty</a> pokazują dla każdego urządzenia, za ostatnie 7, 30 lub 90 dni, bieżący lub poprzedni miesiąc:</p>
+<ul>
+  <li><b>Dostępność</b> — część czasu, w której urządzenie nie było niedostępne. Czas, gdy było nieosiągalne za niedziałającym urządzeniem, liczy się jako niedostępność; czas <b>konserwacji</b> jest pokazywany osobno i się nie liczy.</li>
+  <li><b>Czas niedostępności</b>, liczbę <b>problemów</b> i średni czas <b>pingu</b>.</li>
+</ul>
+<p>Pobierz raport jako <b>CSV</b> do arkusza kalkulacyjnego albo <b>wydrukuj go lub zapisz jako PDF</b>.</p>
+<p><b>SLA:</b> nadaj grupie <b>cel SLA</b> (np. 99,9 %) w sekcji <a href="/groups">Grupy</a>. Raport pokazuje wtedy <b>SLA według grup</b> — dostępność wszystkich jej urządzeń łącznie (ważoną czasem) względem celu, <b>spełniony</b> lub <b>niespełniony</b> — i koloruje każde urządzenie według celu jego grupy.</p>
+<p><b>E-mailem:</b> administratorzy ustawiają w sekcji <b>Wyślij e-mailem</b>, czy raport ma być wysyłany w każdy poniedziałek (ostatnie 7 dni) czy pierwszego dnia każdego miesiąca (poprzedni miesiąc), dla wszystkich urządzeń lub grupy, i na jakie adresy. Jest wysyłany o 07:00 czasu serwera z załączonym plikiem CSV; <b>Wyślij teraz</b> wysyła go od razu.</p>

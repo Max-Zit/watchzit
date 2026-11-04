@@ -1,0 +1,35 @@
+<h1>Sorun giderme ve SSS</h1>
+
+<h2 id="ping">Ping "ICMP is not allowed" diyor</h2>
+<p>Sunucunun ICMP gönderme hakkına ihtiyacı vardır. Paketle gelen hizmette bu hak vardır (<code>CAP_NET_RAW</code>). Başka durumlarda bu hakkı <code>setcap cap_net_raw+ep /usr/bin/watchzit-server</code> ile verin veya ayrıcalıksız ping'e izin verin: <code>sysctl net.ipv4.ping_group_range="0 2147483647"</code>.</p>
+
+<h2 id="snmp">SNMP "yanıt yok" gösteriyor</h2>
+<ul>
+  <li>Profildeki community'yi veya SNMPv3 kullanıcısını, protokolleri ve parolaları denetleyin.</li>
+  <li>Cihazda WatchZit sunucusunun adresine (birçok cihaz yalnızca listelenen yöneticilere yanıt verir) ve güvenlik duvarlarında UDP 161'e izin verin.</li>
+  <li>Bir v3 kullanıcısı bilinmiyorsa veya parola yanlışsa mesaj bunu söyler.</li>
+</ul>
+
+<h2 id="agent">Bir ajan bağlanmıyor</h2>
+<ul>
+  <li>Bilgisayar sunucunun 8444 numaralı ajan portuna ulaşabilmelidir; <a href="/settings/network">Ayarlar → Ağ ve erişim</a> bölümünü denetleyin (izin verilen ağlar, ajanlar için genel adres).</li>
+  <li>Windows: <code>Get-Service WatchZitAgent</code> ve <code>C:\ProgramData\WatchZit Agent</code> içindeki günlük. Linux: <code>journalctl -u watchzit-agent</code>.</li>
+  <li>"the server does not know this agent": cihaz kaldırılmıştır; yeni bir kodla yeniden kaydedin.</li>
+</ul>
+
+<h2 id="notify">Bildirimler gelmiyor</h2>
+<ul>
+  <li><a href="/settings/notifications">Ayarlar → Bildirimler</a> bölümünden bir test gönderin; kanal listesi son hatayı gösterir.</li>
+  <li>Bakımdaki veya çalışmayan bir cihazın arkasındaki sorunlar gönderilmez; kanalın en düşük önem düzeyini denetleyin.</li>
+</ul>
+
+<h2 id="blocked">Kendimi dışarıda bıraktım</h2>
+<p>Çok fazla başarısız girişten sonra adres bir süreliğine engellenir. Sunucuda: <code>watchzit-server --unblock-ip all</code>. İzin verilen ağlar sizi dışarıda bırakıyorsa: <code>watchzit-server --reset-allowlist</code>.</p>
+
+<h2 id="logs">Günlükler nerede?</h2>
+<p><code>journalctl -u watchzit-server</code> ve <code>/var/lib/watchzit/logs/server.log</code>; güncelleme yardımcısı <code>/var/log/watchzit-helper/helper.log</code> dosyasına yazar. <a href="/settings/diagnostics">Ayarlar → Tanılama</a> en yeni satırları gösterir ve desteğe göndermek için gizli bilgiler içermeyen bir ZIP verir.</p>
+
+<h2 id="faq">SSS</h2>
+<p><b>Cihazların bir ajana ihtiyacı var mı?</b> Hayır. Ping, port, SNMP, web, DNS, veritabanı ve API kontrolleri sunucudan çalışır; ajan yalnızca bilgisayarın kendisinin bildiklerini ekler.</p>
+<p><b>Kaç cihaz?</b> Tek bir sunucu dakikada binlerce kontrolü sorgular; ölçümler sıkıştırılır, bu yüzden bir yıllık veri küçük kalır.</p>
+<p><b>Ücretsiz mi?</b> Evet, AGPL-3.0 altında. MaxZit ücretli destek sunar.</p>

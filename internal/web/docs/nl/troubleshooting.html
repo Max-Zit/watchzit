@@ -1,0 +1,35 @@
+<h1>Problemen oplossen en veelgestelde vragen</h1>
+
+<h2 id="ping">Ping meldt "ICMP is not allowed"</h2>
+<p>De server heeft het recht nodig om ICMP te versturen. De service uit het pakket heeft dat (<code>CAP_NET_RAW</code>). Geef het elders met <code>setcap cap_net_raw+ep /usr/bin/watchzit-server</code> of sta ping zonder bevoegdheden toe: <code>sysctl net.ipv4.ping_group_range="0 2147483647"</code>.</p>
+
+<h2 id="snmp">SNMP toont "geen antwoord"</h2>
+<ul>
+  <li>Controleer de community of de SNMPv3-gebruiker, de protocollen en de wachtwoorden in het profiel.</li>
+  <li>Sta op het apparaat het adres van de WatchZit-server toe (veel apparaten antwoorden alleen aan opgegeven managers) en UDP 161 in firewalls.</li>
+  <li>De melding zegt het als een v3-gebruiker onbekend is of het wachtwoord onjuist is.</li>
+</ul>
+
+<h2 id="agent">Een agent maakt geen verbinding</h2>
+<ul>
+  <li>De computer moet agentpoort 8444 van de server kunnen bereiken; controleer <a href="/settings/network">Instellingen → Netwerk en toegang</a> (toegestane netwerken, openbaar agentadres).</li>
+  <li>Windows: <code>Get-Service WatchZitAgent</code> en het logboek in <code>C:\ProgramData\WatchZit Agent</code>. Linux: <code>journalctl -u watchzit-agent</code>.</li>
+  <li>"the server does not know this agent": het apparaat is verwijderd; registreer het opnieuw met een nieuwe code.</li>
+</ul>
+
+<h2 id="notify">Meldingen komen niet aan</h2>
+<ul>
+  <li>Verstuur een test vanuit <a href="/settings/notifications">Instellingen → Meldingen</a>; de kanalenlijst toont de laatste fout.</li>
+  <li>Problemen tijdens onderhoud of achter een uitgevallen apparaat worden niet verstuurd; controleer de laagste ernst van het kanaal.</li>
+</ul>
+
+<h2 id="blocked">Ik heb mezelf buitengesloten</h2>
+<p>Na te veel mislukte aanmeldingen wordt het adres een tijdlang geblokkeerd. Op de server: <code>watchzit-server --unblock-ip all</code>. Als de toegestane netwerken u uitsluiten: <code>watchzit-server --reset-allowlist</code>.</p>
+
+<h2 id="logs">Waar staan de logboeken?</h2>
+<p><code>journalctl -u watchzit-server</code> en <code>/var/lib/watchzit/logs/server.log</code>; de updatehelper schrijft naar <code>/var/log/watchzit-helper/helper.log</code>. <a href="/settings/diagnostics">Instellingen → Diagnose</a> toont de nieuwste regels en geeft een ZIP zonder geheimen om naar support te sturen.</p>
+
+<h2 id="faq">Veelgestelde vragen</h2>
+<p><b>Hebben apparaten een agent nodig?</b> Nee. Ping-, poort-, SNMP-, web-, DNS-, database- en API-controles draaien vanaf de server; de agent voegt toe wat alleen de computer zelf weet.</p>
+<p><b>Hoeveel apparaten?</b> Eén server pollt duizenden controles per minuut; metingen worden gecomprimeerd, dus een jaar aan gegevens blijft klein.</p>
+<p><b>Is het gratis?</b> Ja, onder de AGPL-3.0. MaxZit biedt betaalde ondersteuning.</p>

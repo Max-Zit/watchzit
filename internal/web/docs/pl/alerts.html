@@ -1,0 +1,65 @@
+<h1>Problemy, alerty i powiadomienia</h1>
+<p class="lead">Wyzwalacze obserwują wyniki sprawdzeń i otwierają <b>problemy</b>. Problem zamyka się sam, gdy warunek ustaje; dopóki jest otwarty, można go potwierdzić, a trafia on do twoich kanałów powiadomień.</p>
+
+<h2 id="triggers">Wyzwalacze</h2>
+<p>W sekcji <a href="/alerts/triggers">Problemy → Wyzwalacze</a>. WatchZit zaczyna z następującymi:</p>
+<table>
+  <tr><th>Wyzwalacz</th><th>Kiedy</th><th>Ważność</th></tr>
+  <tr><td>Urządzenie nie działa</td><td>wszystkie sprawdzenia urządzenia nie działają przez 1 minutę</td><td>krytyczny</td></tr>
+  <tr><td>Sprawdzenie nie działa</td><td>jedno sprawdzenie nie działa przez 1 minutę</td><td>ostrzeżenie</td></tr>
+  <tr><td>Wysokie obciążenie CPU, Pamięć prawie pełna</td><td>powyżej 90 % przez 5 minut</td><td>ostrzeżenie</td></tr>
+  <tr><td>Dysk prawie pełny / Dysk pełny</td><td>powyżej 90 % / 97 %</td><td>ostrzeżenie / krytyczny</td></tr>
+  <tr><td>Dysk pełny w ciągu dwóch tygodni</td><td>trend dysku agenta z ostatniego tygodnia osiąga 98 % w ciągu 14 dni</td><td>ostrzeżenie</td></tr>
+  <tr><td>Utrata pakietów</td><td>powyżej 20 % przez 5 minut</td><td>ostrzeżenie</td></tr>
+  <tr><td>Certyfikat wkrótce wygaśnie / Certyfikat wygasa</td><td>mniej niż 21 / 7 dni</td><td>ostrzeżenie / krytyczny</td></tr>
+  <tr><td>Wysoka temperatura</td><td>RouterOS powyżej 70 °C przez 5 minut</td><td>ostrzeżenie</td></tr>
+  <tr><td>Grupa HA bez redundancji</td><td>w grupie HA mapy niektórzy członkowie, ale nie wszyscy, nie działają przez 1 minutę (problem należy do członka, który nie działa)</td><td>ostrzeżenie</td></tr>
+</table>
+<p>Dodaj własne: <b>wartość</b> (obciążenie CPU, czas odpowiedzi, ruch, połączenia …), <b>powyżej</b> lub <b>poniżej</b> progu, <b>przez co najmniej</b> określoną liczbę minut (krótki spadek nie otwiera problemu), ważność oraz to, czy wyzwalacz dotyczy wszystkich urządzeń, grupy czy jednego urządzenia.</p>
+<p><b>Brak nowych danych</b> otwiera problem, gdy sprawdzenie nie otrzymało nowej wartości przez ustawioną liczbę minut — agent, który przestał raportować, urządzenie, które już nie odpowiada na SNMP, źródło danych, które ucichło; jeśli chcesz, ogranicz go do wybranych typów sprawdzeń.</p>
+<p><b>Wartość osiągnie próg (prognoza)</b> patrzy natomiast w przyszłość: prowadzi linię prostą przez ostatni tydzień wartości (co najmniej sześć godzin historii) i otwiera problem, gdy ta linia osiągnie próg <b>w ciągu</b> ustawionej liczby dni — dysk, który zapełni się za dziesięć dni, pula, która się wypełnia, temperatura, która stale rośnie. Problem podaje bieżącą wartość, tempo jej zmiany na dobę i datę, kiedy osiągnie próg; zamyka się, gdy trend przestaje osiągać próg na czas.</p>
+
+<p><b>Jedno sprawdzenie.</b> Przycisk z dzwonkiem obok sprawdzenia na stronie urządzenia dodaje wyzwalacz tylko dla tego sprawdzenia — potrzebny dla wartości OID SNMP (temperatura w °C, napięcie w V), ponieważ każda ma własną jednostkę, i przydatny dla jednego ważnego dysku lub portu. Taki wyzwalacz wymienia urządzenie i sprawdzenie w polu Dotyczy; jest usuwany razem ze swoim sprawdzeniem.</p>
+
+<h2 id="problems">Problemy</h2>
+<p><a href="/problems">Problemy</a> wymienia to, co jest otwarte, od najpoważniejszych; liczba w menu liczy wysłane problemy (czerwona, gdy któryś jest krytyczny). <b>Potwierdź</b> problem z notatką, aby inni wiedzieli, że ktoś się nim zajmuje. Rozwiązane problemy pozostają w historii przez rok.</p>
+
+<h2 id="dependencies">Zależności</h2>
+<p>Ustaw <b>Zależy od</b> na urządzeniu (na przykład router oddziału). Gdy ten router nie działa, urządzenia za nim są tylko <b>nieosiągalne</b>: ich problemy są rejestrowane, ale nie wysyłane — dostajesz jedną wiadomość o routerze, a nie pięćdziesiąt. Na mapach takie urządzenia są szare z przerywanym obrysem zamiast czerwonych, a ich panel informuje, że problem jest wyżej.</p>
+
+<p>Aby ustawić je od razu dla całej sieci, otwórz mapę i kliknij <b>Zależności</b>: idąc wzdłuż kabli od urządzenia, od którego zależy sieć (domyślnie router lub zapora z największą liczbą kabli; jeśli chcesz, wybierz inne), każdemu urządzeniu proponowane jest to, które stoi przed nim — przełącznik zależy od routera, punkty dostępowe od przełącznika, maszyny wirtualne od swojego serwera. Kable zasilające, HA i VXLAN się nie liczą. Urządzenia bez zależności są zaznaczone; te, które już zależą od innego urządzenia, są pokazane, ale niezaznaczone. Kliknij <b>Ustaw zaznaczone zależności</b>.</p>
+
+<h2 id="maintenance">Konserwacja</h2>
+<p>W <a href="/alerts/maintenance">Problemy → Konserwacja</a> zaplanuj okno dla urządzeń lub grup. W jego trakcie urządzenia są nadal monitorowane, a problemy rejestrowane, ale nic nie jest wysyłane; problemy wciąż otwarte po jego zakończeniu zostaną wtedy wysłane. Raporty dostępności pokazują czas konserwacji osobno. <b>Powtarzanie</b> sprawia, że okno wraca codziennie, co tydzień lub co miesiąc (nocna kopia zapasowa, comiesięczny dzień poprawek), opcjonalnie do ostatniego dnia; lista pokazuje następne okno, a <b>Usuń</b> kończy całą serię.</p>
+
+<h2 id="notifications">Powiadomienia</h2>
+<p>W <a href="/settings/notifications">Ustawienia → Powiadomienia</a> (administratorzy):</p>
+<ul>
+  <li><b>Serwer poczty</b> — SMTP ze STARTTLS, TLS lub bez szyfrowania; hasło jest przechowywane w postaci zaszyfrowanej. Wyślij testowy e-mail.</li>
+  <li><b>Kanały</b> — odbiorcy e-mail, <b>webhook</b> (JSON, podpisany HMAC-SHA256 w <code>X-WatchZit-Signature</code>, gdy ustawisz klucz), <b>Slack</b>, <b>Microsoft Teams</b>, <b>Discord</b>, <b>Telegram</b> (token bota od @BotFather i identyfikator czatu), <b>ntfy</b> (powiadomienia push na telefony przez ntfy.sh lub własny serwer ntfy), <b>PagerDuty</b> (klucz integracji Events API v2; problemy otwierają i rozwiązują incydenty), <b>SMS przez Twilio</b> (SID konta, token uwierzytelniania, nadawca, numery telefonów) lub <b>SMS przez własną bramkę</b> (dowolny adres HTTP z <code>{text}</code> w miejscu wiadomości). Każdy kanał ma najniższą ważność i może też informować o rozwiązaniu problemów.</li>
+  <li><b>Język</b> powiadomień i <b>adres konsoli</b> używany w zawartych w nich linkach.</li>
+</ul>
+
+<h2 id="escalation">Eskalacja i dyżury</h2>
+<p>W sekcji <b>Eskalacja i godziny dyżuru</b> kanału:</p>
+<ul>
+  <li><b>Powiadom po (minutach)</b> — kanał dowiaduje się tylko o problemach, które po tym czasie są nadal otwarte, np. kierownik zespołu po 15 minutach, gdy pierwsza linia nie zareagowała. <b>Powtarzaj co</b> powiadamia go ponownie, dopóki problem pozostaje otwarty.</li>
+  <li>Potwierdzone problemy nie są eskalowane ani powtarzane, chyba że włączona jest opcja <b>Także potwierdzone problemy</b>.</li>
+  <li><b>Tylko w niektóre dni i godziny</b> zamienia kanał w dyżur: np. SMS do nocnej zmiany od poniedziałku do piątku od 18 do 08 i przez cały weekend. Problemy, które zaczną się poza jego godzinami, docierają do niego z początkiem dyżuru, jeśli są nadal otwarte. Dla rotacji dodaj po jednym kanale na osobę lub zespół z własnymi dniami i godzinami.</li>
+  <li>Kanał, który otrzymał informację o problemie, otrzymuje też informację o jego rozwiązaniu; pozostałe nie.</li>
+</ul>
+
+<h2 id="logs">Syslog i trapy SNMP</h2>
+<p>Urządzenia mogą wysyłać swoje komunikaty logów i trapy SNMP do WatchZit. Włącz to w <a href="/settings/logs">Ustawienia → Syslog i trapy</a>: domyślnie syslog na UDP 514 i trapy (SNMP v1 i v2c, na informy jest wysyłana odpowiedź) na UDP 162, opcjonalnie tylko trapy z podanymi społecznościami, przechowywane przez 30 dni. Otwórz te porty w zaporze serwera i ustaw WatchZit jako cel na urządzeniach, np. na MikroTik <code>/system logging action set remote remote=&lt;serwer&gt;</code> i regułę logowania z akcją <code>remote</code>, na FortiGate <code>config log syslogd setting</code>, na Linuksie wiersz rsyslog <code>*.* @&lt;serwer&gt;:514</code>.</p>
+<ul>
+  <li><a href="/logs">Logi</a> wymienia komunikaty od najnowszych, z wyszukiwaniem, urządzeniem, źródłem (syslog lub trapy) i najmniej ważnym poziomem (0 emergency … 7 debug). Komunikat z adresu, który nie jest urządzeniem, jest pokazywany z tym adresem. Każda strona urządzenia ma przycisk <b>Logi</b>.</li>
+  <li>Wyzwalacz rodzaju <b>Wiadomość syslog lub trap</b> otwiera problem, gdy komunikat zawiera tekst (lub pasuje do wyrażenia regularnego między ukośnikami, np. <code>/link (down|failure)/</code>) na poziomie co najmniej tak ważnym jak wybrany. Problem pozostaje otwarty, dopóki takie komunikaty przychodzą, i zamyka się, gdy żaden nie przyszedł przez czas wyzwalacza. Te problemy nie liczą się w raportach jako niedostępność.</li>
+</ul>
+
+<h2 id="flows">Przepływy ruchu (NetFlow, IPFIX, sFlow)</h2>
+<p>Routery, przełączniki i zapory potrafią informować, jaki ruch przez nie przechodzi. Włącz kolektor w <a href="/settings/flows">Ustawienia → Przepływy ruchu</a>: domyślnie NetFlow v5, NetFlow v9 i IPFIX na UDP 2055 oraz sFlow v5 na UDP 6343, przechowywane przez 7 dni (1–90). Otwórz te porty w zaporze serwera i ustaw WatchZit jako kolektor, np. na MikroTik <code>/ip traffic-flow set enabled=yes</code> i <code>/ip traffic-flow target add dst-address=&lt;serwer&gt; port=2055 version=ipfix</code>, na FortiGate <code>config system netflow</code>, na przełącznikach z sFlow agenta sFlow z tym serwerem jako kolektorem.</p>
+<ul>
+  <li>WatchZit sumuje przepływy na minutę i eksporter według rozmowy (źródło, cel, protokół i port usługi — niższy z dwóch portów). Każda minuta zachowuje 1000 największych rozmów każdego eksportera; reszta to jeden wiersz bez adresów, więc sumy pozostają prawidłowe. Próbkowane przepływy (sFlow lub NetFlow z częstotliwością próbkowania) są mnożone przez tę częstotliwość.</li>
+  <li><a href="/flows">Przepływy ruchu</a> pokazuje ruch w czasie oraz najważniejsze źródła, cele, usługi, eksportery i rozmowy z ostatniej godziny, 6 godzin, dnia lub tygodnia, dla jednego eksportera lub wszystkich. Adresy urządzeń konsoli są pokazywane jako urządzenie. Eksportery mają na stronie urządzenia przycisk <b>Przepływy ruchu</b>.</li>
+  <li>Przepływy adresów, które nie są urządzeniami, są pomijane, chyba że włączona jest opcja <b>Także z adresów, które nie są urządzeniami</b>.</li>
+</ul>

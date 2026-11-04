@@ -1,0 +1,32 @@
+<h1>Geräte öffnen</h1>
+<p class="lead">Von einer Geräteseite oder dem Seitenbereich der Karte aus öffnen Sie ein Gerät mit dem passenden Programm: seine Weboberfläche, SSH, Remotedesktop, WinBox, VNC oder Ihre eigenen Werkzeuge.</p>
+
+<h2 id="launcher">Der MaxZit Launcher</h2>
+<p>Ein Browser kann keine Programme starten, deshalb übernimmt das ein kleines Windows-Programm: der <b>MaxZit Launcher</b>. Installieren Sie ihn einmal pro Computer von der Seite <a href="/launcher">Launcher</a> — das <b>Installationsprogramm</b> (MSI) mit einem kurzen Einrichtungsassistenten legt ihn mit seinem Symbol unter Apps ab, wo er sich auch wieder entfernen lässt; es installiert für Ihren Windows-Benutzer, ohne Administratorrechte — und klicken Sie auf <b>Diesen Computer koppeln</b>. Der Launcher zeigt den Fingerabdruck des Servers; er muss mit dem auf der Seite übereinstimmen.</p>
+<p>Danach funktionieren die Schaltflächen <b>Öffnen mit</b>. Wenn eine Konsole an eine andere Adresse umzieht (oder anderswo aus einer Sicherung wiederhergestellt wird), klicken Sie erneut auf <b>Diesen Computer koppeln</b>: Der Launcher erkennt sie an ihrem Schlüssel und fragt, ob er die neue Adresse verwenden soll. Beim ersten Mal fragt der Browser, ob er den Launcher öffnen darf; erlauben Sie es.</p>
+<p>Derselbe Launcher bedient auch <b>PassZit</b>: Klicken Sie im Menü der PassZit-Erweiterung auf <b>Mit dem MaxZit Launcher koppeln</b> und stimmen Sie im eigenen Fenster des Launchers zu. PassZit öffnet dann Remotedesktop, SSH, WinSCP, WinBox, VNC und Telnet mit der Anmeldung aus dem Tresor — Remotedesktop über eine Windows-Anmeldeinformation, die nur wenige Sekunden existiert, ein SSH-Passwort oder einen SSH-Schlüssel über eine Datei, die nur Sie lesen können und die direkt nach dem Start entfernt wird. Der Launcher ersetzt den älteren WatchZit Launcher und passzit-helper: Bei der Installation übernimmt er deren Einstellungen und Kopplungen. Wenn PassZit gekoppelt ist und die Adresse der Konsole zu seinen vertrauenswürdigen MaxZit-Konsolen gehört, öffnen die Schaltflächen <b>Öffnen mit</b> von WatchZit bereits angemeldet, mit der passenden Anmeldung aus dem Tresor; ohne PassZit oder ohne Anmeldung für dieses Gerät öffnen sie wie bisher. Die Konsole teilt PassZit nur Werkzeug, Adresse, Port, Benutzername und Gerätenamen mit — nie ein Passwort. Neben den Schaltflächen <b>Öffnen mit</b> zeigt ein kleines Abzeichen <b>PassZit</b>, dass PassZit entsperrt ist und die Anmeldung übernimmt; <b>PassZit gesperrt</b> bedeutet, dass es zuerst entsperrt werden muss. Ist PassZit für diese Konsole nicht eingerichtet, erklärt ein kleiner Hinweis, wie Sie es zulassen; <b>Nicht mehr anzeigen</b> blendet ihn in diesem Browser aus.</p>
+
+<h2 id="safety">So bleibt es sicher</h2>
+<ul>
+  <li>Jeder Klick erzeugt einen von Ihrem Server <b>signierten</b> Link, der eine Minute lang gültig ist und nur einmal funktioniert; der Launcher akzeptiert Links nur von Servern, die Sie gekoppelt haben.</li>
+  <li>Adressen und Benutzernamen werden gegen strenge Zeichensätze geprüft; Programme starten mit einer Argumentliste, nie über eine Shell.</li>
+  <li>Passwörter werden nie gespeichert oder gesendet: Das Programm fragt danach.</li>
+  <li>Bevor ein von Ihrem Administrator hinzugefügtes Programm zum ersten Mal läuft, fragt der Launcher Sie.</li>
+</ul>
+
+<h2 id="tools">Eingebaute Werkzeuge</h2>
+<table>
+  <tr><th>Werkzeug</th><th>Programm auf Ihrem Computer</th></tr>
+  <tr><td>SSH</td><td>PuTTY, falls installiert, sonst der SSH-Client von Windows</td></tr>
+  <tr><td>Remotedesktop</td><td>der Windows-Remotedesktopclient</td></tr>
+  <tr><td>WinBox</td><td>winbox64.exe aus Programme, Downloads oder vom Desktop</td></tr>
+  <tr><td>VNC</td><td>TightVNC-, TigerVNC- oder RealVNC-Viewer</td></tr>
+  <tr><td>Telnet</td><td>PuTTY</td></tr>
+</table>
+<p>Programme an anderen Orten: Tragen Sie ihre Pfade in <code>%APPDATA%\MaxZit Launcher\launcher.json</code> ein. Ohne den Launcher funktioniert Remotedesktop trotzdem: Die Schaltfläche <b>.rdp</b> lädt eine Datei herunter, die Windows öffnet.</p>
+
+<h2 id="own-tools">Eigene Werkzeuge</h2>
+<p>Unter <a href="/settings/tools">Einstellungen → Werkzeuge</a> schalten Administratoren eingebaute Werkzeuge aus, beschränken sie auf Gerätetypen und fügen eigene hinzu: einen Programmpfad (zum Beispiel <code>%ProgramFiles%\Mozilla Firefox\firefox.exe</code>) und Argumente mit <code>{host}</code>, <code>{port}</code>, <code>{user}</code> und <code>{name}</code>. Benutzername und Ports pro Gerät werden im <b>Fernzugriff</b> des Geräts festgelegt; dort entfernen Sie auch die Markierung bei Werkzeugen, die ein Gerät nicht hat — ein Proxmox- oder Linux-Server hat keinen Remotedesktop —, oder markieren eines, das sein Typ standardmäßig nicht erhält; die Schaltflächen auf der Geräteseite und auf Karten zeigen dann nur die markierten Werkzeuge.</p>
+
+<h2 id="device-links">Links auf jedem Gerät</h2>
+<p>Ebenfalls unter <a href="/settings/tools#links">Einstellungen → Werkzeuge</a> fügt <b>Links auf jedem Gerät</b> jeder Geräteseite Schaltflächen hinzu, die das Gerät in einem anderen Programm im Browser öffnen, zum Beispiel in RMMZit oder BackupZit. Geben Sie einen Namen und eine Adresse an; <code>{name}</code>, <code>{address}</code> und <code>{id}</code> werden durch Namen, Adresse und Nummer des Geräts ersetzt, z. B. <code>https://rmm.example.com:8443/devices?q={name}</code>. Nur Adressen mit http:// und https:// werden akzeptiert.</p>

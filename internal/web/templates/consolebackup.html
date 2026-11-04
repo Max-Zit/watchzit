@@ -34,7 +34,7 @@
       {{if .Data.HasPass}}<p class="small">{{template "icon" "lock"}} {{.T "Backups are encrypted."}} <label class="check"><input type="checkbox" name="passphrase_clear" value="1">{{.T "Remove the passphrase"}}</label></p>{{end}}
       <div class="cols">
         <label>{{if .Data.HasPass}}{{.T "New passphrase"}}{{else}}{{.T "Passphrase"}}{{end}} <small>{{.T "optional"}}</small><input type="password" name="passphrase" autocomplete="new-password" minlength="12"></label>
-        <label>{{.T "Repeat"}}<input type="password" name="passphrase2" autocomplete="new-password"></label>
+        <label>{{.T "Repeat the passphrase"}}<input type="password" name="passphrase2" autocomplete="new-password"></label>
       </div>
     </fieldset>
 

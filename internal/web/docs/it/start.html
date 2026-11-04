@@ -1,0 +1,31 @@
+<h1>Per iniziare</h1>
+<p class="lead">WatchZit è un sistema self-hosted di monitoraggio di reti e dispositivi. Una mappa di rete in tempo reale mostra cosa è collegato a cosa e in che stato si trova; dietro ci sono controlli, grafici, avvisi, dashboard e rapporti, tutto sul tuo server e con licenza AGPL-3.0.</p>
+
+<h2 id="what">Cosa fa WatchZit</h2>
+<table>
+  <tr><th>Area</th><th>Cosa ottieni</th></tr>
+  <tr><td>Mappe di rete</td><td>Disegna la tua rete con immagini reali dei dispositivi, rack e cavi da porta a porta; la mappa mostra stato e traffico in tempo reale. <a href="/docs/maps">Mappe di rete</a></td></tr>
+  <tr><td>Controlli</td><td>Ping, porte TCP, pagine web, certificati TLS, DNS, PostgreSQL e MySQL, SNMP (v1/v2c/v3: interfacce, CPU, memoria, dischi, qualsiasi OID), l'API di MikroTik RouterOS e valori da qualsiasi API JSON. <a href="/docs/devices">Dispositivi e controlli</a></td></tr>
+  <tr><td>Agente</td><td>Un piccolo agente opzionale per Windows e Linux riporta CPU, memoria, dischi, interfacce e i servizi scelti. <a href="/docs/agents">Agenti</a></td></tr>
+  <tr><td>Avvisi</td><td>I trigger aprono problemi; dipendenze, finestre di manutenzione e prese in carico riducono il rumore; notifiche via email, webhook, Slack e Teams. <a href="/docs/alerts">Problemi e avvisi</a></td></tr>
+  <tr><td>Grafici, dashboard, rapporti</td><td>Grafici di ogni valore da un'ora a un anno, dashboard per uno schermo a parete, rapporti di disponibilità. <a href="/docs/dashboards">Dashboard e rapporti</a></td></tr>
+  <tr><td>Aprire i dispositivi</td><td>Apri con un clic la pagina web di un dispositivo, SSH, Desktop remoto, WinBox o i tuoi strumenti. <a href="/docs/tools">Aprire i dispositivi</a></td></tr>
+</table>
+
+<h2 id="how">Come funziona</h2>
+<ul>
+  <li><b>Il server</b> gira su Linux con PostgreSQL. Ha due porte: la <b>console</b> (interfaccia web e API REST, TCP 8443) e l'<b>endpoint degli agenti</b> (TCP 8444).</li>
+  <li>Il server <b>interroga</b> i dispositivi da solo (ping, TCP, SNMP, HTTP, database, API). Sui dispositivi non serve installare nulla.</li>
+  <li>Gli <b>agenti</b> sono opzionali. Si collegano <i>in uscita</i> alla porta degli agenti e inviano i dati ogni minuto; i computer non hanno bisogno di porte aperte.</li>
+  <li>Ogni modifica nella console viene scritta nel <a href="/audit">registro di controllo</a>, a prova di manomissione.</li>
+</ul>
+
+<h2 id="first-steps">Primi passi</h2>
+<ol>
+  <li><b>Installa il server</b>: vedi <a href="/docs/install">Installare il server</a>.</li>
+  <li><b>Crea il primo amministratore</b> con il token di configurazione mostrato dall'installer e configura l'accesso a due fattori con un'app di autenticazione.</li>
+  <li><b>Aggiungi i dispositivi</b> in <a href="/devices">Dispositivi</a>: bastano un nome e un indirizzo; il ping viene aggiunto automaticamente. Aggiungi un profilo SNMP per leggere interfacce e traffico.</li>
+  <li><b>Disegna una mappa</b> in <a href="/maps">Mappe</a> e collega i dispositivi da porta a porta.</li>
+  <li><b>Configura le notifiche</b> in <a href="/settings/notifications">Impostazioni → Notifiche</a>; i trigger integrati sorvegliano già i dispositivi non attivi, i dischi pieni e i certificati in scadenza.</li>
+</ol>
+<div class="callout tip"><p>Per impostazione predefinita la console è raggiungibile solo dalle reti private. Lasciala così e apri solo la porta degli agenti (8444) dove gli agenti ne hanno bisogno.</p></div>

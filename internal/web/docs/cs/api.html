@@ -1,0 +1,21 @@
+<h1>REST API</h1>
+<p class="lead">Skripty a jiné systémy přes JSON API čtou zařízení, kontroly, grafy a problémy, potvrzují problémy a plánují údržbu.</p>
+
+<h2 id="tokens">Tokeny</h2>
+<p>Token vytvořte v <a href="/account#api">Můj účet → API tokeny</a>: název a kolik dní platí. Zobrazí se jen jednou. Token jedná za vás, s vaší rolí (token pozorovatele může jen číst); když už ho nepotřebujete, odvolejte ho. Neplatné tokeny se počítají jako neúspěšná přihlášení a na čas adresu zablokují.</p>
+<p>Posílejte ho v hlavičce; API nikdy nepřijímá cookie relace konzole:</p>
+<pre>curl -H "Authorization: Bearer wzat_…" https://monitor.example.com:8443/api/v1/status</pre>
+
+<h2 id="endpoints">Koncové body</h2>
+<table>
+  <tr><th>Požadavek</th><th>Odpověď</th></tr>
+  <tr><td><code>GET /api/v1/status</code></td><td>verze, zařízení podle stavu, otevřené problémy podle závažnosti</td></tr>
+  <tr><td><code>GET /api/v1/devices</code></td><td>zařízení; filtry <code>q</code>, <code>status</code>, <code>group</code></td></tr>
+  <tr><td><code>GET /api/v1/devices/{id}</code></td><td>zařízení s jeho kontrolami a ID jejich řad</td></tr>
+  <tr><td><code>GET /api/v1/series/{id}?range=24h</code></td><td>body řady: čas, minimum, průměr, maximum</td></tr>
+  <tr><td><code>GET /api/v1/problems</code></td><td>otevřené problémy; <code>view=history</code>, <code>severity</code>, <code>device</code></td></tr>
+  <tr><td><code>POST /api/v1/problems/{id}/ack</code></td><td>potvrzení: <code>{"note": "…"}</code></td></tr>
+  <tr><td><code>GET /api/v1/maintenance</code></td><td>okna údržby</td></tr>
+  <tr><td><code>POST /api/v1/maintenance</code></td><td>naplánování okna: <code>{"name", "starts_at", "ends_at", "device_ids", "group_ids"}</code></td></tr>
+</table>
+<p>Časy jsou ve formátu RFC 3339 (<code>2026-11-01T22:00:00+01:00</code>). Chyby mají tvar <code>{"error": "…"}</code> s odpovídajícím stavem HTTP. Změny se zapisují do protokolu auditu s názvem tokenu.</p>

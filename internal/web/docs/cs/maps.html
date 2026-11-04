@@ -1,0 +1,83 @@
+<h1>Mapy sítě</h1>
+<p class="lead">Mapa je nákres vaší sítě, který zároveň živě sleduje její stav: zařízení obarvená podle stavu, kabely, které ukazují provoz, porty, které si můžete přiblížit.</p>
+
+<h2 id="edit">Kreslení mapy</h2>
+<ol>
+  <li>V části <a href="/maps">Mapy</a> přidejte mapu a klikněte na <b>Upravit</b>.</li>
+  <li><b>Přidat zařízení</b> umístí zařízení na mapu; přetáhněte je na místo. <b>Přidat položku</b> přidá věci, které se nesledují (patch panely, PDU). Při úpravách <b>Sledované zařízení</b> v panelu položky z ní udělá zařízení konzole: obrázek, umístění, pozice v racku a kabely zůstanou a položka ukazuje stav a metriky zařízení. <b>Žádné (jen obrázek)</b> udělá ze zařízení zpět položku.</li>
+  <li><b>Propojit</b>: klikněte na dvě zařízení a zvolte porty na obou koncích (z rozhraní SNMP nebo agenta). Kabel ukazuje provoz daného portu.</li>
+  <li><b>Navržená spojení</b> ukazuje, kam jsou zařízení zapojena (viz <a href="#found">Spojení nalezená na zařízeních</a>), a nabízí kabely s jejich porty a zařízení připojená k mapě, která na ní nejsou; <b>Přidat vše</b> je přidá všechny.</li>
+  <li>Klikněte na <b>Uložit</b> (nebo Ctrl+S). Změny existují jen na stránce, dokud je neuložíte; <b>Zrušit</b> se vrátí k uložené mapě.</li>
+</ol>
+
+<h2 id="design">Obrázky, racky a kabely</h2>
+<ul>
+  <li>Každé zařízení má obrázek z vestavěné knihovny (switche s porty, routery, servery, firewally, přístupové body, telefony, kamery …) nebo vámi nahraný.</li>
+  <li>Knihovna obsahuje také zhruba 3 500 skutečných modelů od více než 180 výrobců: servery (HPE ProLiant od G6, Dell PowerEdge, Lenovo, Supermicro, Cisco UCS, Fujitsu, Huawei/xFusion, Inspur), NAS (Synology, QNAP, Asustor, TrueNAS a další), úložiště SAN a FC switche (HPE MSA/3PAR/Nimble/Alletra, IBM Storwize/FlashSystem, Dell PowerVault/Unity/PowerStore, NetApp, Pure Storage, Lenovo, Fujitsu ETERNUS, Huawei OceanStor, Hitachi, Brocade, Cisco MDS), switche (Cisco, HPE Aruba, Dell, Juniper, Ubiquiti, Netgear, TP-Link, D-Link, Zyxel, Huawei, Arista, Extreme, Ruckus, Alcatel-Lucent, Ruijie, FS (fs.com: kampusové, PoE, datacentrové a průmyslové switche, Wi-Fi, převodníky médií, optické rozvaděče), QNAP, TRENDnet, Hikvision, Dahua, Lancom, DrayTek, průmyslové Moxa, Siemens SCALANCE, Hirschmann a Phoenix Contact a další), firewally (Fortinet, Palo Alto, Sophos, WatchGuard, SonicWall, Check Point, Cisco ASA/Firepower, Netgate a další), MikroTik, domácí a kancelářské routery a mesh Wi-Fi (TP-Link, ASUS, FRITZ!Box, Netgear, Linksys, D-Link, ONT Huawei a ZTE a další), přístupové body, UPS (věžové a do racku), videorekordéry a IP kamery, venkovní antény bod-bod, sektorové a všesměrové, tiskárny, IP telefony a ústředny PBX, blade šasi, PDU, KVM a konzolové servery, monitory prostředí a mini PC, GPON OLT a ONT, operátorské routery, okrajová zařízení SD-WAN, časové servery NTP, interkomy, videokonference, PLC a HMI. Obecné obrázky obsahují i příslušenství racků: kabelové organizéry, kartáčové panely, police, ventilátorové jednotky, zásuvky a záslepky. Obecné obrázky obsahují také optické patch panely (LC duplex singlemode a multimode, SC/APC a SC/UPC, 12 až 96 portů) a nástěnné optické boxy. V panelu obrázku zvolte <b>výrobce</b> (nebo <b>Všichni výrobci</b>) a <b>typ</b> (switch, router, firewall, server, úložiště / NAS, přístupový bod …), nebo model vyhledejte (například „DL380 Gen10“ nebo „CRS326“); typ nebo hledání s <b>Obecné obrázky</b> prohledá všechny výrobce; nákresy mají porty a pozice disků daného modelu, takže kabely končí ve správném portu. U zařízení se panel otevře s jeho výrobcem; když se zařízení přidá na mapu a jeho popis SNMP uvádí model z knihovny (například MikroTik), zvolí se tento obrázek sám.</li>
+  <li><b>Racky</b> o 4 až 48 jednotkách: pouštějte do nich zařízení; přichytí se k volným jednotkám. Věci, které nejsou stavěné do racku — NAS, malý switch, mini PC na polici — dostanou v panelu zařízení vlastní <b>Výšku</b> (1–20U, jinak výšku obrázku) a <b>Šířku</b> (celá šířka, 1/2, 1/3 nebo 1/4) s <b>Pozicí</b> zleva doprava, takže jich může stát několik vedle sebe ve stejných jednotkách; puštěné do racku zaberou nejbližší volné místo.</li>
+  <li>Kabely mají <b>druh</b> (metalika, optika, DAC, bezdrátový, VPN, WAN, sériový, napájení) a <b>vedení</b>: rovné, s ohyby 90° nebo 45°, oblé; tažením bodů je ohnete; dvojklikem bod odeberete.</li>
+  <li><b>Obrázek pozadí</b> (půdorys, areál) s velikostí, průhledností a polohou.</li>
+  <li><b>Podmapy</b> odkazují na jiné mapy a ukazují jejich nejhorší stav.</li>
+</ul>
+
+<h2 id="reading">Čtení mapy</h2>
+<ul>
+  <li>Zelená znamená běží, oranžová částečně nefunguje, červená nefunguje (bliká); šedá znamená neznámý nebo pozastavený stav.</li>
+  <li>Kabely se s vytížením rozšiřují a mění barvu (nad 50 % oranžová, nad 80 % červená); kabel, jehož port nemá linku, je červený a přerušovaný.</li>
+  <li>Přibližujte kolečkem myši nebo dvěma prsty; názvy a popisky portů se objeví, když jste dost blízko. Kliknutím na zařízení otevřete jeho panel s kontrolami, porty a nástroji — operátoři a správci tam mají i <b>Upravit zařízení</b> a po uložení se vrátí na mapu; dvojklikem zařízení otevřete.</li>
+  <li>Kliknutím na kabel otevřete jeho panel: aktuální provoz v obou směrech a jeho <b>Historie provozu</b> za poslední hodinu, den, týden nebo měsíc (z kontroly rozhraní jednoho z konců).</li>
+</ul>
+
+<h2 id="ha">Skupiny HA</h2>
+<ul>
+  <li>Zařízení, která se navzájem zastupují — HA pár firewallů, routery VRRP nebo HSRP, stack switchů nebo pár MLAG/vPC, cluster serverů nebo úložišť — tvoří <b>Skupinu HA</b>: při úpravách zvolte v panelu prvního zařízení <b>Skupina HA → Nová skupina HA</b> a pak stejnou skupinu v panelech ostatních. Skupina je přerušovaný rámeček kolem jejích členů; členové namontovaní v racku dostanou jen tenký obrys a malý štítek <b>⇅ HA</b> tam, kde jeden navazuje na další, aby okolní jednotky zůstaly přehledné (kliknutím na štítek skupinu otevřete); role VRRP stojí drobně vedle štítku u každého člena — AKTIVNÍ zeleně, ZÁLOHA oranžově. Panel skupiny nastavuje název a druh.</li>
+  <li><b>Cesta</b> prochází každým členem skupiny a ukazuje každou rovnocennou trasu (například 2 trasy přes dva firewally). Kabel mezi členy (heartbeat, sync, stack, peer link) označte druhem kabelu <b>Spoj HA</b>; není to cesta pro provoz.</li>
+  <li>Rámeček (nebo štítek) je zelený, dokud běží všichni členové, oranžový s nápisem <i>ztracená redundance</i>, když některé nefungují, a červený, když nefungují všichni. Spouštěč <b>Skupina HA bez redundance</b> pak otevře problém (viz Upozornění).</li>
+  <li>Členové, kteří hlásí VRRP, ukazují <b>AKTIVNÍ</b> nebo <b>ZÁLOHA</b> a panel skupiny uvádí, od kdy.</li>
+</ul>
+
+<h2 id="hypervisors">Hypervizory a virtuální stroje</h2>
+<ul>
+  <li><b>Přidat hypervizor</b> (při úpravách) přidá pole pro virtualizačního hostitele: zvolte <b>hypervizor</b> (VMware ESXi, Proxmox VE, Hyper-V, XCP-ng, KVM, Nutanix AHV, Docker, Kubernetes a další) a <b>fyzický server</b>, na kterém běží (povinné; u clusteru přidejte další servery v části <b>Cluster</b> a cesty mohou vést přes kterýkoli z nich); stav serveru se zobrazuje na poli, jeho metriky se otevírají z panelu, a když je server na mapě, spojuje je přerušovaná čára. <b>Cesta</b> vede od virtuálního stroje přes jeho hypervizor a fyzický server dál po kabelech.</li>
+  <li>Přetáhněte do pole virtuální stroje: zařízení konzole (abyste viděli jejich stav) nebo položky s obrázkem jejich systému (Windows Server, Ubuntu, Debian, Red Hat, MikroTik CHR, pfSense, kontejnery a další, typ <b>Virtuální stroj</b> v panelu obrázku). Uvnitř pole se řadí do mřížky; přetažením uvnitř pole změníte pořadí, přetažením ven je z hostitele sejmete. Panel zařízení má také <b>Běží na hypervizoru</b>.</li>
+  <li><b>Zobrazovat stroje hypervisoru samy</b> (u nových polí ve výchozím stavu zapnuto) naplní pole stroji, které pro jeho fyzický server hlásí kontrola hypervizoru, agent (Hyper-V, Docker) nebo vCenter: běžící zeleně, zastavené šedě, uspané žlutě. Stroj, jehož adresa nebo název patří zařízení konzole, se zobrazí jako toto zařízení. Tyto stroje nejsou součástí uložené mapy, dokud některý nepřesunete nebo nepropojíte, nebo nestisknete <b>Umístit na mapu</b>; <b>Umístit stroje na mapu</b> umístí všechny. Položky, které sami umístíte s názvem stroje, dostanou také jeho stav.</li>
+  <li>Pole ukazuje nejhorší stav svých virtuálních strojů a fyzického serveru; vrstva <b>Hypervizory</b> pole skryje.</li>
+</ul>
+
+<h2 id="pictures">Knihovna obrázků</h2>
+<p><b>Knihovna obrázků</b> v nabídce uchovává vaše vlastní obrázky zařízení. <b>Nahrát obrázek</b> (PNG, JPEG, GIF, WebP nebo SVG; nejlépe funguje pohled zepředu) nebo vezměte vestavěný obrázek: <b>tužka</b> změní samotný vestavěný obrázek na každé mapě, kde se používá (otevření nic nemění; změněná verze se uloží až při uložení změny) (smazáním změněného obrázku se vrátíte k vestavěnému), a <b>kopírovat</b> z něj vytvoří nový vlastní obrázek pro podobný model. V editoru nastavte:</p>
+<ul>
+  <li><b>Porty</b>: kliknutím na obrázek přidáte port, nejprve port 1; tažením port přesunete, dvojklikem ho odeberete. Pro řadu zadejte počet portů a klikněte na první a poslední; <b>ve dvou řádcích</b> je očísluje jako na switchi, 1 nad 2. Poslední <b>Porty SFP</b> se kreslí oranžově a nabízejí optický kabel.</li>
+  <li><b>Jednotky U</b> (0, když se zařízení nemontuje do racku), <b>výrobce</b>, <b>typ</b> a <b>šířku na mapě</b>.</li>
+  <li><b>Kopírovat</b> vytvoří nový obrázek z některého z vašich, pro podobný model.</li>
+</ul>
+<p>Obrázky se objeví v panelu obrázků map pod svým výrobcem a typem a kabely na mapě končí v portech, které jste označili.</p>
+
+<h2 id="layers">Vrstvy a cesty</h2>
+<ul>
+  <li><b>Vrstvy</b> určují, co mapa ukazuje: zařízení, racky, položky, podmapy, kabely, názvy portů, provoz, popisky VLAN, tunely VXLAN, názvy a adresy, text a pozadí, v libovolné kombinaci. Vaše volba se pamatuje v tomto prohlížeči.</li>
+  <li><b>Cesta</b>: klikněte na dvě zařízení a mapa ukáže jen řetězec kabelů mezi nimi (s patch panely, switchi a racky po cestě) a přiblíží ho. Dalším kliknutím na Cesta nebo klávesou Esc zobrazíte celou mapu.</li>
+  <li>Názvy portů na kabelech se objeví po přiblížení, takže i hustá mapa zůstane čitelná. Stojí přesně tam, kde kabel končí: na portu obrázku nebo tam, kde kabel opouští obrázek bez portů; kreslí se nad všemi kabely, takže je žádný kabel nezakryje. Port, který už používá jiný kabel, nelze znovu zvolit; seznam uvádí, kam jeho kabel vede.</li>
+  <li><b>VLAN</b>: když switche nebo routery na mapě hlásí VLAN, objeví se na panelu nástrojů seznam VLAN. Zvolte VLAN a mapa ukáže jen kabely, které ji přenášejí, označené jako tagované nebo netagované; zařízení bez ní vyblednou. Panel kabelu uvádí VLAN jeho portů.</li>
+  <li>Kabely jsou popsány režimem VLAN, například <i>Access 20</i> nebo <i>Trunk · nativní 1 · 10, 20-25</i> (vrstva <b>Popisky VLAN</b>). Filtr VLAN umí také ukázat jen tagované nebo jen netagované VLAN. Kabel se kreslí oranžově přerušovaně, když se jeho konce neshodují: port access proti trunku nebo jiná nativní VLAN na každém konci.</li>
+  <li>Při úpravách lze <b>Režim VLAN</b> kabelu nastavit ručně: <b>Access</b> s jeho VLAN, nebo <b>Trunk</b> s nativní VLAN a povolenými (tagovanými) VLAN, včetně rozsahů jako 20-25; <b>Automaticky</b> použije to, co hlásí porty. Kabel může také nést <b>VXLAN VNI</b> a druh kabelu <b>Tunel VXLAN</b> nakreslí tunel ručně.</li>
+  <li>Tunely VXLAN, které zařízení hlásí, se kreslí jako přerušované fialové oblouky s jejich VNI (vrstva <b>Tunely VXLAN</b>).</li>
+</ul>
+
+<h2 id="kiosk">Kioskové displeje</h2>
+<p>V <a href="/settings/kiosks">Nastavení → Kioskové displeje</a> vytvořte displej s mapami, které má ukazovat, a s tím, jak často mezi nimi přepíná. Dostane tajný odkaz, který otevře mapy na celé obrazovce bez přihlášení — pro monitorovací televizi. Smazáním displeje odkaz přestane fungovat.</p>
+
+<p>Chcete-li začínat na mapě místo přehledu, zvolte ji jako <b>Úvodní stránka</b> v <a href="/account">Můj účet</a>; přihlášení a logo ji pak otevřou a <b>Přehled</b> v nabídce dál otevírá přehled. Úvodní stránkou může být i nástěnka.</p>
+
+<h2 id="arrange">Uspořádání mapy</h2>
+<p>Při úpravách <b>Uspořádat</b> rozvrhne celou mapu podle jejích kabelů: nejvíce propojené zařízení (při shodě router nebo firewall před switchem) nahoře, co na něm visí, v řadě pod ním a tak dále; racky a pole hypervizorů se posunou i s obsahem, věci bez kabelu přijdou do mřížky pod tím a ručně nakreslené ohyby se zahodí. Nic se neuloží, dokud nekliknete na <b>Uložit</b>; <b>Zrušit</b> vše vrátí.</p>
+
+<h2 id="found">Spojení nalezená na zařízeních</h2>
+<p>Každých 15 minut WatchZit čte ze zařízení přes SNMP (a ze zařízení MikroTik přes kontrolu API RouterOS), kam jsou věci zapojeny, v pořadí podle toho, jak je si jistý:</p>
+<ul>
+  <li><b>Tabulky sousedů</b> — LLDP, Cisco CDP a zjišťování MikroTik: oba konce a jejich porty. Mezi dvěma zařízeními se počítají jen skutečné porty (ne rozhraní VLAN, VXLAN, bridge ani VRRP), pokud nějaké jsou.</li>
+  <li><b>Tabulky MAC adres</b> switchů: port, na kterém se naučila MAC adresa zařízení — MAC adresy jeho vlastních rozhraní, síťové karty hlášené agentem nebo MAC adresa, kterou má pro jeho adresu tabulka ARP routeru (takže se najdou i tiskárny, kamery a servery bez SNMP). Vezme se přístupový port s nejmenším počtem adres; porty k jiným switchům (se sousedem, který je switch, nebo s více než 8 adresami) ne.</li>
+  <li><b>Popisy portů</b> (alias rozhraní nebo popis v uložené konfiguraci), které jmenují jiné zařízení, např. „uplink to sw2 ether7“ — s tímto portem, pokud ho popis uvádí.</li>
+  <li><b>Uložené konfigurace</b> (zálohy konfigurace MikroTik, Cisco, FortiGate): dvě zařízení s adresami ve stejné síti bod-bod (/30 nebo /31).</li>
+</ul>
+<p><b>Kreslit sama</b> (v panelu Navržená spojení): mapa každých 15 minut přidá spojení nalezená mezi jejími zařízeními a s volbou <b>Přidávat i zařízení, ke kterým vedou</b> přivede zařízení k ní připojená a umístí je vedle zařízení, do kterého jsou zapojena. Spojení a zařízení, která z takové mapy odeberete, zůstanou odebraná (vypnutím a opětovným zapnutím volby se to zapomene). <b>Přečíst zařízení znovu</b> přečte zařízení mapy hned.</p>

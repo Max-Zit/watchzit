@@ -1,0 +1,90 @@
+<h1>Dispositivos, comprobaciones y SNMP</h1>
+<p class="lead">Un dispositivo es cualquier cosa con una dirección: un router, un switch, un servidor, una impresora, una cámara o un sitio web. Las comprobaciones lo miden; sus resultados colorean el dispositivo, el mapa y los gráficos.</p>
+
+<h2 id="add">Añadir un dispositivo</h2>
+<p>En <a href="/devices">Dispositivos → Añadir un dispositivo</a> introduzca un nombre y una dirección IP o un nombre de host, elija su tipo y su grupo, y deje activado <b>Ping</b>. Opcional:</p>
+<ul>
+  <li><b>SNMP</b>: un perfil con la comunidad o el usuario SNMPv3; WatchZit lee entonces las interfaces, el tráfico, la CPU, la memoria y los discos.</li>
+  <li><b>Depende de</b>: el router o switch a través del cual se llega al dispositivo. Mientras este esté caído, los problemas de este dispositivo solo son "inalcanzable" y no se envían.</li>
+  <li><b>Acceso remoto</b>: el nombre de usuario y los puertos que usan las <a href="/docs/tools">herramientas</a>.</li>
+  <li><b>Puertos TCP</b>: cada uno se convierte en una comprobación que se conecta cada minuto.</li>
+</ul>
+<p>El estado del dispositivo procede de sus comprobaciones: <b>en marcha</b> cuando todas están en marcha, <b>parcialmente caído</b> cuando algunas están caídas, <b>caído</b> cuando lo están todas.</p>
+
+
+<h2 id="discovery">Descubrimiento</h2>
+<p><a href="/discovery">Dispositivos → Descubrimiento</a> encuentra los hosts de una red: añada un rango (p. ej., <code>192.168.1.0/24</code>, hasta /22, o una sola dirección) y analícelo ahora, cada día o cada semana. WatchZit hace ping a cada dirección, prueba los puertos habituales (SSH, Telnet, web, RDP, WinBox, SMB, impresoras, VNC), pregunta por SNMP con sus perfiles SNMP el nombre, la descripción y el fabricante, y busca el nombre DNS. Los hosts que aún no son dispositivos aparecen con su nombre, un tipo estimado y lo que respondió; márquelos y haga clic en <b>Añadir como equipos</b> (opcionalmente en un grupo): cada uno recibe una comprobación de ping (o una comprobación TCP si el ping está bloqueado) y el perfil SNMP que respondió. <b>Ocultar</b> deja un host fuera de la lista; los hosts ocultos se pueden volver a mostrar. Con una programación, los hosts nuevos que aparecen en la red se muestran aquí por sí solos. Con <a href="/docs/agents#collector">colectores remotos</a>, elija cuál analiza un rango: analiza la red de su propia sede.</p>
+<h2 id="links">Enlaces web</h2>
+<p>En <b>Enlaces web</b> de un dispositivo, la dirección de <b>Interfaz web</b> se abre con el botón de la página del dispositivo y en los mapas; si lo desea, dé al botón otro <b>Nombre</b>. Añada más enlaces para un servidor con varias direcciones, su iDRAC o iLO, o la página de un servicio; cada uno se convierte en un botón propio.</p>
+
+<h2 id="fields">Campos personalizados</h2>
+<p>Los administradores añaden campos propios para los dispositivos en <a href="/settings/fields">Configuración → Campos personalizados</a>: texto, un número o una fecha (un número de inventario, el fin de la garantía, el rack, un contrato). Los operadores los rellenan en la página del dispositivo, en <b>Campos personalizados</b>; los valores aparecen con los detalles del dispositivo y la búsqueda de la lista de dispositivos los encuentra. Al quitar un campo se quitan sus valores.</p>
+<h2 id="templates">Plantillas</h2>
+<p>Una plantilla es un conjunto de comprobaciones para un tipo de dispositivo: un servidor Linux, un router MikroTik, una impresora. Cree una en <a href="/templates">Plantillas</a>, elija los tipos de dispositivo a los que se destina y añada sus comprobaciones (ping, TCP, página web, certificado TLS, DNS y SNMP; las comprobaciones con contraseña se añaden por dispositivo). <b>Aplicar a</b> añade las comprobaciones a todos los dispositivos de sus tipos, a un grupo o de nuevo a los dispositivos que ya la tienen; en la página de un dispositivo, <b>Aplicar plantilla</b> lo hace para ese dispositivo. Aplicar solo añade las comprobaciones que el dispositivo aún no tiene; las que ya tiene se quedan como están, así que aplicar dos veces no causa daños. Con <b>Aplicar automáticamente a dispositivos nuevos de estos tipos</b>, cada dispositivo que se añada después (a mano o desde el descubrimiento) recibe las comprobaciones al instante. Al quitar una plantilla, las comprobaciones se quedan en los dispositivos.</p>
+<h2 id="bulk">Cambiar muchos dispositivos a la vez</h2>
+<p>Marque dispositivos en la <a href="/devices">lista de dispositivos</a> (la casilla de la cabecera marca todos los mostrados) y elija en <b>Cambiar seleccionados</b>: el grupo, el perfil SNMP, el dispositivo del que dependen, el tipo, pausar o reanudar la supervisión, aplicar una plantilla o, para los administradores, eliminarlos con sus comprobaciones y datos. Filtre antes la lista para marcar, por ejemplo, todas las impresoras de una sede.</p>
+<h2 id="checks">Tipos de comprobación</h2>
+<table>
+  <tr><th>Comprobación</th><th>Mide</th></tr>
+  <tr><td>Ping (ICMP)</td><td>Tiempo de respuesta y pérdida de paquetes.</td></tr>
+  <tr><td>Puerto TCP</td><td>Si el puerto acepta conexiones y con qué rapidez.</td></tr>
+  <tr><td>Página web (HTTP)</td><td>Código de estado, tiempo de respuesta, un texto que debe aparecer en la página, días hasta que caduque el certificado.</td></tr>
+  <tr><td>Certificado TLS</td><td>Días hasta que caduque y si es de confianza (cualquier puerto TLS, con un nombre de servidor para SNI).</td></tr>
+  <tr><td>DNS</td><td>El dispositivo es un servidor DNS: debe responder a un nombre con un tipo de registro (A, AAAA, MX …) y, opcionalmente, con un valor esperado.</td></tr>
+  <tr><td>PostgreSQL, MySQL / MariaDB</td><td>Inicio de sesión con un usuario de supervisión, versión, número de conexiones, tiempo de respuesta.</td></tr>
+  <tr><td>MikroTik RouterOS (API)</td><td>CPU, memoria, tiempo en marcha y temperatura a través de la API REST de RouterOS 7.</td></tr>
+  <tr><td>Valor de una API JSON</td><td>Un número de cualquier API JSON (FortiGate, vCenter, sus propios servicios): una dirección, una ruta como <code>results.cpu.0.current</code> y, opcionalmente, inicio de sesión Bearer o básico.</td></tr>
+  <tr><td>Hipervisor (vSphere, Proxmox VE)</td><td>Hosts, máquinas virtuales y contenedores, almacenes de datos de VMware ESXi o vCenter (API de servicios web) o de Proxmox VE (API REST): CPU y memoria de los hosts, máquinas en ejecución, hosts caídos, el almacén de datos más lleno. Consulte <a href="#hypervisor">Hipervisores</a>.</td></tr>
+  <tr><td>Escenario web</td><td>Varios pasos por una aplicación web, como haría un usuario: iniciar sesión, abrir una página protegida, comprobar el texto. Un paso por línea, por ejemplo <code>GET /login | 200 | Sign in</code>, <code>POST /login | 302 | | user=monitor&amp;password={secret}</code>, <code>GET /dashboard | | Welcome</code>: el método y la dirección, luego el estado esperado, el texto que debe contener la página y los datos del formulario. Las cookies se conservan de un paso a otro; <code>{secret}</code> es la contraseña de la comprobación. Mide el tiempo de todos los pasos y cuántos se superaron; la alerta indica el paso que falló.</td></tr>
+  <tr><td>SNMP</td><td>Disponibilidad y tiempo en marcha; interfaces, CPU y almacenamiento encontrados por el descubrimiento; cualquier OID numérico.</td></tr>
+</table>
+<p>Las contraseñas y los tokens de las comprobaciones se guardan cifrados y nunca se vuelven a mostrar; deje el campo vacío al editar una comprobación para conservar el guardado.</p>
+
+<h2 id="snmp">SNMP</h2>
+<ol>
+  <li>Cree un perfil en <a href="/settings/snmp">Configuración → SNMP</a>: v2c con una comunidad, o v3 con un usuario (se admiten SHA-2 y AES).</li>
+  <li>Elija el perfil en el dispositivo. WatchZit abre el <b>Descubrimiento SNMP</b>: marque las interfaces, la CPU, la memoria y los discos que quiere vigilar (las interfaces de loopback y las que no tienen enlace se dejan fuera).</li>
+  <li>La página del dispositivo muestra entonces los <b>puertos</b> con el estado del enlace y el tráfico en vivo, y gráficos de cada valor.</li>
+</ol>
+<p>El descubrimiento también encuentra lo que informa cada tipo de dispositivo: los <b>consumibles de las impresoras</b> (tóner, tinta, tambores, depósitos de residuos, como nivel en porcentaje; el disparador predefinido <b>Tóner o tinta bajos</b> avisa por debajo del 10 %), los <b>SAI</b> (UPS-MIB, o la APC PowerNet MIB de las tarjetas APC: carga de la batería, autonomía restante, carga; la comprobación está caída mientras el SAI funciona con batería o su batería está baja, y <b>Autonomía del SAI corta</b> avisa por debajo de 10 minutos) y los <b>sensores de estado de MikroTik</b> (temperaturas, tensiones, ventiladores, potencia, cada uno como comprobación de OID con su unidad).</p>
+<div class="callout tip"><p>MikroTik, Cisco, HP, Ubiquiti, las impresoras y los SAI hablan SNMP. En Linux instale <code>snmpd</code>; en Windows, el servicio SNMP.</p></div>
+
+<h2 id="vlans">VLAN</h2>
+<p>WatchZit lee las VLAN de los switches por SNMP una vez por hora (Q-BRIDGE-MIB: HP/Aruba, Cisco Small Business, Ubiquiti, Netgear, D-Link y la mayoría de los switches gestionables; CISCO-VTP-MIB: puertos de acceso y trunk de Cisco Catalyst), de los agentes (interfaces VLAN de Linux como eth0.10, el ID de VLAN de los adaptadores de red de Windows) y de los bridges de MikroTik por la API de RouterOS (con la comprobación <b>MikroTik RouterOS (API)</b> del dispositivo) cada diez minutos. La página del dispositivo lista cada VLAN con sus puertos etiquetados y sin etiquetar, y cada puerto con su <b>Modo</b>: <b>Acceso</b> (una VLAN sin etiquetar), <b>Trunk</b> (VLAN etiquetadas; la no etiquetada es la <b>VLAN nativa</b>) o <b>Híbrido</b> (varias VLAN sin etiquetar). Los mapas pueden mostrar una VLAN cada vez.</p>
+
+<h2 id="ha-role">Rol HA</h2>
+<p>Los dispositivos que ejecutan VRRP indican si están <b>activo</b> (maestro) o en <b>reserva</b> (respaldo): se lee por SNMP (VRRP-MIB y VRRPv3-MIB, con la comprobación de disponibilidad SNMP) y de MikroTik RouterOS por la API (con la comprobación de la API de RouterOS). La página del dispositivo muestra el rol y desde cuándo; los mapas muestran ACTIVO o RESERVA junto al dispositivo.</p>
+
+<h2 id="vxlan">VXLAN</h2>
+<p>Las interfaces VXLAN (VTEP) se leen de MikroTik RouterOS 7 (con la comprobación de la API de RouterOS, cada diez minutos) y de los agentes de Linux (con iproute2, cada cinco minutos): VNI, interfaz, dirección propia, puerto UDP y VTEP remotos, también los de la tabla de reenvío. La página del dispositivo los lista; un VTEP remoto cuya dirección es la de otro dispositivo enlaza con él. Una VXLAN sin direcciones remotas usa multidifusión o EVPN. Los mapas dibujan un túnel entre dos dispositivos del mapa que son VTEP el uno del otro.</p>
+
+<h2 id="graphs">Gráficos</h2>
+<p>Se conservan todos los valores: en bruto durante días y luego como mínimo, media y máximo de 5 minutos y por hora (Configuración → Datos de medición). En un gráfico, arrastre para ampliar y haga doble clic para volver; los botones de periodo van de una hora a un año.</p>
+<p>El botón ⤢ de un gráfico lo muestra en toda la ventana (Esc vuelve atrás).</p>
+<p><b>Editar gráficos</b> (operadores y administradores) organiza los gráficos de un dispositivo como los widgets de un panel:</p>
+<ul>
+  <li>✎ modifica un gráfico: su <b>Título</b>, su <b>Clase</b> (línea, área o barras), <b>Apilar los valores</b> (cada uno encima de los anteriores), los <b>Valores</b> que muestra (también de varias comprobaciones, por ejemplo CPU y memoria juntas) y el <b>Color</b> de cada uno, el <b>mínimo y máximo del eje</b>, y una <b>línea de aviso</b> y una <b>línea crítica</b>.</li>
+  <li>↔ lo hace tan ancho como la página, ↕ más alto o más bajo, ▲ ▼ lo mueven, × lo quita (sus valores no se representan hasta que un gráfico vuelva a mostrarlos).</li>
+  <li>Arrastre la esquina inferior derecha de un gráfico para ajustar su anchura (1–4 columnas) y su altura; se guarda al soltar.</li>
+  <li><b>Añadir gráfico</b> crea uno nuevo con cualquier valor del dispositivo. Los valores de las comprobaciones nuevas reciben sus gráficos automáticos.</li>
+  <li><b>Gráficos automáticos</b> elimina la organización: de nuevo un gráfico por comprobación.</li>
+</ul>
+
+<h2 id="config-backup">Copias de configuración</h2>
+<p>Los operadores y administradores pueden guardar la configuración de los dispositivos de red: en la sección <b>Copias de configuración</b> de un dispositivo, elija el método (<b>MikroTik RouterOS</b> (<code>/export terse show-sensitive</code>), <b>Cisco IOS</b> (<code>show running-config</code>), <b>FortiGate</b> (<code>show full-configuration</code>) o un comando propio) y el usuario SSH, el puerto y la contraseña o clave privada. La contraseña y la clave se guardan cifradas. Use un usuario que solo pueda leer.</p>
+<ul>
+  <li>Las copias se hacen cada noche a las 02:00 (hora del servidor) y con <b>Copiar ahora</b>. Solo se guarda una versión nueva cuando la configuración ha cambiado; se conservan las últimas 50 versiones de cada dispositivo.</li>
+  <li>La clave de host SSH se guarda en la primera copia y se comprueba a partir de entonces. Si cambia, la copia falla; si era lo esperado (dispositivo o firmware nuevos), use <b>Olvidar la clave de host</b>.</li>
+  <li>Cada versión muestra los cambios respecto a la anterior (+ líneas añadidas, − eliminadas, con <b>Configuración completa</b> para verlo todo) y se puede descargar como archivo de texto.</li>
+  <li>Los cambios y los fallos se escriben en el registro del dispositivo (etiqueta <code>config-backup</code>), de modo que un disparador de registros puede enviar una notificación.</li>
+  <li>Los observadores no ven ni las configuraciones ni los ajustes de las copias.</li>
+</ul>
+
+<h2 id="hypervisor">Hipervisores</h2>
+<p>Añada la comprobación <b>Hipervisor (vSphere, Proxmox VE)</b> al dispositivo de un host ESXi, un vCenter o un nodo de Proxmox VE (cualquier nodo de un clúster lee todo el clúster). Basta con un usuario que solo pueda leer: el rol <b>Read-only</b> en vSphere, <b>PVEAuditor</b> en <code>/</code> en Proxmox VE, o un token de API (<code>user@realm!name</code> como usuario y su secreto como contraseña). Deje el puerto vacío para usar 443 (vSphere) u 8006 (Proxmox VE); marque <b>Aceptar certificados no fiables</b> para el certificado autofirmado que traen de forma predeterminada.</p>
+<ul>
+  <li>Cada ejecución guarda la CPU y la memoria de todos los hosts, las máquinas en ejecución y en total, los hosts caídos y lo lleno que está el almacén de datos más lleno; con ella llegan los disparadores <b>Almacén de datos casi lleno</b> (más del 90 %) y <b>Host de hipervisor caído</b>.</li>
+  <li>La página del dispositivo lista los hosts, cada máquina virtual y contenedor (estado, CPU, memoria, dirección, sistema invitado) y los almacenes de datos. Los sistemas invitados y las direcciones se leen cada diez minutos (Proxmox VE lee las direcciones a través del agente invitado de QEMU).</li>
+  <li><b>Hyper-V</b> y <b>Docker</b> no necesitan comprobación: el agente de WatchZit en el host Windows (con Hyper-V) o en el host Linux (con Docker) informa de sus máquinas o contenedores cada cinco minutos.</li>
+  <li>En los mapas, un cuadro de hipervisor puede mostrar estas máquinas por sí solo (consulte la guía de mapas).</li>
+</ul>

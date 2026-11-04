@@ -1,0 +1,21 @@
+<h1>REST-API</h1>
+<p class="lead">Skripte und andere Systeme lesen über eine JSON-API Geräte, Prüfungen, Diagramme und Probleme, bestätigen Probleme und planen Wartungen.</p>
+
+<h2 id="tokens">Tokens</h2>
+<p>Legen Sie unter <a href="/account#api">Mein Konto → API-Token</a> ein Token an: einen Namen und wie viele Tage es gültig ist. Es wird einmal angezeigt. Ein Token handelt in Ihrem Namen, mit Ihrer Rolle (das Token eines Betrachters kann nur lesen); widerrufen Sie es, wenn es nicht mehr gebraucht wird. Fehlgeschlagene Tokens zählen wie fehlgeschlagene Anmeldungen und sperren die Adresse für eine Weile.</p>
+<p>Senden Sie es in einem Header; die API akzeptiert nie das Sitzungscookie der Konsole:</p>
+<pre>curl -H "Authorization: Bearer wzat_…" https://monitor.example.com:8443/api/v1/status</pre>
+
+<h2 id="endpoints">Endpunkte</h2>
+<table>
+  <tr><th>Anfrage</th><th>Antwort</th></tr>
+  <tr><td><code>GET /api/v1/status</code></td><td>Version, Geräte nach Zustand, offene Probleme nach Schweregrad</td></tr>
+  <tr><td><code>GET /api/v1/devices</code></td><td>Geräte; Filter <code>q</code>, <code>status</code>, <code>group</code></td></tr>
+  <tr><td><code>GET /api/v1/devices/{id}</code></td><td>ein Gerät mit seinen Prüfungen und den IDs ihrer Reihen</td></tr>
+  <tr><td><code>GET /api/v1/series/{id}?range=24h</code></td><td>die Punkte einer Reihe: Zeit, Minimum, Durchschnitt, Maximum</td></tr>
+  <tr><td><code>GET /api/v1/problems</code></td><td>offene Probleme; <code>view=history</code>, <code>severity</code>, <code>device</code></td></tr>
+  <tr><td><code>POST /api/v1/problems/{id}/ack</code></td><td>bestätigen: <code>{"note": "…"}</code></td></tr>
+  <tr><td><code>GET /api/v1/maintenance</code></td><td>Wartungsfenster</td></tr>
+  <tr><td><code>POST /api/v1/maintenance</code></td><td>eines planen: <code>{"name", "starts_at", "ends_at", "device_ids", "group_ids"}</code></td></tr>
+</table>
+<p>Zeiten sind im Format RFC 3339 (<code>2026-11-01T22:00:00+01:00</code>). Fehler haben die Form <code>{"error": "…"}</code> mit einem passenden HTTP-Status. Änderungen werden mit dem Namen des Tokens in das Prüfprotokoll geschrieben.</p>

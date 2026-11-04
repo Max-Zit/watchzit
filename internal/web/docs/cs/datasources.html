@@ -1,0 +1,58 @@
+<h1>Zdroje dat</h1>
+<p class="lead">Grafy a nástěnky mohou ukazovat i časové řady mimo WatchZit: tabulky vašich vlastních databází, Prometheus, InfluxDB nebo libovolnou adresu, která odpovídá v JSON — vedle hodnot z agentů a kontrol.</p>
+
+<h2 id="add">Přidání zdroje dat</h2>
+<p>Správci přidávají zdroje dat v <a href="/settings/datasources">Nastavení → Zdroje dat</a>:</p>
+<table>
+  <tr><th>Druh</th><th>Adresa</th><th>Přihlášení</th></tr>
+  <tr><td>PostgreSQL</td><td>hostitel nebo hostitel:port (5432) a databáze</td><td>uživatel a heslo</td></tr>
+  <tr><td>MySQL / MariaDB</td><td>hostitel nebo hostitel:port (3306) a databáze</td><td>uživatel a heslo</td></tr>
+  <tr><td>Microsoft SQL Server</td><td>hostitel nebo hostitel:port (1433) a databáze</td><td>uživatel a heslo SQL Serveru</td></tr>
+  <tr><td>Prometheus</td><td>URL, například <code>http://prometheus:9090</code>; také Thanos, VictoriaMetrics, Mimir</td><td>žádné, uživatel a heslo nebo bearer token</td></tr>
+  <tr><td>InfluxDB</td><td>URL, například <code>http://influx:8086</code>, a databáze (InfluxDB 2/3: bucket)</td><td>InfluxDB 1: uživatel a heslo; 2 a 3: jen token</td></tr>
+  <tr><td>JSON přes HTTP</td><td>základní URL vaší služby</td><td>žádné, uživatel a heslo nebo bearer token</td></tr>
+</table>
+<p><b>Otestovat spojení</b> vyzkouší nastavení, aniž by je uložilo. Heslo nebo token se ukládá zašifrovaně a už nikdy se nezobrazí; nechte pole prázdné, aby zůstalo zachováno.</p>
+<p>U databází SQL zvolte šifrování: když ho server nabízí (výchozí), vždy s libovolným certifikátem, vždy s důvěryhodným certifikátem, nebo nikdy. U adres s https:// lze přijmout certifikát podepsaný sám sebou.</p>
+<p><b>Dejte konzoli uživatele, který smí jen číst</b> tabulky, které potřebuje. WatchZit spouští dotazy PostgreSQL a MySQL v transakci jen pro čtení; SQL Server nic takového nemá, takže tam data chrání jen práva uživatele. Operátoři píší dotazy; pozorovatelé vidí jen grafy.</p>
+
+<h2 id="graphs">Dotazy v grafech</h2>
+<p>Na stránce zařízení klikněte na <b>Upravit grafy</b>, pak na ✎ u grafu nebo na <b>Přidat graf</b>. V části <b>Zdroje dat</b> klikněte na <b>Přidat dotaz</b>, zvolte zdroj dat a napište dotaz. <b>Vyzkoušet</b> ho spustí v časovém rozsahu stránky a vypíše řady, které vrací (s počtem jejich bodů), nebo chybu databáze. Graf může ukazovat až 6 dotazů vedle hodnot zařízení, každý s názvem řady, jednotkou a barvou.</p>
+<p>Na nástěnky přidejte widget <b>Graf ze zdroje dat</b>.</p>
+<p>Odpovědi se uchovávají 20 sekund, takže nástěnka na několika obrazovkách se databáze zeptá jen jednou. Dotaz vrátí nejvýše 200 000 řádků a 50 řad a smí trvat 20 sekund; hodnoty se proředí na šířku grafu.</p>
+
+<h2 id="sql">SQL (PostgreSQL, MySQL, SQL Server)</h2>
+<p>Dotaz vrací <b>sloupec času</b> (pojmenovaný <code>time</code> nebo první sloupec, který obsahuje časy; fungují i unixové sekundy či milisekundy), jeden nebo více <b>číselných sloupců</b> (každý je jedna řada) a volitelně <b>textový sloupec</b>, který řady pojmenuje (<code>metric</code> nebo první textový sloupec), pro tabulky s jedním řádkem na řadu a čas. Řaďte podle času.</p>
+<p>Makra vkládají časový rozsah grafu do dotazu:</p>
+<table>
+  <tr><th>Makro</th><th>Změní se na</th></tr>
+  <tr><td><code>$__timeFilter(col)</code></td><td><code>col</code> mezi začátkem a koncem rozsahu</td></tr>
+  <tr><td><code>$__timeGroup(col)</code></td><td><code>col</code> zaokrouhlený dolů na interval grafu; <code>$__timeGroup(col, 300)</code> na 5 minut</td></tr>
+  <tr><td><code>$__timeFrom</code>, <code>$__timeTo</code></td><td>začátek a konec jako čas</td></tr>
+  <tr><td><code>$__unixFrom</code>, <code>$__unixTo</code></td><td>začátek a konec v unixových sekundách</td></tr>
+  <tr><td><code>$__interval_s</code></td><td>interval grafu v sekundách</td></tr>
+</table>
+<p>Příklady:</p>
+<pre>-- objednávky za interval (stejně v PostgreSQL, MySQL i SQL Serveru)
+SELECT $__timeGroup(created_at) AS time, count(*) AS orders
+FROM orders WHERE $__timeFilter(created_at)
+GROUP BY 1 ORDER BY 1
+
+-- jedna řada na sklad
+SELECT $__timeGroup(ts) AS time, warehouse AS metric, avg(temp) AS value
+FROM sensor_readings WHERE $__timeFilter(ts)
+GROUP BY 1, 2 ORDER BY 1</pre>
+
+<h2 id="prometheus">Prometheus</h2>
+<p>Pište v PromQL, například <code>rate(node_network_receive_bytes_total{device="eth0"}[5m]) * 8</code>. Každá řada se jmenuje tak, jak ji zapisuje Prometheus (<code>name{label="value"}</code>); název řady v editoru ho nahradí. Krok se řídí šířkou grafu.</p>
+
+<h2 id="influxdb">InfluxDB</h2>
+<p>Pište v InfluxQL s <code>$timeFilter</code> a <code>$__interval</code>:</p>
+<pre>SELECT mean("usage_idle") FROM "cpu" WHERE $timeFilter GROUP BY time($__interval), "host"</pre>
+<p>InfluxDB 2 a 3 odpovídají na InfluxQL přes své API 1.x: namapujte tam bucket na databázi, pokud ještě namapovaný není.</p>
+
+<h2 id="json">JSON přes HTTP</h2>
+<p>Dotaz je cesta nebo parametry přidané k adrese (například <code>/api/temps?room=server</code>); WatchZit přidá <code>from</code>, <code>to</code> a <code>step</code> v unixových sekundách a přečte kteroukoli z těchto odpovědí (časy v sekundách nebo milisekundách):</p>
+<pre>[{"target": "temp", "datapoints": [[21.5, 1793268000000], ...]}, ...]
+{"temp": [[1793268000, 21.5], ...], "humidity": [[1793268000, 40], ...]}
+[[1793268000, 21.5], [1793268060, 21.7], ...]</pre>

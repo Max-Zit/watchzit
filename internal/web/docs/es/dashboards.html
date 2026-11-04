@@ -1,0 +1,25 @@
+<h1>Paneles e informes</h1>
+<p class="lead">Los paneles reúnen en una pantalla los valores que le interesan; los informes muestran la disponibilidad de sus dispositivos durante un periodo.</p>
+
+<h2 id="dashboards">Paneles</h2>
+<p>En <a href="/dashboards">Paneles</a> añada un panel y haga clic en <b>Editar</b>. Widgets:</p>
+<table>
+  <tr><th>Widget</th><th>Muestra</th></tr>
+  <tr><td>Gráfico</td><td>el gráfico de una comprobación, con el periodo del panel</td></tr>
+  <tr><td>Valor actual</td><td>un valor en cifras grandes, coloreado según el estado de su comprobación</td></tr>
+  <tr><td>Estados de dispositivos</td><td>los dispositivos de un grupo (o todos) como mosaicos de colores</td></tr>
+  <tr><td>Problemas abiertos</td><td>los problemas abiertos, de un grupo o todos</td></tr>
+  <tr><td>Mapa</td><td>un mosaico con el peor estado del mapa que lo abre al hacer clic</td></tr>
+  <tr><td>Gráfico de un origen de datos</td><td>una consulta a un <a href="/docs/datasources">origen de datos</a> (una base de datos, Prometheus, InfluxDB, JSON)</td></tr>
+</table>
+<p>Los widgets son pequeños, medianos o grandes y se colocan en una cuadrícula; muévalos hacia arriba o hacia abajo. El panel se recarga cada minuto, así que puede quedarse abierto en una pantalla mural.</p>
+
+<h2 id="reports">Informes de disponibilidad</h2>
+<p><a href="/reports">Informes</a> muestra para cada dispositivo, en los últimos 7, 30 o 90 días, este mes o el mes pasado:</p>
+<ul>
+  <li><b>Disponibilidad</b>: la parte del tiempo en que el dispositivo no estuvo caído. El tiempo en que estuvo inalcanzable detrás de un dispositivo caído cuenta como caído; el tiempo en <b>mantenimiento</b> se muestra aparte y no cuenta.</li>
+  <li><b>Tiempo de caída</b>, el número de <b>problemas</b> y el tiempo medio de <b>ping</b>.</li>
+</ul>
+<p>Descárguelo como <b>CSV</b> para una hoja de cálculo o <b>imprímalo o guárdelo como PDF</b>.</p>
+<p><b>SLA:</b> asigne a un grupo un <b>objetivo de SLA</b> (p. ej., 99,9 %) en <a href="/groups">Grupos</a>. El informe muestra entonces el <b>SLA por grupo</b> (la disponibilidad de todos sus dispositivos juntos, ponderada por tiempo, frente al objetivo: <b>cumplido</b> o <b>incumplido</b>) y colorea cada dispositivo según el objetivo de su grupo.</p>
+<p><b>Por correo:</b> los administradores definen en <b>Enviar por correo</b> si el informe se envía cada lunes (los últimos 7 días) o cada día 1 del mes (el mes anterior), para todos los dispositivos o para un grupo, y a qué direcciones. Se envía a las 07:00, hora del servidor, con el CSV adjunto; <b>Enviar ahora</b> lo envía de inmediato.</p>

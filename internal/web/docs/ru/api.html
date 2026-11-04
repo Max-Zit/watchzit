@@ -1,0 +1,21 @@
+<h1>REST API</h1>
+<p class="lead">Скрипты и другие системы через JSON API читают устройства, проверки, графики и проблемы, подтверждают проблемы и планируют обслуживание.</p>
+
+<h2 id="tokens">Токены</h2>
+<p>Создайте токен в разделе <a href="/account#api">Моя учётная запись → API-токены</a>: имя и сколько дней он действует. Он показывается один раз. Токен действует от вашего имени и с вашей ролью (токен наблюдателя может только читать); отзовите его, когда он больше не нужен. Неверные токены считаются как неудачные попытки входа и на время блокируют адрес.</p>
+<p>Передавайте токен в заголовке; API никогда не принимает сеансовый cookie консоли:</p>
+<pre>curl -H "Authorization: Bearer wzat_…" https://monitor.example.com:8443/api/v1/status</pre>
+
+<h2 id="endpoints">Конечные точки</h2>
+<table>
+  <tr><th>Запрос</th><th>Ответ</th></tr>
+  <tr><td><code>GET /api/v1/status</code></td><td>версия, устройства по состоянию, открытые проблемы по уровню</td></tr>
+  <tr><td><code>GET /api/v1/devices</code></td><td>устройства; фильтры <code>q</code>, <code>status</code>, <code>group</code></td></tr>
+  <tr><td><code>GET /api/v1/devices/{id}</code></td><td>устройство с его проверками и ID их рядов</td></tr>
+  <tr><td><code>GET /api/v1/series/{id}?range=24h</code></td><td>точки ряда: время, минимум, среднее, максимум</td></tr>
+  <tr><td><code>GET /api/v1/problems</code></td><td>открытые проблемы; <code>view=history</code>, <code>severity</code>, <code>device</code></td></tr>
+  <tr><td><code>POST /api/v1/problems/{id}/ack</code></td><td>подтверждение: <code>{"note": "…"}</code></td></tr>
+  <tr><td><code>GET /api/v1/maintenance</code></td><td>окна обслуживания</td></tr>
+  <tr><td><code>POST /api/v1/maintenance</code></td><td>планирование окна: <code>{"name", "starts_at", "ends_at", "device_ids", "group_ids"}</code></td></tr>
+</table>
+<p>Время указывается в формате RFC 3339 (<code>2026-11-01T22:00:00+01:00</code>). Ошибки возвращаются как <code>{"error": "…"}</code> с соответствующим статусом HTTP. Изменения записываются в журнал аудита с именем токена.</p>

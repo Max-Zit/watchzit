@@ -1,0 +1,32 @@
+<h1>打开设备</h1>
+<p class="lead">在设备页面或地图的侧面板中，您可以用合适的程序打开设备：其 Web 界面、SSH、远程桌面、WinBox、VNC 或您自己的工具。</p>
+
+<h2 id="launcher">MaxZit Launcher</h2>
+<p>浏览器无法启动程序，因此由一个小型 Windows 程序来完成：<b>MaxZit Launcher</b>。在<a href="/launcher">Launcher</a> 页面为每台计算机安装一次——带有简短安装向导的<b>安装程序</b>（MSI）会将其连同图标添加到“应用”中，也可以在那里再次卸载——它为您的 Windows 用户安装，无需管理员权限——然后点击<b>配对此计算机</b>。Launcher 会显示服务器的指纹；它必须与页面上显示的指纹一致。</p>
+<p>之后<b>打开方式</b>按钮即可使用。当控制台迁移到其他地址（或在别处从备份恢复）时，请再次点击<b>配对此计算机</b>：Launcher 会通过密钥识别它，并询问是否使用新地址。第一次使用时，浏览器会询问是否允许打开 Launcher；请允许。</p>
+<p>同一个 Launcher 也为 <b>PassZit</b> 服务：在 PassZit 扩展的菜单中点击<b>与 MaxZit Launcher 配对</b>，并在 Launcher 自己的窗口中确认。之后 PassZit 会使用保管库中的登录信息打开远程桌面、SSH、WinSCP、WinBox、VNC 和 Telnet——远程桌面通过一个仅存在几秒钟的 Windows 凭据，SSH 密码或密钥通过一个只有您能读取、并在启动后立即删除的文件。该 Launcher 取代了旧版 WatchZit Launcher 和 passzit-helper：安装后会接管它们的设置和配对。当 PassZit 已配对且控制台地址属于其受信任的 MaxZit 控制台之一时，WatchZit 的<b>打开方式</b>按钮会使用保管库中匹配的登录信息直接登录打开；没有 PassZit，或该设备没有登录信息时，则像以前一样打开。控制台只会告诉 PassZit 工具、地址、端口、用户名和设备名称——绝不会传递密码。<b>打开方式</b>按钮旁边的小 <b>PassZit</b> 徽章表示 PassZit 已解锁并将自动登录；<b>PassZit 已锁定</b>表示必须先解锁。如果此控制台未使用 PassZit，会显示一条小提示说明如何允许；<b>不再显示</b>会在此浏览器中隐藏它。</p>
+
+<h2 id="safety">安全机制</h2>
+<ul>
+  <li>每次点击都会生成一个由您的服务器<b>已签名</b>的链接，有效期为一分钟且只能使用一次；Launcher 只接受来自已配对服务器的链接。</li>
+  <li>地址和用户名会按照严格的字符集进行校验；程序通过参数列表启动，绝不经过 shell。</li>
+  <li>密码从不存储或发送：由程序自行询问密码。</li>
+  <li>管理员添加的程序首次运行之前，Launcher 会征求您的同意。</li>
+</ul>
+
+<h2 id="tools">内置工具</h2>
+<table>
+  <tr><th>工具</th><th>您计算机上的程序</th></tr>
+  <tr><td>SSH</td><td>已安装时使用 PuTTY，否则使用 Windows 的 SSH 客户端</td></tr>
+  <tr><td>远程桌面</td><td>Windows 远程桌面客户端</td></tr>
+  <tr><td>WinBox</td><td>位于 Program Files、下载或桌面中的 winbox64.exe</td></tr>
+  <tr><td>VNC</td><td>TightVNC、TigerVNC 或 RealVNC 查看器</td></tr>
+  <tr><td>Telnet</td><td>PuTTY</td></tr>
+</table>
+<p>程序位于其他位置时：将其路径写入 <code>%APPDATA%\MaxZit Launcher\launcher.json</code>。没有 Launcher 时，远程桌面仍可使用：<b>.rdp</b> 按钮会下载一个由 Windows 打开的文件。</p>
+
+<h2 id="own-tools">您自己的工具</h2>
+<p>在<a href="/settings/tools">设置 → 工具</a>中，管理员可以关闭内置工具、将其限定于某些设备类型，并添加自己的工具：程序路径（例如 <code>%ProgramFiles%\Mozilla Firefox\firefox.exe</code>）以及包含 <code>{host}</code>、<code>{port}</code>、<code>{user}</code> 和 <code>{name}</code> 的参数。每台设备的用户名和端口在设备的<b>远程访问</b>中设置，您也可以在那里取消勾选设备不具备的工具——Proxmox 或 Linux 服务器没有远程桌面——或勾选其类型默认不提供的工具；设备页面和地图上的按钮随后只显示已勾选的工具。</p>
+
+<h2 id="device-links">每个设备上的链接</h2>
+<p>同样在<a href="/settings/tools#links">设置 → 工具</a>中，<b>每个设备上的链接</b>会在每个设备页面上添加按钮，用于在浏览器中以其他程序打开该设备，例如 RMMZit 或 BackupZit。请指定名称和地址；<code>{name}</code>、<code>{address}</code> 和 <code>{id}</code> 会被替换为设备的名称、地址和编号，例如 <code>https://rmm.example.com:8443/devices?q={name}</code>。只接受 http:// 和 https:// 地址。</p>

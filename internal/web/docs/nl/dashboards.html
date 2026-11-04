@@ -1,0 +1,25 @@
+<h1>Dashboards en rapporten</h1>
+<p class="lead">Dashboards zetten de waarden die voor u belangrijk zijn op één scherm; rapporten laten zien hoe beschikbaar uw apparaten in een periode waren.</p>
+
+<h2 id="dashboards">Dashboards</h2>
+<p>Voeg onder <a href="/dashboards">Dashboards</a> een dashboard toe en klik op <b>Bewerken</b>. Widgets:</p>
+<table>
+  <tr><th>Widget</th><th>Toont</th></tr>
+  <tr><td>Grafiek</td><td>de grafiek van een controle, met het tijdsbereik van het dashboard</td></tr>
+  <tr><td>Actuele waarde</td><td>één waarde in grote cijfers, gekleurd naar de status van de controle</td></tr>
+  <tr><td>Apparaatstatussen</td><td>de apparaten van een groep (of alle) als gekleurde tegels</td></tr>
+  <tr><td>Open problemen</td><td>de open problemen, van een groep of alle</td></tr>
+  <tr><td>Kaart</td><td>een tegel met de slechtste status van de kaart, die de kaart opent</td></tr>
+  <tr><td>Grafiek uit een gegevensbron</td><td>een query op een <a href="/docs/datasources">gegevensbron</a> (een database, Prometheus, InfluxDB, JSON)</td></tr>
+</table>
+<p>Widgets zijn klein, middelgroot of groot in een raster; verplaats ze omhoog en omlaag. Het dashboard wordt elke minuut opnieuw geladen, zodat het op een wandscherm open kan blijven.</p>
+
+<h2 id="reports">Beschikbaarheidsrapporten</h2>
+<p><a href="/reports">Rapporten</a> toont per apparaat, voor de laatste 7, 30 of 90 dagen, deze maand of vorige maand:</p>
+<ul>
+  <li><b>Beschikbaarheid</b> — het deel van de tijd dat het apparaat niet uitgevallen was. Tijd waarin het onbereikbaar was achter een uitgevallen apparaat telt als uitval; tijd in <b>onderhoud</b> wordt apart getoond en telt niet mee.</li>
+  <li><b>Uitvaltijd</b>, het aantal <b>problemen</b> en de gemiddelde <b>ping</b>tijd.</li>
+</ul>
+<p>Download het als <b>CSV</b> voor een spreadsheet of <b>druk het af of sla het op als pdf</b>.</p>
+<p><b>SLA:</b> geef een groep een <b>SLA-doel</b> (bijv. 99,9 %) onder <a href="/groups">Groepen</a>. Het rapport toont dan <b>SLA per groep</b> — de beschikbaarheid van al zijn apparaten samen (gewogen naar tijd) tegenover het doel, <b>gehaald</b> of <b>gemist</b> — en kleurt elk apparaat naar het doel van zijn groep.</p>
+<p><b>Per e-mail:</b> beheerders stellen onder <b>Per e-mail versturen</b> in of het rapport elke maandag (de laatste 7 dagen) of op elke 1e van de maand (de vorige maand) wordt verstuurd, voor alle apparaten of een groep, en naar welke adressen. Het wordt om 07:00 servertijd verstuurd met de CSV als bijlage; <b>Nu versturen</b> verstuurt het meteen.</p>

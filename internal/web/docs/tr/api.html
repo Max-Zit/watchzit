@@ -1,0 +1,21 @@
+<h1>REST API</h1>
+<p class="lead">Betikler ve diğer sistemler bir JSON API üzerinden cihazları, kontrolleri, grafikleri ve sorunları okur, sorunları üstlenir ve bakım planlar.</p>
+
+<h2 id="tokens">Belirteçler</h2>
+<p><a href="/account#api">Hesabım → API belirteçleri</a> altında bir belirteç oluşturun: bir ad ve kaç gün geçerli olduğu. Bir kez gösterilir. Belirteç sizin adınıza, sizin rolünüzle çalışır (bir izleyicinin belirteci yalnızca okuyabilir); artık gerekmediğinde iptal edin. Başarısız belirteçler başarısız girişler gibi sayılır ve adresi bir süreliğine engeller.</p>
+<p>Belirteci bir başlıkta gönderin; API konsolun oturum çerezini hiçbir zaman kabul etmez:</p>
+<pre>curl -H "Authorization: Bearer wzat_…" https://monitor.example.com:8443/api/v1/status</pre>
+
+<h2 id="endpoints">Uç noktalar</h2>
+<table>
+  <tr><th>İstek</th><th>Yanıt</th></tr>
+  <tr><td><code>GET /api/v1/status</code></td><td>sürüm, duruma göre cihazlar, öneme göre açık sorunlar</td></tr>
+  <tr><td><code>GET /api/v1/devices</code></td><td>cihazlar; filtreler <code>q</code>, <code>status</code>, <code>group</code></td></tr>
+  <tr><td><code>GET /api/v1/devices/{id}</code></td><td>kontrolleri ve serilerinin kimlikleriyle bir cihaz</td></tr>
+  <tr><td><code>GET /api/v1/series/{id}?range=24h</code></td><td>bir serinin noktaları: zaman, asgari, ortalama, azami</td></tr>
+  <tr><td><code>GET /api/v1/problems</code></td><td>açık sorunlar; <code>view=history</code>, <code>severity</code>, <code>device</code></td></tr>
+  <tr><td><code>POST /api/v1/problems/{id}/ack</code></td><td>üstlenme: <code>{"note": "…"}</code></td></tr>
+  <tr><td><code>GET /api/v1/maintenance</code></td><td>bakım pencereleri</td></tr>
+  <tr><td><code>POST /api/v1/maintenance</code></td><td>bir tane planlama: <code>{"name", "starts_at", "ends_at", "device_ids", "group_ids"}</code></td></tr>
+</table>
+<p>Zamanlar RFC 3339 biçimindedir (<code>2026-11-01T22:00:00+01:00</code>). Hatalar, uygun bir HTTP durumuyla <code>{"error": "…"}</code> şeklindedir. Değişiklikler belirtecin adıyla denetim günlüğüne yazılır.</p>

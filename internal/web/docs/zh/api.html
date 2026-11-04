@@ -1,0 +1,21 @@
+<h1>REST API</h1>
+<p class="lead">脚本和其他系统可以通过 JSON API 读取设备、检查、图表和问题，确认问题并计划维护。</p>
+
+<h2 id="tokens">令牌</h2>
+<p>在<a href="/account#api">我的帐户 → API 令牌</a>中创建令牌：指定名称和有效天数。令牌只显示一次。令牌以您的身份和角色执行操作（查看者的令牌只能读取）；不再需要时请将其吊销。验证失败的令牌与登录失败一样计数，并会暂时封锁该地址。</p>
+<p>请在请求头中发送令牌；API 从不接受控制台的会话 Cookie：</p>
+<pre>curl -H "Authorization: Bearer wzat_…" https://monitor.example.com:8443/api/v1/status</pre>
+
+<h2 id="endpoints">端点</h2>
+<table>
+  <tr><th>请求</th><th>响应</th></tr>
+  <tr><td><code>GET /api/v1/status</code></td><td>版本、按状态统计的设备、按严重程度统计的未解决问题</td></tr>
+  <tr><td><code>GET /api/v1/devices</code></td><td>设备；筛选参数 <code>q</code>、<code>status</code>、<code>group</code></td></tr>
+  <tr><td><code>GET /api/v1/devices/{id}</code></td><td>一台设备及其检查，以及这些检查的序列 ID</td></tr>
+  <tr><td><code>GET /api/v1/series/{id}?range=24h</code></td><td>序列的数据点：时间、最小值、平均值、最大值</td></tr>
+  <tr><td><code>GET /api/v1/problems</code></td><td>未解决的问题；<code>view=history</code>、<code>severity</code>、<code>device</code></td></tr>
+  <tr><td><code>POST /api/v1/problems/{id}/ack</code></td><td>确认：<code>{"note": "…"}</code></td></tr>
+  <tr><td><code>GET /api/v1/maintenance</code></td><td>维护窗口</td></tr>
+  <tr><td><code>POST /api/v1/maintenance</code></td><td>计划一个维护窗口：<code>{"name", "starts_at", "ends_at", "device_ids", "group_ids"}</code></td></tr>
+</table>
+<p>时间采用 RFC 3339 格式（<code>2026-11-01T22:00:00+01:00</code>）。错误以 <code>{"error": "…"}</code> 返回，并带有相应的 HTTP 状态码。更改会连同令牌名称一起写入审计日志。</p>

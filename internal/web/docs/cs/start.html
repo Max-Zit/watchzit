@@ -1,0 +1,31 @@
+<h1>Začínáme</h1>
+<p class="lead">WatchZit je systém pro sledování sítě a zařízení, který si hostujete sami. Živá mapa sítě ukazuje, co je s čím propojeno a v jakém je to stavu; za ní stojí kontroly, grafy, upozornění, nástěnky a zprávy — na vašem vlastním serveru, pod licencí AGPL-3.0.</p>
+
+<h2 id="what">Co WatchZit umí</h2>
+<table>
+  <tr><th>Oblast</th><th>Co získáte</th></tr>
+  <tr><td>Mapy sítě</td><td>Nakreslete svou síť se skutečnými obrázky zařízení, racky a kabely od portu k portu; mapa ukazuje stav a provoz živě. <a href="/docs/maps">Mapy sítě</a></td></tr>
+  <tr><td>Kontroly</td><td>Ping, TCP porty, webové stránky, certifikáty TLS, DNS, PostgreSQL a MySQL, SNMP (v1/v2c/v3: rozhraní, CPU, paměť, disky, libovolný OID), API MikroTik RouterOS a hodnoty z libovolného JSON API. <a href="/docs/devices">Zařízení a kontroly</a></td></tr>
+  <tr><td>Agent</td><td>Malý volitelný agent pro Windows a Linux hlásí CPU, paměť, disky, rozhraní a vybrané služby. <a href="/docs/agents">Agenti</a></td></tr>
+  <tr><td>Upozornění</td><td>Spouštěče otevírají problémy; závislosti, okna údržby a potvrzování snižují šum; oznámení e-mailem, webhookem, do Slacku a Teams. <a href="/docs/alerts">Problémy a upozornění</a></td></tr>
+  <tr><td>Grafy, nástěnky, zprávy</td><td>Grafy každé hodnoty od jedné hodiny po rok, nástěnky pro nástěnnou obrazovku, zprávy o dostupnosti. <a href="/docs/dashboards">Nástěnky a zprávy</a></td></tr>
+  <tr><td>Otevírání zařízení</td><td>Otevřete webovou stránku zařízení, SSH, Vzdálenou plochu, WinBox nebo vlastní nástroje jedním kliknutím. <a href="/docs/tools">Otevírání zařízení</a></td></tr>
+</table>
+
+<h2 id="how">Jak to funguje</h2>
+<ul>
+  <li><b>Server</b> běží na Linuxu s PostgreSQL. Má dva porty: <b>konzoli</b> (webové rozhraní a REST API, TCP 8443) a <b>koncový bod agentů</b> (TCP 8444).</li>
+  <li>Server zařízení <b>dotazuje</b> sám (ping, TCP, SNMP, HTTP, databáze, API). Zařízení k tomu nepotřebují nic instalovat.</li>
+  <li><b>Agenti</b> jsou volitelní. Připojují se <i>směrem ven</i> k portu agentů a hlásí se každou minutu; počítače nepotřebují žádné otevřené porty.</li>
+  <li>Každá změna v konzoli se zapisuje do <a href="/audit">protokolu auditu</a>, který je chráněn proti neoprávněným úpravám.</li>
+</ul>
+
+<h2 id="first-steps">První kroky</h2>
+<ol>
+  <li><b>Nainstalujte server</b> — viz <a href="/docs/install">Instalace serveru</a>.</li>
+  <li><b>Vytvořte prvního správce</b> pomocí instalačního tokenu, který zobrazí instalátor, a nastavte dvoufázové přihlášení s ověřovací aplikací.</li>
+  <li><b>Přidejte zařízení</b> v části <a href="/devices">Zařízení</a>: stačí název a adresa; ping se přidá automaticky. Přidejte profil SNMP, abyste mohli číst rozhraní a provoz.</li>
+  <li><b>Nakreslete mapu</b> v části <a href="/maps">Mapy</a> a propojte zařízení port k portu.</li>
+  <li><b>Nastavte oznámení</b> v <a href="/settings/notifications">Nastavení → Oznámení</a>; vestavěné spouštěče už hlídají nefunkční zařízení, plné disky a vypršující certifikáty.</li>
+</ol>
+<div class="callout tip"><p>Konzole je ve výchozím stavu dostupná jen z privátních sítí. Ponechte to tak a otevřete jen port agentů (8444) tam, kde ho agenti potřebují.</p></div>

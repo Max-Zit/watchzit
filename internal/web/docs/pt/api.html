@@ -1,0 +1,21 @@
+<h1>API REST</h1>
+<p class="lead">Scripts e outros sistemas leem dispositivos, verificações, gráficos e problemas, reconhecem problemas e planeiam manutenções através de uma API JSON.</p>
+
+<h2 id="tokens">Tokens</h2>
+<p>Crie um token em <a href="/account#api">Minha conta → Tokens de API</a>: um nome e quantos dias é válido. É mostrado uma única vez. Um token age em seu nome, com a sua função (o token de um observador só pode ler); revogue-o quando já não for necessário. Tokens inválidos contam como inícios de sessão falhados e bloqueiam o endereço durante algum tempo.</p>
+<p>Envie-o num cabeçalho; a API nunca aceita o cookie de sessão da consola:</p>
+<pre>curl -H "Authorization: Bearer wzat_…" https://monitor.example.com:8443/api/v1/status</pre>
+
+<h2 id="endpoints">Endpoints</h2>
+<table>
+  <tr><th>Pedido</th><th>Resposta</th></tr>
+  <tr><td><code>GET /api/v1/status</code></td><td>versão, dispositivos por estado, problemas abertos por gravidade</td></tr>
+  <tr><td><code>GET /api/v1/devices</code></td><td>dispositivos; filtros <code>q</code>, <code>status</code>, <code>group</code></td></tr>
+  <tr><td><code>GET /api/v1/devices/{id}</code></td><td>um dispositivo com as suas verificações e os ids das respetivas séries</td></tr>
+  <tr><td><code>GET /api/v1/series/{id}?range=24h</code></td><td>os pontos de uma série: tempo, mínimo, média, máximo</td></tr>
+  <tr><td><code>GET /api/v1/problems</code></td><td>problemas abertos; <code>view=history</code>, <code>severity</code>, <code>device</code></td></tr>
+  <tr><td><code>POST /api/v1/problems/{id}/ack</code></td><td>reconhecer: <code>{"note": "…"}</code></td></tr>
+  <tr><td><code>GET /api/v1/maintenance</code></td><td>janelas de manutenção</td></tr>
+  <tr><td><code>POST /api/v1/maintenance</code></td><td>planear uma: <code>{"name", "starts_at", "ends_at", "device_ids", "group_ids"}</code></td></tr>
+</table>
+<p>Os tempos estão em RFC 3339 (<code>2026-11-01T22:00:00+01:00</code>). Os erros são <code>{"error": "…"}</code> com o estado HTTP correspondente. As alterações ficam registadas no log de auditoria com o nome do token.</p>

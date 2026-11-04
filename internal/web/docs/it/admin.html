@@ -1,0 +1,72 @@
+<h1>Utenti, impostazioni e aggiornamenti</h1>
+<p class="lead">Chi può fare cosa, come è protetta la console e come WatchZit resta aggiornato.</p>
+
+<h2 id="roles">Utenti e ruoli</h2>
+<table>
+  <tr><th>Ruolo</th><th>Può</th></tr>
+  <tr><td>Amministratore</td><td>tutto, inclusi utenti e impostazioni</td></tr>
+  <tr><td>Operatore</td><td>gestire dispositivi, controlli, mappe, trigger, manutenzioni, dashboard</td></tr>
+  <tr><td>Osservatore</td><td>solo guardare</td></tr>
+</table>
+<p>Ogni utente accede con una password e l'accesso a due fattori (un'app di autenticazione); i codici di recupero aiutano quando si perde il telefono. Gli amministratori aggiungono utenti in <a href="/users">Utenti</a> e reimpostano password e accesso a due fattori. Il <a href="/audit">Registro di controllo</a> registra ogni modifica; le sue voci sono concatenate, così qualsiasi alterazione del registro diventa visibile.</p>
+
+<h2 id="directory">Active Directory / LDAP e single sign-on</h2>
+<p>Oltre agli account locali, gli utenti possono accedere con un account della directory. Gli account locali continuano sempre a funzionare, così un amministratore può accedere anche quando la directory o l'identity provider non sono disponibili. Un nome utente che appartiene a un account locale non viene mai rilevato da un accesso tramite directory.</p>
+<ul>
+  <li><b>Active Directory / LDAP</b> (<a href="/settings/ldap">Impostazioni → Active Directory / LDAP</a>): il server (<code>ldaps://dc1.example.local</code>, oppure <code>ldap://</code> con StartTLS; le password non attraversano mai la rete in chiaro), facoltativamente il certificato di una CA aziendale, un account di servizio che possa leggere utenti e gruppi, il DN di base e il filtro utenti (Active Directory <code>(&amp;(objectClass=user)(sAMAccountName={username}))</code>). Su Active Directory vengono seguiti i gruppi annidati. La directory verifica la password; WatchZit chiede comunque il proprio secondo fattore. <b>Test</b> verifica un account senza accedere e mostra i gruppi e il ruolo che otterrebbe.</li>
+  <li><b>Single sign-on</b> (<a href="/settings/sso">Impostazioni → Single sign-on</a>): OpenID Connect (Microsoft Entra ID, Google, Okta, Keycloak …: l'issuer, il client ID e il secret; registra <code>https://&lt;console&gt;/login/sso/callback</code> come redirect URI) oppure SAML 2.0 (ADFS, Entra ID, Okta …: l'URL o l'XML dei metadati dell'identity provider; fornisci all'identity provider <code>https://&lt;console&gt;/login/sso/metadata</code>, l'indirizzo di risposta è <code>/login/sso/saml</code>). La pagina di accesso riceve un pulsante. Il secondo fattore di WatchZit viene richiesto anche solo se lo spunti; altrimenti decide la policy dell'identity provider.</li>
+  <li><b>Gruppi e ruoli</b>: a ogni accesso i gruppi decidono il ruolo (amministratori, operatori o osservatori; vince il più alto), e gli utenti che non appartengono a nessuno dei gruppi ricevono il ruolo predefinito oppure non possono accedere. Un gruppo è il suo nome o il DN completo, oppure il nome o l'ID inviato dall'identity provider (Entra ID invia ID).</li>
+  <li>Gli account della directory vengono creati al primo accesso e mostrano <b>LDAP</b> o <b>SSO</b> nell'elenco utenti. Non hanno una password WatchZit; disattivali in WatchZit per tenerli fuori anche se la directory li lascia entrare.</li>
+</ul>
+
+<h2 id="settings">Impostazioni</h2>
+<ul>
+  <li><b>Rete e accesso</b>: le porte della console e degli agenti, le reti autorizzate a raggiungere ciascuna, l'indirizzo pubblico per gli agenti.</li>
+  <li><b>Accesso e sicurezza</b>: durata della sessione, quanti accessi falliti bloccano un indirizzo e la rimozione di un blocco.</li>
+  <li><b>Dati di misura</b>: per quanto tempo vengono conservati i valori grezzi, a 5 minuti e orari, e quanto spazio occupano.</li>
+  <li><b>Certificato</b>: il certificato proprio della console, uno caricato da te o uno di Let's Encrypt (vedi sotto).</li>
+  <li><b>Campi personalizzati</b>: i tuoi campi per i dispositivi (vedi Dispositivi).</li>
+  <li><b>Diagnostica</b>: dove si trovano i log, le righe più recenti del log del server con un filtro e uno ZIP per l'assistenza (log, dispositivi, agenti, problemi, registro di controllo) da cui sono rimossi password, community, token, codici di registrazione e chiavi; le configurazioni dei dispositivi salvate non sono incluse.</li>
+  <li><b>SNMP</b>, <b>Notifiche</b>, <b>Strumenti</b>, <b>Schermi kiosk</b>: vedi i rispettivi capitoli.</li>
+</ul>
+
+<h2 id="updates">Aggiornamenti</h2>
+<p><a href="/settings/version">Impostazioni → Aggiornamenti e server</a> mostra la versione in esecuzione e l'ultima versione pubblicata. Se installato con i pacchetti Linux, WatchZit si aggiorna da solo:</p>
+<ol>
+  <li>Vengono accettate solo versioni <b>firmate</b> con la chiave di rilascio di WatchZit.</li>
+  <li>L'helper con privilegi di root esegue il backup del database e del programma, installa il nuovo pacchetto e verifica che la console si avvii.</li>
+  <li>Se non si avvia, torna da solo alla versione precedente.</li>
+</ol>
+<p>Il <b>Canale di aggiornamento</b> sceglie cosa installa la console: <b>Versioni ufficiali</b>, oppure <b>test</b> (release candidate che precedono una versione ufficiale, per una console di prova). Tieni le console di produzione sulle versioni ufficiali.</p>
+<p>Gli aggiornamenti si possono installare con un clic o automaticamente a un'ora scelta. Un mirror o una cartella locale possono fare da origine (<code>WATCHZIT_UPDATE_SOURCE</code> in <code>/etc/watchzit/server.env</code>). La stessa pagina imposta il fuso orario del server e riavvia il servizio.</p>
+<p><b>Senza accesso a internet:</b> in <b>Installa da file</b> carica <code>manifest.json</code>, <code>manifest.json.sig</code> e il pacchetto del server (.deb o .rpm) di una versione, scaricati su un altro computer. Vengono verificati come un download e installati allo stesso modo.</p>
+
+<h2 id="os">Sistema operativo e SSH</h2>
+<p>La stessa pagina mostra gli <b>Aggiornamenti del sistema operativo</b> del server (Debian, Ubuntu, AlmaLinux, Rocky Linux): quanti sono in attesa e quanti sono di sicurezza, se gli aggiornamenti di sicurezza automatici sono attivi e quando sono stati eseguiti l'ultima volta. <b>Installa tutti gli aggiornamenti</b> li installa subito; se richiedono un riavvio, la pagina lo segnala e <b>Riavvia il server</b> lo riavvia. L'elenco si aggiorna da solo due volte al giorno, oppure con <b>Verifica ora</b>.</p>
+<p>Sull'appliance WatchZit la pagina imposta anche la <b>rete</b> (DHCP o un indirizzo fisso, gateway, DNS, nome; le impostazioni che isolano l'appliance vengono annullate dopo 30 secondi) e <b>SSH</b>: attivo o no e la sua porta; una porta rifiutata dal server SSH mantiene l'impostazione precedente. Sugli altri server queste impostazioni spettano al sistema operativo.</p>
+
+<h2 id="certificate">Certificato</h2>
+<p>Di serie la console usa un proprio certificato, per il quale i browser mostrano un avviso. In <a href="/settings/certificate">Impostazioni → Certificato</a>:</p>
+<ul>
+  <li><b>Carica un certificato</b> della tua azienda: il certificato con la sua catena e la chiave privata in formato PEM (file o testo incollato), per il nome DNS (o l'indirizzo IP) usato dai browser. Viene verificato prima di essere usato.</li>
+  <li><b>Let's Encrypt</b>: inserisci il nome e un indirizzo email. Let's Encrypt verifica il nome tramite la <b>porta 80</b> di questo server (raggiungibile da internet) oppure, se la console è interna, con un <b>record DNS tramite Cloudflare</b> (un token API con il permesso Zone → DNS → Edit). Il certificato si rinnova da solo 30 giorni prima della scadenza.</li>
+  <li><b>Servi la porta 80</b> indirizza inoltre alla console i browser che digitano http://.</li>
+</ul>
+<p>Il certificato attendibile viene servito quando la console è aperta tramite il suo nome; se aperta tramite indirizzo IP, la console continua a usare il proprio certificato. Gli agenti non sono interessati: usano il certificato proprio della porta degli agenti, che hanno vincolato al momento della registrazione. Per usare la porta standard, imposta la porta della console su 443 in Rete e accesso.</p>
+
+<h2 id="backup">Backup della console</h2>
+<p><a href="/settings/console-backup">Impostazioni → Backup della console</a> esegue il backup dell'intera console: il database con tutte le misure, la chiave segreta delle password salvate, la chiave del launcher e i certificati di cui si fidano gli agenti; tutto ciò che serve a un nuovo server per subentrare. I backup vengono scritti in <code>backups</code> nella directory dei dati ogni giorno all'ora scelta (e con <b>Backup ora</b>); vengono conservati i più recenti (7 di default).</p>
+<ul>
+  <li><b>Cifratura</b>: con una passphrase (almeno 12 caratteri) il file viene cifrato (AES-256-GCM). Conserva la passphrase altrove: senza di essa un backup non si può ripristinare.</li>
+  <li><b>Copia SFTP</b>: ogni backup viene copiato anche in una cartella su un altro server (password o chiave privata). Il primo <b>Prova la cartella SFTP</b> mostra la chiave host del server da considerare attendibile; le copie vanno solo a un server con quella chiave. La cartella conserva tanti backup quanti il server.</li>
+  <li><b>Email se un backup fallisce</b> invia un avviso tramite il server SMTP di Impostazioni → Notifiche.</li>
+  <li>Il <b>Ripristino</b> si esegue con il server fermo: sull'appliance con la voce di menu <b>Ripristina un backup della console</b>; con i pacchetti Linux <code>systemctl stop watchzit-server</code>, poi <code>watchzit-server --data-dir /var/lib/watchzit --restore FILE</code> come utente watchzit con <code>/etc/watchzit/server.env</code> caricato (un backup cifrato legge la passphrase da <code>WATCHZIT_BACKUP_PASSPHRASE</code> o da <code>--restore-passphrase-file</code>), quindi avvia il server. Il ripristino sostituisce tutto in un'unica transazione; un backup di una versione precedente viene aggiornato all'avvio del server. Gli agenti continuano a funzionare: si fidano dello stesso certificato.</li>
+</ul>
+
+<h2 id="security">Sicurezza</h2>
+<ul>
+  <li>La console usa solo HTTPS, una Content Security Policy rigorosa e una protezione contro le richieste cross-site; risponde solo alle reti autorizzate.</li>
+  <li>Le password sono sottoposte a hash con Argon2id; i segreti salvati (password di SNMP, database e API, canali) sono cifrati con la chiave segreta del server.</li>
+  <li>Gli agenti sono identificati dalla propria chiave; si fidano del server tramite l'impronta vincolata del suo certificato degli agenti.</li>
+  <li>Segnala le vulnerabilità in modo riservato: vedi SECURITY.md nel repository.</li>
+</ul>

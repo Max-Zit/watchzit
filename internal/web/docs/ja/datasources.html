@@ -1,0 +1,58 @@
+<h1>データソース</h1>
+<p class="lead">グラフとダッシュボードには、WatchZit の外部にある時系列データも表示できます。独自のデータベースのテーブル、Prometheus、InfluxDB、または JSON で応答する任意のアドレスのデータを、エージェントやチェックの値と並べて表示できます。</p>
+
+<h2 id="add">データソースの追加</h2>
+<p>管理者は<a href="/settings/datasources">設定 → データソース</a>でデータソースを追加します。</p>
+<table>
+  <tr><th>種類</th><th>アドレス</th><th>サインイン</th></tr>
+  <tr><td>PostgreSQL</td><td>host または host:port（5432）、およびデータベース</td><td>ユーザーとパスワード</td></tr>
+  <tr><td>MySQL / MariaDB</td><td>host または host:port（3306）、およびデータベース</td><td>ユーザーとパスワード</td></tr>
+  <tr><td>Microsoft SQL Server</td><td>host または host:port（1433）、およびデータベース</td><td>SQL Server のユーザーとパスワード</td></tr>
+  <tr><td>Prometheus</td><td>URL（例：<code>http://prometheus:9090</code>）。Thanos、VictoriaMetrics、Mimir も可</td><td>なし、ユーザーとパスワード、または Bearer トークン</td></tr>
+  <tr><td>InfluxDB</td><td>URL（例：<code>http://influx:8086</code>）とデータベース（InfluxDB 2/3 ではバケット）</td><td>InfluxDB 1：ユーザーとパスワード。2 と 3：トークンのみ</td></tr>
+  <tr><td>JSON over HTTP</td><td>サービスのベース URL</td><td>なし、ユーザーとパスワード、または Bearer トークン</td></tr>
+</table>
+<p><b>接続をテスト</b>は、設定を保存せずに試します。パスワードやトークンは暗号化して保存され、再表示されることはありません。保持するにはフィールドを空のままにしてください。</p>
+<p>SQL データベースでは暗号化を選びます：サーバーが提供する場合（既定）、常に（任意の証明書で）、常に（信頼された証明書で）、または使用しない。https:// のアドレスでは、自己署名証明書を受け入れることができます。</p>
+<p><b>コンソールには、必要なテーブルを読み取るだけのユーザーを割り当ててください</b>。WatchZit は PostgreSQL と MySQL のクエリを読み取り専用トランザクションで実行します。SQL Server にはそのような仕組みがないため、データを守るのはユーザーの権限だけです。オペレーターはクエリを作成でき、閲覧者はグラフを見ることだけができます。</p>
+
+<h2 id="graphs">グラフ上のクエリ</h2>
+<p>デバイスページで<b>グラフを編集</b>をクリックし、グラフの ✎ または<b>グラフを追加</b>をクリックします。<b>データソース</b>で<b>クエリを追加</b>をクリックし、データソースを選んでクエリを記述します。<b>試す</b>はページの期間でクエリを実行し、得られた系列（とそのポイント数）またはデータベースのエラーを表示します。1 つのグラフには、デバイスの値と並べて最大 6 つのクエリを表示でき、それぞれに系列名、単位、色を設定できます。</p>
+<p>ダッシュボードでは、ウィジェット<b>データソースのグラフ</b>を追加します。</p>
+<p>応答は 20 秒間キャッシュされるため、複数の画面に表示したダッシュボードでもデータベースへの問い合わせは 1 回です。1 つのクエリで取得できるのは最大 200,000 行、50 系列で、実行時間は最大 20 秒です。値はグラフの幅に合わせて間引かれます。</p>
+
+<h2 id="sql">SQL（PostgreSQL、MySQL、SQL Server）</h2>
+<p>クエリは、<b>時刻列</b>（<code>time</code> という名前の列、または時刻を含む最初の列。Unix 秒やミリ秒も使えます）、1 つ以上の<b>数値列</b>（それぞれが 1 系列）、そしてオプションで系列名を示す<b>テキスト列</b>（<code>metric</code>、または最初のテキスト列。系列と時刻ごとに 1 行を持つテーブル用）を返します。時刻順に並べてください。</p>
+<p>マクロはグラフの期間をクエリに埋め込みます。</p>
+<table>
+  <tr><th>マクロ</th><th>展開結果</th></tr>
+  <tr><td><code>$__timeFilter(col)</code></td><td><code>col</code> が期間の開始と終了の間にある条件</td></tr>
+  <tr><td><code>$__timeGroup(col)</code></td><td><code>col</code> をグラフの間隔に切り捨てた値。<code>$__timeGroup(col, 300)</code> で 5 分単位</td></tr>
+  <tr><td><code>$__timeFrom</code>、<code>$__timeTo</code></td><td>開始と終了（時刻型）</td></tr>
+  <tr><td><code>$__unixFrom</code>、<code>$__unixTo</code></td><td>開始と終了（Unix 秒）</td></tr>
+  <tr><td><code>$__interval_s</code></td><td>グラフの間隔（秒）</td></tr>
+</table>
+<p>例：</p>
+<pre>-- 間隔ごとの注文数（PostgreSQL、MySQL、SQL Server 共通）
+SELECT $__timeGroup(created_at) AS time, count(*) AS orders
+FROM orders WHERE $__timeFilter(created_at)
+GROUP BY 1 ORDER BY 1
+
+-- 倉庫ごとに 1 系列
+SELECT $__timeGroup(ts) AS time, warehouse AS metric, avg(temp) AS value
+FROM sensor_readings WHERE $__timeFilter(ts)
+GROUP BY 1, 2 ORDER BY 1</pre>
+
+<h2 id="prometheus">Prometheus</h2>
+<p>PromQL を記述します。例：<code>rate(node_network_receive_bytes_total{device="eth0"}[5m]) * 8</code>。各系列には Prometheus の表記どおりの名前（<code>name{label="value"}</code>）が付きますが、エディターで系列名を指定するとそれに置き換わります。ステップはグラフの幅に従います。</p>
+
+<h2 id="influxdb">InfluxDB</h2>
+<p><code>$timeFilter</code> と <code>$__interval</code> を使って InfluxQL を記述します。</p>
+<pre>SELECT mean("usage_idle") FROM "cpu" WHERE $timeFilter GROUP BY time($__interval), "host"</pre>
+<p>InfluxDB 2 と 3 は、1.x API を通じて InfluxQL に応答します。バケットがまだデータベースにマッピングされていない場合は、そちらでマッピングしてください。</p>
+
+<h2 id="json">JSON over HTTP</h2>
+<p>クエリは、アドレスに付け加えるパスまたはパラメーターです（例：<code>/api/temps?room=server</code>）。WatchZit は Unix 秒で <code>from</code>、<code>to</code>、<code>step</code> を付加し、次のいずれかの形式の応答を読み取ります（時刻は秒またはミリ秒）。</p>
+<pre>[{"target": "temp", "datapoints": [[21.5, 1793268000000], ...]}, ...]
+{"temp": [[1793268000, 21.5], ...], "humidity": [[1793268000, 40], ...]}
+[[1793268000, 21.5], [1793268060, 21.7], ...]</pre>

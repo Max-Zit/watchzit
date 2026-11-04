@@ -1,0 +1,35 @@
+<h1>トラブルシューティングとよくある質問</h1>
+
+<h2 id="ping">Ping に「ICMP is not allowed」と表示される</h2>
+<p>サーバーには ICMP を送信する権限が必要です。パッケージ版のサービスにはその権限（<code>CAP_NET_RAW</code>）があります。それ以外の環境では、<code>setcap cap_net_raw+ep /usr/bin/watchzit-server</code> で権限を付与するか、非特権 Ping を許可してください：<code>sysctl net.ipv4.ping_group_range="0 2147483647"</code>。</p>
+
+<h2 id="snmp">SNMP に「応答なし」と表示される</h2>
+<ul>
+  <li>プロファイルのコミュニティ、または SNMPv3 のユーザー、プロトコル、パスワードを確認してください。</li>
+  <li>デバイス側で WatchZit サーバーのアドレスを許可し（多くのデバイスは登録されたマネージャーにのみ応答します）、ファイアウォールで UDP 161 を許可してください。</li>
+  <li>v3 ユーザーが不明な場合やパスワードが間違っている場合は、メッセージにそのことが示されます。</li>
+</ul>
+
+<h2 id="agent">エージェントが接続しない</h2>
+<ul>
+  <li>コンピューターからサーバーのエージェント用ポート 8444 に到達できる必要があります。<a href="/settings/network">設定 → ネットワークとアクセス</a>（許可するネットワーク、エージェント用公開アドレス）を確認してください。</li>
+  <li>Windows：<code>Get-Service WatchZitAgent</code> と <code>C:\ProgramData\WatchZit Agent</code> 内のログ。Linux：<code>journalctl -u watchzit-agent</code>。</li>
+  <li>「the server does not know this agent」：デバイスが削除されています。新しいコードで再登録してください。</li>
+</ul>
+
+<h2 id="notify">通知が届かない</h2>
+<ul>
+  <li><a href="/settings/notifications">設定 → 通知</a>からテストを送信してください。チャネルの一覧に最後のエラーが表示されます。</li>
+  <li>メンテナンス中の問題や、ダウンしたデバイスの背後にある問題は送信されません。チャネルの最小重大度を確認してください。</li>
+</ul>
+
+<h2 id="blocked">自分自身を締め出してしまった</h2>
+<p>サインインの失敗が多すぎると、そのアドレスは一定時間ブロックされます。サーバー上で <code>watchzit-server --unblock-ip all</code> を実行します。許可するネットワークから自分が外れている場合は <code>watchzit-server --reset-allowlist</code> を実行します。</p>
+
+<h2 id="logs">ログはどこにありますか？</h2>
+<p><code>journalctl -u watchzit-server</code> と <code>/var/lib/watchzit/logs/server.log</code> です。更新ヘルパーは <code>/var/log/watchzit-helper/helper.log</code> に書き込みます。<a href="/settings/diagnostics">設定 → 診断</a>では最新の行が表示され、サポートに送るための秘密情報を含まない ZIP を取得できます。</p>
+
+<h2 id="faq">よくある質問</h2>
+<p><b>デバイスにエージェントは必要ですか？</b>いいえ。Ping、ポート、SNMP、Web、DNS、データベース、API のチェックはサーバーから実行されます。エージェントは、コンピューター自身にしかわからない情報を追加します。</p>
+<p><b>何台のデバイスに対応できますか？</b>1 台のサーバーで毎分数千件のチェックをポーリングできます。測定値は圧縮されるため、1 年分のデータでも小さく収まります。</p>
+<p><b>無料ですか？</b>はい、AGPL-3.0 のもとで無料です。MaxZit は有償サポートを提供しています。</p>

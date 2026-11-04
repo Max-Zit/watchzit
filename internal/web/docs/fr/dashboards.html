@@ -1,0 +1,25 @@
+<h1>Tableaux de bord et rapports</h1>
+<p class="lead">Les tableaux de bord réunissent sur un seul écran les valeurs qui vous importent ; les rapports montrent la disponibilité de vos appareils sur une période.</p>
+
+<h2 id="dashboards">Tableaux de bord</h2>
+<p>Dans <a href="/dashboards">Tableaux de bord</a>, ajoutez un tableau de bord et cliquez sur <b>Modifier</b>. Widgets :</p>
+<table>
+  <tr><th>Widget</th><th>Affiche</th></tr>
+  <tr><td>Graphique</td><td>le graphique d'un contrôle, sur la période du tableau de bord</td></tr>
+  <tr><td>Valeur actuelle</td><td>une valeur en grands chiffres, colorée selon l'état de son contrôle</td></tr>
+  <tr><td>États des appareils</td><td>les appareils d'un groupe (ou tous) sous forme de tuiles colorées</td></tr>
+  <tr><td>Problèmes ouverts</td><td>les problèmes ouverts, d'un groupe ou de tous</td></tr>
+  <tr><td>Carte</td><td>une tuile avec le pire état de la carte, qui l'ouvre</td></tr>
+  <tr><td>Graphique d'une source de données</td><td>une requête sur une <a href="/docs/datasources">source de données</a> (une base de données, Prometheus, InfluxDB, JSON)</td></tr>
+</table>
+<p>Les widgets sont petits, moyens ou grands et disposés sur une grille ; déplacez-les vers le haut ou vers le bas. Le tableau de bord se recharge chaque minute, il peut donc rester ouvert sur un écran mural.</p>
+
+<h2 id="reports">Rapports de disponibilité</h2>
+<p><a href="/reports">Rapports</a> affiche pour chaque appareil, sur les 7, 30 ou 90 derniers jours, ce mois-ci ou le mois dernier :</p>
+<ul>
+  <li><b>Disponibilité</b> — la part du temps pendant laquelle l'appareil n'était pas en panne. Le temps pendant lequel il était injoignable derrière un appareil en panne compte comme une panne ; le temps en <b>maintenance</b> est affiché à part et ne compte pas.</li>
+  <li><b>Temps d'arrêt</b>, le nombre de <b>problèmes</b> et le temps de <b>ping</b> moyen.</li>
+</ul>
+<p>Téléchargez-le en <b>CSV</b> pour un tableur ou <b>imprimez-le ou enregistrez-le en PDF</b>.</p>
+<p><b>SLA :</b> attribuez à un groupe un <b>objectif SLA</b> (par ex. 99,9 %) dans <a href="/groups">Groupes</a>. Le rapport affiche alors <b>SLA par groupe</b> — la disponibilité de tous ses appareils ensemble (pondérée par le temps) comparée à l'objectif, <b>atteint</b> ou <b>manqué</b> — et colore chaque appareil selon l'objectif de son groupe.</p>
+<p><b>Par e-mail :</b> dans <b>Envoyer par e-mail</b>, les administrateurs choisissent si le rapport part chaque lundi (les 7 derniers jours) ou chaque 1er du mois (le mois précédent), pour tous les appareils ou un groupe, et à quelles adresses. Il est envoyé à 07:00, heure du serveur, avec le CSV en pièce jointe ; <b>Envoyer maintenant</b> l'envoie immédiatement.</p>

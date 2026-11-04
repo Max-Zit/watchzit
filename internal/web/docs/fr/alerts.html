@@ -1,0 +1,65 @@
+<h1>Problèmes, alertes et notifications</h1>
+<p class="lead">Les déclencheurs surveillent les résultats des contrôles et ouvrent des <b>problèmes</b>. Un problème se ferme de lui-même quand la condition prend fin ; tant qu'il est ouvert, il peut être pris en charge, et il est envoyé à vos canaux de notification.</p>
+
+<h2 id="triggers">Déclencheurs</h2>
+<p>Dans <a href="/alerts/triggers">Problèmes → Déclencheurs</a>. WatchZit démarre avec ceux-ci :</p>
+<table>
+  <tr><th>Déclencheur</th><th>Quand</th><th>Gravité</th></tr>
+  <tr><td>Appareil en panne</td><td>tous les contrôles d'un appareil sont en panne pendant 1 minute</td><td>critique</td></tr>
+  <tr><td>Contrôle en panne</td><td>un contrôle est en panne pendant 1 minute</td><td>avertissement</td></tr>
+  <tr><td>Charge CPU élevée, Mémoire presque pleine</td><td>au-delà de 90 % pendant 5 minutes</td><td>avertissement</td></tr>
+  <tr><td>Disque presque plein / Disque plein</td><td>au-delà de 90 % / 97 %</td><td>avertissement / critique</td></tr>
+  <tr><td>Disque plein dans deux semaines</td><td>la tendance de la dernière semaine d'un disque d'agent atteint 98 % en moins de 14 jours</td><td>avertissement</td></tr>
+  <tr><td>Perte de paquets</td><td>au-delà de 20 % pendant 5 minutes</td><td>avertissement</td></tr>
+  <tr><td>Le certificat expire bientôt / Le certificat expire</td><td>moins de 21 / 7 jours</td><td>avertissement / critique</td></tr>
+  <tr><td>Température élevée</td><td>RouterOS au-delà de 70 °C pendant 5 minutes</td><td>avertissement</td></tr>
+  <tr><td>Groupe HA sans redondance</td><td>un groupe HA d'une carte a des membres en panne, mais pas tous, pendant 1 minute (le problème appartient au membre en panne)</td><td>avertissement</td></tr>
+</table>
+<p>Ajoutez les vôtres : une <b>valeur</b> (charge CPU, temps de réponse, trafic, connexions …), <b>au-dessus de</b> ou <b>en dessous de</b> un seuil, <b>pendant au moins</b> quelques minutes (une courte baisse n'ouvre pas de problème), une gravité, et s'il s'applique à tous les appareils, à un groupe ou à un seul appareil.</p>
+<p><b>Aucune nouvelle donnée</b> ouvre un problème lorsqu'un contrôle n'a reçu aucune nouvelle valeur pendant le nombre de minutes choisi — un agent qui ne remonte plus rien, un appareil qui ne répond plus en SNMP, une source de données qui s'est arrêtée ; limitez-le à certains types de contrôles si vous le souhaitez.</p>
+<p><b>La valeur atteindra un seuil (prévision)</b> regarde plutôt vers l'avant : il trace une droite à travers la dernière semaine de la valeur (au moins six heures d'historique) et ouvre un problème lorsque cette droite atteint le seuil <b>dans un délai</b> inférieur au nombre de jours que vous fixez — un disque qui sera plein dans dix jours, un pool qui se remplit, une température qui ne cesse de monter. Le problème indique la valeur actuelle, sa vitesse de variation par jour et la date à laquelle elle atteindra le seuil ; il se ferme lorsque la tendance n'y arrive plus à temps.</p>
+
+<p><b>Un seul contrôle.</b> Le bouton cloche à côté d'un contrôle sur la page de l'appareil ajoute un déclencheur pour ce seul contrôle — nécessaire pour les valeurs d'OID SNMP (une température en °C, une tension en V), puisque chacune a sa propre unité, et pratique pour un disque ou un port important. Un tel déclencheur indique l'appareil et le contrôle sous S'applique à ; il est supprimé avec son contrôle.</p>
+
+<h2 id="problems">Problèmes</h2>
+<p><a href="/problems">Problèmes</a> liste ce qui est ouvert, le plus grave d'abord ; le nombre affiché dans le menu compte les problèmes qui ont été envoyés (en rouge si l'un d'eux est critique). <b>Prendre en charge</b> un problème avec une note permet aux autres de savoir que quelqu'un s'en occupe. Les problèmes résolus restent dans l'historique pendant un an.</p>
+
+<h2 id="dependencies">Dépendances</h2>
+<p>Définissez <b>Dépend de</b> sur un appareil (par exemple le routeur d'une agence). Quand ce routeur est en panne, les appareils situés derrière lui sont seulement <b>injoignables</b> : leurs problèmes sont enregistrés mais pas envoyés — vous recevez un message pour le routeur, pas cinquante. Sur les cartes, ces appareils sont gris avec un contour en pointillés au lieu d'être rouges, et leur panneau indique que le problème se situe en amont.</p>
+
+<p>Pour les définir pour tout un réseau à la fois, ouvrez une carte et cliquez sur <b>Dépendances</b> : en suivant les câbles depuis l'appareil auquel le réseau est rattaché (par défaut le routeur ou le pare-feu qui a le plus de câbles ; choisissez-en un autre si vous le souhaitez), chaque appareil se voit proposer celui qui le précède — le switch dépend du routeur, les points d'accès du switch, les machines virtuelles de leur serveur. Les câbles d'alimentation, HA et VXLAN ne comptent pas. Les appareils sans dépendance sont cochés ; ceux qui dépendent déjà d'un autre appareil sont affichés mais non cochés. Cliquez sur <b>Définir les dépendances cochées</b>.</p>
+
+<h2 id="maintenance">Maintenance</h2>
+<p>Dans <a href="/alerts/maintenance">Problèmes → Maintenance</a>, planifiez une fenêtre pour des appareils ou des groupes. Pendant celle-ci, les appareils restent surveillés et les problèmes enregistrés, mais rien n'est envoyé ; les problèmes encore ouverts à la fin sont alors envoyés. Les rapports de disponibilité affichent le temps de maintenance à part. <b>Répétition</b> fait revenir la fenêtre chaque jour, chaque semaine ou chaque mois (une sauvegarde nocturne, le jour de correctifs mensuel), éventuellement jusqu'à une date de fin ; la liste affiche la prochaine fenêtre, et <b>Retirer</b> met fin à toute la série.</p>
+
+<h2 id="notifications">Notifications</h2>
+<p>Dans <a href="/settings/notifications">Paramètres → Notifications</a> (administrateurs) :</p>
+<ul>
+  <li><b>Serveur e-mail</b> — SMTP avec STARTTLS, TLS ou sans chiffrement ; le mot de passe est stocké chiffré. Envoyez un e-mail de test.</li>
+  <li><b>Canaux</b> — destinataires e-mail, un <b>webhook</b> (JSON, signé avec HMAC-SHA256 dans <code>X-WatchZit-Signature</code> si vous définissez une clé), <b>Slack</b>, <b>Microsoft Teams</b>, <b>Discord</b>, <b>Telegram</b> (un jeton de bot obtenu auprès de @BotFather et l'ID du chat), <b>ntfy</b> (notifications push sur les téléphones via ntfy.sh ou votre propre serveur ntfy), <b>PagerDuty</b> (une clé d'intégration Events API v2 ; les problèmes ouvrent et résolvent des incidents), <b>SMS via Twilio</b> (SID du compte, jeton d'authentification, expéditeur, numéros de téléphone) ou <b>SMS via votre propre passerelle</b> (n'importe quelle adresse HTTP avec <code>{text}</code> à l'endroit du message). Chaque canal a une gravité minimale et peut aussi signaler la résolution des problèmes.</li>
+  <li>La <b>Langue</b> des notifications et l'<b>adresse de la console</b> utilisée pour les liens qu'elles contiennent.</li>
+</ul>
+
+<h2 id="escalation">Escalade et astreinte</h2>
+<p>Dans <b>Escalade et heures d'astreinte</b> d'un canal :</p>
+<ul>
+  <li><b>Prévenir après (minutes)</b> — le canal n'est informé que des problèmes encore ouverts après ce délai, par ex. le chef d'équipe au bout de 15 minutes si le premier niveau n'a pas réagi. <b>Répéter toutes les</b> le prévient de nouveau tant que le problème reste ouvert.</li>
+  <li>Les problèmes pris en charge ne sont ni escaladés ni répétés, sauf si <b>Aussi les problèmes acquittés</b> est activé.</li>
+  <li><b>Seulement certains jours et heures</b> fait du canal une astreinte : par ex. des SMS à l'équipe de nuit du lundi au vendredi de 18 h à 8 h et tout le week-end. Les problèmes qui commencent en dehors de ses heures lui parviennent au début de son astreinte, s'ils sont encore ouverts. Pour une rotation, ajoutez un canal par personne ou par équipe, avec ses propres jours et heures.</li>
+  <li>Un canal informé d'un problème est aussi informé de sa résolution ; les autres ne le sont pas.</li>
+</ul>
+
+<h2 id="logs">Syslog et traps SNMP</h2>
+<p>Les appareils peuvent envoyer leurs messages de journal et leurs traps SNMP à WatchZit. Activez cette fonction dans <a href="/settings/logs">Paramètres → Syslog et traps</a> : par défaut syslog sur UDP 514 et traps (SNMP v1 et v2c, les informs reçoivent une réponse) sur UDP 162, éventuellement uniquement les traps de certaines communautés, conservés 30 jours. Ouvrez ces ports dans le pare-feu du serveur et définissez WatchZit comme destination sur les appareils, par ex. sur MikroTik <code>/system logging action set remote remote=&lt;serveur&gt;</code> et une règle de journalisation avec l'action <code>remote</code>, sur FortiGate <code>config log syslogd setting</code>, sous Linux une ligne rsyslog <code>*.* @&lt;serveur&gt;:514</code>.</p>
+<ul>
+  <li><a href="/logs">Journaux</a> liste les messages, les plus récents d'abord, avec une recherche, un appareil, la source (syslog ou traps) et le niveau le moins important (0 urgence … 7 débogage). Un message provenant d'une adresse qui n'est pas un appareil s'affiche avec son adresse. Chaque page d'appareil possède un bouton <b>Journaux</b>.</li>
+  <li>Un déclencheur du genre <b>Message syslog ou trap</b> ouvre un problème lorsqu'un message contient un texte (ou correspond à une expression régulière entre barres obliques, par ex. <code>/link (down|failure)/</code>) à un niveau au moins aussi important que celui choisi. Le problème reste ouvert tant que de tels messages continuent d'arriver et se ferme lorsqu'aucun n'est arrivé pendant la durée du déclencheur. Ces problèmes ne comptent pas comme temps d'arrêt dans les rapports.</li>
+</ul>
+
+<h2 id="flows">Flux de trafic (NetFlow, IPFIX, sFlow)</h2>
+<p>Les routeurs, switches et pare-feux peuvent indiquer quel trafic les traverse. Activez le collecteur dans <a href="/settings/flows">Paramètres → Flux de trafic</a> : par défaut NetFlow v5, NetFlow v9 et IPFIX sur UDP 2055 et sFlow v5 sur UDP 6343, conservés 7 jours (1 à 90). Ouvrez ces ports dans le pare-feu du serveur et définissez WatchZit comme collecteur, par ex. sur MikroTik <code>/ip traffic-flow set enabled=yes</code> et <code>/ip traffic-flow target add dst-address=&lt;serveur&gt; port=2055 version=ipfix</code>, sur FortiGate <code>config system netflow</code>, sur les switches compatibles sFlow l'agent sFlow avec ce serveur comme collecteur.</p>
+<ul>
+  <li>WatchZit agrège les flux par minute et par exportateur selon la conversation (source, destination, protocole et port de service — le plus petit des deux ports). Chaque minute conserve les 1 000 plus grosses conversations de chaque exportateur ; le reste forme une ligne sans adresses, pour que les totaux restent justes. Les flux échantillonnés (sFlow, ou NetFlow avec un taux d'échantillonnage) sont multipliés par ce taux.</li>
+  <li><a href="/flows">Flux de trafic</a> affiche le trafic dans le temps et les principales sources, destinations, services, exportateurs et conversations sur la dernière heure, les 6 dernières heures, le dernier jour ou la dernière semaine, pour un exportateur ou pour tous. Les adresses des appareils de la console s'affichent sous forme d'appareil. Les exportateurs ont un bouton <b>Flux de trafic</b> sur leur page d'appareil.</li>
+  <li>Les flux des adresses qui ne sont pas des appareils sont ignorés, sauf si <b>Aussi depuis des adresses qui ne sont pas des équipements</b> est activé.</li>
+</ul>

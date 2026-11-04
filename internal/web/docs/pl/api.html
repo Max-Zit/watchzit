@@ -1,0 +1,21 @@
+<h1>REST API</h1>
+<p class="lead">Skrypty i inne systemy odczytują przez API JSON urządzenia, sprawdzenia, wykresy i problemy, potwierdzają problemy i planują konserwację.</p>
+
+<h2 id="tokens">Tokeny</h2>
+<p>Utwórz token w <a href="/account#api">Moje konto → Tokeny API</a>: nazwę i liczbę dni ważności. Jest wyświetlany tylko raz. Token działa w twoim imieniu, z twoją rolą (token obserwatora może tylko odczytywać); unieważnij go, gdy przestanie być potrzebny. Nieudane tokeny liczą się jak nieudane logowania i na pewien czas blokują adres.</p>
+<p>Wysyłaj go w nagłówku; API nigdy nie akceptuje ciasteczka sesji konsoli:</p>
+<pre>curl -H "Authorization: Bearer wzat_…" https://monitor.example.com:8443/api/v1/status</pre>
+
+<h2 id="endpoints">Punkty końcowe</h2>
+<table>
+  <tr><th>Żądanie</th><th>Odpowiedź</th></tr>
+  <tr><td><code>GET /api/v1/status</code></td><td>wersja, urządzenia według stanu, otwarte problemy według ważności</td></tr>
+  <tr><td><code>GET /api/v1/devices</code></td><td>urządzenia; filtry <code>q</code>, <code>status</code>, <code>group</code></td></tr>
+  <tr><td><code>GET /api/v1/devices/{id}</code></td><td>urządzenie z jego sprawdzeniami i identyfikatorami ich szeregów</td></tr>
+  <tr><td><code>GET /api/v1/series/{id}?range=24h</code></td><td>punkty szeregu: czas, minimum, średnia, maksimum</td></tr>
+  <tr><td><code>GET /api/v1/problems</code></td><td>otwarte problemy; <code>view=history</code>, <code>severity</code>, <code>device</code></td></tr>
+  <tr><td><code>POST /api/v1/problems/{id}/ack</code></td><td>potwierdzenie: <code>{"note": "…"}</code></td></tr>
+  <tr><td><code>GET /api/v1/maintenance</code></td><td>okna konserwacji</td></tr>
+  <tr><td><code>POST /api/v1/maintenance</code></td><td>zaplanowanie okna: <code>{"name", "starts_at", "ends_at", "device_ids", "group_ids"}</code></td></tr>
+</table>
+<p>Czasy są w formacie RFC 3339 (<code>2026-11-01T22:00:00+01:00</code>). Błędy mają postać <code>{"error": "…"}</code> z odpowiednim statusem HTTP. Zmiany trafiają do dziennika audytu z nazwą tokenu.</p>
