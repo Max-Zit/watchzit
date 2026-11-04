@@ -697,26 +697,37 @@
         p.appendChild(list);
       }
       if (!kioskBase) {
+        // Metrics, a line, the ways to connect, a line, and Edit device at the foot
         var acts = h("div", { "class": "row mt" });
         acts.appendChild(btn(T("Metrics"), "/devices/" + n.device + fromMap(), "primary"));
-        if (meta && meta.can_edit) acts.appendChild(btn(T("Edit device"), "/devices/" + n.device + "/edit" + fromMap(), "secondary"));
-        if (d.web) { var wa = btn(d.web_name || T("Open web interface"), d.web); wa.target = "_blank"; wa.rel = "noopener noreferrer"; acts.appendChild(wa); }
-        (d.links || []).forEach(function (l) { var la = btn(l.name, l.url); la.target = "_blank"; la.rel = "noopener noreferrer"; acts.appendChild(la); });
+        p.appendChild(acts);
+        var conn = h("div", { "class": "row" });
+        if (d.web) { var wa = btn(d.web_name || T("Open web interface"), d.web); wa.target = "_blank"; wa.rel = "noopener noreferrer"; conn.appendChild(wa); }
+        (d.links || []).forEach(function (l) { var la = btn(l.name, l.url); la.target = "_blank"; la.rel = "noopener noreferrer"; conn.appendChild(la); });
         (d.tools || []).forEach(function (t) {
           var ta = btn(t.name, "/devices/" + n.device + "/open/" + t.id);
           // PassZit may open it signed in (see openWith in app.js)
           ta.setAttribute("data-open-tool", t.kind); ta.setAttribute("data-open-host", d.address || ""); ta.setAttribute("data-open-port", String(t.port || 0));
           ta.setAttribute("data-open-user", t.user || ""); ta.setAttribute("data-open-device", d.name || "");
-          acts.appendChild(ta);
+          conn.appendChild(ta);
         });
-        if (d.tools && d.tools.length) acts.appendChild(h("span", { "class": "pz-badge", "data-pz-badge": "" }));
-        p.appendChild(acts);
+        if (d.tools && d.tools.length) conn.appendChild(h("span", { "class": "pz-badge", "data-pz-badge": "" }));
+        if (conn.children.length) {
+          p.appendChild(h("hr", { "class": "panel-sep" }));
+          p.appendChild(conn);
+        }
         if (d.tools && d.tools.length && window.WatchZitPassZit) window.WatchZitPassZit.refresh();
         if (d.tools && d.tools.length) {
           // the tools need the Launcher paired with this console
           var lp = h("p", { "class": "muted small" }, T("SSH, Remote Desktop and the other tools open through the MaxZit Launcher.") + " ");
           lp.appendChild(h("a", { href: "/launcher" + fromMap() }, T("Set it up")));
           p.appendChild(lp);
+        }
+        if (conn.children.length) p.appendChild(h("hr", { "class": "panel-sep" }));
+        if (meta && meta.can_edit) {
+          var foot = h("div", { "class": "panel-foot" });
+          foot.appendChild(btn(T("Edit device"), "/devices/" + n.device + "/edit" + fromMap(), "secondary"));
+          p.appendChild(foot);
         }
       }
     } else if (n.kind === "submap" && !kioskBase) {

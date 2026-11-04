@@ -600,7 +600,7 @@ main:has(.mapview) { max-width: none; padding-bottom: 12px; }
 .mapsvg.far .addr, .mapsvg.far .lbl.port { display: none; }
 .mapsvg.very-far .lbl, .mapsvg.very-far .name { display: none; }
 /* side panel */
-.mappanel { position: absolute; top: 12px; right: 12px; bottom: 12px; width: 320px; max-width: calc(100% - 24px); overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 10px 30px rgba(15, 23, 42, .18); padding: 14px 16px; display: grid; gap: 10px; align-content: start; z-index: 2; }
+.mappanel { position: absolute; top: 12px; right: 12px; bottom: 12px; width: 320px; max-width: calc(100% - 24px); overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 10px 30px rgba(15, 23, 42, .18); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; z-index: 2; }
 .mappanel[hidden] { display: none; }
 .mp-head { display: flex; align-items: center; gap: 8px; }
 .mp-head b { font-size: 15px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -987,3 +987,8 @@ path.lh-ba { stroke: var(--series-2); }
 input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]):not(.code), select:not([multiple]) { height: 40px; }
 /* a small button next to fields in one row takes their height */
 form.row:has(> select, > input:not([type=hidden]):not([type=checkbox]), > label:not(.check)) > :is(button, .btn).sm { height: 40px; padding: 0 14px; }
+/* map side panel: a line between Metrics and the ways to connect, and
+   Edit device at the bottom left */
+.mappanel > * { flex: none; }
+hr.panel-sep { border: 0; border-top: 1px solid var(--line); margin: 2px 0; width: 100%; }
+.panel-foot { margin-top: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
