@@ -117,6 +117,12 @@ func metricChoices() []metricChoice {
 }
 
 func (s *Server) handleTriggers(w http.ResponseWriter, r *http.Request) {
+	if r.PathValue("id") != "" {
+		if _, ok := pathID(r, "id"); !ok {
+			s.notFound(w, r)
+			return
+		}
+	}
 	d := &triggersData{In: store.TriggerInput{Kind: store.TriggerMetric, Op: ">", Severity: store.SeverityWarning, Enabled: true, Metric: "cpu_pct", Threshold: 90}, ForMin: "5"}
 	if id, ok := pathID(r, "id"); ok {
 		t, err := s.store.TriggerByID(r.Context(), id)

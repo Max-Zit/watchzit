@@ -88,7 +88,7 @@ func (s *Store) AuditEntries(ctx context.Context, f AuditFilter) ([]AuditEntry, 
 	}
 	q := "%" + strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(f.Query) + "%"
 	rows, err := s.db.Query(ctx, `SELECT id, at, username, ip, action, target, detail, prev_hash, hash FROM audit_log
-		WHERE ($1 = 0 OR id < $1) AND ($2 = '%%' OR username ILIKE $2 OR action ILIKE $2 OR target ILIKE $2 OR detail ILIKE $2 OR ip ILIKE $2)
+		WHERE ($1::bigint = 0 OR id < $1) AND ($2 = '%%' OR username ILIKE $2 OR action ILIKE $2 OR target ILIKE $2 OR detail ILIKE $2 OR ip ILIKE $2)
 		ORDER BY id DESC LIMIT $3`, f.Before, q, f.Limit)
 	if err != nil {
 		return nil, err

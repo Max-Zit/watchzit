@@ -160,7 +160,7 @@ func (s *Store) Devices(ctx context.Context, f DeviceFilter) ([]*Device, error) 
 	q := "%" + strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(strings.TrimSpace(f.Query)) + "%"
 	rows, err := s.db.Query(ctx, `SELECT `+deviceCols+` FROM devices d LEFT JOIN device_groups g ON g.id=d.group_id
 		WHERE ($1 = '%%' OR d.name ILIKE $1 OR d.address ILIKE $1 OR d.notes ILIKE $1 OR EXISTS (SELECT 1 FROM device_field_values v WHERE v.device_id=d.id AND v.value ILIKE $1))
-		AND ($2 = 0 OR ($2 = -1 AND d.group_id IS NULL) OR d.group_id = $2)
+		AND ($2::bigint = 0 OR ($2 = -1 AND d.group_id IS NULL) OR d.group_id = $2)
 		AND ($3 = '' OR d.status = $3) AND (NOT $4 OR d.snmp_profile_id IS NOT NULL)
 		ORDER BY array_position(ARRAY['down','warning','unknown','up','paused'], d.status), lower(d.name)`, q, f.GroupID, f.Status, f.SNMPOnly)
 	if err != nil {
