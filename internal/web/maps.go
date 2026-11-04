@@ -266,7 +266,7 @@ func (s *Server) writeMapLive(w http.ResponseWriter, r *http.Request, m *store.M
 			for _, d := range live.Devices {
 				access, _ := s.store.DeviceAccess(r.Context(), d.ID)
 				for _, t := range ts {
-					if t.For(d.Kind) {
+					if access.Offers(t, d.Kind) {
 						k := t.Builtin
 						if k == "" {
 							k = "custom"

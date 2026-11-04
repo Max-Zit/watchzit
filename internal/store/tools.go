@@ -145,13 +145,14 @@ func (s *Store) DeleteTool(ctx context.Context, id int64) error {
 // DeviceAccess is how tools sign in to a device.
 type DeviceAccess struct {
 	User  string
-	Ports map[int64]int // tool → port, where it differs from the default
+	Ports map[int64]int  // tool → port, where it differs from the default
+	Shown map[int64]bool // tool → offered or not, where it differs from the tool's device kinds
 }
 
 // DeviceAccess loads the access settings of a device.
 func (s *Store) DeviceAccess(ctx context.Context, id int64) (DeviceAccess, error) {
-	a := DeviceAccess{Ports: map[int64]int{}}
-	err := s.db.QueryRow(ctx, `SELECT access_user, access_ports FROM devices WHERE id=$1`, id).Scan(&a.User, &a.Ports)
+	a := DeviceAccess{Ports: map[int64]int{}, Shown: map[int64]bool{}}
+	err := s.db.QueryRow(ctx, `SELECT access_user, access_ports, access_tools FROM devices WHERE id=$1`, id).Scan(&a.User, &a.Ports, &a.Shown)
 	return a, notFound(err)
 }
 
@@ -168,7 +169,10 @@ func (s *Store) SetDeviceAccess(ctx context.Context, id int64, a DeviceAccess) e
 	if a.Ports == nil {
 		a.Ports = map[int64]int{}
 	}
-	tag, err := s.db.Exec(ctx, `UPDATE devices SET access_user=$2, access_ports=$3 WHERE id=$1`, id, a.User, a.Ports)
+	if a.Shown == nil {
+		a.Shown = map[int64]bool{}
+	}
+	tag, err := s.db.Exec(ctx, `UPDATE devices SET access_user=$2, access_ports=$3, access_tools=$4 WHERE id=$1`, id, a.User, a.Ports, a.Shown)
 	if err == nil && tag.RowsAffected() == 0 {
 		return ErrNotFound
 	}
@@ -181,4 +185,16 @@ func (a DeviceAccess) PortFor(t *Tool) int {
 		return p
 	}
 	return t.Port
+}
+
+// Offers tells whether "Open with" shows a tool on a device of the kind:
+// the device's own choice, else the tool's device kinds.
+func (a DeviceAccess) Offers(t *Tool, kind string) bool {
+	if !t.Enabled {
+		return false
+	}
+	if v, ok := a.Shown[t.ID]; ok {
+		return v
+	}
+	return t.For(kind)
 }

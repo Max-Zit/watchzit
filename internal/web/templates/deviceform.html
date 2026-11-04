@@ -36,8 +36,11 @@
     <fieldset class="box">
       <legend>{{.T "Remote access"}} <small class="muted">{{.T "optional"}}</small></legend>
       <label>{{.T "User name"}}<input name="access_user" value="{{.Data.Access.User}}" maxlength="64" class="mono" spellcheck="false" autocapitalize="none" autocomplete="off" placeholder="admin"><small>{{.T "SSH, Remote Desktop and WinBox open with this user. Passwords are never stored: the program asks for them."}}</small></label>
-      {{if .Data.Tools}}<div class="cols">{{range .Data.Tools}}<label>{{.Name}} · {{$.T "port"}}<input type="number" name="port_{{.ID}}" min="1" max="65535" value="{{with index $.Data.Access.Ports .ID}}{{.}}{{end}}" placeholder="{{.Port}}"></label>{{end}}</div>
-      <small class="muted">{{.T "Empty ports use the tool's default."}} {{if .User.IsAdmin}}<a href="/settings/tools">{{.T "Manage tools"}}</a>{{end}}</small>{{end}}
+      {{if .Data.Tools}}<input type="hidden" name="tools_set" value="1">
+      <div class="toolrows"><span class="small muted">{{.T "Open with"}}</span><span class="small muted">{{.T "Port"}}</span>
+      {{range .Data.Tools}}<label class="check"><input type="checkbox" name="tool_{{.ID}}" value="1" data-tool-kinds="{{join .Kinds " "}}" {{if $.Data.Access.Offers . $.Data.In.Kind}}checked{{end}}>{{.Name}}</label><input type="number" name="port_{{.ID}}" min="1" max="65535" value="{{with index $.Data.Access.Ports .ID}}{{.}}{{end}}" placeholder="{{.Port}}" aria-label="{{.Name}} · {{$.T "port"}}">
+      {{end}}</div>
+      <small class="muted">{{.T "Untick what this device does not have (Remote Desktop on a Linux server); the buttons show only the ticked tools."}} {{.T "Empty ports use the tool's default."}} {{if .User.IsAdmin}}<a href="/settings/tools">{{.T "Manage tools"}}</a>{{end}}</small>{{end}}
     </fieldset>
     <label>{{.T "Notes"}} <small>{{.T "optional"}}</small><textarea name="notes" rows="3" maxlength="4000">{{.Data.In.Notes}}</textarea></label>
     {{if not .Data.ID}}

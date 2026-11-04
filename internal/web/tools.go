@@ -33,7 +33,7 @@ func (s *Server) toolsFor(ctx context.Context, kind string, access store.DeviceA
 	}
 	var out []deviceTool
 	for _, t := range ts {
-		if t.For(kind) {
+		if access.Offers(t, kind) {
 			out = append(out, deviceTool{Tool: t, DevPort: access.PortFor(t)})
 		}
 	}
@@ -302,4 +302,30 @@ func accessFromForm(r *http.Request) store.DeviceAccess {
 		}
 	}
 	return a
+}
+
+// toolChoices takes the "Open with" ticks of the device form, keeping only
+// those that differ from the tools' device kinds (so a tool set up later
+// for the kind still shows). Without the ticks in the form the device keeps
+// its choices (keep).
+func (s *Server) toolChoices(ctx context.Context, r *http.Request, kind string, a *store.DeviceAccess, keep map[int64]bool) {
+	a.Shown = map[int64]bool{}
+	if r.FormValue("tools_set") == "" {
+		for k, v := range keep {
+			a.Shown[k] = v
+		}
+		return
+	}
+	ts, err := s.store.Tools(ctx)
+	if err != nil {
+		return
+	}
+	for _, t := range ts {
+		if !t.Enabled {
+			continue
+		}
+		if on := r.FormValue("tool_"+strconv.FormatInt(t.ID, 10)) == "1"; on != t.For(kind) {
+			a.Shown[t.ID] = on
+		}
+	}
 }

@@ -456,6 +456,7 @@ func (s *Server) handleDeviceCreate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	d := &deviceFormData{In: deviceInput(r), Ping: r.FormValue("ping") == "1", Ports: r.FormValue("ports")}
 	d.Access = accessFromForm(r)
+	s.toolChoices(ctx, r, d.In.Kind, &d.Access, nil)
 	if !launch.ValidUser(d.Access.User) {
 		s.showDeviceForm(w, r, http.StatusBadRequest, d, "the user name may contain letters, digits and . _ @ \\ - only")
 		return
@@ -510,6 +511,9 @@ func (s *Server) handleDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	d := &deviceFormData{ID: dev.ID, In: deviceInput(r)}
 	d.Access = accessFromForm(r)
+	if old, err := s.store.DeviceAccess(r.Context(), dev.ID); err == nil {
+		s.toolChoices(r.Context(), r, d.In.Kind, &d.Access, old.Shown)
+	}
 	if !launch.ValidUser(d.Access.User) {
 		s.showDeviceForm(w, r, http.StatusBadRequest, d, "the user name may contain letters, digits and . _ @ \\ - only")
 		return

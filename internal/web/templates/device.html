@@ -137,20 +137,25 @@
 {{with .Data.HV}}{{$many := gt (len .Hosts) 1}}
 <section class="panel" id="vms">
   <div class="titlebar"><h2>{{if eq .Kind "docker"}}{{$.T "Containers"}}{{else}}{{$.T "Virtual machines"}}{{end}}</h2><span class="muted small">{{.Product}} · {{$.Ago .At}}</span></div>
-  {{if or (eq .Kind "vsphere") (eq .Kind "proxmox")}}  <div class="table-wrap"><table class="list">
-    <thead><tr><th>{{$.T "Host"}}</th><th>{{$.T "Status"}}</th><th class="num">CPU</th><th class="num">{{$.T "Memory"}}</th><th class="hide-sm">{{$.T "Version"}}</th></tr></thead>
-    <tbody>{{range .Hosts}}<tr><td><b>{{.Name}}</b>{{if and .Address (ne .Address .Name)}} <span class="muted mono small">{{.Address}}</span>{{end}}</td>
-      <td>{{if .Up}}<span class="badge ok">{{$.T "up"}}</span>{{else}}<span class="badge bad">{{$.T "down"}}</span>{{end}}</td>
-      <td class="num">{{if .Up}}{{printf "%.0f" .CPUPct}} %{{end}}</td><td class="num">{{if .MemB}}{{bytes .MemUsedB}} / {{bytes .MemB}}{{end}}</td><td class="hide-sm muted small">{{.Version}}</td></tr>{{end}}</tbody>
-  </table></div>
-  {{end}}
-  <div class="table-wrap mt"><table class="list">
+  {{$hosts := or (eq .Kind "vsphere") (eq .Kind "proxmox")}}
+  <div class="table-wrap"><table class="list hvlist">
     <thead><tr><th>{{$.T "Name"}}</th><th>{{$.T "Status"}}</th>{{if $many}}<th>{{$.T "Host"}}</th>{{end}}<th class="num">CPU</th><th class="num">{{$.T "Memory"}}</th><th class="hide-sm">{{$.T "Address"}}</th><th class="hide-sm">{{$.T "System"}}</th></tr></thead>
-    <tbody>{{range .VMs}}<tr><td><b>{{.Name}}</b>{{if eq .Kind "ct"}} <span class="muted small">{{$.T "container"}}</span>{{end}}{{if .Template}} <span class="muted small">{{$.T "template"}}</span>{{end}}</td>
+    {{if $hosts}}<tbody>
+      <tr class="group"><th colspan="7">{{if $many}}{{$.T "Hosts"}}{{else}}{{$.T "Host"}}{{end}}</th></tr>
+      {{range .Hosts}}<tr><td><b>{{.Name}}</b></td>
+      <td>{{if .Up}}<span class="badge ok">{{$.T "up"}}</span>{{else}}<span class="badge bad">{{$.T "down"}}</span>{{end}}</td>
+      {{if $many}}<td></td>{{end}}
+      <td class="num">{{if .Up}}{{printf "%.0f" .CPUPct}} %{{end}}</td><td class="num">{{if .MemB}}{{bytes .MemUsedB}} / {{bytes .MemB}}{{end}}</td>
+      <td class="hide-sm mono small">{{if and .Address (ne .Address .Name)}}{{.Address}}{{end}}</td><td class="hide-sm muted small">{{.Version}}</td></tr>{{end}}
+    </tbody>{{end}}
+    <tbody>
+      {{if $hosts}}<tr class="group"><th colspan="7">{{if eq .Kind "docker"}}{{$.T "Containers"}}{{else}}{{$.T "Virtual machines"}}{{end}}</th></tr>{{end}}
+      {{range .VMs}}<tr><td><b>{{.Name}}</b>{{if eq .Kind "ct"}} <span class="muted small">{{$.T "container"}}</span>{{end}}{{if .Template}} <span class="muted small">{{$.T "template"}}</span>{{end}}</td>
       <td>{{if eq .State "running"}}<span class="badge ok">{{$.T "running"}}</span>{{else if eq .State "suspended"}}<span class="badge warn">{{$.T "suspended"}}</span>{{else}}<span class="badge">{{$.T "stopped"}}</span>{{end}}</td>
       {{if $many}}<td>{{.Host}}</td>{{end}}
       <td class="num">{{if eq .State "running"}}{{printf "%.0f" .CPUPct}} %{{end}}</td><td class="num">{{if eq .State "running"}}{{printf "%.0f" .MemPct}} % {{end}}<span class="muted small">{{if .MemB}}{{bytes .MemB}}{{end}}</span></td>
-      <td class="hide-sm mono small">{{join .IPs ", "}}</td><td class="hide-sm muted small">{{.OS}}</td></tr>{{else}}<tr><td colspan="7" class="muted">—</td></tr>{{end}}</tbody>
+      <td class="hide-sm mono small">{{join .IPs ", "}}</td><td class="hide-sm muted small">{{.OS}}</td></tr>{{else}}<tr><td colspan="7" class="muted">—</td></tr>{{end}}
+    </tbody>
   </table></div>
   {{if .Datastores}}<h3 class="mt">{{$.T "Datastores"}}</h3>
   <div class="table-wrap"><table class="list">

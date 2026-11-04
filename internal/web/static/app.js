@@ -56,6 +56,20 @@
     sync();
   });
 
+  // Device form: the tool ticks follow the chosen type until changed by hand
+  // (tools set up for other kinds of devices are unticked).
+  Array.prototype.forEach.call(document.querySelectorAll("form select[name=kind]"), function (kind) {
+    var ticks = kind.form.querySelectorAll("input[data-tool-kinds]");
+    Array.prototype.forEach.call(ticks, function (cb) { cb.addEventListener("change", function () { cb.setAttribute("data-touched", "1"); }); });
+    kind.addEventListener("change", function () {
+      Array.prototype.forEach.call(ticks, function (cb) {
+        if (cb.hasAttribute("data-touched")) return;
+        var ks = cb.getAttribute("data-tool-kinds").split(" ").filter(Boolean);
+        cb.checked = !ks.length || ks.indexOf(kind.value) >= 0;
+      });
+    });
+  });
+
   // A search field with data-filter=SELECTOR hides the [data-text] items in
   // it that do not contain the typed text.
   Array.prototype.forEach.call(document.querySelectorAll("input[data-filter]"), function (q) {
