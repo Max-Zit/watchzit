@@ -248,6 +248,7 @@ func (a *Agent) session(ctx context.Context) error {
 				if json.Unmarshal(env.Data, &j) != nil {
 					break
 				}
+				a.Log.Info("remote collector job", "kind", j.Kind, "range", j.CIDR, "address", j.Address)
 				go func() {
 					r := poller.RunJob(sctx, j)
 					select {
