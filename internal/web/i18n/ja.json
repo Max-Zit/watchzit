@@ -1757,6 +1757,7 @@
   "repeat every 5–1440 minutes, or not at all": "5～1440 分ごとに繰り返すか、繰り返さないでください",
   "reply (ACS) address": "応答（ACS）アドレス",
   "resolved": "解決",
+  "results before the collector got its checks": "コレクターがチェックを受け取る前の結果",
   "running": "稼働中",
   "runs on": "実行先:",
   "sFlow port (UDP)": "sFlow ポート (UDP)",

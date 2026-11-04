@@ -543,6 +543,7 @@ type CheckInput struct {
 	Params    CheckParams
 	IntervalS int
 	Paused    bool
+	FormErr   error // the form could not be read (shown instead of a later, vaguer error)
 }
 
 // metricsOf are the series a check type writes.
@@ -603,6 +604,9 @@ func metricsOf(typ string, p CheckParams) []Series {
 var unitRE = regexp.MustCompile(`^[\p{L}\p{N}%/°. ]{0,16}$`)
 
 func (in *CheckInput) clean() error {
+	if in.FormErr != nil {
+		return in.FormErr
+	}
 	if metricsOf(in.Type, in.Params) == nil {
 		return errors.New("unknown check type")
 	}
@@ -748,7 +752,11 @@ func (s *Store) UpdateCheck(ctx context.Context, id int64, in CheckInput) error 
 		return err
 	}
 	if HasSecret(in.Type) {
-		s.sealCheckSecret(&in.Params, c.Params.Secret)
+		keep := c.Params.Secret
+		if secretHosts(in.Type, in.Params) != secretHosts(c.Type, c.Params) {
+			keep = "" // another address: the old password is not sent there
+		}
+		s.sealCheckSecret(&in.Params, keep)
 	}
 	raw, _ := json.Marshal(in.Params) // #nosec G117 -- Secret is sealed above
 	if _, err := s.db.Exec(ctx, `UPDATE checks SET name=$2, params=$3, interval_s=$4, paused=$5 WHERE id=$1`, id, in.Name, raw, in.IntervalS, in.Paused); err != nil {

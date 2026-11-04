@@ -3,10 +3,13 @@ package store
 import (
 	"context"
 	"errors"
+	"time"
 )
 
 // Remote collectors: agents that run the checks of devices in their own
 // network (see poller.NewCollector).
+
+var errNoAgent = errors.New("only a device with the WatchZit agent can be a remote collector")
 
 // SetCollector turns an agent into a remote collector or back. Devices it
 // ran go back to the console.
@@ -21,9 +24,16 @@ func (s *Store) SetCollector(ctx context.Context, deviceID int64, on bool) error
 		return err
 	}
 	if tag.RowsAffected() == 0 {
-		return errors.New("only a device with the WatchZit agent can be a remote collector")
+		return errNoAgent
 	}
 	if !on {
+		// its devices, backups and discovery ranges go back to the console
+		if _, err := tx.Exec(ctx, `UPDATE discovery_ranges SET collector_id=NULL WHERE collector_id=$1`, deviceID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE discovered_hosts SET collector_id=NULL WHERE collector_id=$1`, deviceID); err != nil {
+			return err
+		}
 		if _, err := tx.Exec(ctx, `UPDATE devices SET collector_id=NULL WHERE collector_id=$1`, deviceID); err != nil {
 			return err
 		}
@@ -148,4 +158,28 @@ func (s *Store) SetDeviceBackup(ctx context.Context, ids []int64, backupID int64
 // collector is offline.
 func (s *Store) BackupChecks(ctx context.Context, backupID int64) ([]*Check, error) {
 	return s.checks(ctx, `WHERE d.collector_backup_id=$1`, backupID)
+}
+
+// LastRuns are the times of the newest results of checks.
+func (s *Store) LastRuns(ctx context.Context, ids []int64) (map[int64]time.Time, error) {
+	rows, err := s.db.Query(ctx, `SELECT id, last_run FROM checks WHERE id = ANY($1) AND last_run IS NOT NULL`, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[int64]time.Time{}
+	for rows.Next() {
+		var id int64
+		var t time.Time
+		if err := rows.Scan(&id, &t); err != nil {
+			return nil, err
+		}
+		out[id] = t
+	}
+	return out, rows.Err()
+}
+
+// RemoteChecks are the checks of every device a collector runs.
+func (s *Store) RemoteChecks(ctx context.Context) ([]*Check, error) {
+	return s.checks(ctx, `WHERE d.collector_id IS NOT NULL`)
 }

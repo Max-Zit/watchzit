@@ -36,29 +36,77 @@ var collectorSync sync.Mutex
 // syncCollectors sends each connected agent the checks it runs as a
 // collector when they changed (none: it stops collecting).
 func (s *Server) syncCollectors() {
-	collectorSync.Lock()
-	defer collectorSync.Unlock()
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
-	for _, c := range s.hub.all() {
-		if err := s.sendCollectorConfig(ctx, c); err != nil {
-			s.log.Warn("cannot update the remote collector", "device", c.deviceID, "err", err)
+	// many changes in a row (a bulk edit, agents reconnecting) make one run
+	// plus at most one more
+	collectorSyncState.Lock()
+	if collectorSyncState.running {
+		collectorSyncState.again = true
+		collectorSyncState.Unlock()
+		return
+	}
+	collectorSyncState.running = true
+	collectorSyncState.Unlock()
+	for {
+		collectorSync.Lock()
+		for _, c := range s.hub.all() {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			if err := s.sendCollectorConfig(ctx, c, false); err != nil {
+				s.log.Warn("cannot update the remote collector", "device", c.deviceID, "err", err)
+			}
+			cancel()
 		}
+		collectorSync.Unlock()
+		collectorSyncState.Lock()
+		if !collectorSyncState.again {
+			collectorSyncState.running = false
+			collectorSyncState.Unlock()
+			return
+		}
+		collectorSyncState.again = false
+		collectorSyncState.Unlock()
 	}
 }
 
-func (s *Server) sendCollectorConfig(ctx context.Context, c *agentConn) error {
+var collectorSyncState struct {
+	sync.Mutex
+	running, again bool
+}
+
+// configHash covers what a collector runs, not the state of the checks
+// (status and last values change with every result).
+func configHash(cfg poller.RemoteConfig) string {
+	type key struct {
+		ID, Profile       int64
+		Type, Address     string
+		Params            store.CheckParams
+		Interval          int
+		Paused, DevPaused bool
+		Secret            string
+	}
+	ks := make([]key, 0, len(cfg.Checks))
+	for _, c := range cfg.Checks {
+		ks = append(ks, key{c.Check.ID, c.Check.SNMPProfile, c.Check.Type, c.Check.Address, c.Check.Params, c.Check.IntervalS, c.Check.Paused, c.Check.DevPaused, c.Secret})
+	}
+	raw, _ := json.Marshal(struct {
+		K []key
+		S map[int64]poller.RemoteSNMP
+	}{ks, cfg.SNMP})
+	sum := sha256.Sum256(raw)
+	return hex.EncodeToString(sum[:])
+}
+
+func (s *Server) sendCollectorConfig(ctx context.Context, c *agentConn, hello bool) error {
 	cfg, allowed, err := s.collectorConfig(ctx, c.deviceID)
 	if err != nil {
 		return err
 	}
-	raw, _ := json.Marshal(cfg)
-	sum := sha256.Sum256(raw)
-	hash := hex.EncodeToString(sum[:])
+	hash := configHash(cfg)
 	c.coll.mu.Lock()
 	defer c.coll.mu.Unlock()
-	if hash == c.coll.hash || (c.coll.hash == "" && len(cfg.Checks) == 0) {
-		return nil // nothing new; an agent that never collected needs no empty list
+	// after hello always: an agent that was a collector before (and kept
+	// running while away) must hear that it is not any more
+	if !hello && (hash == c.coll.hash || (c.coll.hash == "" && len(cfg.Checks) == 0)) {
+		return nil
 	}
 	if err := sendAgent(ctx, c.ws, proto.TypeCollectorConfig, cfg); err != nil {
 		return err
@@ -128,6 +176,19 @@ func (s *Server) collectorResults(ctx context.Context, c *agentConn, rr *poller.
 	c.coll.mu.Lock()
 	allowed := c.coll.allowed
 	c.coll.mu.Unlock()
+	if allowed == nil {
+		return errNotReady // no checks sent yet: not acknowledged, the collector sends it again
+	}
+	var ids []int64
+	for _, r := range rr.Results {
+		ids = append(ids, r.Result.CheckID)
+	}
+	// older than what is stored already (a backup ran it meanwhile, or a
+	// batch came twice): not taken
+	last, err := s.store.LastRuns(ctx, ids)
+	if err != nil {
+		return err
+	}
 	now := s.now()
 	var res []store.CheckResult
 	var samples []tsdb.Sample
@@ -138,11 +199,19 @@ func (s *Server) collectorResults(ctx context.Context, c *agentConn, rr *poller.
 		}
 		// results kept while the channel was down are up to a day old; a
 		// clock far off is set to the console's
+		clamped := false
 		if at := r.Result.At; at.After(now.Add(time.Minute)) || at.Before(now.Add(-25*time.Hour)) {
-			r.Result.At = now
+			r.Result.At, clamped = now, true
 		}
+		if t, ok := last[r.Result.CheckID]; ok && !clamped && !r.Result.At.After(t) {
+			continue
+		}
+		last[r.Result.CheckID] = r.Result.At
 		if len(r.Result.Text) > 500 {
 			r.Result.Text = r.Result.Text[:500]
+		}
+		if len(r.Result.Values) > 32 {
+			continue // no check has that many values
 		}
 		res = append(res, r.Result)
 		for _, x := range r.Samples {
@@ -269,6 +338,9 @@ func (s *Server) snmpProfiles(ctx context.Context, only int64) map[int64]poller.
 
 // collectorJob gives a job to a connected collector and waits for its answer.
 func (s *Server) collectorJob(ctx context.Context, collectorID int64, j poller.RemoteJob, timeout time.Duration) (poller.RemoteJobResult, error) {
+	if d, err := s.store.DeviceByID(ctx, collectorID); err != nil || !d.Collector {
+		return poller.RemoteJobResult{}, errors.New("that device is not a remote collector")
+	}
 	c := s.hub.get(collectorID)
 	if c == nil {
 		return poller.RemoteJobResult{}, errors.New("the remote collector is offline")
@@ -348,4 +420,53 @@ func (s *Server) collectorOf(d *store.Device) int64 {
 		return d.BackupID
 	}
 	return d.CollectorID
+}
+
+var errNotReady = errors.New("results before the collector got its checks")
+
+// RunCollectorSweep marks the checks of devices whose collector (and its
+// backup) is not connected as unknown once they are overdue — also when a
+// collector never came back after a console restart, or was assigned while
+// it was offline.
+func (s *Server) RunCollectorSweep(ctx context.Context) {
+	t := time.NewTicker(time.Minute)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			s.SweepCollectors(ctx)
+		}
+	}
+}
+
+// SweepCollectors is one pass of RunCollectorSweep.
+func (s *Server) SweepCollectors(ctx context.Context) {
+	cs, err := s.store.RemoteChecks(ctx)
+	if err != nil {
+		s.log.Warn("collector sweep", "err", err)
+		return
+	}
+	now := s.now()
+	var res []store.CheckResult
+	for _, c := range cs {
+		if !poller.RemoteType(c.Type) || c.Paused || c.DevPaused || c.Status == store.StatusUnknown {
+			continue
+		}
+		if s.hub.get(c.Collector) != nil || (c.Backup != 0 && s.hub.get(c.Backup) != nil) {
+			continue
+		}
+		grace := time.Duration(2*c.IntervalS)*time.Second + time.Minute
+		if c.LastRun != nil && now.Sub(*c.LastRun) < grace {
+			continue
+		}
+		res = append(res, store.CheckResult{CheckID: c.ID, At: now, Status: store.StatusUnknown, Text: "the remote collector is offline"})
+	}
+	if len(res) == 0 {
+		return
+	}
+	if _, err := s.store.SaveResults(ctx, res); err != nil {
+		s.log.Warn("collector sweep", "err", err)
+	}
 }

@@ -1757,6 +1757,7 @@
   "repeat every 5–1440 minutes, or not at all": "5–1440 dakikada bir yineleyin ya da hiç yinelemeyin",
   "reply (ACS) address": "yanıt (ACS) adresi",
   "resolved": "çözüldü",
+  "results before the collector got its checks": "toplayıcı kontrollerini almadan önceki sonuçlar",
   "running": "çalışıyor",
   "runs on": "üzerinde çalışır:",
   "sFlow port (UDP)": "sFlow portu (UDP)",

@@ -1757,6 +1757,7 @@
   "repeat every 5–1440 minutes, or not at all": "повторяйте каждые 5–1440 минут или не повторяйте",
   "reply (ACS) address": "адрес ответа (ACS)",
   "resolved": "решено",
+  "results before the collector got its checks": "результаты до того, как коллектор получил свои проверки",
   "running": "работает",
   "runs on": "работает на",
   "sFlow port (UDP)": "Порт sFlow (UDP)",

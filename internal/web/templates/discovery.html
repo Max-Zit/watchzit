@@ -23,7 +23,7 @@
   <form method="post" action="/discovery/ranges" class="row wrap mt">
     <input name="cidr" required maxlength="43" placeholder="192.168.1.0/24" class="mono" aria-label="{{.T "Range"}}">
     <select name="every" aria-label="{{.T "Schedule"}}"><option value="">{{.T "Only by hand"}}</option><option value="day">{{.T "Every day"}}</option><option value="week" selected>{{.T "Every week"}}</option></select>
-    {{with .Data.Collectors}}<select name="collector" aria-label="{{$.T "Scanned from"}}"><option value="0">{{$.T "Scanned from this console"}}</option>{{range .}}<option value="{{.ID}}">{{$.T "Scanned from"}} {{.Name}}</option>{{end}}</select>{{end}}
+    {{if $.User.IsAdmin}}{{with .Data.Collectors}}<select name="collector" aria-label="{{$.T "Scanned from"}}"><option value="0">{{$.T "Scanned from this console"}}</option>{{range .}}<option value="{{.ID}}">{{$.T "Scanned from"}} {{.Name}}</option>{{end}}</select>{{end}}{{end}}
     <input type="hidden" name="now" value="1">
     <button class="primary">{{template "icon" "plus"}}{{.T "Add and scan"}}</button>
   </form>

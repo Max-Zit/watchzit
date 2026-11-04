@@ -120,7 +120,7 @@ func (p *CheckParams) cleanService(typ string) error {
 				return err
 			}
 		}
-		return cleanSteps(p.Steps)
+		return cleanSteps(p.Steps, p.URL)
 	case CheckJSON:
 		p.Expect, p.Contains, p.Query, p.RType, p.Database, p.TLS = 0, "", "", "", "", false
 		if err := checkURL(p.URL); err != nil {
@@ -226,7 +226,7 @@ type WebStep struct {
 }
 
 // cleanSteps checks the steps of a web scenario.
-func cleanSteps(steps []WebStep) error {
+func cleanSteps(steps []WebStep, base string) error {
 	if len(steps) == 0 || len(steps) > 10 {
 		return errors.New("a web scenario has 1–10 steps")
 	}
@@ -247,6 +247,9 @@ func cleanSteps(steps []WebStep) error {
 		if len(s.Body) > 4000 || strings.ContainsAny(s.Body, "\r\n") {
 			return errors.New("step " + n + ": the form data is too long")
 		}
+		if strings.Contains(s.Body, "{secret}") && !SecretStep(base, s.URL) {
+			return errors.New("step " + n + ": the password goes only to the scenario's own address")
+		}
 		if s.Method == "GET" {
 			s.Body = ""
 		}
@@ -255,6 +258,9 @@ func cleanSteps(steps []WebStep) error {
 		}
 		if len(s.Contains) > 200 {
 			return errors.New("step " + n + ": the text to look for is too long")
+		}
+		if strings.Contains(s.Contains, "|") || strings.Contains(s.URL, "|") {
+			return errors.New("step " + n + ": the address and the text to look for cannot contain |")
 		}
 	}
 	return nil
@@ -318,4 +324,33 @@ func StepsText(steps []WebStep) string {
 		b.WriteString("\n")
 	}
 	return b.String()
+}
+
+// SecretStep tells whether a scenario step may carry the check's password:
+// a path on the scenario's address, or an absolute address on the same
+// host (never another site).
+func SecretStep(base, step string) bool {
+	if strings.HasPrefix(step, "/") {
+		return true
+	}
+	b, err1 := url.Parse(base)
+	s, err2 := url.Parse(step)
+	return base != "" && err1 == nil && err2 == nil && b.Host != "" && strings.EqualFold(b.Host, s.Host) && b.Scheme == s.Scheme
+}
+
+// secretHosts are the addresses a check sends its password to (beyond the
+// device): when they change, the stored password is not kept.
+func secretHosts(typ string, p CheckParams) string {
+	hosts := []string{}
+	if u, err := url.Parse(p.URL); err == nil {
+		hosts = append(hosts, strings.ToLower(u.Scheme+"://"+u.Host))
+	}
+	if typ == CheckScenario {
+		for _, s := range p.Steps {
+			if u, err := url.Parse(s.URL); err == nil && u.Host != "" {
+				hosts = append(hosts, strings.ToLower(u.Scheme+"://"+u.Host))
+			}
+		}
+	}
+	return strings.Join(hosts, " ")
 }

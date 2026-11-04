@@ -937,3 +937,22 @@ func (s *Store) triggerCheck(ctx context.Context, in *TriggerInput) error {
 	}
 	return nil
 }
+
+// TriggersOfCheck names the triggers that watch only this check (they go
+// with it).
+func (s *Store) TriggersOfCheck(ctx context.Context, checkID int64) ([]string, error) {
+	rows, err := s.db.Query(ctx, `SELECT name FROM triggers WHERE check_id=$1 ORDER BY name`, checkID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var n string
+		if err := rows.Scan(&n); err != nil {
+			return nil, err
+		}
+		out = append(out, n)
+	}
+	return out, rows.Err()
+}

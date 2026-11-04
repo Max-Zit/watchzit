@@ -1757,6 +1757,7 @@
   "repeat every 5–1440 minutes, or not at all": "alle 5–1440 Minuten wiederholen oder gar nicht",
   "reply (ACS) address": "Antwortadresse (ACS)",
   "resolved": "behoben",
+  "results before the collector got its checks": "Ergebnisse, bevor der Kollektor seine Prüfungen erhielt",
   "running": "läuft",
   "runs on": "läuft auf",
   "sFlow port (UDP)": "sFlow-Port (UDP)",

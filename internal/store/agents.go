@@ -193,7 +193,7 @@ func (s *Store) EnrollAgent(ctx context.Context, token string, pub []byte, hostn
 	if err != nil {
 		return nil, err
 	}
-	if _, err := tx.Exec(ctx, `UPDATE devices SET agent_key=$2, agent_id=$3, agent_version=$4, agent_os=$5, agent_ip=$6, agent_seen=$7 WHERE id=$1`,
+	if _, err := tx.Exec(ctx, `UPDATE devices SET agent_key=$2, agent_id=$3, agent_version=$4, agent_os=$5, agent_ip=$6, agent_seen=$7, collector=false WHERE id=$1`,
 		id, pub, KeyID(pub), version, truncate(osName, 200), ip, s.now()); err != nil {
 		return nil, err
 	}
@@ -259,7 +259,12 @@ func (s *Store) SetAgentInventory(ctx context.Context, deviceID int64, inv *prot
 // ForgetAgent removes the agent from a device (the device and its data
 // stay; the computer must enroll again).
 func (s *Store) ForgetAgent(ctx context.Context, deviceID int64) error {
-	_, err := s.db.Exec(ctx, `UPDATE devices SET agent_key=NULL, agent_id='', agent_online=false WHERE id=$1`, deviceID)
+	// a removed agent is no collector any more: a machine enrolled later
+	// under the same name must not get its devices' passwords
+	if err := s.SetCollector(ctx, deviceID, false); err != nil && !errors.Is(err, errNoAgent) {
+		return err
+	}
+	_, err := s.db.Exec(ctx, `UPDATE devices SET agent_key=NULL, agent_id='', agent_online=false, collector=false WHERE id=$1`, deviceID)
 	return err
 }
 

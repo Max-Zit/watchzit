@@ -570,7 +570,7 @@ func checkInput(r *http.Request) store.CheckInput {
 			Query: r.FormValue("query"), RType: r.FormValue("rtype"), User: r.FormValue("user"), Secret: r.FormValue("secret"),
 			Database: r.FormValue("database"), Path: r.FormValue("path"), Auth: r.FormValue("auth"), TLS: r.FormValue("tls") == "1", HV: r.FormValue("hv")}}
 	if in.Type == store.CheckScenario {
-		in.Params.Steps, _ = store.ParseSteps(r.FormValue("steps"))
+		in.Params.Steps, in.FormErr = store.ParseSteps(r.FormValue("steps"))
 	}
 	return in
 }
@@ -624,6 +624,9 @@ func (s *Server) handleCheckUpdate(w http.ResponseWriter, r *http.Request) {
 	if c == nil {
 		return
 	}
+	// the settings form has no type: the check's own decides how it is read
+	_ = r.ParseForm()
+	r.Form.Set("type", c.Type)
 	in := checkInput(r)
 	if err := s.store.UpdateCheck(r.Context(), c.ID, in); err != nil {
 		s.redirectErr(w, r, devURL(c)+"#check-"+strconv.FormatInt(c.ID, 10), storeErr(err))
@@ -639,6 +642,7 @@ func (s *Server) handleCheckDelete(w http.ResponseWriter, r *http.Request) {
 	if c == nil {
 		return
 	}
+	gone, _ := s.store.TriggersOfCheck(r.Context(), c.ID)
 	ids, err := s.store.DeleteCheck(r.Context(), c.ID)
 	if err != nil {
 		s.serverError(w, r, err)
@@ -649,6 +653,9 @@ func (s *Server) handleCheckDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	s.poller.Reload()
 	s.audit(r, "check.delete", "device:"+strconv.FormatInt(c.DeviceID, 10), "check #%d %s of %s deleted with its data", c.ID, c.Name, c.Device)
+	for _, t := range gone {
+		s.audit(r, "trigger.delete", "device:"+strconv.FormatInt(c.DeviceID, 10), "trigger %q removed with its check %s", t, c.Name)
+	}
 	s.redirect(w, r, devURL(c), "Check deleted.")
 }
 

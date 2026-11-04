@@ -442,7 +442,7 @@ func (s *Server) Handler() http.Handler {
 	write("POST /alerts/maintenance", s.handleMaintenanceCreate)
 	write("POST /alerts/maintenance/{id}/end", s.handleMaintenanceEnd)
 	write("POST /devices/bulk", s.handleDevicesBulk)
-	write("POST /devices/{id}/collector", s.handleDeviceCollector)
+	admin("POST /devices/{id}/collector", s.handleDeviceCollector) // the collector gets the devices' passwords
 	app("GET /templates", s.handleTemplates)
 	write("POST /templates", s.handleTemplateCreate)
 	app("GET /templates/{id}", s.handleTemplate)

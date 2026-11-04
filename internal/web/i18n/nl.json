@@ -1757,6 +1757,7 @@
   "repeat every 5–1440 minutes, or not at all": "herhaal elke 5–1440 minuten, of helemaal niet",
   "reply (ACS) address": "antwoordadres (ACS)",
   "resolved": "opgelost",
+  "results before the collector got its checks": "resultaten voordat de collector zijn controles kreeg",
   "running": "draait",
   "runs on": "draait op",
   "sFlow port (UDP)": "sFlow-poort (UDP)",
