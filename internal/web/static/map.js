@@ -699,6 +699,7 @@
       if (!kioskBase) {
         var acts = h("div", { "class": "row mt" });
         acts.appendChild(btn(T("Metrics"), "/devices/" + n.device + fromMap(), "primary"));
+        if (meta && meta.can_edit) acts.appendChild(btn(T("Edit device"), "/devices/" + n.device + "/edit" + fromMap(), "secondary"));
         if (d.web) { var wa = btn(d.web_name || T("Open web interface"), d.web); wa.target = "_blank"; wa.rel = "noopener noreferrer"; acts.appendChild(wa); }
         (d.links || []).forEach(function (l) { var la = btn(l.name, l.url); la.target = "_blank"; la.rel = "noopener noreferrer"; acts.appendChild(la); });
         (d.tools || []).forEach(function (t) {

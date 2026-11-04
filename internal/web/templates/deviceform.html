@@ -3,7 +3,7 @@
 <p class="back"><a href="{{if .Data.ID}}/devices/{{.Data.ID}}{{else}}/devices{{end}}">{{if .Data.ID}}{{.Data.In.Name}}{{else}}{{.T "Devices"}}{{end}}</a></p>
 <h1>{{.T .Title}}</h1>
 <section class="panel">
-  <form method="post" action="{{if .Data.ID}}/devices/{{.Data.ID}}/edit{{else}}/devices/new{{end}}" class="stack">
+  <form method="post" action="{{if .Data.ID}}/devices/{{.Data.ID}}/edit{{with .BackMap}}?map={{.ID}}{{end}}{{else}}/devices/new{{end}}" class="stack">
     <div class="cols">
       <label>{{.T "Name"}}<input name="name" value="{{.Data.In.Name}}" required maxlength="100" placeholder="core-router"></label>
       <label>{{.T "Address"}}<input name="address" value="{{.Data.In.Address}}" required maxlength="253" class="mono" spellcheck="false" autocapitalize="none" placeholder="192.168.1.1"><small>{{.T "IP address or host name."}}</small></label>

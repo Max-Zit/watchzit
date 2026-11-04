@@ -531,6 +531,13 @@ func (s *Server) handleDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	s.poller.Reload()
 	s.audit(r, "device.update", "device:"+strconv.FormatInt(dev.ID, 10), "%s: address %s, kind %s, paused %v", d.In.Name, d.In.Address, d.In.Kind, d.In.Paused)
+	// edited from a map's side panel: back to the map
+	if mid, err := strconv.ParseInt(r.URL.Query().Get("map"), 10, 64); err == nil && mid > 0 {
+		if _, err := s.store.MapByID(r.Context(), mid); err == nil {
+			s.redirect(w, r, "/maps/"+strconv.FormatInt(mid, 10), "Saved.")
+			return
+		}
+	}
 	s.redirect(w, r, "/devices/"+strconv.FormatInt(dev.ID, 10), "Saved.")
 }
 
