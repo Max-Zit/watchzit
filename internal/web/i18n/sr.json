@@ -1757,6 +1757,7 @@
   "repeat every 5–1440 minutes, or not at all": "ponavljajte na 5–1440 minuta, ili ne ponavljajte",
   "reply (ACS) address": "adresa za odgovor (ACS)",
   "resolved": "rešen",
+  "results before the collector got its checks": "rezultati pre nego što je kolektor dobio provere",
   "running": "radi",
   "runs on": "radi na",
   "sFlow port (UDP)": "Port za sFlow (UDP)",

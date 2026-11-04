@@ -94,6 +94,9 @@ func (c *collectorRun) take(n int) []poller.RemoteResult {
 func (c *collectorRun) putBack(rs []poller.RemoteResult) {
 	c.mu.Lock()
 	c.buf = append(append([]poller.RemoteResult(nil), rs...), c.buf...)
+	if over := len(c.buf) - collectorBufMax; over > 0 {
+		c.buf = c.buf[over:] // the oldest go
+	}
 	c.mu.Unlock()
 }
 

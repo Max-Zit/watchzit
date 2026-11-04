@@ -185,6 +185,12 @@ type toolsData struct {
 }
 
 func (s *Server) handleTools(w http.ResponseWriter, r *http.Request) {
+	if r.PathValue("id") != "" {
+		if _, ok := pathID(r, "id"); !ok {
+			s.notFound(w, r)
+			return
+		}
+	}
 	d := &toolsData{In: store.ToolInput{Enabled: true, Port: 22}}
 	if id, ok := pathID(r, "id"); ok {
 		t, err := s.store.ToolByID(r.Context(), id)

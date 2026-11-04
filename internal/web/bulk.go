@@ -44,10 +44,17 @@ func (s *Server) handleDevicesBulk(w http.ResponseWriter, r *http.Request) {
 			v = 1
 		}
 		n, err = s.store.BulkUpdate(ctx, ids, store.BulkPause, v, "")
-	case "collector":
-		n, err = s.store.SetDeviceCollector(ctx, ids, num("collector"))
-	case "backup":
-		n, err = s.store.SetDeviceBackup(ctx, ids, num("backup"))
+	case "collector", "backup":
+		// a collector gets the devices' passwords: administrators only
+		if !userFrom(r).IsAdmin() {
+			s.forbidden(w, r)
+			return
+		}
+		if action == "collector" {
+			n, err = s.store.SetDeviceCollector(ctx, ids, num("collector"))
+		} else {
+			n, err = s.store.SetDeviceBackup(ctx, ids, num("backup"))
+		}
 	case "template":
 		t, terr := s.store.TemplateByID(ctx, num("template"))
 		if terr != nil {

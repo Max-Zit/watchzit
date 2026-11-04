@@ -434,7 +434,7 @@ func (s *Store) Problems(ctx context.Context, f ProblemFilter) ([]*Problem, erro
 		f.Limit = 500
 	}
 	rows, err := s.db.Query(ctx, `SELECT `+problemCols+` FROM problems p JOIN devices d ON d.id=p.device_id LEFT JOIN checks c ON c.id=p.check_id
-		WHERE (p.resolved_at IS NULL) = $1 AND ($2 OR p.resolved_at IS NOT NULL OR p.suppressed='') AND ($3 = 0 OR p.device_id=$3)
+		WHERE (p.resolved_at IS NULL) = $1 AND ($2 OR p.resolved_at IS NOT NULL OR p.suppressed='') AND ($3::bigint = 0 OR p.device_id=$3)
 		AND ($4 = '' OR p.severity=$4) AND (p.resolved_at IS NULL OR p.started_at >= $5)
 		ORDER BY CASE WHEN p.resolved_at IS NULL THEN array_position(ARRAY['critical','warning','info'], p.severity) ELSE 0 END, p.started_at DESC LIMIT $6`,
 		f.Open, f.Suppressed, f.DeviceID, f.Severity, f.Since, f.Limit)
@@ -936,4 +936,23 @@ func (s *Store) triggerCheck(ctx context.Context, in *TriggerInput) error {
 		}
 	}
 	return nil
+}
+
+// TriggersOfCheck names the triggers that watch only this check (they go
+// with it).
+func (s *Store) TriggersOfCheck(ctx context.Context, checkID int64) ([]string, error) {
+	rows, err := s.db.Query(ctx, `SELECT name FROM triggers WHERE check_id=$1 ORDER BY name`, checkID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var n string
+		if err := rows.Scan(&n); err != nil {
+			return nil, err
+		}
+		out = append(out, n)
+	}
+	return out, rows.Err()
 }

@@ -1757,6 +1757,7 @@
   "repeat every 5–1440 minutes, or not at all": "每 5–1440 分钟重复，或不重复",
   "reply (ACS) address": "回复（ACS）地址",
   "resolved": "已解决",
+  "results before the collector got its checks": "采集器收到检查之前的结果",
   "running": "运行中",
   "runs on": "运行于",
   "sFlow port (UDP)": "sFlow 端口（UDP）",

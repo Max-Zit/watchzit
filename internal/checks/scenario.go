@@ -48,7 +48,11 @@ func Scenario(ctx context.Context, p store.CheckParams, t Target) Result {
 		}
 		var body io.Reader
 		if s.Method == http.MethodPost {
-			body = strings.NewReader(strings.ReplaceAll(s.Body, "{secret}", url.QueryEscape(t.Secret)))
+			b := s.Body
+			if store.SecretStep(p.URL, s.URL) {
+				b = strings.ReplaceAll(b, "{secret}", url.QueryEscape(t.Secret))
+			}
+			body = strings.NewReader(b)
 		}
 		req, err := http.NewRequestWithContext(ctx, s.Method, u, body)
 		if err != nil {

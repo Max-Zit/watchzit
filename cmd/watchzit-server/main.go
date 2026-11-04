@@ -308,6 +308,7 @@ func run() error {
 	go logs.Run(ctx)
 	go flows.Run(ctx)
 	go srv.RunDiscovery(ctx)
+	go srv.RunCollectorSweep(ctx)
 	go srv.RunConfigBackups(ctx)
 	go srv.RunAutoMaps(ctx)
 	go func() {

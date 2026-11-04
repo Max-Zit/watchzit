@@ -38,7 +38,7 @@
       <option value="parent">{{.T "Depends on"}}</option>
       <option value="kind">{{.T "Type"}}</option>
       {{if .Data.Templates}}<option value="template">{{.T "Apply template"}}</option>{{end}}
-      {{if .Data.Collectors}}<option value="collector">{{.T "Monitored from"}}</option><option value="backup">{{.T "Backup collector"}}</option>{{end}}
+      {{if and .Data.Collectors .User.IsAdmin}}<option value="collector">{{.T "Monitored from"}}</option><option value="backup">{{.T "Backup collector"}}</option>{{end}}
       <option value="pause">{{.T "Pause monitoring"}}</option>
       <option value="resume">{{.T "Resume monitoring"}}</option>
       {{if .User.IsAdmin}}<option value="delete">{{.T "Delete"}}</option>{{end}}

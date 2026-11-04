@@ -117,8 +117,15 @@ func (s *Server) scanRange(ctx context.Context, r *store.DiscoveryRange) error {
 		for _, a := range addrs {
 			in[a] = true
 		}
+		sent := s.snmpProfiles(ctx, 0)
 		for _, h := range res.Hosts {
 			if in[h.Address] {
+				if _, ok := sent[h.SNMP]; !ok {
+					h.SNMP = 0 // a profile it was not given
+				}
+				if len(h.Ports) > 32 {
+					h.Ports = h.Ports[:32]
+				}
 				found = append(found, h)
 			}
 		}
@@ -220,6 +227,10 @@ func (s *Server) handleDiscoveryRangeAdd(w http.ResponseWriter, r *http.Request)
 	}
 	coll, _ := strconv.ParseInt(r.FormValue("collector"), 10, 64)
 	if coll != 0 {
+		if !userFrom(r).IsAdmin() {
+			s.forbidden(w, r)
+			return
+		}
 		if d, err := s.store.DeviceByID(r.Context(), coll); err != nil || !d.Collector {
 			s.redirectErr(w, r, back, "That device is not a remote collector.")
 			return

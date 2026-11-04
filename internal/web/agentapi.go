@@ -272,7 +272,7 @@ func (s *Server) agentMessage(ctx context.Context, c *agentConn, env proto.Envel
 			return err
 		}
 		s.offerAgentUpdate(ctx, c, false)
-		if err := s.sendCollectorConfig(ctx, c); err != nil {
+		if err := s.sendCollectorConfig(ctx, c, true); err != nil {
 			s.log.Warn("cannot send the remote collector its checks", "device", c.deviceID, "err", err)
 		}
 		go s.syncCollectors() // #nosec G118 -- a backup hands its devices back; own timeout, outlives this message

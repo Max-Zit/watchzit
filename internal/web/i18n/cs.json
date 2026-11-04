@@ -1757,6 +1757,7 @@
   "repeat every 5–1440 minutes, or not at all": "opakujte každých 5–1440 minut, nebo vůbec",
   "reply (ACS) address": "adresa odpovědi (ACS)",
   "resolved": "vyřešeno",
+  "results before the collector got its checks": "výsledky dříve, než kolektor dostal své kontroly",
   "running": "běží",
   "runs on": "běží na",
   "sFlow port (UDP)": "Port sFlow (UDP)",

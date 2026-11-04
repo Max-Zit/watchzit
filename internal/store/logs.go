@@ -91,9 +91,9 @@ func (s *Store) Logs(ctx context.Context, f LogFilter) ([]*LogMessage, error) {
 	}
 	rows, err := s.db.Query(ctx, `SELECT l.id, l.at, COALESCE(l.device_id,0), COALESCE(d.name,''), host(l.source), l.kind, l.facility, l.severity, l.host, l.tag, l.message
 		FROM log_messages l LEFT JOIN devices d ON d.id=l.device_id
-		WHERE ($1 = 0 OR l.device_id=$1) AND ($2 = '' OR l.kind=$2) AND l.severity <= $3
+		WHERE ($1::bigint = 0 OR l.device_id=$1) AND ($2 = '' OR l.kind=$2) AND l.severity <= $3
 		AND ($4 = '' OR l.message ILIKE '%' || $4 || '%' OR l.tag ILIKE '%' || $4 || '%' OR l.host ILIKE '%' || $4 || '%')
-		AND ($5 = 0 OR l.id < $5) AND l.at >= $6
+		AND ($5::bigint = 0 OR l.id < $5) AND l.at >= $6
 		ORDER BY l.id DESC LIMIT $7`,
 		f.DeviceID, f.Kind, f.MaxLevel, likeEscape(f.Text), f.Before, f.Since, f.Limit)
 	if err != nil {

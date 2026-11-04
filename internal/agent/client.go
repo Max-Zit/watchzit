@@ -71,6 +71,7 @@ func (a *Agent) Run(ctx context.Context) error {
 			return nil
 		}
 		if errors.Is(err, errUnknownAgent) {
+			a.coll.configure(ctx, a, poller.RemoteConfig{}) // removed from the console: stop collecting, drop the passwords
 			a.Log.Error("the server does not know this agent (device removed?); enroll it again", "err", err)
 			backoff = 10 * time.Minute
 		} else {
