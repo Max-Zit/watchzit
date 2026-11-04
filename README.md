@@ -1,12 +1,25 @@
-<p align="center"><img src="brand/watchzit-logo-on-light.svg" alt="WatchZit" height="64"></p>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/watchzit-logo-on-dark.svg">
+    <img src="brand/watchzit-logo-on-light.svg" alt="WatchZit" height="64">
+  </picture>
+</p>
 
 # WatchZit
+
+[![Latest release](https://img.shields.io/github/v/release/Max-Zit/watchzit?label=release)](https://github.com/Max-Zit/watchzit/releases/latest)
+[![License: AGPL v3](https://img.shields.io/badge/license-AGPLv3-blue)](LICENSE)
+[![Downloads](https://img.shields.io/github/downloads/Max-Zit/watchzit/total)](https://github.com/Max-Zit/watchzit/releases)
+[![CI](https://github.com/Max-Zit/watchzit/actions/workflows/ci.yml/badge.svg)](https://github.com/Max-Zit/watchzit/actions/workflows/ci.yml)
+[![Security scan](https://github.com/Max-Zit/watchzit/actions/workflows/security.yml/badge.svg)](https://github.com/Max-Zit/watchzit/actions/workflows/security.yml)
 
 **Free, open-source, self-hosted network and infrastructure monitoring** — a network map like The Dude, metrics and alerts like Zabbix, dashboards like Grafana, in one web console that is easy to install.
 
 WatchZit watches routers, switches, firewalls, servers, printers, UPSs and services over ping, SNMP, HTTP and a small agent, draws them on live network maps, keeps their measurements for years, and tells you when something breaks — by email, chat or webhook. It runs on one Linux server or as a ready-made appliance for VMware, Proxmox and Hyper-V.
 
 WatchZit is made by [MaxZit](https://maxzit.com), like [BackupZit](https://github.com/Max-Zit/backupzit) and [RMMZit](https://github.com/Max-Zit/rmmzit).
+
+> **Status:** WatchZit is under active development and new versions come out often. Release candidates are offered on the *testing* update channel first. Please [report](https://github.com/Max-Zit/watchzit/issues) anything that does not work for you.
 
 ## Contents
 
@@ -28,9 +41,11 @@ WatchZit is made by [MaxZit](https://maxzit.com), like [BackupZit](https://githu
 
 - **Network maps:** devices on maps with live state and traffic on the cables, real pictures of some 3,500 device models (ports and drive bays drawn where they are), racks, hypervisors with their virtual machines, HA groups, VLANs and VXLAN, submaps, the path between two devices, kiosk displays for a monitoring TV.
 - **Discovery:** ping sweeps, SNMP, LLDP/CDP and ARP neighbours; suggested links between devices.
-- **Checks:** ping, TCP, HTTP(S) with text and certificate expiry, DNS, SNMP v1/v2c/v3 (interfaces, CPU, memory, disks, temperatures, UPS, printers), MikroTik RouterOS, FortiGate, PostgreSQL, MySQL/MariaDB, SQL Server, JSON APIs, VRRP roles.
+- **Checks:** ping, TCP, HTTP(S) with text and certificate expiry, web scenarios (sign in and go through a web application step by step), DNS, SNMP v1/v2c/v3 (interfaces, CPU, memory, disks, temperatures, UPS, printers), MikroTik RouterOS, FortiGate, PostgreSQL, MySQL/MariaDB, SQL Server, JSON APIs, VRRP roles.
 - **Hypervisors:** VMware ESXi and vCenter, Proxmox VE, Hyper-V and Docker — hosts, virtual machines and containers, datastores; hypervisor boxes on maps fill with their machines by themselves.
 - **Agent** for Windows and Linux: CPU, memory, disks, interfaces, services, Hyper-V machines, Docker containers — one outbound connection, enrolled with a one-time code.
+- **Remote collectors:** an agent at a branch office or behind NAT runs the checks of its site, discovers its network and keeps measuring when the internet connection to the console is down; a second collector can take over.
+- **Templates and bulk changes:** sets of checks per kind of device, applied to a device, a group or all devices of a kind; change group, SNMP profile, dependency or template of many devices at once.
 - **Graphs and dashboards:** years of history (raw, 5-minute and hourly), zoom, graphs you arrange, resize and colour like dashboard panels, and **data sources** — PostgreSQL, MySQL, SQL Server, Prometheus, InfluxDB and JSON — next to WatchZit's own measurements.
 - **Syslog and SNMP traps:** received from devices, searchable under Logs, with triggers that open problems from them.
 - **Traffic flows:** NetFlow v5/v9, IPFIX and sFlow — top talkers, destinations, services and conversations per exporter, with a traffic graph.
@@ -209,7 +224,7 @@ WatchZit checks for new releases itself and shows them under **Settings → Upda
 
 ## Documentation, support, license
 
-- The **user guide** is built into the console (*User guide* in the menu), in English and Serbian, with a search.
+- The **user guide** is built into the console (*User guide* in the menu), in English and Serbian, with a search; the console itself is in 14 languages.
 - Questions and ideas: [Discussions](https://github.com/Max-Zit/watchzit/discussions). Bugs: [Issues](https://github.com/Max-Zit/watchzit/issues). Security reports: see [SECURITY.md](SECURITY.md).
 - Paid support is offered by [MaxZit](https://maxzit.com).
 
