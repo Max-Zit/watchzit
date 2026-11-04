@@ -43,7 +43,13 @@ type RemoteResult struct {
 
 // RemoteResults is a batch of runs.
 type RemoteResults struct {
+	Seq     int64          `json:"seq,omitempty"` // the console acknowledges it once stored
 	Results []RemoteResult `json:"results"`
+}
+
+// RemoteAck tells a collector that a batch is stored (proto.TypeCollectorAck).
+type RemoteAck struct {
+	Seq int64 `json:"seq"`
 }
 
 // RemoteType reports the check types a collector runs. Hypervisors keep an

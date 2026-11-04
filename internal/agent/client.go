@@ -160,14 +160,23 @@ func (a *Agent) session(ctx context.Context) error {
 	// remote collector: results queued while the channel was down go
 	// first; jobs (a discovery scan, an SNMP read) answer through jobDone
 	jobDone := make(chan poller.RemoteJobResult, 4)
+	// consoles since 1.3.3 acknowledge stored batches (Welcome.Acks); the
+	// unacknowledged ones go back to the queue when the channel ends
+	acks, welcomed := false, false
+	defer a.coll.requeue()
 	sendQueued := func() error {
+		if !welcomed {
+			return nil // the welcome says whether the console acknowledges
+		}
 		for {
-			rs := a.coll.take(collectorBatch)
+			seq, rs := a.coll.next(collectorBatch, acks)
 			if len(rs) == 0 {
 				return nil
 			}
-			if err := sendMsg(sctx, ws, proto.TypeCollectorResults, poller.RemoteResults{Results: rs}); err != nil {
-				a.coll.putBack(rs)
+			if err := sendMsg(sctx, ws, proto.TypeCollectorResults, poller.RemoteResults{Seq: seq, Results: rs}); err != nil {
+				if !acks {
+					a.coll.putBack(rs)
+				}
 				return err
 			}
 		}
@@ -214,6 +223,8 @@ func (a *Agent) session(ctx context.Context) error {
 						ticker.Reset(interval)
 					}
 					services, processes = w.Services, w.Processes
+					acks = w.Acks
+					welcomed = true
 					if first == nil { // a later welcome (watched services changed): report now
 						if err := report(); err != nil {
 							return err
@@ -242,6 +253,11 @@ func (a *Agent) session(ctx context.Context) error {
 				}
 				if err := sendQueued(); err != nil {
 					return err
+				}
+			case proto.TypeCollectorAck:
+				var ack poller.RemoteAck
+				if json.Unmarshal(env.Data, &ack) == nil {
+					a.coll.ack(ack.Seq)
 				}
 			case proto.TypeCollectorJob:
 				var j poller.RemoteJob

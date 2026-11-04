@@ -45,3 +45,29 @@ func TestCollectorBuffer(t *testing.T) {
 		t.Fatalf("oldest kept %d", got[0].Result.CheckID)
 	}
 }
+
+// TestCollectorAcks: batches stay until the console acknowledges them; a
+// channel that ends puts the rest back in front, in order.
+func TestCollectorAcks(t *testing.T) {
+	c := newCollectorRun()
+	now := time.Now()
+	for i := int64(1); i <= 6; i++ {
+		c.add([]poller.RemoteResult{{Result: store.CheckResult{CheckID: i, At: now}}})
+	}
+	s1, b1 := c.next(2, true)
+	s2, b2 := c.next(2, true)
+	if s1 != 1 || s2 != 2 || b1[0].Result.CheckID != 1 || b2[0].Result.CheckID != 3 {
+		t.Fatalf("batches %d %d", s1, s2)
+	}
+	c.ack(1)
+	c.requeue() // the channel died with batch 2 unacknowledged
+	got := c.take(10)
+	if len(got) != 4 || got[0].Result.CheckID != 3 || got[3].Result.CheckID != 6 {
+		t.Fatalf("after requeue: %+v", got)
+	}
+	// without acknowledgements (an older console) nothing is kept
+	c.add(got)
+	if _, b := c.next(10, false); len(b) != 4 || len(c.sent) != 0 {
+		t.Fatal("untracked send kept batches")
+	}
+}

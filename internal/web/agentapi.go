@@ -234,7 +234,7 @@ func (s *Server) welcome(ctx context.Context, c *agentConn) error {
 	if err != nil {
 		return err
 	}
-	w := proto.Welcome{DeviceID: c.deviceID, IntervalSeconds: AgentInterval}
+	w := proto.Welcome{DeviceID: c.deviceID, IntervalSeconds: AgentInterval, Acks: true}
 	for _, x := range cs {
 		if x.Type == store.CheckAgentService && !x.Paused {
 			w.Services = append(w.Services, x.Params.Descr)
@@ -301,7 +301,13 @@ func (s *Server) agentMessage(ctx context.Context, c *agentConn, env proto.Envel
 		if err := json.Unmarshal(env.Data, &rr); err != nil {
 			return err
 		}
-		return s.collectorResults(ctx, c, &rr)
+		if err := s.collectorResults(ctx, c, &rr); err != nil {
+			return err // not acknowledged: the collector sends it again
+		}
+		if rr.Seq != 0 {
+			return sendAgent(ctx, c.ws, proto.TypeCollectorAck, poller.RemoteAck{Seq: rr.Seq})
+		}
+		return nil
 	case proto.TypeInventory:
 		var inv proto.Inventory
 		if err := json.Unmarshal(env.Data, &inv); err != nil {

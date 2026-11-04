@@ -39,6 +39,7 @@ const (
 	TypeCollectorResults = "collector-results"  // agent → server: their results
 	TypeCollectorJob     = "collector-job"      // server → agent: scan a range or read a device (poller.RemoteJob)
 	TypeCollectorJobDone = "collector-job-done" // agent → server: its result
+	TypeCollectorAck     = "collector-ack"      // server → agent: a batch of results is stored (poller.RemoteAck)
 )
 
 // EnrollRequest joins a machine with an enrollment token.
@@ -85,6 +86,7 @@ type Welcome struct {
 	IntervalSeconds int      `json:"interval_s"`
 	Services        []string `json:"services,omitempty"`  // services to report the state of
 	Processes       []string `json:"processes,omitempty"` // process names to report
+	Acks            bool     `json:"acks,omitempty"`      // the console acknowledges collector results (since 1.3.3)
 }
 
 // Report is one sample of the machine.

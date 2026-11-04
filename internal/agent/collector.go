@@ -27,6 +27,8 @@ type collectorRun struct {
 	buf    []poller.RemoteResult
 	notify chan struct{}
 	now    func() time.Time
+	sent   []sentBatch // waiting for the console's acknowledgement
+	seq    int64
 }
 
 func newCollectorRun() *collectorRun {
@@ -41,7 +43,7 @@ func (c *collectorRun) configure(ctx context.Context, a *Agent, cfg poller.Remot
 	if len(cfg.Checks) == 0 {
 		if c.stop != nil {
 			c.stop()
-			c.p, c.stop, c.buf = nil, nil, nil
+			c.p, c.stop, c.buf, c.sent = nil, nil, nil, nil
 			a.Log.Info("no longer a remote collector")
 		}
 		return
@@ -109,4 +111,64 @@ func (c *collectorRun) close() {
 		c.stop()
 	}
 	c.mu.Unlock()
+}
+
+// Batches sent but not yet acknowledged by the console: a channel can die
+// with writes that never arrived, so they go back to the queue unless the
+// console said they are stored.
+const collectorInFlight = 20 // batches at most; then wait for acknowledgements
+
+type sentBatch struct {
+	seq int64
+	rs  []poller.RemoteResult
+}
+
+// next takes the next batch to send and remembers it until ack.
+func (c *collectorRun) next(n int, track bool) (int64, []poller.RemoteResult) {
+	if track {
+		c.mu.Lock()
+		full := len(c.sent) >= collectorInFlight
+		c.mu.Unlock()
+		if full {
+			return 0, nil
+		}
+	}
+	rs := c.take(n)
+	if len(rs) == 0 || !track {
+		return 0, rs
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.seq++
+	c.sent = append(c.sent, sentBatch{seq: c.seq, rs: rs})
+	return c.seq, rs
+}
+
+// ack forgets the batches up to seq.
+func (c *collectorRun) ack(seq int64) {
+	c.mu.Lock()
+	i := 0
+	for i < len(c.sent) && c.sent[i].seq <= seq {
+		i++
+	}
+	c.sent = c.sent[i:]
+	c.mu.Unlock()
+	select { // room again: send more
+	case c.notify <- struct{}{}:
+	default:
+	}
+}
+
+// requeue puts the unacknowledged batches back in front (the channel ended).
+func (c *collectorRun) requeue() {
+	c.mu.Lock()
+	var rs []poller.RemoteResult
+	for _, b := range c.sent {
+		rs = append(rs, b.rs...)
+	}
+	c.sent = nil
+	c.mu.Unlock()
+	if len(rs) > 0 {
+		c.putBack(rs)
+	}
 }
