@@ -1,0 +1,31 @@
+<h1>Primeros pasos</h1>
+<p class="lead">WatchZit es un sistema autoalojado de supervisión de redes y dispositivos. Un mapa de red en vivo muestra qué está conectado con qué y en qué estado se encuentra; detrás hay comprobaciones, gráficos, alertas, paneles e informes, todo en su propio servidor y bajo la licencia AGPL-3.0.</p>
+
+<h2 id="what">Qué hace WatchZit</h2>
+<table>
+  <tr><th>Área</th><th>Qué obtiene</th></tr>
+  <tr><td>Mapas de red</td><td>Dibuje su red con imágenes reales de los dispositivos, racks y cables de puerto a puerto; el mapa muestra el estado y el tráfico en vivo. <a href="/docs/maps">Mapas de red</a></td></tr>
+  <tr><td>Comprobaciones</td><td>Ping, puertos TCP, páginas web, certificados TLS, DNS, PostgreSQL y MySQL, SNMP (v1/v2c/v3: interfaces, CPU, memoria, discos, cualquier OID), la API de MikroTik RouterOS y valores de cualquier API JSON. <a href="/docs/devices">Dispositivos y comprobaciones</a></td></tr>
+  <tr><td>Agente</td><td>Un pequeño agente opcional para Windows y Linux informa de la CPU, la memoria, los discos, las interfaces y los servicios elegidos. <a href="/docs/agents">Agentes</a></td></tr>
+  <tr><td>Alertas</td><td>Los disparadores abren problemas; las dependencias, las ventanas de mantenimiento y los reconocimientos reducen el ruido; notificaciones por correo, webhook, Slack y Teams. <a href="/docs/alerts">Problemas y alertas</a></td></tr>
+  <tr><td>Gráficos, paneles, informes</td><td>Gráficos de cada valor, desde una hora hasta un año, paneles para una pantalla mural e informes de disponibilidad. <a href="/docs/dashboards">Paneles e informes</a></td></tr>
+  <tr><td>Abrir dispositivos</td><td>Abra la página web de un dispositivo, SSH, Escritorio remoto, WinBox o sus propias herramientas con un clic. <a href="/docs/tools">Abrir dispositivos</a></td></tr>
+</table>
+
+<h2 id="how">Cómo funciona</h2>
+<ul>
+  <li><b>El servidor</b> funciona en Linux con PostgreSQL. Tiene dos puertos: la <b>consola</b> (interfaz web y API REST, TCP 8443) y el <b>punto de acceso de agentes</b> (TCP 8444).</li>
+  <li>El servidor <b>sondea</b> los dispositivos por sí mismo (ping, TCP, SNMP, HTTP, bases de datos, API). Para ello no hace falta instalar nada en los dispositivos.</li>
+  <li>Los <b>agentes</b> son opcionales. Se conectan <i>hacia fuera</i> al puerto de agentes e informan cada minuto; los equipos no necesitan puertos abiertos.</li>
+  <li>Cada cambio en la consola se escribe en el <a href="/audit">registro de auditoría</a>, protegido contra manipulaciones.</li>
+</ul>
+
+<h2 id="first-steps">Primeros pasos</h2>
+<ol>
+  <li><b>Instale el servidor</b>: consulte <a href="/docs/install">Instalar el servidor</a>.</li>
+  <li><b>Cree el primer administrador</b> con el token de configuración que muestra el instalador y configure el inicio de sesión en dos pasos con una aplicación de autenticación.</li>
+  <li><b>Añada dispositivos</b> en <a href="/devices">Dispositivos</a>: basta con un nombre y una dirección; el ping se añade automáticamente. Añada un perfil SNMP para leer las interfaces y el tráfico.</li>
+  <li><b>Dibuje un mapa</b> en <a href="/maps">Mapas</a> y conecte los dispositivos de puerto a puerto.</li>
+  <li><b>Configure las notificaciones</b> en <a href="/settings/notifications">Configuración → Notificaciones</a>; los disparadores integrados ya vigilan los dispositivos caídos, los discos llenos y los certificados a punto de caducar.</li>
+</ol>
+<div class="callout tip"><p>De forma predeterminada, la consola solo es accesible desde redes privadas. Manténgalo así y abra únicamente el puerto de agentes (8444) donde los agentes lo necesiten.</p></div>

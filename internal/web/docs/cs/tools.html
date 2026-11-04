@@ -1,0 +1,32 @@
+<h1>Otevírání zařízení</h1>
+<p class="lead">Ze stránky zařízení nebo z bočního panelu mapy otevřete zařízení správným programem: jeho webovým rozhraním, SSH, Vzdálenou plochou, WinBoxem, VNC nebo vlastními nástroji.</p>
+
+<h2 id="launcher">MaxZit Launcher</h2>
+<p>Prohlížeč nemůže spouštět programy, a tak to dělá malý program pro Windows: <b>MaxZit Launcher</b>. Nainstalujte ho jednou na každý počítač ze stránky <a href="/launcher">Launcher</a> — <b>instalátor</b> (MSI) s krátkým průvodcem ho umístí do Aplikací s jeho ikonou, odkud ho lze zase odebrat — instaluje se pro vašeho uživatele Windows, bez práv správce — a klikněte na <b>Spárovat tento počítač</b>. Launcher ukáže otisk serveru; musí se shodovat s tím na stránce.</p>
+<p>Pak fungují tlačítka <b>Otevřít v</b>. Když se konzole přestěhuje na jinou adresu (nebo se obnoví ze zálohy jinde), klikněte znovu na <b>Spárovat tento počítač</b>: launcher ji pozná podle klíče a zeptá se, zda použít novou adresu. Poprvé se prohlížeč zeptá, zda smí launcher otevřít; povolte to.</p>
+<p>Stejný launcher slouží i <b>PassZit</b>: v nabídce rozšíření PassZit klikněte na <b>Pair with the MaxZit Launcher</b> a potvrďte to ve vlastním okně launcheru. PassZit pak otevírá Vzdálenou plochu, SSH, WinSCP, WinBox, VNC a Telnet s přihlašovacími údaji z trezoru — Vzdálenou plochu přes přihlašovací údaje Windows, které existují jen několik sekund, heslo nebo klíč SSH přes soubor, který můžete číst jen vy a který se hned po spuštění smaže. Launcher nahrazuje starší WatchZit Launcher a passzit-helper: instalace převezme jejich nastavení a párování. Když je PassZit spárovaný a adresa konzole patří mezi jeho důvěryhodné konzole MaxZit, otevírají tlačítka <b>Otevřít v</b> ve WatchZit spojení přihlášené odpovídajícími údaji z trezoru; bez PassZit nebo bez přihlašovacích údajů pro dané zařízení se otevírají jako dřív. Konzole sdělí PassZit jen nástroj, adresu, port, uživatelské jméno a název zařízení — nikdy heslo. Vedle tlačítek <b>Otevřít v</b> ukazuje malý odznak <b>PassZit</b>, že je PassZit odemčený a přihlásí vás; <b>PassZit zamčen</b> znamená, že ho musíte nejprve odemknout. Bez PassZit na této konzoli vysvětluje malá nápověda, jak ho povolit; <b>Znovu nezobrazovat</b> ji v tomto prohlížeči skryje.</p>
+
+<h2 id="safety">Jak je zajištěna bezpečnost</h2>
+<ul>
+  <li>Každé kliknutí dá odkaz <b>podepsaný</b> vaším serverem, který platí minutu a funguje jen jednou; launcher přijímá odkazy jen od spárovaných serverů.</li>
+  <li>Adresy a uživatelská jména se kontrolují proti přísným sadám znaků; programy se spouštějí se seznamem argumentů, nikdy přes shell.</li>
+  <li>Hesla se nikdy neukládají ani neodesílají: program si o ně řekne sám.</li>
+  <li>Než se poprvé spustí program, který přidal váš správce, launcher se vás zeptá.</li>
+</ul>
+
+<h2 id="tools">Vestavěné nástroje</h2>
+<table>
+  <tr><th>Nástroj</th><th>Program ve vašem počítači</th></tr>
+  <tr><td>SSH</td><td>PuTTY, pokud je nainstalovaný, jinak klient SSH systému Windows</td></tr>
+  <tr><td>Vzdálená plocha</td><td>klient Vzdálené plochy systému Windows</td></tr>
+  <tr><td>WinBox</td><td>winbox64.exe z Program Files, Stažených souborů nebo Plochy</td></tr>
+  <tr><td>VNC</td><td>prohlížeč TightVNC, TigerVNC nebo RealVNC</td></tr>
+  <tr><td>Telnet</td><td>PuTTY</td></tr>
+</table>
+<p>Programy na jiných místech: zapište jejich cesty do <code>%APPDATA%\MaxZit Launcher\launcher.json</code>. Bez launcheru Vzdálená plocha funguje dál: tlačítko <b>.rdp</b> stáhne soubor, který Windows otevře.</p>
+
+<h2 id="own-tools">Vlastní nástroje</h2>
+<p>V <a href="/settings/tools">Nastavení → Nástroje</a> správci vypínají vestavěné nástroje, omezují je na typy zařízení a přidávají vlastní: cestu k programu (například <code>%ProgramFiles%\Mozilla Firefox\firefox.exe</code>) a argumenty s <code>{host}</code>, <code>{port}</code>, <code>{user}</code> a <code>{name}</code>. Uživatelské jméno a porty pro každé zařízení se nastavují v jeho části <b>Vzdálený přístup</b>, kde také odškrtnete nástroje, které zařízení nemá — server s Proxmoxem nebo Linuxem nemá Vzdálenou plochu — nebo zaškrtnete nástroj, který jeho typ ve výchozím stavu nedostává; tlačítka na stránce zařízení a na mapách pak ukazují jen zaškrtnuté nástroje.</p>
+
+<h2 id="device-links">Odkazy na každém zařízení</h2>
+<p>Také v <a href="/settings/tools#links">Nastavení → Nástroje</a> přidá <b>Odkazy na každém zařízení</b> na každou stránku zařízení tlačítka, která zařízení otevřou v jiném programu v prohlížeči, například v RMMZit nebo BackupZit. Zadejte název a adresu; <code>{name}</code>, <code>{address}</code> a <code>{id}</code> se nahradí názvem, adresou a číslem zařízení, např. <code>https://rmm.example.com:8443/devices?q={name}</code>. Přijímají se jen adresy http:// a https://.</p>

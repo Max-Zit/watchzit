@@ -1,0 +1,39 @@
+<h1>De server installeren</h1>
+<p class="lead">WatchZit draait op een 64-bits Linux-server (een kleine virtuele machine is genoeg) met PostgreSQL. Het installatiescript richt alles in; er zijn ook pakketten en een kant-en-klaar appliance-image.</p>
+
+<h2 id="requirements">Vereisten</h2>
+<ul>
+  <li>Debian 12+, Ubuntu 22.04+, AlmaLinux of Rocky Linux 9+, x86-64.</li>
+  <li>2 CPU-kernen en 2 GB geheugen voor een paar honderd apparaten; 10 GB schijfruimte (metingen worden compact opgeslagen: een uur aan pingtijden neemt ongeveer 100 bytes in beslag).</li>
+  <li>Poorten: <b>8443</b> voor de console (uw beheernetwerken), <b>8444</b> voor agents (alleen waar agents zijn).</li>
+</ul>
+
+<h2 id="script">Installatiescript</h2>
+<p>Als root op de server:</p>
+<pre>curl -fsSL https://github.com/Max-Zit/watchzit/releases/latest/download/install.sh | sudo sh</pre>
+<p>Het script installeert PostgreSQL, downloadt de nieuwste release, <b>controleert de handtekening</b> met de releasesleutel van WatchZit, installeert het pakket, maakt de database aan met een willekeurig wachtwoord, opent de poorten in firewalld of ufw en start de service. Aan het eind toont het het adres van de console en het <b>installatietoken</b>.</p>
+<p>Opties: <code>--version X</code> (een bepaalde release), <code>--db postgres://…</code> (een bestaande database in plaats van een lokale PostgreSQL), <code>--no-auto-updates</code> (de beveiligingsupdates van het besturingssysteem niet inschakelen), <code>--source URL</code> (een mirror of een lokale map met de releasebestanden). Als u het script opnieuw uitvoert, wordt WatchZit bijgewerkt en blijven de gegevens behouden.</p>
+
+<h2 id="packages">Pakketten</h2>
+<p>Elke release heeft een <code>.deb</code> en een <code>.rpm</code> van de server. Ze installeren het programma, de systemd-services en de installatieprogramma's van de agent; stel <code>WATCHZIT_DB</code> in in <code>/etc/watchzit/server.env</code> en start <code>watchzit-server</code>.</p>
+
+<h2 id="appliance">Appliance</h2>
+<p>De appliance is een kant-en-klaar image (Debian met WatchZit, PostgreSQL en automatische beveiligingsupdates). Importeer het in VMware, Proxmox of Hyper-V, start het en volg het menu op het scherm: het toont het adres van de console en het installatietoken, en stelt het netwerk in.</p>
+<p>Images: <b>OVA</b> (VMware ESXi, Workstation, VirtualBox), <b>qcow2</b> (Proxmox, KVM), <b>VHDX</b> (Hyper-V generatie 1) en een <b>ISO</b> die de appliance op een nieuwe VM of een fysieke server installeert (de eerste schijf wordt gewist). Geef hem 2 CPU's, 2 GB geheugen en een schijf van 16 GB of meer; een grotere schijf wordt automatisch gebruikt. Meld u op het scherm aan als <code>wzadmin</code> met het eerste wachtwoord <code>watchzit</code>; u moet meteen een nieuw wachtwoord kiezen. Het menu stelt het netwerk in (DHCP of een vast adres), de servernaam, de tijdzone en SSH (aan of uit, poort), en stelt een nieuw wachtwoord in voor een consolegebruiker zoals admin (waarbij alle aanmeldblokkeringen worden opgeheven). Netwerk, SSH, updates van het besturingssysteem en een vertrouwd certificaat kunt u ook in de console instellen (zie Gebruikers, instellingen en updates). SSH staat geen aanmelding als root toe.</p>
+
+<h2 id="first-sign-in">Eerste aanmelding</h2>
+<ol>
+  <li>Open <code>https://&lt;server&gt;:8443</code>. De browser waarschuwt één keer voor het zelfondertekende certificaat; accepteer het.</li>
+  <li>Voer het installatietoken in en maak de eerste beheerder aan.</li>
+  <li>Scan de QR-code met een authenticator-app (aanmelden in twee stappen is verplicht) en bewaar de herstelcodes.</li>
+</ol>
+
+<h2 id="files">Bestanden en services</h2>
+<table>
+  <tr><th>Pad</th><th>Wat</th></tr>
+  <tr><td><code>/etc/watchzit/server.env</code></td><td>Databaseadres en updatebron.</td></tr>
+  <tr><td><code>/var/lib/watchzit</code></td><td>Certificaten, de geheime sleutel (maak er samen met de database een back-up van), downloads, logboeken.</td></tr>
+  <tr><td><code>watchzit-server.service</code></td><td>De server. <code>journalctl -u watchzit-server</code> toont het logboek.</td></tr>
+  <tr><td><code>watchzit-helper.path</code></td><td>De root-helper voor updates, tijdzone en herstarts vanuit de console.</td></tr>
+</table>
+<div class="callout warn"><p>Maak een back-up van de database <b>en</b> van <code>/var/lib/watchzit/secret.key</code>: opgeslagen wachtwoorden (SNMP, databases, kanalen) zijn daarmee versleuteld.</p></div>

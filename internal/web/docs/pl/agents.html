@@ -1,0 +1,42 @@
+<h1>Instalacja agentów</h1>
+<p class="lead">Agent WatchZit jest opcjonalny. Raportuje to, czego sieć nie widzi z zewnątrz: CPU, pamięć, dyski, interfejsy i usługi komputerów z Windows i Linuksem, co minutę, przez jedno połączenie wychodzące.</p>
+
+<h2 id="code">Kody rejestracji</h2>
+<p>W sekcji <a href="/agents">Agenci</a> utwórz <b>kod rejestracji</b>: nazwę, liczbę dni ważności, liczbę komputerów, które mogą go użyć, oraz grupę, do której trafią nowe urządzenia. Kod jest wyświetlany tylko raz; zawiera adres serwera i odcisk certyfikatu agentów, więc agent ufa wyłącznie twojemu serwerowi.</p>
+
+<h2 id="windows">Windows</h2>
+<p>Pobierz MSI ze strony Agenci i zainstaluj go; poprosi o kod. Na wielu komputerach instaluj go w trybie cichym (GPO, Intune, skrypt):</p>
+<pre>msiexec /i watchzit-agent-x64.msi ENROLLCODE="WZ1-…" /qn</pre>
+<p>Agent działa jako usługa <b>WatchZitAgent</b>.</p>
+
+<h2 id="linux">Linux</h2>
+<p>Strona Agenci pokazuje polecenie, które pobiera agenta z portu agentów, sprawdza jego SHA-256 i instaluje go z kodem (usługa systemd <code>watchzit-agent</code>):</p>
+<pre>curl -fsSk https://&lt;serwer&gt;:8444/agent/download/watchzit-agent-linux-amd64 -o /tmp/watchzit-agent &amp;&amp; … sudo /tmp/watchzit-agent install --code "WZ1-…"</pre>
+<p>Możesz też zainstalować pakiet <b>deb</b> lub <b>rpm</b> z wydania (amd64 i arm64, z GitHuba), a następnie zarejestrować i uruchomić agenta; aktualizacje przychodzą przez menedżer pakietów lub przez własne aktualizacje agenta:</p>
+<pre>sudo apt install ./watchzit-agent_&lt;wersja&gt;_amd64.deb      # lub: sudo dnf install ./watchzit-agent-&lt;wersja&gt;-1.x86_64.rpm
+sudo watchzit-agent enroll --code "WZ1-…"
+sudo systemctl start watchzit-agent</pre>
+
+<h2 id="what">Co raportuje agent</h2>
+<ul>
+  <li>Obciążenie <b>CPU</b> (a na Linuksie także średnie obciążenie), <b>pamięć</b> i swap, każdy <b>dysk</b>, każdy <b>interfejs sieciowy</b> z ruchem — same stają się sprawdzeniami z wykresami.</li>
+  <li><b>Inwentarz</b>: system operacyjny, model CPU, pamięć, producent, model, numer seryjny, adresy, usługi.</li>
+  <li>Maszyny <b>Hyper-V</b> (Windows) i kontenery <b>Docker</b> (Linux), co pięć minut, z ich stanem, CPU, pamięcią i adresami; widać je na stronie urządzenia i w polach hiperwizorów na mapach.</li>
+  <li><b>Obserwowane usługi</b>: wybierz je na stronie urządzenia w sekcji <b>Obserwuj usługi</b>; zatrzymanie usługi otwiera problem.</li>
+  <li><b>Obserwowane procesy</b>: w sekcji <b>Obserwuj procesy</b> na stronie urządzenia wpisz nazwy programów (na przykład <code>nginx, sqlservr.exe, java</code>); każdy otrzymuje sprawdzenie z liczbą działających instancji, ich CPU i pamięcią, a brak działającej instancji otwiera problem.</li>
+  <li><b>Komunikaty o błędach</b> systemu — zdarzenia krytyczne i błędy z logów Windows <b>System</b> i <b>Aplikacja</b> oraz komunikaty o priorytecie <i>err</i> i wyższym z dziennika systemd — trafiają z każdym raportem do <a href="/logs?kind=agent">Logi</a> (rodzaj <b>Agenci</b>); wyzwalacz logów ze źródłem <b>Agenci</b> otwiera na ich podstawie problemy.</li>
+</ul>
+<p>Jeśli istnieje urządzenie o tym samym adresie lub nazwie, agent się do niego dołącza; w przeciwnym razie tworzone jest nowe urządzenie.</p>
+
+<h2 id="updates">Aktualizacje agentów</h2>
+<p>Agent starszy niż serwer otrzymuje przy połączeniu agenta w wersji serwera (najwyżej raz na godzinę): pobiera instalator z serwera przez własne szyfrowane, przypięte połączenie, sprawdza jego rozmiar i SHA-256 i go instaluje. Agenci Windows zainstalowani z MSI uruchamiają nowy MSI; agenci Linux (systemd) sprawdzają, czy nowy program się uruchamia, zastępują się nim i są restartowani przez systemd. Strona <a href="/agents">Agenci</a> oznacza starszych agentów; administratorzy wyłączają tam automatyczne aktualizacje w sekcji <b>Aktualizacje agentów</b> i jednym kliknięciem aktualizują wszystkich agentów online. Agenci w wersji starszej niż 1.2 nie znają jeszcze aktualizacji i trzeba ich raz zaktualizować ręcznie.</p>
+
+<h2 id="collector">Zdalne kolektory</h2>
+<p>Urządzenie w innej sieci — w oddziale, u klienta za NAT, w zamkniętym VLAN-ie zarządzania — często jest nieosiągalne z konsoli. Zainstaluj agenta na dowolnym komputerze w tej sieci (Linux lub Windows; wystarczy mała maszyna wirtualna lub komputer klasy Raspberry Pi) i kliknij <b>Użyj jako zdalnego kolektora</b> w sekcji Agent na stronie jego urządzenia. Następnie wybierz go w polu <b>Monitorowane z</b> na urządzeniach tej sieci (albo dla wielu naraz na liście urządzeń w <b>Zmień zaznaczone</b>). Kolektor otrzymuje ich sprawdzenia — ping, TCP, SNMP, strony i scenariusze WWW, certyfikaty, DNS, bazy danych, RouterOS, API JSON — wraz z potrzebnymi hasłami i ustawieniami SNMP, wykonuje je w ich interwałach i wysyła wyniki przez własne szyfrowane połączenie. Nie potrzebuje otwartego portu w lokalizacji i nie ma własnego interfejsu WWW; wszystko ustawia się w konsoli.</p>
+<p>Gdy połączenie z konsolą jest przerwane, kolektor nadal wykonuje sprawdzenia; wyniki (do jednej doby, najnowsze 200 000) czekają na nim i docierają po przywróceniu połączenia, więc na wykresach nie ma luk. Sprawdzenia jego urządzeń pokazują w tym czasie <b>nieznany</b> zamiast nie działa (w lokalizacji może być wszystko w porządku), a sprawdzenie agenta kolektora otwiera problem. Zachowane wyniki nie przetrwają restartu kolektora: pobiera on wtedy swoje sprawdzenia z konsoli od nowa.</p>
+<p><b>Kolektor zapasowy:</b> zainstaluj agenta na drugim komputerze w lokalizacji, również zrób z niego kolektor i wybierz go jako <b>Zapasowy</b> obok <b>Monitorowane z</b> (albo dla wielu urządzeń na liście urządzeń w <b>Zmień zaznaczone → Zapasowy kolektor</b>). Gdy pierwszy jest offline, zapasowy wykonuje ich sprawdzenia; gdy pierwszy wróci, znów je przejmuje.</p>
+<p><b>Wykrywanie i SNMP:</b> w <a href="/discovery">Urządzenia → Wykrywanie</a> wybierz kolektor obok nowego zakresu: skanuje on tę sieć swojej lokalizacji, a urządzenia dodane z tego zakresu są z niego monitorowane. Wykrywanie SNMP na stronie urządzenia oraz odczyt informacji, interfejsów i VLAN-ów również przechodzą przez kolektor. Sprawdzenia hiperwizorów pozostają przy konsoli. <b>Przestań zbierać</b> oddaje urządzenia z powrotem konsoli.</p>
+
+<h2 id="network">Sieć</h2>
+<p>Agenci łączą się z <b>portem agentów 8444</b>. W <a href="/settings/network">Ustawienia → Sieć i dostęp</a> ustaw <b>publiczny adres dla agentów</b>, gdy agenci docierają do serwera pod inną nazwą (na przykład przez zaporę), i ogranicz sieci, z których mogą się łączyć.</p>
+<div class="callout"><p>Usunięcie agenta na stronie urządzenia sprawia, że jego klucz staje się nieznany; aby znów używać agenta, zarejestruj komputer nowym kodem.</p></div>

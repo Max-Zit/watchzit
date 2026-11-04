@@ -1,0 +1,90 @@
+<h1>设备、检查与 SNMP</h1>
+<p class="lead">设备是任何有地址的东西：路由器、交换机、服务器、打印机、摄像头或网站。检查对其进行测量；检查结果决定设备、地图和图表的颜色。</p>
+
+<h2 id="add">添加设备</h2>
+<p>在<a href="/devices">设备 → 添加设备</a>中输入名称以及 IP 地址或主机名，选择类型和组，并保持 <b>Ping</b> 开启。可选项：</p>
+<ul>
+  <li><b>SNMP</b>——包含团体名或 SNMPv3 用户的配置文件；WatchZit 随后会读取接口、流量、CPU、内存和磁盘。</li>
+  <li><b>依赖于</b>——访问该设备所经过的路由器或交换机。当它宕机时，此设备的问题仅标记为“不可达”，不会发送通知。</li>
+  <li><b>远程访问</b>——<a href="/docs/tools">工具</a>使用的用户名和端口。</li>
+  <li><b>TCP 端口</b>——每个端口都会成为一项每分钟连接一次的检查。</li>
+</ul>
+<p>设备的状态由其检查决定：全部正常时为<b>正常</b>，部分故障时为<b>部分异常</b>，全部故障时为<b>故障</b>。</p>
+
+
+<h2 id="discovery">发现</h2>
+<p><a href="/discovery">设备 → 发现</a>用于查找网络中的主机：添加一个范围（例如 <code>192.168.1.0/24</code>，最大 /22，或单个地址），然后立即扫描，或每天、每周扫描。WatchZit 会 Ping 每个地址，尝试常用端口（SSH、Telnet、Web、RDP、WinBox、SMB、打印机、VNC），使用您的 SNMP 配置文件查询名称、描述和制造商，并查找 DNS 名称。尚未成为设备的主机会连同名称、推测的类型和响应的服务一起列出；勾选它们并点击<b>添加为设备</b>（可选择放入某个组）：每台设备都会获得一项 Ping 检查（Ping 被阻止时为 TCP 检查）以及响应的 SNMP 配置文件。<b>隐藏</b>可将主机排除在列表之外；隐藏的主机可以重新显示。设置计划后，网络中新出现的主机会自动显示在这里。使用<a href="/docs/agents#collector">远程采集器</a>时，可选择由哪个采集器扫描某个范围：它会扫描其所在站点的网络。</p>
+<h2 id="links">网页链接</h2>
+<p>在设备的<b>网页链接</b>下，<b>Web 界面</b>地址可通过设备页面和地图上的按钮打开；如有需要，可为按钮指定其他<b>名称</b>。对于有多个地址的服务器、其 iDRAC 或 iLO，或某项服务的页面，可以添加更多链接；每个链接都会成为一个单独的按钮。</p>
+
+<h2 id="fields">自定义字段</h2>
+<p>管理员可在<a href="/settings/fields">设置 → 自定义字段</a>中为设备添加您自己的字段：文本、数字或日期——资产编号、保修截止日期、机柜、合同等。操作员在设备页面的<b>自定义字段</b>中填写；这些值会与设备详细信息一起显示，设备列表的搜索也能找到它们。删除字段会同时删除其值。</p>
+<h2 id="templates">模板</h2>
+<p>模板是针对某类设备的一组检查——例如 Linux 服务器、MikroTik 路由器、打印机。在<a href="/templates">模板</a>中创建模板，选择它适用的设备类型并添加检查（Ping、TCP、网页、TLS 证书、DNS 和 SNMP 检查；需要密码的检查须按设备单独添加）。<b>应用到</b>可将检查添加到其类型的所有设备、某个组，或再次添加到已应用该模板的设备；在设备页面上，<b>应用模板</b>只对一台设备执行此操作。应用时只会添加设备尚未拥有的检查——已有的检查保持不变，因此重复应用不会造成问题。启用<b>自动应用到这些类型的新设备</b>后，之后添加的每台设备（手动添加或通过发现添加）都会立即获得这些检查。删除模板后，设备上的检查会保留。</p>
+<h2 id="bulk">批量更改设备</h2>
+<p>在<a href="/devices">设备列表</a>中勾选设备（表头中的复选框会勾选所有显示的设备），然后在<b>更改所选</b>中选择：组、SNMP 配置文件、所依赖的设备、类型、暂停或恢复监控、应用模板，或者（仅限管理员）连同其检查和数据一起删除。可以先筛选列表，例如勾选某个站点的所有打印机。</p>
+<h2 id="checks">检查类型</h2>
+<table>
+  <tr><th>检查</th><th>测量内容</th></tr>
+  <tr><td>Ping (ICMP)</td><td>响应时间和丢包率。</td></tr>
+  <tr><td>TCP 端口</td><td>端口是否接受连接，以及连接速度。</td></tr>
+  <tr><td>网页（HTTP）</td><td>状态码、响应时间、页面上必须包含的文本、证书到期前的天数。</td></tr>
+  <tr><td>TLS 证书</td><td>到期前的天数以及是否受信任（任意 TLS 端口，可指定用于 SNI 的服务器名称）。</td></tr>
+  <tr><td>DNS</td><td>设备是 DNS 服务器：它必须以指定的记录类型（A、AAAA、MX …）应答某个名称，并可选择匹配预期值。</td></tr>
+  <tr><td>PostgreSQL、MySQL / MariaDB</td><td>使用监控用户登录、版本、连接数、响应时间。</td></tr>
+  <tr><td>MikroTik RouterOS（API）</td><td>通过 RouterOS 7 的 REST API 获取 CPU、内存、运行时间和温度。</td></tr>
+  <tr><td>JSON API 值</td><td>来自任意 JSON API（FortiGate、vCenter、您自己的服务）的一个数值：地址、类似 <code>results.cpu.0.current</code> 的路径，以及可选的 Bearer 或 Basic 认证。</td></tr>
+  <tr><td>虚拟化平台（vSphere、Proxmox VE）</td><td>VMware ESXi 或 vCenter（Web 服务 API）或 Proxmox VE（REST API）的主机、虚拟机和容器、数据存储：主机的 CPU 和内存、运行中的虚拟机、宕机的主机、最满的数据存储。请参阅<a href="#hypervisor">虚拟化平台</a>。</td></tr>
+  <tr><td>Web 场景</td><td>像用户一样在 Web 应用中执行多个步骤：登录、打开需要登录的页面、检查文本。每行一个步骤，例如 <code>GET /login | 200 | Sign in</code>、<code>POST /login | 302 | | user=monitor&amp;password={secret}</code>、<code>GET /dashboard | | Welcome</code>——依次为方法和地址、预期状态、页面必须包含的文本以及表单数据。Cookie 会在步骤之间保留；<code>{secret}</code> 为该检查的密码。测量所有步骤的耗时以及通过的步骤数；告警会指出失败的步骤。</td></tr>
+  <tr><td>SNMP</td><td>可用性和运行时间；通过发现找到的接口、CPU 和存储；任意数值型 OID。</td></tr>
+</table>
+<p>检查的密码和令牌会加密存储，且不会再次显示；编辑检查时将该字段留空即可保留已存储的值。</p>
+
+<h2 id="snmp">SNMP</h2>
+<ol>
+  <li>在<a href="/settings/snmp">设置 → SNMP</a>中创建配置文件：使用团体名的 v2c，或使用用户的 v3（支持 SHA-2 和 AES）。</li>
+  <li>在设备上选择该配置文件。WatchZit 会打开 <b>SNMP 发现</b>：勾选要监视的接口、CPU、内存和磁盘（环回接口和没有链路的接口会被排除）。</li>
+  <li>随后设备页面会显示带有链路状态和实时流量的<b>端口</b>，以及每个数值的图表。</li>
+</ol>
+<p>发现还会找出该类设备上报的信息：<b>打印机耗材</b>（墨粉、墨水、硒鼓、废粉盒，以百分比表示余量；现成的触发器<b>墨粉或墨水不足</b>在低于 10 % 时发出警告）、<b>UPS</b>（UPS-MIB，或 APC 网卡的 APC PowerNet MIB：电池电量、剩余运行时间、负载；当 UPS 使用电池供电或电池电量低时检查为故障，<b>UPS 续航不足</b>在低于 10 分钟时发出警告），以及 <b>MikroTik 的健康传感器</b>（温度、电压、风扇、功率，每项都作为带单位的 OID 检查）。</p>
+<div class="callout tip"><p>MikroTik、Cisco、HP、Ubiquiti、打印机和 UPS 设备都支持 SNMP。在 Linux 上请安装 <code>snmpd</code>；在 Windows 上请安装 SNMP 服务。</p></div>
+
+<h2 id="vlans">VLAN</h2>
+<p>WatchZit 每小时通过 SNMP 读取交换机的 VLAN（Q-BRIDGE-MIB：HP/Aruba、Cisco 小型企业系列、Ubiquiti、Netgear、D-Link 以及大多数网管交换机；CISCO-VTP-MIB：Cisco Catalyst 的 Access 和 Trunk 端口），从代理读取（Linux VLAN 接口，如 eth0.10；Windows 网络适配器的 VLAN ID），并每十分钟通过 RouterOS API 读取 MikroTik 网桥的 VLAN（使用设备的 <b>MikroTik RouterOS（API）</b>检查）。设备页面会列出每个 VLAN 及其带标签和不带标签的端口，以及每个端口的<b>模式</b>：<b>Access</b>（一个不带标签的 VLAN）、<b>Trunk</b>（带标签的 VLAN；不带标签的那个是<b>本征 VLAN</b>）或 <b>Hybrid</b>（多个不带标签的 VLAN）。地图每次可显示一个 VLAN。</p>
+
+<h2 id="ha-role">HA 角色</h2>
+<p>运行 VRRP 的设备会上报自己是<b>主用</b>（master）还是<b>备用</b>（backup）：通过 SNMP 读取（VRRP-MIB 和 VRRPv3-MIB，使用 SNMP 可用性检查），对于 MikroTik RouterOS 则通过 API 读取（使用 RouterOS API 检查）。设备页面会显示角色及其起始时间；地图会在设备旁显示 ACTIVE 或 STANDBY。</p>
+
+<h2 id="vxlan">VXLAN</h2>
+<p>VXLAN 接口（VTEP）从 MikroTik RouterOS 7 读取（使用 RouterOS API 检查，每十分钟一次），也从 Linux 代理读取（使用 iproute2，每五分钟一次）：VNI、接口、本端地址、UDP 端口以及远端 VTEP，包括转发表中的远端 VTEP。设备页面会列出这些信息；如果远端 VTEP 是另一台设备的地址，则会链接到该设备。没有远端地址的 VXLAN 使用组播或 EVPN。地图会在互为 VTEP 的两台地图设备之间绘制隧道。</p>
+
+<h2 id="graphs">图表</h2>
+<p>每个数值都会被保留：原始数据保留数天，之后以 5 分钟和每小时的最小值、平均值和最大值保存（设置 → 测量数据）。在图表上拖动可放大，双击可返回；时间范围按钮从一小时到一年。</p>
+<p>图表的 ⤢ 按钮可将其显示在整个窗口中（按 Esc 返回）。</p>
+<p><b>编辑图表</b>（操作员和管理员）可以像仪表板面板一样排列设备的图表：</p>
+<ul>
+  <li>✎ 用于修改图表：<b>标题</b>、<b>类别</b>（折线、面积或柱状）、<b>堆叠数值</b>（每个数值叠加在前面的数值之上）、显示的<b>数值</b>——也可以来自多项检查，例如将 CPU 和内存放在一起，并设置每个数值的<b>颜色</b>——<b>坐标轴最小值和最大值</b>，以及<b>警告阈值线</b>和<b>严重阈值线</b>。</li>
+  <li>↔ 使其与页面同宽，↕ 调高或调低，▲ ▼ 移动，× 删除（其数值将不再绘制图表，直到再有图表显示它们）。</li>
+  <li>拖动图表右下角可设置其宽度（1–4 列）和高度；松开鼠标即保存。</li>
+  <li><b>添加图表</b>可用设备的任意数值创建新图表。新检查的数值会获得自动图表。</li>
+  <li><b>自动图表</b>会删除自定义排列：恢复为每项检查一个图表。</li>
+</ul>
+
+<h2 id="config-backup">配置备份</h2>
+<p>操作员和管理员可以保存网络设备的配置：在设备的<b>配置备份</b>部分选择方法——<b>MikroTik RouterOS</b>（<code>/export terse show-sensitive</code>）、<b>Cisco IOS</b>（<code>show running-config</code>）、<b>FortiGate</b>（<code>show full-configuration</code>）或自定义命令——以及 SSH 用户、端口和密码或私钥。密码和密钥会加密保存。请使用只读用户。</p>
+<ul>
+  <li>备份在每晚 02:00（服务器时间）运行，也可通过<b>立即备份</b>执行。只有在配置发生变化时才会保存新版本；每台设备保留最近 50 个版本。</li>
+  <li>SSH 主机密钥在首次备份时保存，之后会进行校验。主机密钥变化时备份会失败；如果这是预期的变化（新设备或新固件），请使用<b>忘记主机密钥</b>。</li>
+  <li>每个版本都会显示与上一版本的差异（+ 新增行，− 删除行，<b>完整配置</b>可查看全部内容），并可下载为文本文件。</li>
+  <li>变更和失败会写入设备日志（标签 <code>config-backup</code>），因此日志触发器可以为其发送通知。</li>
+  <li>查看者既看不到配置，也看不到备份设置。</li>
+</ul>
+
+<h2 id="hypervisor">虚拟化平台</h2>
+<p>为 ESXi 主机、vCenter 或 Proxmox VE 节点的设备添加检查<b>虚拟化平台（vSphere、Proxmox VE）</b>（集群中的任意节点都可读取整个集群）。只读用户即可：vSphere 中的 <b>Read-only</b> 角色，Proxmox VE 中对 <code>/</code> 授予的 <b>PVEAuditor</b>——或者使用 API 令牌（以 <code>user@realm!name</code> 作为用户，以其密钥作为密码）。端口留空则使用 443（vSphere）或 8006（Proxmox VE）；由于这些系统默认使用自签名证书，请勾选<b>接受不受信任的证书</b>。</p>
+<ul>
+  <li>每次运行都会保存所有主机的 CPU 和内存、运行中和全部的虚拟机数量、宕机的主机，以及最满的数据存储的使用率；同时附带触发器<b>数据存储将满</b>（超过 90 %）和<b>虚拟化主机宕机</b>。</li>
+  <li>设备页面会列出主机、每台虚拟机和容器（状态、CPU、内存、地址、客户机系统）以及数据存储。客户机系统和地址每十分钟读取一次（Proxmox VE 通过 QEMU 客户机代理读取地址）。</li>
+  <li><b>Hyper-V</b> 和 <b>Docker</b> 无需检查：Windows 主机（带 Hyper-V）或 Linux 主机（带 Docker）上的 WatchZit 代理每五分钟上报其虚拟机或容器。</li>
+  <li>在地图上，虚拟化主机框可以自动显示这些虚拟机（请参阅地图指南）。</li>
+</ul>

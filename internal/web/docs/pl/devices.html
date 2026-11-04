@@ -1,0 +1,90 @@
+<h1>Urządzenia, sprawdzenia i SNMP</h1>
+<p class="lead">Urządzenie to wszystko, co ma adres: router, przełącznik, serwer, drukarka, kamera czy strona WWW. Sprawdzenia je mierzą; ich wyniki nadają kolor urządzeniu, mapie i wykresom.</p>
+
+<h2 id="add">Dodawanie urządzenia</h2>
+<p>W sekcji <a href="/devices">Urządzenia → Dodaj urządzenie</a> wpisz nazwę oraz adres IP lub nazwę hosta, wybierz typ i grupę, a <b>Ping</b> pozostaw włączony. Opcjonalnie:</p>
+<ul>
+  <li><b>SNMP</b> — profil ze społecznością lub użytkownikiem SNMPv3; WatchZit odczytuje wtedy interfejsy, ruch, CPU, pamięć i dyski.</li>
+  <li><b>Zależy od</b> — router lub przełącznik, przez który urządzenie jest osiągalne. Gdy ten nie działa, problemy tego urządzenia są tylko „nieosiągalne” i nie są wysyłane.</li>
+  <li><b>Dostęp zdalny</b> — nazwa użytkownika i porty, z których korzystają <a href="/docs/tools">narzędzia</a>.</li>
+  <li><b>Porty TCP</b> — każdy staje się sprawdzeniem, które łączy się co minutę.</li>
+</ul>
+<p>Stan urządzenia wynika z jego sprawdzeń: <b>działa</b>, gdy działają wszystkie, <b>częściowo nie działa</b>, gdy niektóre nie działają, <b>nie działa</b>, gdy nie działa żadne.</p>
+
+
+<h2 id="discovery">Wykrywanie</h2>
+<p><a href="/discovery">Urządzenia → Wykrywanie</a> znajduje hosty w sieci: dodaj zakres (np. <code>192.168.1.0/24</code>, maksymalnie /22, lub pojedynczy adres) i zeskanuj go teraz, codziennie lub co tydzień. WatchZit pinguje każdy adres, próbuje typowych portów (SSH, Telnet, WWW, RDP, WinBox, SMB, drukarki, VNC), pyta przez SNMP z twoimi profilami SNMP o nazwę, opis i producenta oraz sprawdza nazwę DNS. Hosty, które nie są jeszcze urządzeniami, są wyświetlane z nazwą, odgadniętym rodzajem i tym, co odpowiedziało; zaznacz je i kliknij <b>Dodaj jako urządzenia</b> (opcjonalnie do grupy): każde otrzymuje sprawdzenie ping (lub sprawdzenie TCP, gdy ping jest blokowany) oraz profil SNMP, który odpowiedział. <b>Ukryj</b> usuwa host z listy; ukryte hosty można pokazać ponownie. Przy ustawionym harmonogramie nowe hosty, które pojawią się w sieci, trafią tu same. Mając <a href="/docs/agents#collector">zdalne kolektory</a>, wybierz, który z nich skanuje zakres: skanuje on sieć swojej lokalizacji.</p>
+<h2 id="links">Łącza WWW</h2>
+<p>W sekcji <b>Łącza WWW</b> urządzenia adres <b>Interfejs WWW</b> otwiera się przyciskiem na stronie urządzenia i na mapach; jeśli chcesz, nadaj przyciskowi inną <b>nazwę</b>. Dodaj kolejne łącza dla serwera z kilkoma adresami, jego iDRAC lub iLO albo strony usługi; każde staje się osobnym przyciskiem.</p>
+
+<h2 id="fields">Pola własne</h2>
+<p>Administratorzy dodają własne pola urządzeń w <a href="/settings/fields">Ustawienia → Pola własne</a>: tekst, liczbę lub datę — numer inwentarzowy, koniec gwarancji, szafę, umowę. Operatorzy wypełniają je na stronie urządzenia w sekcji <b>Pola własne</b>; wartości są widoczne w szczegółach urządzenia, a wyszukiwarka na liście urządzeń je odnajduje. Usunięcie pola usuwa jego wartości.</p>
+<h2 id="templates">Szablony</h2>
+<p>Szablon to zestaw sprawdzeń dla rodzaju urządzenia — serwera z Linuksem, routera MikroTik, drukarki. Utwórz go w sekcji <a href="/templates">Szablony</a>, wybierz rodzaje urządzeń, dla których jest przeznaczony, i dodaj jego sprawdzenia (ping, TCP, strona WWW, certyfikat TLS, DNS i sprawdzenia SNMP; sprawdzenia z hasłami dodaje się dla każdego urządzenia osobno). <b>Zastosuj do</b> dodaje sprawdzenia wszystkim urządzeniom jego rodzajów, grupie albo ponownie urządzeniom, które już go mają; na stronie urządzenia <b>Zastosuj szablon</b> robi to dla jednego urządzenia. Zastosowanie dodaje tylko te sprawdzenia, których urządzenie jeszcze nie ma — istniejące pozostają bez zmian, więc dwukrotne zastosowanie niczego nie psuje. Z opcją <b>Automatycznie stosuj do nowych urządzeń tych rodzajów</b> każde później dodane urządzenie (ręcznie lub z wykrywania) od razu otrzymuje sprawdzenia. Usunięcie szablonu pozostawia sprawdzenia na urządzeniach.</p>
+<h2 id="bulk">Zmiana wielu urządzeń naraz</h2>
+<p>Zaznacz urządzenia na <a href="/devices">liście urządzeń</a> (pole w nagłówku zaznacza wszystkie widoczne) i wybierz w <b>Zmień zaznaczone</b>: grupę, profil SNMP, urządzenie, od którego zależą, typ, wstrzymanie lub wznowienie monitorowania, zastosowanie szablonu albo — dla administratorów — usunięcie ich wraz ze sprawdzeniami i danymi. Najpierw przefiltruj listę, aby zaznaczyć na przykład wszystkie drukarki jednej lokalizacji.</p>
+<h2 id="checks">Rodzaje sprawdzeń</h2>
+<table>
+  <tr><th>Test</th><th>Mierzy</th></tr>
+  <tr><td>Ping (ICMP)</td><td>Czas odpowiedzi i utratę pakietów.</td></tr>
+  <tr><td>Port TCP</td><td>Czy port przyjmuje połączenia i jak szybko.</td></tr>
+  <tr><td>Strona WWW (HTTP)</td><td>Kod statusu, czas odpowiedzi, tekst, który musi być na stronie, dni do wygaśnięcia certyfikatu.</td></tr>
+  <tr><td>Certyfikat TLS</td><td>Dni do wygaśnięcia i czy jest zaufany (dowolny port TLS, z nazwą serwera dla SNI).</td></tr>
+  <tr><td>DNS</td><td>Urządzenie jest serwerem DNS: musi odpowiedzieć na nazwę z typem rekordu (A, AAAA, MX …) i opcjonalnie oczekiwaną wartością.</td></tr>
+  <tr><td>PostgreSQL, MySQL / MariaDB</td><td>Logowanie użytkownikiem monitorującym, wersję, liczbę połączeń, czas odpowiedzi.</td></tr>
+  <tr><td>MikroTik RouterOS (API)</td><td>CPU, pamięć, czas pracy i temperaturę przez REST API RouterOS 7.</td></tr>
+  <tr><td>Wartość z API JSON</td><td>Jedną liczbę z dowolnego API JSON (FortiGate, vCenter, twoje własne usługi): adres, ścieżka w rodzaju <code>results.cpu.0.current</code> i opcjonalne logowanie Bearer lub basic.</td></tr>
+  <tr><td>Hiperwizor (vSphere, Proxmox VE)</td><td>Hosty, maszyny wirtualne i kontenery, magazyny danych VMware ESXi lub vCenter (API usług sieciowych) albo Proxmox VE (REST API): CPU i pamięć hostów, działające maszyny, niedziałające hosty, najbardziej zapełniony magazyn danych. Zobacz <a href="#hypervisor">Hiperwizory</a>.</td></tr>
+  <tr><td>Scenariusz WWW</td><td>Kilka kroków przez aplikację webową, tak jak robi to użytkownik: zalogowanie, otwarcie strony za logowaniem, sprawdzenie tekstu. Jeden krok w wierszu, na przykład <code>GET /login | 200 | Sign in</code>, <code>POST /login | 302 | | user=monitor&amp;password={secret}</code>, <code>GET /dashboard | | Welcome</code> — metoda i adres, następnie oczekiwany status, tekst, który strona musi zawierać, i dane formularza. Pliki cookie są przenoszone z kroku do kroku; <code>{secret}</code> to hasło sprawdzenia. Mierzy czas wszystkich kroków i liczbę udanych; alert wskazuje krok, który się nie powiódł.</td></tr>
+  <tr><td>SNMP</td><td>Dostępność i czas pracy; interfejsy, CPU i pamięć masową znalezione przez wykrywanie; dowolny liczbowy OID.</td></tr>
+</table>
+<p>Hasła i tokeny sprawdzeń są przechowywane w postaci zaszyfrowanej i nigdy nie są ponownie wyświetlane; podczas edycji sprawdzenia zostaw pole puste, aby zachować zapisaną wartość.</p>
+
+<h2 id="snmp">SNMP</h2>
+<ol>
+  <li>Utwórz profil w <a href="/settings/snmp">Ustawienia → SNMP</a>: v2c ze społecznością lub v3 z użytkownikiem (obsługiwane są SHA-2 i AES).</li>
+  <li>Wybierz profil na urządzeniu. WatchZit otworzy <b>Wykrywanie SNMP</b>: zaznacz interfejsy, CPU, pamięć i dyski do obserwowania (interfejsy loopback i bez łącza są pomijane).</li>
+  <li>Strona urządzenia pokazuje wtedy <b>porty</b> ze stanem łącza i ruchem na żywo oraz wykresy każdej wartości.</li>
+</ol>
+<p>Wykrywanie znajduje też to, co raportuje urządzenie danego rodzaju: <b>materiały eksploatacyjne drukarek</b> (toner, tusz, bębny, pojemniki na zużyty toner, jako poziom w procentach; gotowy wyzwalacz <b>Kończy się toner lub tusz</b> ostrzega poniżej 10 %), <b>zasilacze UPS</b> (UPS-MIB lub APC PowerNet MIB kart APC: naładowanie baterii, pozostały czas pracy, obciążenie; sprawdzenie nie działa, gdy UPS pracuje na baterii lub bateria jest słaba, a <b>Krótki czas pracy UPS</b> ostrzega poniżej 10 minut) oraz <b>czujniki stanu MikroTik</b> (temperatury, napięcia, wentylatory, moc, każdy jako sprawdzenie OID z własną jednostką).</p>
+<div class="callout tip"><p>MikroTik, Cisco, HP, Ubiquiti, drukarki i zasilacze UPS obsługują SNMP. Na Linuksie zainstaluj <code>snmpd</code>; na Windows usługę SNMP.</p></div>
+
+<h2 id="vlans">VLAN-y</h2>
+<p>WatchZit odczytuje VLAN-y przełączników przez SNMP raz na godzinę (Q-BRIDGE-MIB: HP/Aruba, Cisco small business, Ubiquiti, Netgear, D-Link i większość przełączników zarządzalnych; CISCO-VTP-MIB: porty access i trunk Cisco Catalyst), z agentów (interfejsy VLAN Linuksa, takie jak eth0.10, identyfikator VLAN kart sieciowych Windows) oraz mostów MikroTik przez API RouterOS (ze sprawdzeniem <b>MikroTik RouterOS (API)</b> urządzenia) co dziesięć minut. Strona urządzenia wymienia każdy VLAN z jego portami tagowanymi i nietagowanymi, a każdy port z jego <b>trybem</b>: <b>Access</b> (jeden nietagowany VLAN), <b>Trunk</b> (tagowane VLAN-y; nietagowany to <b>natywny VLAN</b>) lub <b>Hybrydowy</b> (kilka nietagowanych VLAN-ów). Mapy mogą pokazywać jeden VLAN naraz.</p>
+
+<h2 id="ha-role">Rola HA</h2>
+<p>Urządzenia z VRRP raportują, czy są <b>aktywny</b> (master), czy <b>rezerwa</b> (backup): odczytywane przez SNMP (VRRP-MIB i VRRPv3-MIB, ze sprawdzeniem dostępności SNMP) oraz z MikroTik RouterOS przez API (ze sprawdzeniem API RouterOS). Strona urządzenia pokazuje rolę i od kiedy ją pełni; mapy pokazują AKTYWNY lub REZERWA obok urządzenia.</p>
+
+<h2 id="vxlan">VXLAN</h2>
+<p>Interfejsy VXLAN (VTEP) są odczytywane z MikroTik RouterOS 7 (ze sprawdzeniem API RouterOS, co dziesięć minut) oraz z agentów Linux (za pomocą iproute2, co pięć minut): VNI, interfejs, własny adres, port UDP i zdalne VTEP-y, także te z tablicy przekazywania. Strona urządzenia je wymienia; zdalny VTEP, który jest adresem innego urządzenia, prowadzi do niego. VXLAN bez zdalnych adresów korzysta z multicastu lub EVPN. Mapy rysują tunel między dwoma urządzeniami mapy, które są nawzajem swoimi VTEP-ami.</p>
+
+<h2 id="graphs">Wykresy</h2>
+<p>Każda wartość jest przechowywana: surowa przez kilka dni, potem jako 5-minutowe i godzinowe minimum, średnia i maksimum (Ustawienia → Dane pomiarowe). Na wykresie przeciągnij, aby powiększyć, kliknij dwukrotnie, aby wrócić; przyciski zakresu czasu obejmują od godziny do roku.</p>
+<p>Przycisk ⤢ wykresu pokazuje go na całe okno (Esc wraca).</p>
+<p><b>Edytuj wykresy</b> (operatorzy i administratorzy) układa wykresy urządzenia jak panele pulpitu:</p>
+<ul>
+  <li>✎ zmienia wykres: jego <b>tytuł</b>, <b>rodzaj</b> (linia, obszar lub słupki), <b>sumuj wartości</b> (każda na poprzednich), <b>wartości</b>, które pokazuje — także z kilku sprawdzeń, na przykład CPU i pamięć razem, oraz <b>kolor</b> każdej — <b>minimum i maksimum osi</b> oraz linię <b>ostrzeżenia</b> i <b>linię krytyczną</b>.</li>
+  <li>↔ rozciąga go na szerokość strony, ↕ zwiększa lub zmniejsza wysokość, ▲ ▼ przesuwają go, × go usuwa (jego wartości nie są wykreślane, dopóki jakiś wykres znów ich nie pokaże).</li>
+  <li>Przeciągnij prawy dolny róg wykresu, aby ustawić jego szerokość (1–4 kolumny) i wysokość; zapisuje się po puszczeniu przycisku myszy.</li>
+  <li><b>Dodaj wykres</b> tworzy nowy z dowolnych wartości urządzenia. Wartości nowych sprawdzeń dostają własne wykresy automatyczne.</li>
+  <li><b>Wykresy automatyczne</b> usuwa układ: znów jeden wykres na sprawdzenie.</li>
+</ul>
+
+<h2 id="config-backup">Kopie konfiguracji</h2>
+<p>Operatorzy i administratorzy mogą przechowywać konfigurację urządzeń sieciowych: w sekcji <b>Kopie konfiguracji</b> urządzenia wybierz metodę — <b>MikroTik RouterOS</b> (<code>/export terse show-sensitive</code>), <b>Cisco IOS</b> (<code>show running-config</code>), <b>FortiGate</b> (<code>show full-configuration</code>) lub własne polecenie — oraz użytkownika SSH, port i hasło lub klucz prywatny. Hasło i klucz są przechowywane w postaci zaszyfrowanej. Użyj użytkownika, który ma tylko prawo odczytu.</p>
+<ul>
+  <li>Kopie wykonywane są co noc o 02:00 (czas serwera) oraz przyciskiem <b>Utwórz kopię teraz</b>. Nowa wersja jest zachowywana tylko wtedy, gdy konfiguracja się zmieniła; przechowywanych jest 50 ostatnich wersji każdego urządzenia.</li>
+  <li>Klucz hosta SSH jest zapisywany przy pierwszej kopii i potem sprawdzany. Gdy się zmieni, kopia się nie powiedzie; jeśli było to oczekiwane (nowe urządzenie lub firmware), użyj <b>Zapomnij klucz hosta</b>.</li>
+  <li>Każda wersja pokazuje zmiany względem poprzedniej (+ dodane, − usunięte wiersze, a <b>Cała konfiguracja</b> pokazuje wszystko) i można ją pobrać jako plik tekstowy.</li>
+  <li>Zmiany i błędy trafiają do logu urządzenia (tag <code>config-backup</code>), więc wyzwalacz logów może wysłać o nich powiadomienie.</li>
+  <li>Obserwatorzy nie widzą ani konfiguracji, ani ustawień kopii.</li>
+</ul>
+
+<h2 id="hypervisor">Hiperwizory</h2>
+<p>Dodaj sprawdzenie <b>Hiperwizor (vSphere, Proxmox VE)</b> do urządzenia hosta ESXi, vCentera lub węzła Proxmox VE (dowolny węzeł klastra odczytuje cały klaster). Wystarczy użytkownik z prawem tylko do odczytu: rola <b>Read-only</b> w vSphere, <b>PVEAuditor</b> na <code>/</code> w Proxmox VE — albo token API (<code>user@realm!name</code> jako użytkownik i jego sekret jako hasło). Zostaw port pusty dla 443 (vSphere) lub 8006 (Proxmox VE); zaznacz <b>Akceptuj niezaufane certyfikaty</b> dla certyfikatu z podpisem własnym, który mają one domyślnie.</p>
+<ul>
+  <li>Każde uruchomienie zapisuje CPU i pamięć wszystkich hostów, liczbę działających i wszystkich maszyn, niedziałające hosty oraz zapełnienie najpełniejszego magazynu danych; razem z nim przychodzą wyzwalacze <b>Magazyn danych prawie pełny</b> (ponad 90 %) i <b>Host hiperwizora nie działa</b>.</li>
+  <li>Strona urządzenia wymienia hosty, każdą maszynę wirtualną i kontener (stan, CPU, pamięć, adres, system gościa) oraz magazyny danych. Systemy gości i adresy są odczytywane co dziesięć minut (Proxmox VE odczytuje adresy przez agenta gościa QEMU).</li>
+  <li><b>Hyper-V</b> i <b>Docker</b> nie potrzebują sprawdzenia: agent WatchZit na hoście Windows (z Hyper-V) lub hoście Linux (z Dockerem) raportuje swoje maszyny lub kontenery co pięć minut.</li>
+  <li>Na mapach pole hiperwizora może samo pokazywać te maszyny (zobacz przewodnik po mapach).</li>
+</ul>

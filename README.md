@@ -224,7 +224,7 @@ WatchZit checks for new releases itself and shows them under **Settings → Upda
 
 ## Documentation, support, license
 
-- The **user guide** is built into the console (*User guide* in the menu), in English and Serbian, with a search; the console itself is in 14 languages.
+- The **user guide** is built into the console (*User guide* in the menu) with a search; the console and the guide are in 14 languages.
 - Questions and ideas: [Discussions](https://github.com/Max-Zit/watchzit/discussions). Bugs: [Issues](https://github.com/Max-Zit/watchzit/issues). Security reports: see [SECURITY.md](SECURITY.md).
 - Paid support is offered by [MaxZit](https://maxzit.com).
 

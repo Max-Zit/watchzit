@@ -1,0 +1,21 @@
+<h1>REST API</h1>
+<p class="lead">スクリプトや他のシステムは、JSON API を使って、デバイス、チェック、グラフ、問題を読み取り、問題に対応し、メンテナンスを計画できます。</p>
+
+<h2 id="tokens">トークン</h2>
+<p><a href="/account#api">マイ アカウント → API トークン</a>でトークンを作成します：名前と有効日数を指定します。トークンは一度だけ表示されます。トークンはあなた自身として、あなたのロールで動作します（閲覧者のトークンは読み取りのみ可能です）。不要になったら失効させてください。失敗したトークンは失敗したサインインと同じように数えられ、一定時間そのアドレスをブロックします。</p>
+<p>トークンはヘッダーで送信します。API はコンソールのセッション Cookie を一切受け付けません。</p>
+<pre>curl -H "Authorization: Bearer wzat_…" https://monitor.example.com:8443/api/v1/status</pre>
+
+<h2 id="endpoints">エンドポイント</h2>
+<table>
+  <tr><th>リクエスト</th><th>応答</th></tr>
+  <tr><td><code>GET /api/v1/status</code></td><td>バージョン、状態別のデバイス、重大度別の未解決の問題</td></tr>
+  <tr><td><code>GET /api/v1/devices</code></td><td>デバイス。フィルター <code>q</code>、<code>status</code>、<code>group</code></td></tr>
+  <tr><td><code>GET /api/v1/devices/{id}</code></td><td>デバイスとそのチェック、およびそれらの系列の ID</td></tr>
+  <tr><td><code>GET /api/v1/series/{id}?range=24h</code></td><td>系列のポイント：時刻、最小値、平均値、最大値</td></tr>
+  <tr><td><code>GET /api/v1/problems</code></td><td>未解決の問題。<code>view=history</code>、<code>severity</code>、<code>device</code></td></tr>
+  <tr><td><code>POST /api/v1/problems/{id}/ack</code></td><td>対応済みにする：<code>{"note": "…"}</code></td></tr>
+  <tr><td><code>GET /api/v1/maintenance</code></td><td>メンテナンス期間</td></tr>
+  <tr><td><code>POST /api/v1/maintenance</code></td><td>メンテナンス期間を計画：<code>{"name", "starts_at", "ends_at", "device_ids", "group_ids"}</code></td></tr>
+</table>
+<p>時刻は RFC 3339 形式です（<code>2026-11-01T22:00:00+01:00</code>）。エラーは対応する HTTP ステータスとともに <code>{"error": "…"}</code> として返されます。変更は、トークンの名前とともに監査ログに記録されます。</p>

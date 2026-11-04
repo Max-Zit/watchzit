@@ -1,0 +1,58 @@
+<h1>Gegevensbronnen</h1>
+<p class="lead">Grafieken en dashboards kunnen ook tijdreeksen van buiten WatchZit tonen: tabellen uit uw eigen databases, Prometheus, InfluxDB of elk adres dat JSON teruggeeft — naast de waarden van agents en controles.</p>
+
+<h2 id="add">Een gegevensbron toevoegen</h2>
+<p>Beheerders voegen gegevensbronnen toe in <a href="/settings/datasources">Instellingen → Gegevensbronnen</a>:</p>
+<table>
+  <tr><th>Soort</th><th>Adres</th><th>Aanmelding</th></tr>
+  <tr><td>PostgreSQL</td><td>host of host:poort (5432), en de database</td><td>gebruiker en wachtwoord</td></tr>
+  <tr><td>MySQL / MariaDB</td><td>host of host:poort (3306), en de database</td><td>gebruiker en wachtwoord</td></tr>
+  <tr><td>Microsoft SQL Server</td><td>host of host:poort (1433), en de database</td><td>SQL Server-gebruiker en wachtwoord</td></tr>
+  <tr><td>Prometheus</td><td>de URL, bijvoorbeeld <code>http://prometheus:9090</code>; ook Thanos, VictoriaMetrics, Mimir</td><td>geen, gebruiker en wachtwoord, of een bearer-token</td></tr>
+  <tr><td>InfluxDB</td><td>de URL, bijvoorbeeld <code>http://influx:8086</code>, en de database (InfluxDB 2/3: de bucket)</td><td>InfluxDB 1: gebruiker en wachtwoord; 2 en 3: alleen het token</td></tr>
+  <tr><td>JSON via HTTP</td><td>de basis-URL van uw service</td><td>geen, gebruiker en wachtwoord, of een bearer-token</td></tr>
+</table>
+<p><b>Verbinding testen</b> probeert de instellingen zonder ze op te slaan. Het wachtwoord of token wordt versleuteld opgeslagen en nooit meer getoond; laat het veld leeg om het te behouden.</p>
+<p>Kies voor SQL-databases de versleuteling: als de server die aanbiedt (standaard), altijd met elk certificaat, altijd met een vertrouwd certificaat, of nooit. Voor adressen met https:// kan een zelfondertekend certificaat worden geaccepteerd.</p>
+<p><b>Geef de console een gebruiker die alleen mag lezen</b> in de tabellen die hij nodig heeft. WatchZit voert PostgreSQL- en MySQL-query's uit in een alleen-lezen transactie; SQL Server kent zoiets niet, dus daar beschermen alleen de rechten van de gebruiker de gegevens. Operators schrijven query's; kijkers zien alleen de grafieken.</p>
+
+<h2 id="graphs">Query's in grafieken</h2>
+<p>Klik op een apparaatpagina op <b>Grafieken bewerken</b> en dan op ✎ bij een grafiek of op <b>Grafiek toevoegen</b>. Klik onder <b>Gegevensbronnen</b> op <b>Query toevoegen</b>, kies de gegevensbron en schrijf de query. <b>Proberen</b> voert hem uit over het tijdsbereik van de pagina en meldt welke reeksen hij oplevert (met hun aantal punten) of de fout van de database. Een grafiek kan tot 6 query's tonen naast de waarden van het apparaat, elk met een naam van de reeks, een eenheid en een kleur.</p>
+<p>Voeg op dashboards de widget <b>Grafiek uit een gegevensbron</b> toe.</p>
+<p>De antwoorden worden 20 seconden bewaard, zodat een dashboard op meerdere schermen de database één keer bevraagt. Een query levert hoogstens 200.000 rijen en 50 reeksen en mag 20 seconden duren; de waarden worden uitgedund tot de breedte van de grafiek.</p>
+
+<h2 id="sql">SQL (PostgreSQL, MySQL, SQL Server)</h2>
+<p>De query geeft een <b>tijdkolom</b> terug (met de naam <code>time</code>, of de eerste kolom die tijden bevat; Unix-seconden of -milliseconden werken ook), een of meer <b>numerieke kolommen</b> (elk een reeks) en, optioneel, een <b>tekstkolom</b> die de reeks een naam geeft (<code>metric</code>, of de eerste tekstkolom) voor tabellen met één rij per reeks en tijdstip. Sorteer op tijd.</p>
+<p>Macro's zetten het tijdsbereik van de grafiek in de query:</p>
+<table>
+  <tr><th>Macro</th><th>Wordt</th></tr>
+  <tr><td><code>$__timeFilter(col)</code></td><td><code>col</code> tussen het begin en het einde van het bereik</td></tr>
+  <tr><td><code>$__timeGroup(col)</code></td><td><code>col</code> naar beneden afgerond op het interval van de grafiek; <code>$__timeGroup(col, 300)</code> op 5 minuten</td></tr>
+  <tr><td><code>$__timeFrom</code>, <code>$__timeTo</code></td><td>het begin en het einde als tijd</td></tr>
+  <tr><td><code>$__unixFrom</code>, <code>$__unixTo</code></td><td>het begin en het einde in Unix-seconden</td></tr>
+  <tr><td><code>$__interval_s</code></td><td>het interval van de grafiek in seconden</td></tr>
+</table>
+<p>Voorbeelden:</p>
+<pre>-- bestellingen per interval (PostgreSQL, MySQL, SQL Server gelijk)
+SELECT $__timeGroup(created_at) AS time, count(*) AS orders
+FROM orders WHERE $__timeFilter(created_at)
+GROUP BY 1 ORDER BY 1
+
+-- één reeks per magazijn
+SELECT $__timeGroup(ts) AS time, warehouse AS metric, avg(temp) AS value
+FROM sensor_readings WHERE $__timeFilter(ts)
+GROUP BY 1, 2 ORDER BY 1</pre>
+
+<h2 id="prometheus">Prometheus</h2>
+<p>Schrijf PromQL, bijvoorbeeld <code>rate(node_network_receive_bytes_total{device="eth0"}[5m]) * 8</code>. Elke reeks krijgt de naam zoals Prometheus die schrijft (<code>name{label="value"}</code>); een naam van de reeks in de editor vervangt die. De stap volgt de breedte van de grafiek.</p>
+
+<h2 id="influxdb">InfluxDB</h2>
+<p>Schrijf InfluxQL met <code>$timeFilter</code> en <code>$__interval</code>:</p>
+<pre>SELECT mean("usage_idle") FROM "cpu" WHERE $timeFilter GROUP BY time($__interval), "host"</pre>
+<p>InfluxDB 2 en 3 beantwoorden InfluxQL via hun 1.x-API: koppel de bucket daar aan een database als dat nog niet is gebeurd.</p>
+
+<h2 id="json">JSON via HTTP</h2>
+<p>De query is een pad of parameters die aan het adres worden toegevoegd (bijvoorbeeld <code>/api/temps?room=server</code>); WatchZit voegt <code>from</code>, <code>to</code> en <code>step</code> in Unix-seconden toe en leest elk van deze antwoorden (tijden in seconden of milliseconden):</p>
+<pre>[{"target": "temp", "datapoints": [[21.5, 1793268000000], ...]}, ...]
+{"temp": [[1793268000, 21.5], ...], "humidity": [[1793268000, 40], ...]}
+[[1793268000, 21.5], [1793268060, 21.7], ...]</pre>

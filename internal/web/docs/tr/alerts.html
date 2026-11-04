@@ -1,0 +1,65 @@
+<h1>Sorunlar, uyarılar ve bildirimler</h1>
+<p class="lead">Tetikleyiciler kontrollerin sonuçlarını izler ve <b>sorunlar</b> açar. Bir sorun, koşul sona erdiğinde kendiliğinden kapanır; açık olduğu sürece üstlenilebilir ve bildirim kanallarınıza gönderilir.</p>
+
+<h2 id="triggers">Tetikleyiciler</h2>
+<p><a href="/alerts/triggers">Sorunlar → Tetikleyiciler</a> altında. WatchZit şunlarla başlar:</p>
+<table>
+  <tr><th>Tetikleyici</th><th>Ne zaman</th><th>Önem</th></tr>
+  <tr><td>Cihaz çalışmıyor</td><td>bir cihazın tüm kontrolleri 1 dakika boyunca çalışmıyor</td><td>kritik</td></tr>
+  <tr><td>Kontrol çalışmıyor</td><td>bir kontrol 1 dakika boyunca çalışmıyor</td><td>uyarı</td></tr>
+  <tr><td>Yüksek CPU yükü, Bellek neredeyse dolu</td><td>5 dakika boyunca %90'ın üstünde</td><td>uyarı</td></tr>
+  <tr><td>Disk neredeyse dolu / Disk dolu</td><td>%90 / %97'nin üstünde</td><td>uyarı / kritik</td></tr>
+  <tr><td>Disk iki hafta içinde dolacak</td><td>bir ajan diskinin son haftalık eğilimi 14 gün içinde %98'e ulaşıyor</td><td>uyarı</td></tr>
+  <tr><td>Paket kaybı</td><td>5 dakika boyunca %20'nin üstünde</td><td>uyarı</td></tr>
+  <tr><td>Sertifikanın süresi yakında doluyor / doluyor</td><td>21 / 7 günden az</td><td>uyarı / kritik</td></tr>
+  <tr><td>Yüksek sıcaklık</td><td>RouterOS 5 dakika boyunca 70 °C'nin üstünde</td><td>uyarı</td></tr>
+  <tr><td>Yedekliliği olmayan HA grubu</td><td>bir haritadaki HA grubunun bazı üyeleri (hepsi değil) 1 dakika boyunca çalışmıyor (sorun, çalışmayan üyeye aittir)</td><td>uyarı</td></tr>
+</table>
+<p>Kendi tetikleyicilerinizi ekleyin: bir <b>değer</b> (CPU yükü, yanıt süresi, trafik, bağlantılar …), bir eşiğin <b>üstünde</b> veya <b>altında</b>, <b>en az</b> belirli dakika boyunca (kısa bir düşüş sorun açmaz), bir önem ve tüm cihazlara, bir gruba veya tek bir cihaza uygulanıp uygulanmayacağı.</p>
+<p><b>Yeni veri yok</b>, bir kontrol belirlediğiniz dakikalar boyunca yeni bir değer almadığında bir sorun açar — bilgi göndermeyi bırakmış bir ajan, artık SNMP'ye yanıt vermeyen bir cihaz, durmuş bir veri kaynağı; isterseniz bunu kontrol türleriyle sınırlayın.</p>
+<p><b>Değer bir eşiğe ulaşacak (tahmin)</b> ise ileriye bakar: değerin son haftası boyunca (en az altı saatlik geçmiş) düz bir çizgi çizer ve bu çizgi eşiğe belirlediğiniz günler <b>içinde</b> ulaştığında bir sorun açar — on gün içinde dolacak bir disk, dolmakta olan bir havuz, yükselmeye devam eden bir sıcaklık. Sorun, şu anki değeri, günde ne kadar hızlı değiştiğini ve eşiğe ulaşacağı tarihi belirtir; eğilim artık zamanında oraya ulaşmadığında kapanır.</p>
+
+<p><b>Tek bir kontrol.</b> Cihaz sayfasında bir kontrolün yanındaki zil düğmesi yalnızca o kontrol için bir tetikleyici ekler — her birinin kendi birimi olduğundan SNMP OID değerleri için (°C cinsinden bir sıcaklık, V cinsinden bir gerilim) gereklidir ve önemli tek bir disk veya port için kullanışlıdır. Böyle bir tetikleyici, Uygulandığı yer altında cihazı ve kontrolü listeler; kontrolüyle birlikte kaldırılır.</p>
+
+<h2 id="problems">Sorunlar</h2>
+<p><a href="/problems">Sorunlar</a> açık olanları en kötüsünden başlayarak listeler; menüdeki sayı gönderilmiş sorunları sayar (biri kritikse kırmızı). Başkaları birinin ilgilendiğini bilsin diye bir sorunu <b>Üstlen</b> ile bir not ekleyerek üstlenin. Çözülen sorunlar bir yıl boyunca geçmişte kalır.</p>
+
+<h2 id="dependencies">Bağımlılıklar</h2>
+<p>Bir cihazda <b>Bağlı olduğu</b> değerini ayarlayın (örneğin bir şube ofisinin yönlendiricisi). O yönlendirici çalışmadığında arkasındaki cihazlar yalnızca <b>ulaşılamıyor</b> durumundadır: sorunları kaydedilir ama gönderilmez — elli değil, yönlendirici için tek bir mesaj alırsınız. Haritalarda bu cihazlar kırmızı yerine kesik dış çizgili gri görünür ve panelleri sorunun onların üstünde olduğunu söyler.</p>
+
+<p>Bunları tüm bir ağ için birden ayarlamak için bir harita açın ve <b>Bağımlılıklar</b> düğmesine tıklayın: ağın bağlı olduğu cihazdan (varsayılan olarak en çok kablosu olan yönlendirici veya güvenlik duvarı; dilerseniz başkasını seçin) kabloları izleyerek her cihaza kendinden önceki önerilir — anahtar yönlendiriciye, erişim noktaları anahtara, sanal makineler sunucularına bağlıdır. Güç, HA ve VXLAN kabloları sayılmaz. Bağımlılığı olmayan cihazlar işaretlidir; zaten başka bir cihaza bağlı olanlar gösterilir ama işaretlenmez. <b>İşaretli bağımlılıkları ayarla</b> düğmesine tıklayın.</p>
+
+<h2 id="maintenance">Bakım</h2>
+<p><a href="/alerts/maintenance">Sorunlar → Bakım</a> altında cihazlar veya gruplar için bir pencere planlayın. Bu süre içinde cihazlar izlenmeye ve sorunlar kaydedilmeye devam eder, ancak hiçbir şey gönderilmez; pencere bittiğinde hâlâ açık olan sorunlar o zaman gönderilir. Erişilebilirlik raporları bakım süresini ayrı gösterir. <b>Tekrar</b>, pencerenin her gün, hafta veya ay yeniden gelmesini sağlar (gecelik bir yedekleme, aylık yama günü), isteğe bağlı olarak son bir güne kadar; liste bir sonraki pencereyi gösterir ve <b>Kaldır</b> tüm diziyi sona erdirir.</p>
+
+<h2 id="notifications">Bildirimler</h2>
+<p><a href="/settings/notifications">Ayarlar → Bildirimler</a> altında (yöneticiler):</p>
+<ul>
+  <li><b>E-posta sunucusu</b> — STARTTLS, TLS ile veya şifrelemesiz SMTP; parola şifreli saklanır. Bir test e-postası gönderin.</li>
+  <li><b>Kanallar</b> — e-posta alıcıları, bir <b>webhook</b> (JSON, bir anahtar ayarladığınızda <code>X-WatchZit-Signature</code> içinde HMAC-SHA256 ile imzalı), <b>Slack</b>, <b>Microsoft Teams</b>, <b>Discord</b>, <b>Telegram</b> (@BotFather'dan bir bot belirteci ve sohbet kimliği), <b>ntfy</b> (ntfy.sh veya kendi ntfy sunucunuz üzerinden telefonlara anlık bildirim), <b>PagerDuty</b> (bir Events API v2 entegrasyon anahtarı; sorunlar olay kayıtları açar ve çözer), <b>Twilio üzerinden SMS</b> (hesap SID'si, kimlik doğrulama belirteci, gönderen, telefon numaraları) veya <b>kendi ağ geçidiniz üzerinden SMS</b> (mesajın gideceği yerde <code>{text}</code> bulunan herhangi bir HTTP adresi). Her kanalın bir en düşük önem düzeyi vardır ve sorunların çözüldüğünü de bildirebilir.</li>
+  <li>Bildirimlerin <b>dili</b> ve bildirimlerdeki bağlantılar için kullanılan <b>konsol adresi</b>.</li>
+</ul>
+
+<h2 id="escalation">Yükseltme ve nöbet</h2>
+<p>Bir kanalın <b>Yükseltme ve nöbet saatleri</b> bölümünde:</p>
+<ul>
+  <li><b>Şu kadar sonra bildir (dakika)</b> — kanal yalnızca bu süreden sonra hâlâ açık olan sorunları duyar; ör. ilk hat tepki vermediyse 15 dakika sonra ekip lideri. <b>Şu sıklıkta yinele</b>, sorun açık kaldığı sürece bildirimi yineler.</li>
+  <li>Üstlenilen sorunlar, <b>Onaylanmış sorunlar da</b> açık değilse yükseltilmez veya yinelenmez.</li>
+  <li><b>Yalnızca bazı gün ve saatlerde</b> kanalı bir nöbet görevine dönüştürür: ör. Pazartesi–Cuma 18'den 08'e ve tüm hafta sonu gece vardiyasına SMS. Saatleri dışında başlayan sorunlar, hâlâ açıklarsa nöbet başladığında ona ulaşır. Bir rotasyon için kişi veya ekip başına kendi gün ve saatleriyle bir kanal ekleyin.</li>
+  <li>Bir sorundan haberdar edilen kanala çözüldüğünde de haber verilir; diğerlerine verilmez.</li>
+</ul>
+
+<h2 id="logs">Syslog ve SNMP trap'leri</h2>
+<p>Cihazlar günlük mesajlarını ve SNMP trap'lerini WatchZit'e gönderebilir. Bunu <a href="/settings/logs">Ayarlar → Syslog ve trap'ler</a> altında açın: varsayılan olarak UDP 514'te syslog ve UDP 162'de trap'ler (SNMP v1 ve v2c, inform'lara yanıt verilir), isteğe bağlı olarak yalnızca belirli community'lere sahip trap'ler, 30 gün saklanır. Bu portları sunucunun güvenlik duvarında açın ve cihazlarda WatchZit'i hedef olarak ayarlayın; ör. MikroTik'te <code>/system logging action set remote remote=&lt;sunucu&gt;</code> ve <code>remote</code> eylemli bir günlük kuralı, FortiGate'te <code>config log syslogd setting</code>, Linux'ta bir rsyslog <code>*.* @&lt;sunucu&gt;:514</code> satırı.</p>
+<ul>
+  <li><a href="/logs">Günlükler</a> mesajları en yenisinden başlayarak listeler; arama, cihaz, kaynak (syslog veya trap'ler) ve en az önemli düzey (0 emergency … 7 debug) ile. Cihaz olmayan bir adresten gelen mesaj adresiyle gösterilir. Her cihaz sayfasında bir <b>Günlükler</b> düğmesi vardır.</li>
+  <li><b>Syslog mesajı veya trap</b> türündeki bir tetikleyici, bir mesaj seçilen kadar veya daha önemli bir düzeyde bir metin içerdiğinde (veya eğik çizgiler arasındaki bir düzenli ifadeyle eşleştiğinde, ör. <code>/link (down|failure)/</code>) bir sorun açar. Sorun bu tür mesajlar gelmeye devam ettiği sürece açık kalır ve tetikleyicinin süresi boyunca hiç gelmediğinde kapanır. Bu sorunlar raporlarda kesinti süresi olarak sayılmaz.</li>
+</ul>
+
+<h2 id="flows">Trafik akışları (NetFlow, IPFIX, sFlow)</h2>
+<p>Yönlendiriciler, anahtarlar ve güvenlik duvarları üzerlerinden hangi trafiğin geçtiğini bildirebilir. Toplayıcıyı <a href="/settings/flows">Ayarlar → Trafik akışları</a> altında açın: varsayılan olarak UDP 2055'te NetFlow v5, NetFlow v9 ve IPFIX ve UDP 6343'te sFlow v5, 7 gün (1–90) saklanır. Bu portları sunucunun güvenlik duvarında açın ve WatchZit'i toplayıcı olarak ayarlayın; ör. MikroTik'te <code>/ip traffic-flow set enabled=yes</code> ve <code>/ip traffic-flow target add dst-address=&lt;sunucu&gt; port=2055 version=ipfix</code>, FortiGate'te <code>config system netflow</code>, sFlow'lu anahtarlarda toplayıcı olarak bu sunucuyu kullanan sFlow ajanı.</p>
+<ul>
+  <li>WatchZit akışları dakika ve dışa aktarıcı başına görüşmeye göre toplar (kaynak, hedef, protokol ve hizmet portu — iki porttan küçük olanı). Her dakika her dışa aktarıcının en büyük 1.000 görüşmesini saklar; geri kalanı adressiz tek bir satırdır, böylece toplamlar doğru kalır. Örneklenmiş akışlar (sFlow veya örnekleme oranlı NetFlow) oranla çarpılır.</li>
+  <li><a href="/flows">Trafik akışları</a> son saat, 6 saat, gün veya hafta için, tek bir dışa aktarıcının veya hepsinin, zaman içindeki trafiğini ve en çok trafik yapan kaynakları, hedefleri, hizmetleri, dışa aktarıcıları ve görüşmeleri gösterir. Konsoldaki cihazların adresleri cihaz olarak görünür. Dışa aktarıcıların cihaz sayfasında bir <b>Trafik akışları</b> düğmesi vardır.</li>
+  <li>Cihaz olmayan adreslerin akışları, <b>Cihaz olmayan adreslerden de</b> açık değilse dışarıda bırakılır.</li>
+</ul>

@@ -1,0 +1,31 @@
+<h1>Pierwsze kroki</h1>
+<p class="lead">WatchZit to samodzielnie hostowany system monitorowania sieci i urządzeń. Mapa sieci na żywo pokazuje, co jest z czym połączone i w jakim jest stanie; za nią stoją sprawdzenia, wykresy, alerty, pulpity i raporty — na twoim własnym serwerze, na licencji AGPL-3.0.</p>
+
+<h2 id="what">Co robi WatchZit</h2>
+<table>
+  <tr><th>Obszar</th><th>Co otrzymujesz</th></tr>
+  <tr><td>Mapy sieci</td><td>Narysuj swoją sieć z prawdziwymi obrazami urządzeń, szafami i kablami od portu do portu; mapa pokazuje stan i ruch na żywo. <a href="/docs/maps">Mapy sieci</a></td></tr>
+  <tr><td>Sprawdzenia</td><td>Ping, porty TCP, strony WWW, certyfikaty TLS, DNS, PostgreSQL i MySQL, SNMP (v1/v2c/v3: interfejsy, CPU, pamięć, dyski, dowolny OID), API MikroTik RouterOS oraz wartości z dowolnego API JSON. <a href="/docs/devices">Urządzenia i sprawdzenia</a></td></tr>
+  <tr><td>Agent</td><td>Mały, opcjonalny agent dla Windows i Linuksa raportuje CPU, pamięć, dyski, interfejsy i wybrane usługi. <a href="/docs/agents">Agenci</a></td></tr>
+  <tr><td>Alerty</td><td>Wyzwalacze otwierają problemy; zależności, okna konserwacji i potwierdzenia ograniczają szum; powiadomienia e-mailem, webhookiem, na Slacku i w Teams. <a href="/docs/alerts">Problemy i alerty</a></td></tr>
+  <tr><td>Wykresy, pulpity, raporty</td><td>Wykresy każdej wartości od godziny do roku, pulpity na ekran ścienny, raporty dostępności. <a href="/docs/dashboards">Pulpity i raporty</a></td></tr>
+  <tr><td>Otwieranie urządzeń</td><td>Otwieraj stronę WWW urządzenia, SSH, Pulpit zdalny, WinBox lub własne narzędzia jednym kliknięciem. <a href="/docs/tools">Otwieranie urządzeń</a></td></tr>
+</table>
+
+<h2 id="how">Jak to działa</h2>
+<ul>
+  <li><b>Serwer</b> działa na Linuksie z PostgreSQL. Ma dwa porty: <b>konsolę</b> (interfejs WWW i REST API, TCP 8443) oraz <b>punkt dostępu agentów</b> (TCP 8444).</li>
+  <li>Serwer sam <b>odpytuje</b> urządzenia (ping, TCP, SNMP, HTTP, bazy danych, API). Urządzenia nie potrzebują do tego żadnej instalacji.</li>
+  <li><b>Agenci</b> są opcjonalni. Łączą się <i>na zewnątrz</i> z portem agentów i raportują co minutę; komputery nie potrzebują otwartych portów.</li>
+  <li>Każda zmiana w konsoli trafia do zabezpieczonego przed manipulacją <a href="/audit">dziennika audytu</a>.</li>
+</ul>
+
+<h2 id="first-steps">Pierwsze kroki</h2>
+<ol>
+  <li><b>Zainstaluj serwer</b> — zobacz <a href="/docs/install">Instalacja serwera</a>.</li>
+  <li><b>Utwórz pierwszego administratora</b> za pomocą tokenu konfiguracji wyświetlonego przez instalator i skonfiguruj logowanie dwuskładnikowe w aplikacji uwierzytelniającej.</li>
+  <li><b>Dodaj urządzenia</b> w sekcji <a href="/devices">Urządzenia</a>: wystarczy nazwa i adres; ping zostanie dodany automatycznie. Dodaj profil SNMP, aby odczytywać interfejsy i ruch.</li>
+  <li><b>Narysuj mapę</b> w sekcji <a href="/maps">Mapy</a> i połącz urządzenia port do portu.</li>
+  <li><b>Skonfiguruj powiadomienia</b> w <a href="/settings/notifications">Ustawienia → Powiadomienia</a>; wbudowane wyzwalacze już pilnują niedziałających urządzeń, pełnych dysków i wygasających certyfikatów.</li>
+</ol>
+<div class="callout tip"><p>Domyślnie konsola jest dostępna tylko z sieci prywatnych. Zostaw to tak i otwieraj tylko port agentów (8444) tam, gdzie agenci go potrzebują.</p></div>

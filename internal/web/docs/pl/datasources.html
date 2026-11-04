@@ -1,0 +1,58 @@
+<h1>Źródła danych</h1>
+<p class="lead">Wykresy i pulpity mogą pokazywać także szeregi czasowe spoza WatchZit: tabele twoich własnych baz danych, Prometheus, InfluxDB lub dowolny adres odpowiadający w JSON — obok wartości z agentów i sprawdzeń.</p>
+
+<h2 id="add">Dodawanie źródła danych</h2>
+<p>Administratorzy dodają źródła danych w <a href="/settings/datasources">Ustawienia → Źródła danych</a>:</p>
+<table>
+  <tr><th>Rodzaj</th><th>Adres</th><th>Logowanie</th></tr>
+  <tr><td>PostgreSQL</td><td>host lub host:port (5432) oraz baza danych</td><td>użytkownik i hasło</td></tr>
+  <tr><td>MySQL / MariaDB</td><td>host lub host:port (3306) oraz baza danych</td><td>użytkownik i hasło</td></tr>
+  <tr><td>Microsoft SQL Server</td><td>host lub host:port (1433) oraz baza danych</td><td>użytkownik i hasło SQL Server</td></tr>
+  <tr><td>Prometheus</td><td>URL, na przykład <code>http://prometheus:9090</code>; także Thanos, VictoriaMetrics, Mimir</td><td>brak, użytkownik i hasło lub token bearer</td></tr>
+  <tr><td>InfluxDB</td><td>URL, na przykład <code>http://influx:8086</code>, oraz baza danych (InfluxDB 2/3: bucket)</td><td>InfluxDB 1: użytkownik i hasło; 2 i 3: sam token</td></tr>
+  <tr><td>JSON przez HTTP</td><td>bazowy URL twojej usługi</td><td>brak, użytkownik i hasło lub token bearer</td></tr>
+</table>
+<p><b>Testuj połączenie</b> sprawdza ustawienia bez ich zapisywania. Hasło lub token są przechowywane w postaci zaszyfrowanej i nigdy nie są ponownie wyświetlane; zostaw pole puste, aby je zachować.</p>
+<p>Dla baz SQL wybierz szyfrowanie: gdy serwer je oferuje (domyślnie), zawsze z dowolnym certyfikatem, zawsze z zaufanym certyfikatem lub nigdy. Dla adresów z https:// można zaakceptować certyfikat z podpisem własnym.</p>
+<p><b>Daj konsoli użytkownika, który może tylko odczytywać</b> potrzebne jej tabele. WatchZit wykonuje zapytania PostgreSQL i MySQL w transakcji tylko do odczytu; SQL Server nie ma takiej możliwości, więc tam dane chronią wyłącznie uprawnienia użytkownika. Operatorzy piszą zapytania; obserwatorzy widzą tylko wykresy.</p>
+
+<h2 id="graphs">Zapytania na wykresach</h2>
+<p>Na stronie urządzenia kliknij <b>Edytuj wykresy</b>, a następnie ✎ na wykresie lub <b>Dodaj wykres</b>. W sekcji <b>Źródła danych</b> kliknij <b>Dodaj zapytanie</b>, wybierz źródło danych i napisz zapytanie. <b>Wypróbuj</b> uruchamia je w zakresie czasu strony i podaje zwrócone szeregi (z liczbą ich punktów) lub błąd bazy danych. Wykres może pokazywać do 6 zapytań obok wartości urządzenia, każde z nazwą szeregu, jednostką i kolorem.</p>
+<p>Na pulpitach dodaj widżet <b>Wykres ze źródła danych</b>.</p>
+<p>Odpowiedzi są przechowywane przez 20 sekund, więc pulpit na kilku ekranach odpytuje bazę danych tylko raz. Zapytanie zwraca najwyżej 200 000 wierszy i 50 szeregów i może trwać do 20 sekund; wartości są przerzedzane do szerokości wykresu.</p>
+
+<h2 id="sql">SQL (PostgreSQL, MySQL, SQL Server)</h2>
+<p>Zapytanie zwraca <b>kolumnę czasu</b> (o nazwie <code>time</code> lub pierwszą kolumnę zawierającą czas; działają też sekundy lub milisekundy Unix), jedną lub więcej <b>kolumn liczbowych</b> (każda to szereg) oraz opcjonalnie <b>kolumnę tekstową</b>, która nazywa szeregi (<code>metric</code> lub pierwsza kolumna tekstowa), dla tabel z jednym wierszem na szereg i czas. Sortuj według czasu.</p>
+<p>Makra wstawiają zakres czasu wykresu do zapytania:</p>
+<table>
+  <tr><th>Makro</th><th>Zamienia się na</th></tr>
+  <tr><td><code>$__timeFilter(col)</code></td><td><code>col</code> między początkiem a końcem zakresu</td></tr>
+  <tr><td><code>$__timeGroup(col)</code></td><td><code>col</code> zaokrąglone w dół do interwału wykresu; <code>$__timeGroup(col, 300)</code> do 5 minut</td></tr>
+  <tr><td><code>$__timeFrom</code>, <code>$__timeTo</code></td><td>początek i koniec jako czas</td></tr>
+  <tr><td><code>$__unixFrom</code>, <code>$__unixTo</code></td><td>początek i koniec w sekundach Unix</td></tr>
+  <tr><td><code>$__interval_s</code></td><td>interwał wykresu w sekundach</td></tr>
+</table>
+<p>Przykłady:</p>
+<pre>-- zamówienia na interwał (tak samo w PostgreSQL, MySQL i SQL Server)
+SELECT $__timeGroup(created_at) AS time, count(*) AS orders
+FROM orders WHERE $__timeFilter(created_at)
+GROUP BY 1 ORDER BY 1
+
+-- jeden szereg na magazyn
+SELECT $__timeGroup(ts) AS time, warehouse AS metric, avg(temp) AS value
+FROM sensor_readings WHERE $__timeFilter(ts)
+GROUP BY 1, 2 ORDER BY 1</pre>
+
+<h2 id="prometheus">Prometheus</h2>
+<p>Pisz w PromQL, na przykład <code>rate(node_network_receive_bytes_total{device="eth0"}[5m]) * 8</code>. Każdy szereg jest nazwany tak, jak zapisuje go Prometheus (<code>name{label="value"}</code>); nazwa szeregu w edytorze ją zastępuje. Krok dopasowuje się do szerokości wykresu.</p>
+
+<h2 id="influxdb">InfluxDB</h2>
+<p>Pisz w InfluxQL z <code>$timeFilter</code> i <code>$__interval</code>:</p>
+<pre>SELECT mean("usage_idle") FROM "cpu" WHERE $timeFilter GROUP BY time($__interval), "host"</pre>
+<p>InfluxDB 2 i 3 odpowiadają na InfluxQL przez swoje API 1.x: zmapuj tam bucket na bazę danych, jeśli nie jest jeszcze zmapowany.</p>
+
+<h2 id="json">JSON przez HTTP</h2>
+<p>Zapytanie to ścieżka lub parametry dodawane do adresu (na przykład <code>/api/temps?room=server</code>); WatchZit dodaje <code>from</code>, <code>to</code> i <code>step</code> w sekundach Unix i odczytuje dowolną z tych odpowiedzi (czasy w sekundach lub milisekundach):</p>
+<pre>[{"target": "temp", "datapoints": [[21.5, 1793268000000], ...]}, ...]
+{"temp": [[1793268000, 21.5], ...], "humidity": [[1793268000, 40], ...]}
+[[1793268000, 21.5], [1793268060, 21.7], ...]</pre>

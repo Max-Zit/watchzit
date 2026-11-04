@@ -1,0 +1,25 @@
+<h1>Panolar ve raporlar</h1>
+<p class="lead">Panolar önem verdiğiniz değerleri tek bir ekranda toplar; raporlar cihazlarınızın bir dönem boyunca ne kadar erişilebilir olduğunu gösterir.</p>
+
+<h2 id="dashboards">Panolar</h2>
+<p><a href="/dashboards">Panolar</a> altında bir pano ekleyin ve <b>Düzenle</b> düğmesine tıklayın. Pencere öğeleri:</p>
+<table>
+  <tr><th>Pencere öğesi</th><th>Gösterdiği</th></tr>
+  <tr><td>Grafik</td><td>panonun zaman aralığıyla bir kontrolün grafiği</td></tr>
+  <tr><td>Güncel değer</td><td>kontrolünün durumuna göre renklenen, büyük rakamlarla tek bir değer</td></tr>
+  <tr><td>Cihaz durumları</td><td>bir grubun (veya tümünün) cihazları renkli kutucuklar olarak</td></tr>
+  <tr><td>Açık sorunlar</td><td>bir grubun veya tümünün açık sorunları</td></tr>
+  <tr><td>Harita</td><td>haritanın en kötü durumunu gösteren ve onu açan bir kutucuk</td></tr>
+  <tr><td>Veri kaynağından grafik</td><td>bir <a href="/docs/datasources">veri kaynağının</a> sorgusu (bir veritabanı, Prometheus, InfluxDB, JSON)</td></tr>
+</table>
+<p>Pencere öğeleri bir ızgarada küçük, orta veya büyüktür; onları yukarı ve aşağı taşıyın. Pano her dakika yenilenir, böylece bir duvar ekranında açık kalabilir.</p>
+
+<h2 id="reports">Erişilebilirlik raporları</h2>
+<p><a href="/reports">Raporlar</a> her cihaz için son 7, 30 veya 90 gün, bu ay veya geçen ay için şunları gösterir:</p>
+<ul>
+  <li><b>Erişilebilirlik</b> — cihazın çalışmıyor durumunda olmadığı sürenin oranı. Çalışmayan bir cihazın arkasında ulaşılamaz olduğu süre çalışmıyor sayılır; <b>bakım</b> süresi ayrı gösterilir ve sayılmaz.</li>
+  <li><b>Kesinti süresi</b>, <b>sorun</b> sayısı ve ortalama <b>ping</b> süresi.</li>
+</ul>
+<p>Bir elektronik tablo için <b>CSV</b> olarak indirin veya <b>yazdırın ya da PDF olarak kaydedin</b>.</p>
+<p><b>SLA:</b> <a href="/groups">Gruplar</a> altında bir gruba bir <b>SLA hedefi</b> verin (ör. %99,9). Rapor bu durumda <b>Gruba göre SLA</b> gösterir — tüm cihazlarının birlikte (süreye göre ağırlıklı) erişilebilirliği, hedefe göre <b>karşılandı</b> veya <b>kaçırıldı</b> — ve her cihazı grubunun hedefine göre renklendirir.</p>
+<p><b>E-postayla:</b> yöneticiler <b>E-postayla gönder</b> altında raporun her pazartesi (son 7 gün) veya her ayın 1'inde (geçen ay), tüm cihazlar ya da bir grup için, hangi adreslere gideceğini ayarlar. Rapor sunucu saatiyle 07:00'de CSV ekiyle gönderilir; <b>Şimdi gönder</b> hemen gönderir.</p>

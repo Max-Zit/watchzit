@@ -1,0 +1,72 @@
+<h1>Uživatelé, nastavení a aktualizace</h1>
+<p class="lead">Kdo smí co dělat, jak je konzole chráněna a jak WatchZit zůstává aktuální.</p>
+
+<h2 id="roles">Uživatelé a role</h2>
+<table>
+  <tr><th>Role</th><th>Smí</th></tr>
+  <tr><td>Správce</td><td>vše, včetně uživatelů a nastavení</td></tr>
+  <tr><td>Operátor</td><td>spravovat zařízení, kontroly, mapy, spouštěče, údržbu, nástěnky</td></tr>
+  <tr><td>Pozorovatel</td><td>jen se dívat</td></tr>
+</table>
+<p>Každý uživatel se přihlašuje heslem a dvoufázovým přihlášením (ověřovací aplikace); záložní kódy pomohou při ztrátě telefonu. Správci přidávají uživatele v části <a href="/users">Uživatelé</a> a resetují hesla a dvoufázové přihlášení. <a href="/audit">Protokol auditu</a> zaznamenává každou změnu; jeho záznamy jsou zřetězené, takže změny v protokolu jsou poznat.</p>
+
+<h2 id="directory">Active Directory / LDAP a jednotné přihlášení</h2>
+<p>Kromě místních účtů se uživatelé mohou přihlašovat adresářovým účtem. Místní účty fungují vždy, takže se správce přihlásí, i když adresář nebo poskytovatel identity nefunguje. Uživatelské jméno, které patří místnímu účtu, adresářové přihlášení nikdy nepřevezme.</p>
+<ul>
+  <li><b>Active Directory / LDAP</b> (<a href="/settings/ldap">Nastavení → Active Directory / LDAP</a>): server (<code>ldaps://dc1.example.local</code> nebo <code>ldap://</code> se StartTLS — hesla nikdy nejdou sítí nešifrovaně), volitelně certifikát firemní certifikační autority, servisní účet, který smí číst uživatele a skupiny, základní DN a filtr uživatelů (Active Directory <code>(&amp;(objectClass=user)(sAMAccountName={username}))</code>). Ve službě Active Directory se sledují i vnořené skupiny. Heslo ověří adresář; WatchZit se přesto zeptá na svůj vlastní druhý faktor. <b>Test</b> ověří účet bez přihlášení a ukáže skupiny a roli, kterou by dostal.</li>
+  <li><b>Jednotné přihlášení</b> (<a href="/settings/sso">Nastavení → Jednotné přihlášení</a>): OpenID Connect (Microsoft Entra ID, Google, Okta, Keycloak …: vydavatel, ID klienta a tajný klíč; jako adresu přesměrování zaregistrujte <code>https://&lt;konzole&gt;/login/sso/callback</code>) nebo SAML 2.0 (ADFS, Entra ID, Okta …: URL nebo XML metadat poskytovatele identity; zadejte mu <code>https://&lt;konzole&gt;/login/sso/metadata</code>, adresa odpovědi je <code>/login/sso/saml</code>). Přihlašovací stránka dostane tlačítko. Na vlastní druhý faktor WatchZit se ptá navíc jen tehdy, když to zaškrtnete; jinak rozhoduje politika poskytovatele identity.</li>
+  <li><b>Skupiny a role</b>: při každém přihlášení určují roli skupiny — správci, operátoři nebo pozorovatelé, vyhrává nejvyšší — a uživatelé, kteří nejsou v žádné ze skupin, dostanou výchozí roli, nebo se nemohou přihlásit. Skupina je její název nebo úplné DN, případně název nebo ID, které posílá poskytovatel identity (Entra ID posílá ID).</li>
+  <li>Adresářové účty se vytvářejí při prvním přihlášení a v seznamu uživatelů mají označení <b>LDAP</b> nebo <b>SSO</b>. Nemají heslo WatchZit; zakažte je ve WatchZit, chcete-li je nepustit dovnitř, i když je adresář pustí.</li>
+</ul>
+
+<h2 id="settings">Nastavení</h2>
+<ul>
+  <li><b>Síť a přístup</b> — porty konzole a agentů, sítě, ze kterých se k nim smí připojit, veřejná adresa pro agenty.</li>
+  <li><b>Přihlášení a zabezpečení</b> — délka relace, kolik neúspěšných přihlášení adresu zablokuje, a rušení blokování.</li>
+  <li><b>Naměřená data</b> — jak dlouho se uchovávají surové, pětiminutové a hodinové hodnoty a kolik zabírají místa.</li>
+  <li><b>Certifikát</b> — vlastní certifikát konzole, vámi nahraný nebo od Let's Encrypt (viz níže).</li>
+  <li><b>Vlastní pole</b> — vaše vlastní pole zařízení (viz Zařízení).</li>
+  <li><b>Diagnostika</b> — kde jsou logy, nejnovější řádky logu serveru s filtrem a ZIP pro podporu (logy, zařízení, agenti, problémy, protokol auditu) s odstraněnými hesly, komunitami, tokeny, registračními kódy a klíči; uložené konfigurace zařízení nejsou zahrnuty.</li>
+  <li><b>SNMP</b>, <b>Oznámení</b>, <b>Nástroje</b>, <b>Kioskové displeje</b> — viz jejich kapitoly.</li>
+</ul>
+
+<h2 id="updates">Aktualizace</h2>
+<p><a href="/settings/version">Nastavení → Aktualizace a server</a> ukazuje běžící verzi a nejnovější vydání. Při instalaci z linuxových balíčků se WatchZit aktualizuje sám:</p>
+<ol>
+  <li>Přijímají se jen vydání <b>podepsaná</b> klíčem vydání WatchZit.</li>
+  <li>Pomocník s právy roota zálohuje databázi a program, nainstaluje nový balíček a ověří, že se konzole spustí.</li>
+  <li>Pokud se nespustí, sám se vrátí ke staré verzi.</li>
+</ol>
+<p><b>Kanál aktualizací</b> určuje, co konzole instaluje: <b>Oficiální verze</b>, nebo <b>Testování</b> — kandidáty na vydání, kteří přicházejí před oficiálním vydáním, pro testovací konzoli. Produkční konzole nechte na oficiálních verzích.</p>
+<p>Aktualizace lze instalovat kliknutím nebo automaticky ve zvolenou hodinu. Zdrojem může být zrcadlo nebo místní složka (<code>WATCHZIT_UPDATE_SOURCE</code> v <code>/etc/watchzit/server.env</code>). Na stejné stránce se nastavuje časové pásmo serveru a restartuje služba.</p>
+<p><b>Bez přístupu k internetu:</b> v části <b>Instalovat ze souborů</b> nahrajte <code>manifest.json</code>, <code>manifest.json.sig</code> a balíček serveru (.deb nebo .rpm) vydání, stažené na jiném počítači. Zkontrolují se jako při stažení a nainstalují se stejně.</p>
+
+<h2 id="os">Operační systém a SSH</h2>
+<p>Stejná stránka ukazuje <b>aktualizace operačního systému</b> serveru (Debian, Ubuntu, AlmaLinux, Rocky Linux): kolik jich čeká a kolik z nich jsou bezpečnostní aktualizace, zda jsou zapnuté automatické bezpečnostní aktualizace a kdy naposledy proběhly. <b>Nainstalovat všechny aktualizace</b> je nainstaluje hned; když vyžadují restart, stránka to oznámí a <b>Restartovat server</b> ho restartuje. Seznam se sám obnovuje dvakrát denně, nebo tlačítkem <b>Zkontrolovat nyní</b>.</p>
+<p>Na appliance WatchZit stránka nastavuje také jeho <b>síť</b> (DHCP nebo pevná adresa, brána, DNS, název — nastavení, která appliance odříznou, se po 30 sekundách vrátí) a <b>SSH</b>: zapnuto nebo vypnuto a jeho port; port, který server SSH odmítne, ponechá staré nastavení. Na jiných serverech to patří operačnímu systému.</p>
+
+<h2 id="certificate">Certifikát</h2>
+<p>Po instalaci konzole používá vlastní certifikát, na který prohlížeče upozorňují. V <a href="/settings/certificate">Nastavení → Certifikát</a>:</p>
+<ul>
+  <li><b>Nahrát certifikát</b> vaší firmy: certifikát s řetězcem a soukromý klíč v PEM (soubory nebo vložený text), pro název DNS — nebo IP adresu —, který prohlížeče používají. Před použitím se zkontroluje.</li>
+  <li><b>Let's Encrypt</b>: zadejte název a e-mailovou adresu. Let's Encrypt ověří název přes <b>port 80</b> tohoto serveru (dosažitelný z internetu), nebo, když je konzole interní, pomocí <b>DNS záznamu přes Cloudflare</b> (API token s oprávněním Zone → DNS → Edit). Certifikát se sám obnoví 30 dní před vypršením.</li>
+  <li><b>Obsluhovat port 80</b> navíc přesměruje do konzole prohlížeče, které zadají http://.</li>
+</ul>
+<p>Důvěryhodný certifikát se použije, když se konzole otevře pod svým názvem; při otevření přes IP adresu používá konzole dál vlastní certifikát. Agentů se to netýká: používají vlastní certifikát portu agentů, který si připnuli při registraci. Chcete-li používat standardní port, nastavte port konzole na 443 v Síť a přístup.</p>
+
+<h2 id="backup">Záloha konzole</h2>
+<p><a href="/settings/console-backup">Nastavení → Záloha konzole</a> zálohuje celou konzoli: databázi se všemi měřeními, tajný klíč uložených hesel, klíč launcheru a certifikáty, kterým agenti důvěřují — vše, co nový server potřebuje, aby práci převzal. Zálohy se zapisují do <code>backups</code> v datovém adresáři každý den ve zvolenou hodinu (a tlačítkem <b>Zálohovat nyní</b>); uchovávají se nejnovější (ve výchozím stavu 7).</p>
+<ul>
+  <li><b>Šifrování</b>: s heslem (alespoň 12 znaků) se soubor zašifruje (AES-256-GCM). Heslo uchovávejte jinde: bez něj zálohu obnovit nelze.</li>
+  <li><b>Kopie SFTP</b>: každá záloha se také zkopíruje do složky na jiném serveru (heslo nebo soukromý klíč). První <b>Otestovat složku SFTP</b> ukáže klíč hostitele serveru, kterému máte důvěřovat; kopie jdou jen na server s tímto klíčem. Složka uchovává stejný počet záloh jako server.</li>
+  <li><b>E-mail při neúspěšné záloze</b> pošle upozornění přes SMTP server z Nastavení → Oznámení.</li>
+  <li><b>Obnovení</b> probíhá při zastaveném serveru: na appliance položkou nabídky nastavení <b>Restore a console backup</b>; u linuxových balíčků <code>systemctl stop watchzit-server</code>, pak <code>watchzit-server --data-dir /var/lib/watchzit --restore FILE</code> jako uživatel watchzit s načteným <code>/etc/watchzit/server.env</code> (šifrovaná záloha čte heslo z <code>WATCHZIT_BACKUP_PASSPHRASE</code> nebo <code>--restore-passphrase-file</code>) a potom server spusťte. Obnovení nahradí vše v jedné transakci; záloha starší verze se při spuštění serveru převede na aktuální. Agenti fungují dál: důvěřují stejnému certifikátu.</li>
+</ul>
+
+<h2 id="security">Zabezpečení</h2>
+<ul>
+  <li>Konzole používá jen HTTPS, přísnou Content Security Policy a ochranu proti požadavkům z cizích webů; odpovídá jen povoleným sítím.</li>
+  <li>Hesla se hashují algoritmem Argon2id; uložená tajemství (SNMP, hesla databází a API, kanály) se šifrují tajným klíčem serveru.</li>
+  <li>Agenti se identifikují vlastním klíčem; serveru důvěřují podle připnutého otisku jeho certifikátu agentů.</li>
+  <li>Zranitelnosti hlaste soukromě: viz SECURITY.md v repozitáři.</li>
+</ul>

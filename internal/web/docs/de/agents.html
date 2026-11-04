@@ -1,0 +1,42 @@
+<h1>Agenten installieren</h1>
+<p class="lead">Der WatchZit-Agent ist optional. Er meldet, was das Netzwerk von außen nicht sehen kann: CPU, Arbeitsspeicher, Datenträger, Schnittstellen und Dienste von Windows- und Linux-Computern, jede Minute, über eine einzige ausgehende Verbindung.</p>
+
+<h2 id="code">Registrierungscodes</h2>
+<p>Legen Sie unter <a href="/agents">Agenten</a> einen <b>Registrierungscode</b> an: einen Namen, wie viele Tage er gültig ist, wie viele Computer ihn verwenden dürfen und die Gruppe, in die neue Geräte kommen. Der Code wird einmal angezeigt; er enthält die Serveradresse und den Fingerabdruck des Agenten-Zertifikats, sodass der Agent nur Ihrem Server vertraut.</p>
+
+<h2 id="windows">Windows</h2>
+<p>Laden Sie das MSI von der Seite Agenten herunter und installieren Sie es; es fragt nach dem Code. Für viele Computer installieren Sie es unbeaufsichtigt (GPO, Intune, ein Skript):</p>
+<pre>msiexec /i watchzit-agent-x64.msi ENROLLCODE="WZ1-…" /qn</pre>
+<p>Der Agent läuft als Dienst <b>WatchZitAgent</b>.</p>
+
+<h2 id="linux">Linux</h2>
+<p>Die Seite Agenten zeigt einen Befehl, der den Agenten vom Agenten-Port herunterlädt, seine SHA-256-Prüfsumme kontrolliert und ihn mit dem Code installiert (systemd-Dienst <code>watchzit-agent</code>):</p>
+<pre>curl -fsSk https://&lt;server&gt;:8444/agent/download/watchzit-agent-linux-amd64 -o /tmp/watchzit-agent &amp;&amp; … sudo /tmp/watchzit-agent install --code "WZ1-…"</pre>
+<p>Oder installieren Sie das <b>deb</b>- oder <b>rpm</b>-Paket der Version (amd64 und arm64, von GitHub), registrieren Sie den Agenten und starten Sie ihn; Updates kommen über den Paketmanager oder die eigenen Updates des Agenten:</p>
+<pre>sudo apt install ./watchzit-agent_&lt;version&gt;_amd64.deb      # oder: sudo dnf install ./watchzit-agent-&lt;version&gt;-1.x86_64.rpm
+sudo watchzit-agent enroll --code "WZ1-…"
+sudo systemctl start watchzit-agent</pre>
+
+<h2 id="what">Was der Agent meldet</h2>
+<ul>
+  <li><b>CPU</b>-Last (unter Linux auch die Load Average), <b>Arbeitsspeicher</b> und Swap, jeden <b>Datenträger</b>, jede <b>Netzwerkschnittstelle</b> mit Datenverkehr — daraus werden von selbst Prüfungen mit Diagrammen.</li>
+  <li><b>Inventar</b>: Betriebssystem, CPU-Modell, Arbeitsspeicher, Hersteller, Modell, Seriennummer, Adressen, Dienste.</li>
+  <li><b>Hyper-V</b>-Maschinen (Windows) und <b>Docker</b>-Container (Linux), alle fünf Minuten, mit Zustand, CPU, Arbeitsspeicher und Adressen; sie erscheinen auf der Geräteseite und in Hypervisor-Kästen auf Karten.</li>
+  <li><b>Überwachte Dienste</b>: Wählen Sie sie auf der Geräteseite unter <b>Dienste überwachen</b>; ein Dienst, der stoppt, öffnet ein Problem.</li>
+  <li><b>Überwachte Prozesse</b>: Geben Sie unter <b>Prozesse überwachen</b> auf der Geräteseite Programmnamen ein (zum Beispiel <code>nginx, sqlservr.exe, java</code>); jeder erhält eine Prüfung mit der Anzahl laufender Instanzen, ihrer CPU und ihrem Arbeitsspeicher, und läuft keine, wird ein Problem geöffnet.</li>
+  <li><b>Fehlermeldungen</b> des Systems — kritische und Fehlerereignisse der Windows-Protokolle <b>System</b> und <b>Application</b> sowie Meldungen der Priorität <i>err</i> und schlimmer aus dem systemd-Journal — gehen mit jeder Meldung an <a href="/logs?kind=agent">Protokolle</a> (Art <b>Agenten</b>); ein Protokoll-Trigger mit der Quelle <b>Agenten</b> öffnet daraus Probleme.</li>
+</ul>
+<p>Gibt es bereits ein Gerät mit derselben Adresse oder demselben Namen, schließt sich der Agent ihm an; andernfalls wird ein neues Gerät angelegt.</p>
+
+<h2 id="updates">Agent-Updates</h2>
+<p>Ein Agent, der älter ist als der Server, erhält beim Verbinden (höchstens einmal pro Stunde) den Agenten in der Version des Servers: Er lädt das Installationsprogramm über seine eigene verschlüsselte, gepinnte Verbindung vom Server herunter, prüft Größe und SHA-256 und installiert es. Mit dem MSI installierte Windows-Agenten führen das neue MSI aus; Linux-Agenten (systemd) prüfen, ob das neue Programm startet, ersetzen sich selbst und werden von systemd neu gestartet. Die Seite <a href="/agents">Agenten</a> kennzeichnet ältere Agenten; Administratoren schalten dort unter <b>Agent-Updates</b> die automatischen Updates aus und aktualisieren alle verbundenen Agenten mit einem Klick. Agenten vor Version 1.2 kennen noch keine Updates und werden einmalig von Hand aktualisiert.</p>
+
+<h2 id="collector">Remote-Kollektoren</h2>
+<p>Ein Gerät in einem anderen Netzwerk — einer Zweigstelle, einem Kundenstandort hinter NAT, einem abgeschotteten Management-VLAN — ist von der Konsole aus oft nicht erreichbar. Installieren Sie den Agenten auf einem beliebigen Computer dort (Linux oder Windows; eine kleine VM oder ein Gerät der Raspberry-Pi-Klasse genügt) und klicken Sie im Agenten-Kasten seiner Geräteseite auf <b>Als Remote-Kollektor verwenden</b>. Wählen Sie ihn dann bei den Geräten dieses Netzwerks unter <b>Überwacht von</b> (oder für viele auf einmal in der Geräteliste unter <b>Auswahl ändern</b>). Der Kollektor erhält ihre Prüfungen — Ping, TCP, SNMP, Webseiten und Szenarien, Zertifikate, DNS, Datenbanken, RouterOS, JSON-APIs — mit den nötigen Passwörtern und SNMP-Einstellungen, führt sie in ihren Intervallen aus und sendet die Ergebnisse über seine eigene verschlüsselte Verbindung. Er braucht am Standort keinen offenen Port und hat keine eigene Weboberfläche; alles wird in der Konsole eingestellt.</p>
+<p>Solange die Verbindung zur Konsole unterbrochen ist, führt der Kollektor die Prüfungen weiter aus; die Ergebnisse (bis zu einem Tag, die neuesten 200.000) warten auf ihm und kommen an, sobald die Verbindung wieder steht, sodass die Diagramme keine Lücke haben. Die Prüfungen seiner Geräte zeigen in der Zwischenzeit <b>unbekannt</b> statt ausgefallen (am Standort kann alles in Ordnung sein), und die Agenten-Prüfung des Kollektors öffnet ein Problem. Zwischengespeicherte Ergebnisse überstehen keinen Neustart des Kollektors: Er erhält seine Prüfungen dann erneut von der Konsole.</p>
+<p><b>Ersatz-Kollektor:</b> Installieren Sie den Agenten auf einem zweiten Computer des Standorts, machen Sie ihn ebenfalls zum Kollektor und wählen Sie ihn als <b>Ersatz</b> neben <b>Überwacht von</b> (oder für viele Geräte in der Geräteliste unter <b>Auswahl ändern → Ersatz-Kollektor</b>). Solange der erste offline ist, führt der Ersatz ihre Prüfungen aus; ist der erste wieder da, übernimmt er sie erneut.</p>
+<p><b>Erkennung und SNMP:</b> Wählen Sie unter <a href="/discovery">Geräte → Erkennung</a> den Kollektor neben einem neuen Bereich: Er scannt dieses Netzwerk seines Standorts, und die Geräte, die Sie daraus hinzufügen, werden von ihm überwacht. Auch die SNMP-Erkennung auf der Geräteseite und das Auslesen von Fakten, Schnittstellen und VLANs laufen über den Kollektor. Hypervisor-Prüfungen bleiben bei der Konsole. <b>Sammeln beenden</b> gibt die Geräte an die Konsole zurück.</p>
+
+<h2 id="network">Netzwerk</h2>
+<p>Agenten verbinden sich mit dem <b>Agenten-Port 8444</b>. Legen Sie unter <a href="/settings/network">Einstellungen → Netzwerk und Zugriff</a> die <b>öffentliche Agenten-Adresse</b> fest, wenn Agenten den Server unter einem anderen Namen erreichen (zum Beispiel über eine Firewall), und beschränken Sie die Netzwerke, aus denen Agenten kommen dürfen.</p>
+<div class="callout"><p>Wenn Sie den Agenten auf der Geräteseite entfernen, wird sein Schlüssel unbekannt; um den Agenten wieder zu verwenden, registrieren Sie den Computer mit einem neuen Code.</p></div>

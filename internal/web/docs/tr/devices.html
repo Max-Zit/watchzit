@@ -1,0 +1,90 @@
+<h1>Cihazlar, kontroller ve SNMP</h1>
+<p class="lead">Cihaz, adresi olan her şeydir: bir yönlendirici, anahtar, sunucu, yazıcı, kamera veya bir web sitesi. Kontroller onu ölçer; sonuçları cihazı, haritayı ve grafikleri renklendirir.</p>
+
+<h2 id="add">Cihaz ekleme</h2>
+<p><a href="/devices">Cihazlar → Cihaz ekle</a> altında bir ad ve bir IP adresi veya ana bilgisayar adı girin, türünü ve grubunu seçin ve <b>Ping</b> seçeneğini açık bırakın. İsteğe bağlı olarak:</p>
+<ul>
+  <li><b>SNMP</b> — community veya SNMPv3 kullanıcısını içeren bir profil; WatchZit bu durumda arayüzleri, trafiği, CPU'yu, belleği ve diskleri okur.</li>
+  <li><b>Bağlı olduğu</b> — cihaza üzerinden erişilen yönlendirici veya anahtar. O çalışmadığı sürece bu cihazın sorunları yalnızca "ulaşılamıyor" olarak kaydedilir ve gönderilmez.</li>
+  <li><b>Uzaktan erişim</b> — <a href="/docs/tools">araçların</a> kullandığı kullanıcı adı ve portlar.</li>
+  <li><b>TCP portları</b> — her biri, her dakika bağlanan bir kontrole dönüşür.</li>
+</ul>
+<p>Cihazın durumu kontrollerinden gelir: hepsi çalışıyorsa <b>çalışıyor</b>, bazıları çalışmıyorsa <b>kısmen çalışmıyor</b>, hiçbiri çalışmıyorsa <b>çalışmıyor</b>.</p>
+
+
+<h2 id="discovery">Keşif</h2>
+<p><a href="/discovery">Cihazlar → Keşif</a> bir ağdaki ana bilgisayarları bulur: bir aralık ekleyin (ör. <code>192.168.1.0/24</code>, en fazla /22, ya da tek bir adres) ve hemen, her gün veya her hafta tarayın. WatchZit her adrese ping atar, yaygın portları dener (SSH, Telnet, web, RDP, WinBox, SMB, yazıcılar, VNC), SNMP profillerinizle SNMP üzerinden adı, açıklamayı ve üreticiyi sorar ve DNS adını arar. Henüz cihaz olmayan ana bilgisayarlar adları, tahmin edilen türleri ve neyin yanıt verdiğiyle listelenir; bunları işaretleyin ve <b>Cihaz olarak ekle</b> düğmesine tıklayın (isteğe bağlı olarak bir gruba): her biri bir ping kontrolü (ping engelliyse bir TCP kontrolü) ve yanıt veren SNMP profilini alır. <b>Gizle</b> bir ana bilgisayarı listenin dışında tutar; gizlenen ana bilgisayarlar yeniden gösterilebilir. Bir zamanlama ayarlandığında ağda beliren yeni ana bilgisayarlar burada kendiliğinden görünür. <a href="/docs/agents#collector">Uzak toplayıcılar</a> varsa bir aralığı hangisinin tarayacağını seçin: o, kendi sahasının ağını tarar.</p>
+<h2 id="links">Web bağlantıları</h2>
+<p>Bir cihazın <b>Web bağlantıları</b> bölümünde <b>Web arayüzü</b> adresi, cihaz sayfasındaki ve haritalardaki düğmeyle açılır; dilerseniz düğmeye başka bir <b>ad</b> verin. Birden fazla adresi olan bir sunucu, onun iDRAC veya iLO'su ya da bir hizmetin sayfası için daha fazla bağlantı ekleyin; her biri kendi düğmesine dönüşür.</p>
+
+<h2 id="fields">Özel alanlar</h2>
+<p>Yöneticiler cihazlar için kendi alanlarını <a href="/settings/fields">Ayarlar → Özel alanlar</a> altında ekler: metin, sayı veya tarih — bir demirbaş numarası, garantinin bitişi, kabin, bir sözleşme. Operatörler bunları cihaz sayfasında <b>Özel alanlar</b> altında doldurur; değerler cihazın ayrıntılarında görünür ve cihaz listesindeki arama onları bulur. Bir alanı kaldırmak değerlerini de kaldırır.</p>
+<h2 id="templates">Şablonlar</h2>
+<p>Şablon, bir cihaz türü için bir kontroller kümesidir — bir Linux sunucusu, bir MikroTik yönlendirici, bir yazıcı. <a href="/templates">Şablonlar</a> altında bir şablon oluşturun, hangi cihaz türleri için olduğunu seçin ve kontrollerini ekleyin (ping, TCP, web sayfası, TLS sertifikası, DNS ve SNMP kontrolleri; parola içeren kontroller cihaz başına eklenir). <b>Uygula</b>, kontrolleri ilgili türlerdeki tüm cihazlara, bir gruba ya da şablonu zaten taşıyan cihazlara yeniden ekler; bir cihaz sayfasında <b>Şablonu uygula</b> bunu tek bir cihaz için yapar. Uygulama yalnızca cihazda henüz olmayan kontrolleri ekler — mevcut kontroller olduğu gibi kalır, bu yüzden iki kez uygulamak zarar vermez. <b>Bu türlerdeki yeni cihazlara otomatik uygula</b> açıkken, sonradan eklenen her cihaz (elle veya keşiften) kontrolleri hemen alır. Bir şablonu kaldırmak kontrolleri cihazlarda bırakır.</p>
+<h2 id="bulk">Birçok cihazı birden değiştirme</h2>
+<p><a href="/devices">Cihaz listesinde</a> cihazları işaretleyin (başlıktaki kutu gösterilenlerin tümünü işaretler) ve <b>Seçilenleri değiştir</b> altında seçin: grup, SNMP profili, bağlı oldukları cihaz, tür, izlemeyi duraklatma veya sürdürme, şablon uygulama ya da — yöneticiler için — kontrolleri ve verileriyle birlikte silme. Örneğin bir sahanın tüm yazıcılarını işaretlemek için önce listeyi filtreleyin.</p>
+<h2 id="checks">Kontrol türleri</h2>
+<table>
+  <tr><th>Kontrol</th><th>Ölçtüğü</th></tr>
+  <tr><td>Ping (ICMP)</td><td>Yanıt süresi ve paket kaybı.</td></tr>
+  <tr><td>TCP portu</td><td>Portun bağlantı kabul edip etmediği ve ne kadar hızlı.</td></tr>
+  <tr><td>Web sayfası (HTTP)</td><td>Durum kodu, yanıt süresi, sayfada bulunması gereken bir metin, sertifikanın süresinin dolmasına kalan gün.</td></tr>
+  <tr><td>TLS sertifikası</td><td>Süresinin dolmasına kalan gün ve güvenilir olup olmadığı (herhangi bir TLS portu, SNI için sunucu adıyla).</td></tr>
+  <tr><td>DNS</td><td>Cihaz bir DNS sunucusudur: bir adı bir kayıt türüyle (A, AAAA, MX …) ve isteğe bağlı olarak beklenen bir değerle yanıtlamalıdır.</td></tr>
+  <tr><td>PostgreSQL, MySQL / MariaDB</td><td>Bir izleme kullanıcısıyla oturum açma, sürüm, bağlantı sayısı, yanıt süresi.</td></tr>
+  <tr><td>MikroTik RouterOS (API)</td><td>RouterOS 7'nin REST API'si üzerinden CPU, bellek, çalışma süresi ve sıcaklık.</td></tr>
+  <tr><td>JSON API değeri</td><td>Herhangi bir JSON API'sinden (FortiGate, vCenter, kendi hizmetleriniz) tek bir sayı: bir adres, <code>results.cpu.0.current</code> gibi bir yol ve isteğe bağlı Bearer veya temel oturum açma.</td></tr>
+  <tr><td>Hipervizör (vSphere, Proxmox VE)</td><td>VMware ESXi veya vCenter (web services API) ya da Proxmox VE (REST API) ana bilgisayarları, sanal makineleri ve konteynerleri, veri depoları: ana bilgisayarların CPU'su ve belleği, çalışan makineler, çalışmayan ana bilgisayarlar, en dolu veri deposu. Bkz. <a href="#hypervisor">Hipervizörler</a>.</td></tr>
+  <tr><td>Web senaryosu</td><td>Bir web uygulamasında kullanıcı gibi birkaç adım: oturum açma, giriş arkasındaki bir sayfayı açma, metni denetleme. Satır başına bir adım, örneğin <code>GET /login | 200 | Sign in</code>, <code>POST /login | 302 | | user=monitor&amp;password={secret}</code>, <code>GET /dashboard | | Welcome</code> — yöntem ve adres, ardından beklenen durum, sayfanın içermesi gereken metin ve form verileri. Çerezler adımdan adıma korunur; <code>{secret}</code> kontrolün parolasıdır. Tüm adımların süresini ve kaçının geçtiğini ölçer; uyarı başarısız olan adımı belirtir.</td></tr>
+  <tr><td>SNMP</td><td>Erişilebilirlik ve çalışma süresi; keşifle bulunan arayüzler, CPU ve depolama; herhangi bir sayısal OID.</td></tr>
+</table>
+<p>Kontrollerin parolaları ve belirteçleri şifreli saklanır ve bir daha gösterilmez; bir kontrolü düzenlerken saklanan değeri korumak için alanı boş bırakın.</p>
+
+<h2 id="snmp">SNMP</h2>
+<ol>
+  <li><a href="/settings/snmp">Ayarlar → SNMP</a> altında bir profil oluşturun: community ile v2c veya kullanıcıyla v3 (SHA-2 ve AES desteklenir).</li>
+  <li>Profili cihazda seçin. WatchZit <b>SNMP keşfi</b>ni açar: izlenecek arayüzleri, CPU'yu, belleği ve diskleri işaretleyin (loopback'ler ve bağlantısı olmayan arayüzler dışarıda bırakılır).</li>
+  <li>Cihaz sayfası ardından bağlantı durumu ve canlı trafikle <b>portları</b> ve her değerin grafiklerini gösterir.</li>
+</ol>
+<p>Keşif, cihazın türüne göre bildirdiklerini de bulur: <b>yazıcı sarf malzemeleri</b> (toner, mürekkep, tamburlar, atık kutuları, yüzde olarak doluluk; hazır tetikleyici <b>Toner veya mürekkep azaldı</b> %10'un altında uyarır), <b>UPS'ler</b> (UPS-MIB veya APC kartlarının APC PowerNet MIB'i: pil şarjı, kalan çalışma süresi, yük; UPS pilden çalışırken veya pili zayıfken kontrol çalışmıyor durumundadır ve <b>UPS çalışma süresi kısa</b> 10 dakikanın altında uyarır) ve <b>MikroTik sağlık sensörleri</b> (sıcaklıklar, gerilimler, fanlar, güç; her biri biriminde bir OID kontrolü olarak).</p>
+<div class="callout tip"><p>MikroTik, Cisco, HP, Ubiquiti, yazıcılar ve UPS cihazları SNMP konuşur. Linux'ta <code>snmpd</code> kurun; Windows'ta SNMP hizmetini.</p></div>
+
+<h2 id="vlans">VLAN'lar</h2>
+<p>WatchZit, anahtarların VLAN'larını saatte bir SNMP üzerinden (Q-BRIDGE-MIB: HP/Aruba, Cisco small business, Ubiquiti, Netgear, D-Link ve çoğu yönetilebilir anahtar; CISCO-VTP-MIB: Cisco Catalyst access ve trunk portları), ajanlardan (eth0.10 gibi Linux VLAN arayüzleri, Windows ağ bağdaştırıcılarının VLAN kimliği) ve MikroTik köprülerinden RouterOS API'si üzerinden (cihazın <b>MikroTik RouterOS (API)</b> kontrolüyle) on dakikada bir okur. Cihaz sayfası her VLAN'ı etiketli ve etiketsiz portlarıyla, her portu da <b>modu</b> ile listeler: <b>Access</b> (tek bir etiketsiz VLAN), <b>Trunk</b> (etiketli VLAN'lar; etiketsiz olan <b>native VLAN</b>'dır) veya <b>Hibrit</b> (birkaç etiketsiz VLAN). Haritalar bir seferde tek bir VLAN gösterebilir.</p>
+
+<h2 id="ha-role">HA rolü</h2>
+<p>VRRP çalıştıran cihazlar <b>etkin</b> (master) mi yoksa <b>yedek</b> (backup) mi olduklarını bildirir: SNMP üzerinden (VRRP-MIB ve VRRPv3-MIB, SNMP erişilebilirlik kontrolüyle) ve MikroTik RouterOS'tan API üzerinden (RouterOS API kontrolüyle) okunur. Cihaz sayfası rolü ve ne zamandan beri olduğunu gösterir; haritalar cihazın yanında ETKİN veya YEDEK gösterir.</p>
+
+<h2 id="vxlan">VXLAN</h2>
+<p>VXLAN arayüzleri (VTEP'ler) MikroTik RouterOS 7'den (RouterOS API kontrolüyle, on dakikada bir) ve Linux ajanlarından (iproute2 ile, beş dakikada bir) okunur: VNI, arayüz, kendi adres, UDP portu ve uzak VTEP'ler, yönlendirme tablosundakiler de dahil. Cihaz sayfası bunları listeler; başka bir cihazın adresi olan uzak bir VTEP o cihaza bağlantı verir. Uzak adresi olmayan bir VXLAN multicast veya EVPN kullanır. Haritalar, birbirinin VTEP'i olan iki harita cihazı arasında bir tünel çizer.</p>
+
+<h2 id="graphs">Grafikler</h2>
+<p>Her değer saklanır: günlerce ham olarak, ardından 5 dakikalık ve saatlik asgari, ortalama ve azami değerler olarak (Ayarlar → Ölçüm verileri). Bir grafikte yakınlaştırmak için sürükleyin, geri dönmek için çift tıklayın; zaman aralığı düğmeleri bir saatten bir yıla kadar gider.</p>
+<p>Bir grafiğin ⤢ düğmesi onu tüm pencerede gösterir (Esc geri döner).</p>
+<p><b>Grafikleri düzenle</b> (operatörler ve yöneticiler) bir cihazın grafiklerini bir panonun panelleri gibi düzenler:</p>
+<ul>
+  <li>✎ bir grafiği değiştirir: <b>başlığını</b>, <b>türünü</b> (çizgi, alan veya çubuklar), <b>değerleri üst üste koy</b> (her biri öncekilerin üstüne), gösterdiği <b>değerleri</b> — birkaç kontrolden de, örneğin CPU ve belleği birlikte ve her birinin <b>rengini</b> —, <b>eksen asgari ve azami değerlerini</b> ve bir <b>uyarı</b> ve <b>kritik çizgi</b>.</li>
+  <li>↔ grafiği sayfa genişliğinde yapar, ↕ daha uzun veya kısa yapar, ▲ ▼ taşır, × kaldırır (değerleri, bir grafik onları yeniden gösterene kadar çizilmez).</li>
+  <li>Genişliğini (1–4 sütun) ve yüksekliğini ayarlamak için bir grafiğin sağ alt köşesini sürükleyin; bıraktığınızda kaydedilir.</li>
+  <li><b>Grafik ekle</b> cihazın herhangi bir değerinden yeni bir grafik oluşturur. Yeni kontrollerin değerleri otomatik grafiklerini alır.</li>
+  <li><b>Otomatik grafikler</b> düzeni kaldırır: yeniden kontrol başına bir grafik.</li>
+</ul>
+
+<h2 id="config-backup">Yapılandırma yedekleri</h2>
+<p>Operatörler ve yöneticiler ağ cihazlarının yapılandırmasını saklayabilir: bir cihazın <b>Yapılandırma yedekleri</b> bölümünde yöntemi seçin — <b>MikroTik RouterOS</b> (<code>/export terse show-sensitive</code>), <b>Cisco IOS</b> (<code>show running-config</code>), <b>FortiGate</b> (<code>show full-configuration</code>) veya kendi komutunuz — ve SSH kullanıcısını, portu ve parolayı ya da özel anahtarı girin. Parola ve anahtar şifreli saklanır. Yalnızca okuyabilen bir kullanıcı kullanın.</p>
+<ul>
+  <li>Yedekler her gece 02:00'de (sunucu saati) ve <b>Şimdi yedekle</b> ile çalışır. Yeni bir sürüm yalnızca yapılandırma değiştiğinde saklanır; her cihazın son 50 sürümü tutulur.</li>
+  <li>SSH ana bilgisayar anahtarı ilk yedeklemede kaydedilir ve sonra denetlenir. Değiştiğinde yedekleme başarısız olur; bu bekleniyorsa (yeni cihaz veya donanım yazılımı) <b>Ana bilgisayar anahtarını unut</b> kullanın.</li>
+  <li>Her sürüm bir öncekine göre değişiklikleri gösterir (+ eklenen, − kaldırılan satırlar; hepsi için <b>Tüm yapılandırma</b>) ve metin dosyası olarak indirilebilir.</li>
+  <li>Değişiklikler ve hatalar cihazın günlüğüne yazılır (etiket <code>config-backup</code>), böylece bir günlük tetikleyicisi bunlar için bildirim gönderebilir.</li>
+  <li>İzleyiciler ne yapılandırmaları ne de yedekleme ayarlarını görür.</li>
+</ul>
+
+<h2 id="hypervisor">Hipervizörler</h2>
+<p><b>Hipervizör (vSphere, Proxmox VE)</b> kontrolünü bir ESXi ana bilgisayarının, bir vCenter'ın veya bir Proxmox VE düğümünün cihazına ekleyin (bir kümenin herhangi bir düğümü tüm kümeyi okur). Yalnızca okuyabilen bir kullanıcı yeterlidir: vSphere'de <b>Read-only</b> rolü, Proxmox VE'de <code>/</code> üzerinde <b>PVEAuditor</b> — ya da bir API belirteci (kullanıcı olarak <code>user@realm!name</code>, parola olarak gizli değeri). 443 (vSphere) veya 8006 (Proxmox VE) için portu boş bırakın; bunların varsayılan kendinden imzalı sertifikası için <b>Güvenilmeyen sertifikaları kabul et</b> seçeneğini işaretleyin.</p>
+<ul>
+  <li>Her çalıştırma tüm ana bilgisayarların CPU ve belleğini, çalışan ve toplam makineleri, çalışmayan ana bilgisayarları ve en dolu veri deposunun doluluğunu saklar; <b>Veri deposu neredeyse dolu</b> (%90'ın üstünde) ve <b>Hipervizör ana bilgisayarı çalışmıyor</b> tetikleyicileri de birlikte gelir.</li>
+  <li>Cihaz sayfası ana bilgisayarları, her sanal makineyi ve konteyneri (durum, CPU, bellek, adres, konuk sistem) ve veri depolarını listeler. Konuk sistemler ve adresler on dakikada bir okunur (Proxmox VE adresleri QEMU guest agent üzerinden okur).</li>
+  <li><b>Hyper-V</b> ve <b>Docker</b> kontrol gerektirmez: Windows ana bilgisayarındaki (Hyper-V ile) veya Linux ana bilgisayarındaki (Docker ile) WatchZit ajanı makinelerini veya konteynerlerini beş dakikada bir bildirir.</li>
+  <li>Haritalarda bir hipervizör kutusu bu makineleri kendiliğinden gösterebilir (bkz. harita kılavuzu).</li>
+</ul>

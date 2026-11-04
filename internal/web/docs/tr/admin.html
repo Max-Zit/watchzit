@@ -1,0 +1,72 @@
+<h1>Kullanıcılar, ayarlar ve güncellemeler</h1>
+<p class="lead">Kimin neyi yapabileceği, konsolun nasıl korunduğu ve WatchZit'in nasıl güncel kaldığı.</p>
+
+<h2 id="roles">Kullanıcılar ve roller</h2>
+<table>
+  <tr><th>Rol</th><th>Yetkisi</th></tr>
+  <tr><td>Yönetici</td><td>kullanıcılar ve ayarlar dahil her şey</td></tr>
+  <tr><td>Operatör</td><td>cihazları, kontrolleri, haritaları, tetikleyicileri, bakımı ve panoları yönetme</td></tr>
+  <tr><td>İzleyici</td><td>yalnızca görüntüleme</td></tr>
+</table>
+<p>Her kullanıcı bir parola ve iki adımlı girişle (bir kimlik doğrulama uygulaması) oturum açar; telefon kaybolduğunda kurtarma kodları yardımcı olur. Yöneticiler <a href="/users">Kullanıcılar</a> altında kullanıcı ekler, parolaları ve iki adımlı girişi sıfırlar. <a href="/audit">Denetim günlüğü</a> her değişikliği kaydeder; kayıtları birbirine zincirlenmiştir, böylece günlükte yapılan değişiklikler görünür.</p>
+
+<h2 id="directory">Active Directory / LDAP ve çoklu oturum açma</h2>
+<p>Yerel hesapların yanı sıra kullanıcılar bir dizin hesabıyla da oturum açabilir. Yerel hesaplar her zaman çalışmaya devam eder, böylece dizin veya kimlik sağlayıcı çalışmadığında bir yönetici oturum açabilir. Yerel bir hesaba ait bir kullanıcı adı hiçbir zaman bir dizin girişi tarafından devralınmaz.</p>
+<ul>
+  <li><b>Active Directory / LDAP</b> (<a href="/settings/ldap">Ayarlar → Active Directory / LDAP</a>): sunucu (<code>ldaps://dc1.example.local</code> veya StartTLS ile <code>ldap://</code> — parolalar ağda hiçbir zaman şifresiz geçmez), isteğe bağlı olarak bir şirket CA'sının CA sertifikası, kullanıcıları ve grupları okuyabilen bir hizmet hesabı, temel DN ve kullanıcı filtresi (Active Directory <code>(&amp;(objectClass=user)(sAMAccountName={username}))</code>). Active Directory'de iç içe gruplar izlenir. Parolayı dizin denetler; WatchZit yine de kendi ikinci adımını ister. <b>Test</b> bir hesabı oturum açmadan denetler ve grupları ile alacağı rolü gösterir.</li>
+  <li><b>Çoklu oturum açma</b> (<a href="/settings/sso">Ayarlar → Çoklu oturum açma</a>): OpenID Connect (Microsoft Entra ID, Google, Okta, Keycloak …: issuer, istemci kimliği ve gizli anahtar; yönlendirme URI'si olarak <code>https://&lt;konsol&gt;/login/sso/callback</code> adresini kaydedin) veya SAML 2.0 (ADFS, Entra ID, Okta …: kimlik sağlayıcının meta veri URL'si veya XML'i; ona <code>https://&lt;konsol&gt;/login/sso/metadata</code> adresini verin, yanıt adresi <code>/login/sso/saml</code>'dir). Giriş sayfası bir düğme alır. WatchZit'in kendi ikinci adımı yalnızca siz işaretlediğinizde de istenir; aksi hâlde kimlik sağlayıcının politikası karar verir.</li>
+  <li><b>Gruplar ve roller</b>: her girişte gruplar rolü belirler — yöneticiler, operatörler veya izleyiciler, en yüksek olan kazanır — ve gruplardan hiçbirinde olmayan kullanıcılar varsayılan rolü alır veya oturum açamaz. Bir grup, adı veya tam DN'si ya da kimlik sağlayıcının gönderdiği ad veya kimliktir (Entra ID kimlik gönderir).</li>
+  <li>Dizin hesapları ilk girişlerinde oluşturulur ve kullanıcı listesinde <b>LDAP</b> veya <b>SSO</b> olarak görünür. WatchZit parolaları yoktur; dizin içeri alsa bile onları dışarıda tutmak için WatchZit'te devre dışı bırakın.</li>
+</ul>
+
+<h2 id="settings">Ayarlar</h2>
+<ul>
+  <li><b>Ağ ve erişim</b> — konsol ve ajan portları, her birine erişmesine izin verilen ağlar, ajanlar için genel adres.</li>
+  <li><b>Giriş ve güvenlik</b> — oturum süresi, kaç başarısız girişin bir adresi engelleyeceği ve bir engelin kaldırılması.</li>
+  <li><b>Ölçüm verileri</b> — ham değerlerin, 5 dakikalık ve saatlik değerlerin ne kadar süre saklanacağı ve ne kadar yer kapladıkları.</li>
+  <li><b>Sertifika</b> — konsolun kendi sertifikası, yüklediğiniz bir sertifika veya Let's Encrypt'ten bir sertifika (aşağıya bakın).</li>
+  <li><b>Özel alanlar</b> — cihazlar için kendi alanlarınız (bkz. Cihazlar).</li>
+  <li><b>Tanılama</b> — günlüklerin nerede olduğu, filtreyle sunucu günlüğünün en yeni satırları ve destek için parolalar, community'ler, belirteçler, kayıt kodları ve anahtarlar çıkarılmış bir ZIP (günlükler, cihazlar, ajanlar, sorunlar, denetim günlüğü); kaydedilmiş cihaz yapılandırmaları dahil değildir.</li>
+  <li><b>SNMP</b>, <b>Bildirimler</b>, <b>Araçlar</b>, <b>Kiosk ekranları</b> — ilgili bölümlerine bakın.</li>
+</ul>
+
+<h2 id="updates">Güncellemeler</h2>
+<p><a href="/settings/version">Ayarlar → Güncellemeler ve sunucu</a> çalışan sürümü ve en yeni sürümü gösterir. Linux paketleriyle kurulduğunda WatchZit kendini günceller:</p>
+<ol>
+  <li>Yalnızca WatchZit sürüm anahtarıyla <b>imzalı</b> sürümler kabul edilir.</li>
+  <li>Root yardımcısı veritabanını ve programı yedekler, yeni paketi kurar ve konsolun başladığını denetler.</li>
+  <li>Başlamazsa kendiliğinden eski sürüme geri döner.</li>
+</ol>
+<p><b>Güncelleme kanalı</b> konsolun neyi kuracağını seçer: <b>resmi sürümler</b> veya <b>test</b> — bir test konsolu için, resmi bir sürümden önce gelen sürüm adayları. Üretim konsollarını resmi sürümlerde tutun.</p>
+<p>Güncellemeler bir tıklamayla veya seçilen bir saatte otomatik olarak kurulabilir. Kaynak bir ayna veya yerel bir klasör olabilir (<code>/etc/watchzit/server.env</code> içinde <code>WATCHZIT_UPDATE_SOURCE</code>). Aynı sayfa sunucunun saat dilimini ayarlar ve hizmeti yeniden başlatır.</p>
+<p><b>İnternet erişimi olmadan:</b> <b>Dosyalardan kur</b> altında, başka bir bilgisayarda indirilmiş bir sürümün <code>manifest.json</code>, <code>manifest.json.sig</code> dosyalarını ve sunucu paketini (.deb veya .rpm) yükleyin. Bunlar bir indirme gibi denetlenir ve aynı şekilde kurulur.</p>
+
+<h2 id="os">İşletim sistemi ve SSH</h2>
+<p>Aynı sayfa sunucunun <b>işletim sistemi güncellemelerini</b> (Debian, Ubuntu, AlmaLinux, Rocky Linux) gösterir: kaç tanesinin beklediği ve kaçının güvenlik güncellemesi olduğu, otomatik güvenlik güncellemelerinin açık olup olmadığı ve en son ne zaman çalıştıkları. <b>Tüm güncellemeleri kur</b> onları hemen kurar; yeniden başlatma gerektirdiklerinde sayfa bunu söyler ve <b>Sunucuyu yeniden başlat</b> sunucuyu yeniden başlatır. Liste günde iki kez kendiliğinden veya <b>Şimdi denetle</b> ile yenilenir.</p>
+<p>WatchZit appliance'ında sayfa ayrıca <b>ağını</b> (DHCP veya sabit adres, ağ geçidi, DNS, ad — appliance'ın bağlantısını kesen ayarlar 30 saniye sonra geri alınır) ve <b>SSH</b>'yi ayarlar: açık veya kapalı ve portu; SSH sunucusunun reddettiği bir port eski ayarı bırakır. Diğer sunucularda bunlar işletim sistemine aittir.</p>
+
+<h2 id="certificate">Sertifika</h2>
+<p>Kutudan çıktığı hâliyle konsol kendi sertifikasını kullanır ve tarayıcılar bu konuda uyarır. <a href="/settings/certificate">Ayarlar → Sertifika</a> altında:</p>
+<ul>
+  <li>Şirketinizin bir <b>sertifikasını yükleyin</b>: tarayıcıların kullandığı DNS adı — veya IP adresi — için zinciriyle birlikte sertifika ve özel anahtar, PEM biçiminde (dosya olarak veya yapıştırılarak). Kullanılmadan önce denetlenir.</li>
+  <li><b>Let's Encrypt</b>: adı ve bir e-posta adresini girin. Let's Encrypt adı bu sunucunun <b>80 portu</b> üzerinden (internetten erişilebilir) ya da konsol dahili ise <b>Cloudflare üzerinden bir DNS kaydı</b> ile denetler (Zone → DNS → Edit iznine sahip bir API belirteci). Sertifika, süresi dolmadan 30 gün önce kendiliğinden yenilenir.</li>
+  <li><b>80 portunu sun</b>, http:// yazan tarayıcıları da konsola yönlendirir.</li>
+</ul>
+<p>Güvenilir sertifika, konsol adıyla açıldığında sunulur; IP adresiyle açıldığında konsol kendi sertifikasını kullanmaya devam eder. Ajanlar etkilenmez: kayıt sırasında sabitledikleri ajan portunun kendi sertifikasını kullanırlar. Standart portu kullanmak için Ağ ve erişim altında konsol portunu 443 olarak ayarlayın.</p>
+
+<h2 id="backup">Konsol yedeği</h2>
+<p><a href="/settings/console-backup">Ayarlar → Konsol yedeği</a> tüm konsolu yedekler: tüm ölçümlerle veritabanı, saklanan parolaların gizli anahtarı, launcher anahtarı ve ajanların güvendiği sertifikalar — yeni bir sunucunun devralmak için ihtiyaç duyduğu her şey. Yedekler her gün seçilen saatte (ve <b>Şimdi yedekle</b> ile) veri dizinindeki <code>backups</code> klasörüne yazılır; en yenileri saklanır (varsayılan olarak 7).</p>
+<ul>
+  <li><b>Şifreleme</b>: bir parolayla (en az 12 karakter) dosya şifrelenir (AES-256-GCM). Parolayı başka bir yerde saklayın: o olmadan bir yedek geri yüklenemez.</li>
+  <li><b>SFTP kopyası</b>: her yedek ayrıca başka bir sunucudaki bir klasöre kopyalanır (parola veya özel anahtar). İlk <b>SFTP klasörünü test et</b>, güvenilecek sunucu ana bilgisayar anahtarını gösterir; kopyalar yalnızca o anahtara sahip bir sunucuya gider. Klasör, sunucu kadar yedek saklar.</li>
+  <li><b>Yedek başarısız olunca e-posta</b>, Ayarlar → Bildirimler'deki SMTP sunucusu üzerinden bir bildirim gönderir.</li>
+  <li><b>Geri yükleme</b> sunucu durdurulmuşken çalışır: appliance'ta kurulum menüsündeki <b>Restore a console backup</b> öğesiyle; Linux paketleriyle <code>systemctl stop watchzit-server</code>, ardından <code>/etc/watchzit/server.env</code> yüklenmiş olarak watchzit kullanıcısıyla <code>watchzit-server --data-dir /var/lib/watchzit --restore FILE</code> (şifreli bir yedek parolasını <code>WATCHZIT_BACKUP_PASSPHRASE</code> veya <code>--restore-passphrase-file</code> üzerinden okur), sonra sunucuyu başlatın. Geri yükleme her şeyi tek bir işlemde değiştirir; eski bir sürümün yedeği sunucu başladığında güncel hâle getirilir. Ajanlar çalışmaya devam eder: aynı sertifikaya güvenirler.</li>
+</ul>
+
+<h2 id="security">Güvenlik</h2>
+<ul>
+  <li>Konsol yalnızca HTTPS, katı bir Content Security Policy ve siteler arası isteklere karşı koruma kullanır; yalnızca izin verilen ağlara yanıt verir.</li>
+  <li>Parolalar Argon2id ile karma hâline getirilir; saklanan gizli bilgiler (SNMP, veritabanı ve API parolaları, kanallar) sunucunun gizli anahtarıyla şifrelenir.</li>
+  <li>Ajanlar kendi anahtarlarıyla tanımlanır; sunucuya, ajan sertifikasının sabitlenmiş parmak izi sayesinde güvenirler.</li>
+  <li>Güvenlik açıklarını gizli olarak bildirin: depodaki SECURITY.md dosyasına bakın.</li>
+</ul>

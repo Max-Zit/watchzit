@@ -1,0 +1,42 @@
+<h1>Installer les agents</h1>
+<p class="lead">L'agent WatchZit est facultatif. Il remonte ce que le réseau ne peut pas voir de l'extérieur : CPU, mémoire, disques, interfaces et services des ordinateurs Windows et Linux, chaque minute, par une seule connexion sortante.</p>
+
+<h2 id="code">Codes d'inscription</h2>
+<p>Dans <a href="/agents">Agents</a>, créez un <b>code d'inscription</b> : un nom, sa durée de validité en jours, le nombre d'ordinateurs qui peuvent l'utiliser et le groupe dans lequel arrivent les nouveaux appareils. Le code n'est affiché qu'une fois ; il contient l'adresse du serveur et l'empreinte du certificat des agents, de sorte que l'agent ne fait confiance qu'à votre serveur.</p>
+
+<h2 id="windows">Windows</h2>
+<p>Téléchargez le MSI depuis la page Agents et installez-le ; il demande le code. Pour de nombreux ordinateurs, installez-le en mode silencieux (GPO, Intune, un script) :</p>
+<pre>msiexec /i watchzit-agent-x64.msi ENROLLCODE="WZ1-…" /qn</pre>
+<p>L'agent s'exécute en tant que service <b>WatchZitAgent</b>.</p>
+
+<h2 id="linux">Linux</h2>
+<p>La page Agents affiche une commande qui télécharge l'agent depuis le port des agents, vérifie son SHA-256 et l'installe avec le code (service systemd <code>watchzit-agent</code>) :</p>
+<pre>curl -fsSk https://&lt;serveur&gt;:8444/agent/download/watchzit-agent-linux-amd64 -o /tmp/watchzit-agent &amp;&amp; … sudo /tmp/watchzit-agent install --code "WZ1-…"</pre>
+<p>Vous pouvez aussi installer le paquet <b>deb</b> ou <b>rpm</b> de la version (amd64 et arm64, depuis GitHub), puis inscrire l'agent et le démarrer ; les mises à jour arrivent par le gestionnaire de paquets ou par les mises à jour propres de l'agent :</p>
+<pre>sudo apt install ./watchzit-agent_&lt;version&gt;_amd64.deb      # ou : sudo dnf install ./watchzit-agent-&lt;version&gt;-1.x86_64.rpm
+sudo watchzit-agent enroll --code "WZ1-…"
+sudo systemctl start watchzit-agent</pre>
+
+<h2 id="what">Ce que remonte l'agent</h2>
+<ul>
+  <li>La charge du <b>CPU</b> (et la charge moyenne sous Linux), la <b>mémoire</b> et le swap, chaque <b>disque</b>, chaque <b>interface réseau</b> avec son trafic — ils deviennent d'eux-mêmes des contrôles avec graphiques.</li>
+  <li><b>Inventaire</b> : système d'exploitation, modèle de CPU, mémoire, fabricant, modèle, numéro de série, adresses, services.</li>
+  <li>Les machines <b>Hyper-V</b> (Windows) et les conteneurs <b>Docker</b> (Linux), toutes les cinq minutes, avec leur état, leur CPU, leur mémoire et leurs adresses ; ils apparaissent sur la page de l'appareil et dans les cadres d'hyperviseur sur les cartes.</li>
+  <li><b>Services surveillés</b> : choisissez-les sur la page de l'appareil dans <b>Surveiller des services</b> ; un service qui s'arrête ouvre un problème.</li>
+  <li><b>Processus surveillés</b> : dans <b>Surveiller des processus</b> sur la page de l'appareil, saisissez des noms de programmes (par exemple <code>nginx, sqlservr.exe, java</code>) ; chacun reçoit un contrôle indiquant combien d'instances tournent, leur CPU et leur mémoire, et l'absence d'instance ouvre un problème.</li>
+  <li>Les <b>messages d'erreur</b> du système — événements critiques et d'erreur des journaux Windows <b>System</b> et <b>Application</b>, et messages de priorité <i>err</i> ou pire du journal systemd — arrivent dans <a href="/logs?kind=agent">Journaux</a> (genre <b>Agents</b>) à chaque envoi ; un déclencheur de journal avec la source <b>Agents</b> en tire des problèmes.</li>
+</ul>
+<p>S'il existe déjà un appareil ayant la même adresse ou le même nom, l'agent s'y rattache ; sinon, un nouvel appareil est créé.</p>
+
+<h2 id="updates">Mises à jour des agents</h2>
+<p>Un agent plus ancien que le serveur reçoit, lorsqu'il se connecte (au plus une fois par heure), l'agent de la version du serveur : il télécharge l'installateur depuis le serveur par sa propre connexion chiffrée et épinglée, vérifie sa taille et son SHA-256, puis l'installe. Les agents Windows installés avec le MSI exécutent le nouveau MSI ; les agents Linux (systemd) vérifient que le nouveau programme démarre, se remplacent et sont redémarrés par systemd. La page <a href="/agents">Agents</a> signale les agents plus anciens ; les administrateurs y désactivent les mises à jour automatiques dans <b>Mises à jour des agents</b> et mettent à jour tous les agents en ligne en un clic. Les agents antérieurs à la version 1.2 ne connaissent pas encore les mises à jour et doivent être mis à jour une fois à la main.</p>
+
+<h2 id="collector">Collecteurs distants</h2>
+<p>Un appareil situé dans un autre réseau — une agence, un site client derrière un NAT, un VLAN d'administration fermé — n'est souvent pas joignable depuis la console. Installez l'agent sur n'importe quel ordinateur de ce réseau (Linux ou Windows ; une petite VM ou une machine de la classe d'un Raspberry Pi suffit) et cliquez sur <b>Utiliser comme collecteur distant</b> dans le cadre Agent de la page de son appareil. Choisissez-le ensuite dans <b>Surveillé depuis</b> sur les appareils de ce réseau (ou pour plusieurs à la fois dans la liste des appareils, via <b>Modifier la sélection</b>). Le collecteur reçoit leurs contrôles — ping, TCP, SNMP, pages et scénarios web, certificats, DNS, bases de données, RouterOS, API JSON — avec les mots de passe et paramètres SNMP nécessaires, les exécute à leurs intervalles et envoie les résultats par sa propre connexion chiffrée. Il n'a besoin d'aucun port ouvert sur le site et n'a pas d'interface web propre ; tout se règle dans la console.</p>
+<p>Tant que la connexion à la console est coupée, le collecteur continue d'exécuter les contrôles ; les résultats (jusqu'à une journée, les 200 000 plus récents) attendent sur le collecteur et arrivent dès que la connexion revient, si bien que les graphiques n'ont pas de trou. Pendant ce temps, les contrôles de ses appareils affichent <b>inconnu</b> au lieu d'en panne (le site va peut-être très bien), et le contrôle d'agent du collecteur ouvre un problème. Les résultats en attente ne survivent pas à un redémarrage du collecteur : celui-ci récupère alors à nouveau ses contrôles auprès de la console.</p>
+<p><b>Collecteur de secours :</b> installez l'agent sur un deuxième ordinateur du site, faites-en aussi un collecteur et choisissez-le comme <b>Secours</b> à côté de <b>Surveillé depuis</b> (ou pour plusieurs appareils dans la liste des appareils, via <b>Modifier la sélection → Collecteur de secours</b>). Tant que le premier est hors ligne, le collecteur de secours exécute leurs contrôles ; quand le premier revient, il les reprend.</p>
+<p><b>Découverte et SNMP :</b> dans <a href="/discovery">Appareils → Découverte</a>, choisissez le collecteur à côté d'une nouvelle plage : il analyse ce réseau de son site, et les appareils que vous en ajoutez sont surveillés depuis lui. La découverte SNMP de la page de l'appareil et la lecture des informations, des interfaces et des VLAN passent aussi par le collecteur. Les contrôles d'hyperviseur restent sur la console. <b>Arrêter la collecte</b> rend les appareils à la console.</p>
+
+<h2 id="network">Réseau</h2>
+<p>Les agents se connectent au <b>port des agents 8444</b>. Dans <a href="/settings/network">Paramètres → Réseau et accès</a>, définissez l'<b>adresse publique des agents</b> lorsque les agents atteignent le serveur sous un autre nom (par exemple à travers un pare-feu), et limitez les réseaux d'où les agents peuvent venir.</p>
+<div class="callout"><p>Supprimer l'agent sur la page de l'appareil rend sa clé inconnue ; pour réutiliser l'agent, inscrivez l'ordinateur avec un nouveau code.</p></div>

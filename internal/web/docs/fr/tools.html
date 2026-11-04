@@ -1,0 +1,32 @@
+<h1>Ouvrir les appareils</h1>
+<p class="lead">Depuis la page d'un appareil ou le panneau latéral de la carte, vous ouvrez un appareil avec le bon programme : son interface web, SSH, le Bureau à distance, WinBox, VNC ou vos propres outils.</p>
+
+<h2 id="launcher">Le MaxZit Launcher</h2>
+<p>Un navigateur ne peut pas démarrer de programmes ; c'est donc un petit programme Windows qui s'en charge : le <b>MaxZit Launcher</b>. Installez-le une fois par ordinateur depuis la page <a href="/launcher">Launcher</a> — l'<b>installateur</b> (MSI), avec un court assistant d'installation, le place dans Applications avec son icône, d'où il peut aussi être désinstallé ; il s'installe pour votre utilisateur Windows, sans droits d'administrateur — puis cliquez sur <b>Associer cet ordinateur</b>. Le launcher affiche l'empreinte du serveur ; elle doit correspondre à celle de la page.</p>
+<p>Les boutons <b>Ouvrir avec</b> fonctionnent alors. Lorsqu'une console change d'adresse (ou est restaurée ailleurs à partir d'une sauvegarde), cliquez de nouveau sur <b>Associer cet ordinateur</b> : le launcher la reconnaît grâce à sa clé et demande s'il doit utiliser la nouvelle adresse. La première fois, le navigateur demande s'il peut ouvrir le launcher ; autorisez-le.</p>
+<p>Le même launcher sert aussi <b>PassZit</b> : dans le menu de l'extension PassZit, cliquez sur <b>Associer au MaxZit Launcher</b> et acceptez dans la fenêtre du launcher. PassZit ouvre alors le Bureau à distance, SSH, WinSCP, WinBox, VNC et Telnet avec l'identifiant du coffre — le Bureau à distance via une information d'identification Windows qui n'existe que quelques secondes, un mot de passe ou une clé SSH via un fichier que vous seul pouvez lire et qui est supprimé juste après le démarrage. Le launcher remplace l'ancien WatchZit Launcher et passzit-helper : son installation reprend leurs paramètres et leurs associations. Lorsque PassZit est associé et que l'adresse de la console fait partie de ses consoles MaxZit de confiance, les boutons <b>Ouvrir avec</b> de WatchZit ouvrent une session déjà connectée avec l'identifiant correspondant du coffre ; sans PassZit, ou sans identifiant pour cet appareil, ils s'ouvrent comme avant. La console ne transmet à PassZit que l'outil, l'adresse, le port, le nom d'utilisateur et le nom de l'appareil — jamais un mot de passe. À côté des boutons <b>Ouvrir avec</b>, un petit badge <b>PassZit</b> indique que PassZit est déverrouillé et se chargera de la connexion ; <b>PassZit verrouillé</b> signifie qu'il faut d'abord le déverrouiller. Si PassZit n'est pas configuré pour cette console, un petit message explique comment l'autoriser ; <b>Ne plus afficher</b> le masque dans ce navigateur.</p>
+
+<h2 id="safety">Comment la sécurité est assurée</h2>
+<ul>
+  <li>Chaque clic produit un lien <b>signé</b> par votre serveur, valable une minute et utilisable une seule fois ; le launcher n'accepte que les liens des serveurs que vous avez associés.</li>
+  <li>Les adresses et noms d'utilisateur sont vérifiés selon des jeux de caractères stricts ; les programmes démarrent avec une liste d'arguments, jamais via un shell.</li>
+  <li>Les mots de passe ne sont jamais enregistrés ni envoyés : c'est le programme qui les demande.</li>
+  <li>Avant la première exécution d'un programme ajouté par votre administrateur, le launcher vous demande confirmation.</li>
+</ul>
+
+<h2 id="tools">Outils intégrés</h2>
+<table>
+  <tr><th>Outil</th><th>Programme sur votre ordinateur</th></tr>
+  <tr><td>SSH</td><td>PuTTY s'il est installé, sinon le client SSH de Windows</td></tr>
+  <tr><td>Bureau à distance</td><td>le client Bureau à distance de Windows</td></tr>
+  <tr><td>WinBox</td><td>winbox64.exe dans Program Files, Téléchargements ou sur le Bureau</td></tr>
+  <tr><td>VNC</td><td>la visionneuse TightVNC, TigerVNC ou RealVNC</td></tr>
+  <tr><td>Telnet</td><td>PuTTY</td></tr>
+</table>
+<p>Programmes situés ailleurs : indiquez leurs chemins dans <code>%APPDATA%\MaxZit Launcher\launcher.json</code>. Sans le launcher, le Bureau à distance fonctionne quand même : le bouton <b>.rdp</b> télécharge un fichier que Windows ouvre.</p>
+
+<h2 id="own-tools">Vos propres outils</h2>
+<p>Dans <a href="/settings/tools">Paramètres → Outils</a>, les administrateurs désactivent des outils intégrés, les limitent à certains types d'appareils et ajoutent les leurs : un chemin de programme (par exemple <code>%ProgramFiles%\Mozilla Firefox\firefox.exe</code>) et des arguments avec <code>{host}</code>, <code>{port}</code>, <code>{user}</code> et <code>{name}</code>. Le nom d'utilisateur et les ports de chaque appareil se règlent dans l'<b>Accès à distance</b> de l'appareil, où vous décochez aussi les outils dont un appareil ne dispose pas — un serveur Proxmox ou Linux n'a pas de Bureau à distance — ou cochez un outil que son type ne reçoit pas par défaut ; les boutons de la page de l'appareil et des cartes n'affichent alors que les outils cochés.</p>
+
+<h2 id="device-links">Liens sur chaque appareil</h2>
+<p>Toujours dans <a href="/settings/tools#links">Paramètres → Outils</a>, <b>Liens sur chaque appareil</b> ajoute à chaque page d'appareil des boutons qui ouvrent l'appareil dans un autre programme, dans le navigateur, par exemple RMMZit ou BackupZit. Indiquez un nom et une adresse ; <code>{name}</code>, <code>{address}</code> et <code>{id}</code> sont remplacés par le nom, l'adresse et le numéro de l'appareil, par ex. <code>https://rmm.example.com:8443/devices?q={name}</code>. Seules les adresses http:// et https:// sont acceptées.</p>

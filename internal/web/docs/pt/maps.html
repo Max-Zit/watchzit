@@ -1,0 +1,83 @@
+<h1>Mapas de rede</h1>
+<p class="lead">Um mapa é um desenho da sua rede que é também monitorização em tempo real: dispositivos coloridos pelo seu estado, cabos que mostram o tráfego, portas que pode ampliar.</p>
+
+<h2 id="edit">Desenhar um mapa</h2>
+<ol>
+  <li>Em <a href="/maps">Mapas</a> adicione um mapa e clique em <b>Editar</b>.</li>
+  <li><b>Adicionar dispositivo</b> coloca dispositivos no mapa; arraste-os para o seu lugar. <b>Adicionar item</b> adiciona coisas que não são monitorizadas (patch panels, PDU). Durante a edição, <b>Dispositivo monitorizado</b> no painel de um item transforma-o num dispositivo da consola: a imagem, a posição, a unidade de bastidor e os cabos mantêm-se, e passa a mostrar o estado e as métricas do dispositivo. <b>Nenhum (só imagem)</b> transforma um dispositivo novamente num item.</li>
+  <li><b>Ligar</b>: clique em dois dispositivos e escolha as portas nas duas pontas (a partir das interfaces SNMP ou do agente). O cabo mostra o tráfego dessa porta.</li>
+  <li><b>Ligações sugeridas</b> mostra onde os dispositivos estão ligados (consulte <a href="#found">Ligações encontradas nos dispositivos</a>) e propõe os cabos com as suas portas, bem como os dispositivos ligados ao mapa que não estão nele; <b>Adicionar tudo</b> aceita-os todos.</li>
+  <li>Clique em <b>Salvar</b> (ou Ctrl+S). As alterações ficam apenas na página até guardar; <b>Cancelar</b> volta ao mapa guardado.</li>
+</ol>
+
+<h2 id="design">Imagens, bastidores e cabos</h2>
+<ul>
+  <li>Cada dispositivo tem uma imagem da biblioteca incorporada (switches com as suas portas, routers, servidores, firewalls, pontos de acesso, telefones, câmaras …) ou uma que carregue.</li>
+  <li>A biblioteca tem também cerca de 3500 modelos reais de mais de 180 fabricantes: servidores (HPE ProLiant a partir da G6, Dell PowerEdge, Lenovo, Supermicro, Cisco UCS, Fujitsu, Huawei/xFusion, Inspur), NAS (Synology, QNAP, Asustor, TrueNAS e outros), armazenamento SAN e switches FC (HPE MSA/3PAR/Nimble/Alletra, IBM Storwize/FlashSystem, Dell PowerVault/Unity/PowerStore, NetApp, Pure Storage, Lenovo, Fujitsu ETERNUS, Huawei OceanStor, Hitachi, Brocade, Cisco MDS), switches (Cisco, HPE Aruba, Dell, Juniper, Ubiquiti, Netgear, TP-Link, D-Link, Zyxel, Huawei, Arista, Extreme, Ruckus, Alcatel-Lucent, Ruijie, FS (fs.com: switches de campus, PoE, centro de dados e industriais, Wi-Fi, conversores de media, caixas de fibra), QNAP, TRENDnet, Hikvision, Dahua, Lancom, DrayTek, Moxa industrial, Siemens SCALANCE, Hirschmann e Phoenix Contact, e outros), firewalls (Fortinet, Palo Alto, Sophos, WatchGuard, SonicWall, Check Point, Cisco ASA/Firepower, Netgate e outros), MikroTik, routers domésticos e de escritório e Wi-Fi mesh (TP-Link, ASUS, FRITZ!Box, Netgear, Linksys, D-Link, ONT da Huawei e da ZTE e outros), pontos de acesso, UPS (torre e bastidor), gravadores de vídeo e câmaras IP, antenas exteriores ponto a ponto, setoriais e omnidirecionais, impressoras, telefones IP e PBX, chassis blade, PDU, KVM e servidores de consola, monitores ambientais e mini PCs, OLT e ONT GPON, routers de operadores, equipamentos SD-WAN, servidores de tempo NTP, intercomunicadores, videoconferência, PLC e HMI. As imagens genéricas incluem também acessórios de bastidor: organizadores de cabos, painéis de escovas, prateleiras, gavetas de ventilação, gavetas e painéis cegos. As imagens genéricas incluem ainda patch panels de fibra (LC duplex monomodo e multimodo, SC/APC e SC/UPC, de 12 a 96 portas) e caixas de fibra de parede. No painel de imagens escolha o <b>Fabricante</b> (ou <b>Todos os fabricantes</b>) e o <b>Tipo</b> (switch, router, firewall, servidor, armazenamento / NAS, ponto de acesso …), ou pesquise o modelo (por exemplo "DL380 Gen10" ou "CRS326"); um tipo ou uma pesquisa com <b>Imagens genéricas</b> procura em todos os fabricantes; os desenhos têm as portas e os compartimentos de discos do modelo, para que os cabos terminem na porta certa. Para um dispositivo, o painel abre com o seu fabricante; quando um dispositivo é adicionado ao mapa e a sua descrição SNMP indica um modelo da biblioteca (MikroTik, por exemplo), essa imagem é escolhida automaticamente.</li>
+  <li><b>Racks</b> de 4 a 48 unidades: largue dispositivos dentro deles; encaixam nas unidades livres. Coisas que não foram feitas para bastidor — um NAS, um switch pequeno, um mini PC numa prateleira — recebem a sua própria <b>Altura</b> (1–20U, caso contrário a da imagem) e <b>Largura</b> (a largura total, 1/2, 1/3 ou 1/4) com uma <b>Posição</b> da esquerda para a direita no painel do dispositivo, para que vários fiquem lado a lado nas mesmas unidades; largados num bastidor, ocupam o lugar livre mais próximo.</li>
+  <li>Os cabos têm um <b>Tipo</b> (cobre, fibra, DAC, sem fios, VPN, WAN, série, energia) e um <b>Traçado</b>: reto, curvas de 90° ou 45°, curvo; arraste os pontos para os dobrar; faça duplo clique num ponto para o remover.</li>
+  <li>Uma <b>imagem de fundo</b> (uma planta, um local) com tamanho, transparência e posição.</li>
+  <li><b>Submapas</b> ligam a outros mapas e mostram o seu pior estado.</li>
+</ul>
+
+<h2 id="reading">Ler um mapa</h2>
+<ul>
+  <li>Verde é ativo, âmbar parcialmente em falha, vermelho em baixo (a piscar); cinzento significa desconhecido ou em pausa.</li>
+  <li>Os cabos ficam mais largos e mudam de cor com a utilização (acima de 50 % âmbar, acima de 80 % vermelho); um cabo cuja porta não tem ligação fica vermelho e tracejado.</li>
+  <li>Faça zoom com a roda do rato ou com dois dedos; os nomes e as etiquetas das portas aparecem quando está suficientemente perto. Clique num dispositivo para abrir o seu painel com verificações, portas e ferramentas — operadores e administradores têm aí também <b>Editar dispositivo</b>, e ao guardar regressam ao mapa; faça duplo clique para o abrir.</li>
+  <li>Clique num cabo para abrir o seu painel: o tráfego atual nos dois sentidos e o seu <b>Histórico de tráfego</b> da última hora, dia, semana ou mês (a partir da verificação de interface de qualquer uma das pontas).</li>
+</ul>
+
+<h2 id="ha">Grupos HA</h2>
+<ul>
+  <li>Dispositivos que se substituem uns aos outros — um par HA de firewalls, routers VRRP ou HSRP, um stack de switches ou um par MLAG/vPC, um cluster de servidores ou de armazenamento — formam um <b>Grupo HA</b>: durante a edição, escolha <b>Grupo HA → Novo grupo HA</b> no painel do primeiro dispositivo e depois o mesmo grupo no painel dos outros. O grupo é uma moldura tracejada à volta dos seus membros; os membros montados num bastidor recebem apenas um contorno fino e uma pequena etiqueta <b>⇅ HA</b> onde um encontra o seguinte, para que as unidades à volta fiquem livres (clique na etiqueta para abrir o grupo); a função VRRP aparece em pequeno junto à etiqueta em cada membro — ATIVO a verde, RESERVA a âmbar. O painel do grupo define o nome e o tipo.</li>
+  <li><b>Caminho</b> passa por todos os membros de um grupo e mostra todas as rotas equivalentes (por exemplo 2 rotas através de duas firewalls). Marque o cabo entre os membros (heartbeat, sync, stack, peer link) com o tipo de cabo <b>Ligação HA</b>; não é um caminho para o tráfego.</li>
+  <li>A moldura (ou a etiqueta) fica verde enquanto todos os membros estão ativos, âmbar com <i>redundância perdida</i> quando alguns estão em baixo e vermelha quando todos estão em baixo. O gatilho <b>Grupo HA sem redundância</b> abre então um problema (consulte Alertas).</li>
+  <li>Os membros que comunicam VRRP mostram <b>ATIVO</b> ou <b>RESERVA</b>, e o painel do grupo indica desde quando.</li>
+</ul>
+
+<h2 id="hypervisors">Hipervisores e máquinas virtuais</h2>
+<ul>
+  <li><b>Adicionar hipervisor</b> (durante a edição) adiciona uma caixa para um anfitrião de virtualização: escolha o <b>Hipervisor</b> (VMware ESXi, Proxmox VE, Hyper-V, XCP-ng, KVM, Nutanix AHV, Docker, Kubernetes e outros) e o <b>Servidor físico</b> onde corre (obrigatório; para um cluster, adicione os outros servidores em <b>Cluster</b>, e os caminhos podem passar por qualquer um deles); o estado do servidor aparece na caixa, as suas métricas abrem-se a partir do painel e, quando o servidor está no mapa, uma linha tracejada une-os. <b>Caminho</b> vai de uma máquina virtual, através do seu hipervisor e do servidor físico, ao longo dos cabos.</li>
+  <li>Arraste máquinas virtuais para dentro da caixa: dispositivos da consola (para ver o seu estado) ou itens com uma imagem do seu sistema (Windows Server, Ubuntu, Debian, Red Hat, MikroTik CHR, pfSense, contentores e mais; tipo <b>Máquina virtual</b> no painel de imagens). Dentro da caixa alinham-se numa grelha; arraste-as dentro dela para mudar a ordem, ou para fora para as retirar do anfitrião. O painel de um dispositivo tem também <b>Corre no hipervisor</b>.</li>
+  <li><b>Mostrar sozinhas as máquinas do hipervisor</b> (ligado por predefinição em caixas novas) preenche a caixa com as máquinas que uma verificação de hipervisor, o agente (Hyper-V, Docker) ou o vCenter comunicam para o seu servidor físico: as em execução a verde, as paradas a cinzento, as suspensas a amarelo. Uma máquina cujo endereço ou nome corresponde a um dispositivo da consola aparece como esse dispositivo. Estas máquinas não fazem parte do mapa guardado até mover ou ligar uma, ou premir <b>Colocar no mapa</b>; <b>Colocar as máquinas no mapa</b> coloca-as todas. Os itens que coloque com o nome de uma máquina também recebem o seu estado.</li>
+  <li>A caixa mostra o pior estado das suas máquinas virtuais e do servidor físico; a camada <b>Hipervisores</b> oculta as caixas.</li>
+</ul>
+
+<h2 id="pictures">Biblioteca de imagens</h2>
+<p><b>Biblioteca de imagens</b> no menu guarda as suas próprias imagens de dispositivos. <b>Carregar uma imagem</b> (PNG, JPEG, GIF, WebP ou SVG; uma vista frontal funciona melhor) ou partir de uma imagem incorporada: o <b>lápis</b> altera a própria imagem incorporada, em todos os mapas onde é usada (abri-la não altera nada; só é guardada uma versão alterada quando guarda uma alteração) (elimine a imagem alterada para voltar à incorporada), e <b>Copiar</b> cria a partir dela uma nova imagem sua, para um modelo semelhante. No editor defina:</p>
+<ul>
+  <li><b>Portas</b>: clique na imagem para adicionar uma porta, começando pela porta 1; arraste uma porta para a mover, faça duplo clique para a remover. Para uma fila, introduza quantas portas e clique na primeira e na última; <b>em duas linhas</b> numera-as como num switch, a 1 por cima da 2. As últimas <b>portas SFP</b> são desenhadas a laranja e sugerem um cabo de fibra.</li>
+  <li><b>Unidades de rack</b> (0 quando o dispositivo não é montado em bastidor), <b>Fabricante</b>, <b>Tipo</b> e a <b>Largura no mapa</b>.</li>
+  <li><b>Copiar</b> cria uma nova imagem a partir de uma das suas, para um modelo semelhante.</li>
+</ul>
+<p>As imagens aparecem no painel de imagens dos mapas sob o seu fabricante e tipo, e os cabos num mapa terminam nas portas que marcou.</p>
+
+<h2 id="layers">Camadas e caminhos</h2>
+<ul>
+  <li><b>Camadas</b> escolhe o que o mapa mostra: dispositivos, bastidores, itens, submapas, cabos, nomes de portas, tráfego, etiquetas de VLAN, túneis VXLAN, nomes e endereços, texto e o fundo, em qualquer combinação. A sua escolha é guardada neste navegador.</li>
+  <li><b>Caminho</b>: clique em dois dispositivos e o mapa mostra apenas a cadeia de cabos entre eles (com patch panels, switches e bastidores pelo caminho) e faz zoom nela. Clique novamente em Caminho ou prima Esc para ver o mapa inteiro.</li>
+  <li>Os nomes das portas nos cabos aparecem quando amplia, para que um mapa cheio continue legível. Ficam exatamente onde o cabo termina: na porta da imagem, ou onde o cabo sai de uma imagem sem portas; são desenhados por cima de todos os cabos, para que nenhum cabo os esconda. Uma porta já usada por outro cabo não pode voltar a ser escolhida; a lista indica para onde vai o seu cabo.</li>
+  <li><b>VLAN</b>: quando switches ou routers do mapa comunicam VLAN, aparece uma lista de VLAN na barra de ferramentas. Escolha uma VLAN e o mapa mostra apenas os cabos que a transportam, marcados com tag ou sem tag; os dispositivos sem ela ficam esbatidos. O painel do cabo lista as VLAN das suas portas.</li>
+  <li>Os cabos são etiquetados com o seu modo VLAN, por exemplo <i>Access 20</i> ou <i>Trunk · native 1 · 10, 20-25</i> (camada <b>Etiquetas de VLAN</b>). O filtro de VLAN também pode mostrar só as VLAN com tag ou só as sem tag. Um cabo é desenhado tracejado a laranja quando as suas pontas não coincidem: uma porta de acesso contra um trunk, ou uma VLAN nativa diferente em cada ponta.</li>
+  <li>Durante a edição, o <b>Modo VLAN</b> de um cabo pode ser definido à mão: <b>Acesso</b> com a sua VLAN, ou <b>Trunk</b> com a VLAN nativa e as VLAN permitidas (com tag), incluindo intervalos como 20-25; <b>Automática</b> usa o que as portas comunicam. Um cabo pode também transportar um <b>VNI VXLAN</b>, e o tipo de cabo <b>Túnel VXLAN</b> desenha um túnel à mão.</li>
+  <li>Os túneis VXLAN comunicados pelos dispositivos são desenhados como arcos roxos tracejados com o seu VNI (camada <b>Túneis VXLAN</b>).</li>
+</ul>
+
+<h2 id="kiosk">Ecrãs quiosque</h2>
+<p>Em <a href="/settings/kiosks">Configurações → Ecrãs quiosque</a> crie um ecrã com os mapas que mostra e com que frequência alterna entre eles. Recebe uma ligação secreta que abre os mapas em ecrã inteiro sem iniciar sessão — para uma TV de monitorização. Elimine o ecrã para que a ligação deixe de funcionar.</p>
+
+<p>Para começar num mapa em vez da visão geral, escolha-o como <b>Página inicial</b> em <a href="/account">Minha conta</a>; o início de sessão e o logótipo passam então a abri-lo, e <b>Visão geral</b> no menu continua a abrir a visão geral. Um painel também pode ser a página inicial.</p>
+
+<h2 id="arrange">Organizar um mapa</h2>
+<p>Durante a edição, <b>Organizar</b> dispõe o mapa inteiro segundo os seus cabos: o dispositivo com mais ligações (um router ou uma firewall antes de um switch em caso de empate) em cima, o que está pendurado nele na fila de baixo, e assim por diante; os bastidores e as caixas de hipervisor movem-se com o que têm dentro, as coisas sem cabo vão para uma grelha por baixo, e as curvas desenhadas à mão são descartadas. Nada é guardado até clicar em <b>Salvar</b>; <b>Cancelar</b> repõe tudo.</p>
+
+<h2 id="found">Ligações encontradas nos dispositivos</h2>
+<p>A cada 15 minutos, o WatchZit lê dos dispositivos com SNMP (e dos dispositivos MikroTik com a verificação da API do RouterOS) onde as coisas estão ligadas, por ordem de certeza:</p>
+<ul>
+  <li><b>Tabelas de vizinhos</b> — LLDP, Cisco CDP e descoberta MikroTik: as duas pontas e as suas portas. Entre dois dispositivos só contam as portas reais (não as interfaces VLAN, VXLAN, bridge ou VRRP), quando as houver.</li>
+  <li><b>Tabelas de endereços MAC</b> dos switches: a porta onde foi aprendido o endereço MAC de um dispositivo — os MAC das suas próprias interfaces, as placas de rede que um agente comunica, ou o MAC que a tabela ARP de um router tem para o seu endereço (assim também são encontradas impressoras, câmaras e servidores sem SNMP). É escolhida a porta de acesso com menos endereços; as portas para outros switches (com um vizinho que é um switch, ou mais de 8 endereços) não.</li>
+  <li><b>Descrições de portas</b> (o alias da interface, ou a descrição numa configuração guardada) que indicam outro dispositivo, por exemplo "uplink to sw2 ether7" — com essa porta, quando a descrição a indica.</li>
+  <li><b>Configurações guardadas</b> (cópias da configuração de MikroTik, Cisco, FortiGate): dois dispositivos com endereços na mesma rede ponto a ponto (/30 ou /31).</li>
+</ul>
+<p><b>Desenhar sozinho</b> (no painel Ligações sugeridas): o mapa adiciona a cada 15 minutos as ligações encontradas entre os seus dispositivos e, com <b>Adicionar também os dispositivos a que levam</b>, traz os dispositivos ligados a ele, colocados junto ao dispositivo onde estão ligados. As ligações e os dispositivos que remover de um mapa destes ficam removidos (desligar e voltar a ligar a opção esquece isso). <b>Ler os dispositivos de novo</b> lê agora os dispositivos do mapa.</p>

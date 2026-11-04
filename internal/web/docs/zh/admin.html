@@ -1,0 +1,72 @@
+<h1>用户、设置与更新</h1>
+<p class="lead">谁可以做什么、控制台如何受到保护，以及 WatchZit 如何保持最新。</p>
+
+<h2 id="roles">用户与角色</h2>
+<table>
+  <tr><th>角色</th><th>权限</th></tr>
+  <tr><td>管理员</td><td>全部权限，包括用户和设置</td></tr>
+  <tr><td>操作员</td><td>管理设备、检查、地图、触发器、维护、仪表板</td></tr>
+  <tr><td>查看者</td><td>仅查看</td></tr>
+</table>
+<p>每个用户都使用密码和双因素登录（身份验证器应用）进行登录；手机丢失时，恢复代码可以提供帮助。管理员在<a href="/users">用户</a>中添加用户，重置密码和双因素登录。<a href="/audit">审计日志</a>记录每一项更改；其条目相互链接，因此对日志的篡改会被发现。</p>
+
+<h2 id="directory">Active Directory / LDAP 与单点登录</h2>
+<p>除本地帐户外，用户还可以使用目录帐户登录。本地帐户始终可用，因此当目录或身份提供商宕机时，管理员仍可登录。属于本地帐户的用户名绝不会被目录登录接管。</p>
+<ul>
+  <li><b>Active Directory / LDAP</b>（<a href="/settings/ldap">设置 → Active Directory / LDAP</a>）：服务器（<code>ldaps://dc1.example.local</code>，或使用 StartTLS 的 <code>ldap://</code>——密码绝不会以未加密的形式在网络上传输）、可选的企业 CA 的 CA 证书、可读取用户和组的服务帐户、基础 DN 以及用户筛选器（Active Directory：<code>(&amp;(objectClass=user)(sAMAccountName={username}))</code>）。在 Active Directory 上会追溯嵌套组。密码由目录验证；WatchZit 仍会要求其自己的第二因素。<b>测试</b>会在不登录的情况下检查帐户，并显示其所属的组以及将获得的角色。</li>
+  <li><b>单点登录</b>（<a href="/settings/sso">设置 → 单点登录</a>）：OpenID Connect（Microsoft Entra ID、Google、Okta、Keycloak …：颁发者、客户端 ID 和密钥；将 <code>https://&lt;控制台&gt;/login/sso/callback</code> 注册为重定向 URI）或 SAML 2.0（ADFS、Entra ID、Okta …：身份提供商的元数据 URL 或 XML；向其提供 <code>https://&lt;控制台&gt;/login/sso/metadata</code>，回复地址为 <code>/login/sso/saml</code>）。登录页面会增加一个按钮。只有勾选时才会额外要求 WatchZit 自己的第二因素；否则由身份提供商的策略决定。</li>
+  <li><b>组与角色</b>：每次登录时由组决定角色——管理员、操作员或查看者，取最高者——不属于任何组的用户将获得默认角色或无法登录。组可以是其名称或完整 DN，也可以是身份提供商发送的名称或 ID（Entra ID 发送 ID）。</li>
+  <li>目录帐户在首次登录时创建，并在用户列表中显示为 <b>LDAP</b> 或 <b>SSO</b>。它们没有 WatchZit 密码；如需在目录允许登录的情况下仍将其拒之门外，请在 WatchZit 中禁用它们。</li>
+</ul>
+
+<h2 id="settings">设置</h2>
+<ul>
+  <li><b>网络与访问</b>——控制台和代理端口、允许访问各端口的网络、代理公共地址。</li>
+  <li><b>登录与安全</b>——会话时长、登录失败多少次后封锁地址，以及解除封锁。</li>
+  <li><b>测量数据</b>——原始值、5 分钟值和每小时值的保留时长，以及它们占用的空间。</li>
+  <li><b>证书</b>——控制台自己的证书、您上传的证书，或来自 Let's Encrypt 的证书（见下文）。</li>
+  <li><b>自定义字段</b>——您为设备定义的字段（请参阅“设备”）。</li>
+  <li><b>诊断</b>——日志的位置、可筛选的服务器日志最新行，以及用于技术支持的 ZIP（日志、设备、代理、问题、审计日志），其中已移除密码、团体名、令牌、注册码和密钥；不包含已保存的设备配置。</li>
+  <li><b>SNMP</b>、<b>通知</b>、<b>工具</b>、<b>展示屏</b>——请参阅相应章节。</li>
+</ul>
+
+<h2 id="updates">更新</h2>
+<p><a href="/settings/version">设置 → 更新与服务器</a>显示正在运行的版本和最新版本。使用 Linux 软件包安装时，WatchZit 会自行更新：</p>
+<ol>
+  <li>只接受使用 WatchZit 发布密钥<b>已签名</b>的版本。</li>
+  <li>root 助手会备份数据库和程序，安装新软件包，并检查控制台是否能够启动。</li>
+  <li>如果无法启动，它会自动恢复到旧版本。</li>
+</ol>
+<p><b>更新通道</b>决定控制台安装的内容：<b>正式版本</b>，或<b>测试</b>——在正式版本之前发布的候选版本，用于测试控制台。生产环境的控制台请保持使用正式版本。</p>
+<p>更新可以通过点击安装，也可以在选定的时段自动安装。镜像或本地文件夹也可以作为更新源（<code>/etc/watchzit/server.env</code> 中的 <code>WATCHZIT_UPDATE_SOURCE</code>）。同一页面还可以设置服务器的时区并重启服务。</p>
+<p><b>无法访问互联网时：</b>在<b>从文件安装</b>中上传在另一台计算机上下载的某个版本的 <code>manifest.json</code>、<code>manifest.json.sig</code> 和服务器软件包（.deb 或 .rpm）。它们会像下载的文件一样经过校验，并以相同的方式安装。</p>
+
+<h2 id="os">操作系统与 SSH</h2>
+<p>同一页面还会显示服务器（Debian、Ubuntu、AlmaLinux、Rocky Linux）的<b>操作系统更新</b>：有多少更新待安装、其中多少是安全更新、自动安全更新是否开启以及上次运行时间。<b>安装所有更新</b>会立即安装；如果需要重启，页面会提示，<b>重启服务器</b>即可重启。列表每天自动刷新两次，也可以通过<b>立即检查</b>刷新。</p>
+<p>在 WatchZit 设备镜像上，该页面还可以设置其<b>网络</b>（DHCP 或固定地址、网关、DNS、名称——会导致设备镜像断开连接的设置会在 30 秒后撤销）和 <b>SSH</b>：开启或关闭及其端口；如果 SSH 服务器拒绝某个端口，则保留原设置。在其他服务器上，这些由操作系统管理。</p>
+
+<h2 id="certificate">证书</h2>
+<p>默认情况下，控制台使用自己的证书，浏览器会对此发出警告。在<a href="/settings/certificate">设置 → 证书</a>中：</p>
+<ul>
+  <li><b>上传证书</b>：使用贵公司的证书：PEM 格式的证书及其证书链和私钥（文件或粘贴），对应浏览器使用的 DNS 名称——或 IP 地址。使用前会对其进行检查。</li>
+  <li><b>Let's Encrypt</b>：输入名称和电子邮件地址。Let's Encrypt 会通过本服务器的 <b>80 端口</b>（需可从互联网访问）验证该名称；如果控制台位于内网，则使用<b>通过 Cloudflare 的 DNS 记录</b>验证（需要具有 Zone → DNS → Edit 权限的 API 令牌）。证书会在到期前 30 天自动续期。</li>
+  <li><b>监听 80 端口</b>还会将输入 http:// 的浏览器转到控制台。</li>
+</ul>
+<p>使用名称打开控制台时会提供受信任的证书；使用 IP 地址打开时，控制台仍使用自己的证书。代理不受影响：它们使用代理端口自己的证书，该证书在注册时已被固定。如需使用标准端口，请在“网络与访问”中将控制台端口设置为 443。</p>
+
+<h2 id="backup">控制台备份</h2>
+<p><a href="/settings/console-backup">设置 → 控制台备份</a>会备份整个控制台：包含所有测量数据的数据库、已存储密码的密钥、Launcher 密钥以及代理所信任的证书——新服务器接管所需的一切。备份每天在选定的时间（以及通过<b>立即备份</b>）写入数据目录中的 <code>backups</code>；保留最新的若干个（默认 7 个）。</p>
+<ul>
+  <li><b>加密</b>：设置口令（至少 12 个字符）后，文件会被加密（AES-256-GCM）。请将口令保存在其他地方：没有口令将无法恢复备份。</li>
+  <li><b>SFTP 副本</b>：每个备份还会复制到另一台服务器上的文件夹（密码或私钥）。首次<b>测试 SFTP 文件夹</b>会显示需要信任的服务器主机密钥；副本只会发送到具有该密钥的服务器。该文件夹保留的备份数量与服务器相同。</li>
+  <li><b>备份失败时发送邮件</b>会通过“设置 → 通知”中的 SMTP 服务器发送通知。</li>
+  <li><b>恢复</b>需在服务器停止时进行：在设备镜像上使用设置菜单项<b>恢复控制台备份</b>；使用 Linux 软件包时，先运行 <code>systemctl stop watchzit-server</code>，然后在加载 <code>/etc/watchzit/server.env</code> 的情况下以用户 watchzit 运行 <code>watchzit-server --data-dir /var/lib/watchzit --restore FILE</code>（加密的备份从 <code>WATCHZIT_BACKUP_PASSPHRASE</code> 或 <code>--restore-passphrase-file</code> 读取口令），最后启动服务器。恢复会在一个事务中替换所有内容；旧版本的备份会在服务器启动时升级到最新。代理会继续工作：它们信任的是同一个证书。</li>
+</ul>
+
+<h2 id="security">安全</h2>
+<ul>
+  <li>控制台仅使用 HTTPS，采用严格的内容安全策略（Content Security Policy）并防护跨站请求；它只响应允许的网络。</li>
+  <li>密码使用 Argon2id 进行哈希；存储的机密信息（SNMP、数据库和 API 密码、通知渠道）使用服务器的密钥加密。</li>
+  <li>代理通过其自己的密钥进行识别；它们通过已固定的代理证书指纹来信任服务器。</li>
+  <li>请以非公开方式报告漏洞：请参阅代码仓库中的 SECURITY.md。</li>
+</ul>

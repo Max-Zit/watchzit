@@ -1,0 +1,90 @@
+<h1>Zařízení, kontroly a SNMP</h1>
+<p class="lead">Zařízení je cokoli, co má adresu: router, switch, server, tiskárna, kamera nebo webová stránka. Kontroly ho měří; jejich výsledky obarvují zařízení, mapu a grafy.</p>
+
+<h2 id="add">Přidání zařízení</h2>
+<p>V části <a href="/devices">Zařízení → Přidat zařízení</a> zadejte název a IP adresu nebo název hostitele, zvolte typ a skupinu a <b>Ping</b> nechte zapnutý. Volitelně:</p>
+<ul>
+  <li><b>SNMP</b> — profil s komunitou nebo uživatelem SNMPv3; WatchZit pak čte rozhraní, provoz, CPU, paměť a disky.</li>
+  <li><b>Závisí na</b> — router nebo switch, přes který je zařízení dosažitelné. Dokud nefunguje, problémy tohoto zařízení jsou jen „nedostupné“ a neodesílají se.</li>
+  <li><b>Vzdálený přístup</b> — uživatelské jméno a porty, které používají <a href="/docs/tools">nástroje</a>.</li>
+  <li><b>TCP porty</b> — z každého se stane kontrola, která se každou minutu připojí.</li>
+</ul>
+<p>Stav zařízení vychází z jeho kontrol: <b>běží</b>, když běží všechny, <b>částečně nefunguje</b>, když některé nefungují, <b>nefunkční</b>, když nefungují všechny.</p>
+
+
+<h2 id="discovery">Zjišťování</h2>
+<p><a href="/discovery">Zařízení → Zjišťování</a> najde hostitele v síti: přidejte rozsah (např. <code>192.168.1.0/24</code>, nejvýše /22, nebo jednu adresu) a prohledejte ho hned, denně nebo týdně. WatchZit pingne každou adresu, zkusí běžné porty (SSH, Telnet, web, RDP, WinBox, SMB, tiskárny, VNC), zeptá se přes SNMP s vašimi profily SNMP na název, popis a výrobce a vyhledá název v DNS. Hostitelé, kteří ještě nejsou zařízeními, se zobrazí s názvem, odhadnutým druhem a tím, co odpovědělo; označte je a klikněte na <b>Přidat jako zařízení</b> (volitelně do skupiny): každé dostane kontrolu ping (nebo kontrolu TCP, když je ping blokován) a profil SNMP, který odpověděl. <b>Skrýt</b> vyřadí hostitele ze seznamu; skryté hostitele lze znovu zobrazit. S nastaveným plánem se zde noví hostitelé, kteří se v síti objeví, zobrazí sami. Máte-li <a href="/docs/agents#collector">vzdálené kolektory</a>, zvolte, který z nich rozsah prohledává: prohledá síť své vlastní lokality.</p>
+<h2 id="links">Webové odkazy</h2>
+<p>V části <b>Webové odkazy</b> zařízení se adresa <b>Webové rozhraní</b> otevírá tlačítkem na stránce zařízení a na mapách; chcete-li, dejte tlačítku jiný <b>název</b>. Přidejte další odkazy pro server s několika adresami, jeho iDRAC nebo iLO či stránku služby; z každého se stane samostatné tlačítko.</p>
+
+<h2 id="fields">Vlastní pole</h2>
+<p>Správci přidávají vlastní pole zařízení v <a href="/settings/fields">Nastavení → Vlastní pole</a>: text, číslo nebo datum — inventární číslo, konec záruky, rack, smlouvu. Operátoři je vyplňují na stránce zařízení v části <b>Vlastní pole</b>; hodnoty se zobrazují v podrobnostech zařízení a vyhledávání v seznamu zařízení je najde. Odebráním pole se odeberou i jeho hodnoty.</p>
+<h2 id="templates">Šablony</h2>
+<p>Šablona je sada kontrol pro určitý druh zařízení — linuxový server, router MikroTik, tiskárnu. Vytvořte ji v části <a href="/templates">Šablony</a>, zvolte druhy zařízení, pro které je určena, a přidejte její kontroly (ping, TCP, webová stránka, certifikát TLS, DNS a kontroly SNMP; kontroly s hesly se přidávají pro každé zařízení zvlášť). <b>Použít na</b> přidá kontroly všem zařízením jejích druhů, skupině nebo znovu zařízením, která ji už mají; na stránce zařízení to <b>Použít šablonu</b> udělá pro jedno zařízení. Použití přidá jen kontroly, které zařízení ještě nemá — ty, které už má, zůstanou beze změny, takže dvojí použití nic nepokazí. S volbou <b>Automaticky použít na nová zařízení těchto druhů</b> dostane kontroly ihned každé později přidané zařízení (ručně nebo ze zjišťování). Odebráním šablony zůstanou kontroly na zařízeních.</p>
+<h2 id="bulk">Změna mnoha zařízení najednou</h2>
+<p>Označte zařízení v <a href="/devices">seznamu zařízení</a> (políčko v záhlaví označí všechna zobrazená) a v <b>Změnit vybrané</b> zvolte: skupinu, profil SNMP, zařízení, na kterém závisí, typ, pozastavení nebo obnovení sledování, použití šablony nebo — pro správce — jejich smazání i s kontrolami a daty. Nejprve seznam vyfiltrujte, abyste mohli označit třeba všechny tiskárny jedné lokality.</p>
+<h2 id="checks">Typy kontrol</h2>
+<table>
+  <tr><th>Kontrola</th><th>Měří</th></tr>
+  <tr><td>Ping (ICMP)</td><td>Dobu odezvy a ztrátu paketů.</td></tr>
+  <tr><td>Port TCP</td><td>Zda port přijímá spojení a jak rychle.</td></tr>
+  <tr><td>Webová stránka (HTTP)</td><td>Stavový kód, dobu odezvy, text, který musí být na stránce, dny do vypršení certifikátu.</td></tr>
+  <tr><td>Certifikát TLS</td><td>Dny do vypršení a zda je důvěryhodný (libovolný port TLS, s názvem serveru pro SNI).</td></tr>
+  <tr><td>DNS</td><td>Zařízení je server DNS: musí odpovědět na název s typem záznamu (A, AAAA, MX …) a volitelně s očekávanou hodnotou.</td></tr>
+  <tr><td>PostgreSQL, MySQL / MariaDB</td><td>Přihlášení monitorovacím uživatelem, verzi, počet spojení, dobu odezvy.</td></tr>
+  <tr><td>MikroTik RouterOS (API)</td><td>CPU, paměť, dobu provozu a teplotu přes REST API RouterOS 7.</td></tr>
+  <tr><td>Hodnota z JSON API</td><td>Jedno číslo z libovolného JSON API (FortiGate, vCenter, vaše vlastní služby): adresa, cesta jako <code>results.cpu.0.current</code> a volitelné přihlášení Bearer nebo basic.</td></tr>
+  <tr><td>Hypervisor (vSphere, Proxmox VE)</td><td>Hostitele, virtuální stroje a kontejnery, úložiště dat VMware ESXi nebo vCenter (API webových služeb) nebo Proxmox VE (REST API): CPU a paměť hostitelů, běžící stroje, nefunkční hostitele, nejplnější úložiště dat. Viz <a href="#hypervisor">Hypervizory</a>.</td></tr>
+  <tr><td>Webový scénář</td><td>Několik kroků webovou aplikací tak, jak je projde uživatel: přihlášení, otevření stránky za přihlášením, kontrola textu. Jeden krok na řádek, například <code>GET /login | 200 | Sign in</code>, <code>POST /login | 302 | | user=monitor&amp;password={secret}</code>, <code>GET /dashboard | | Welcome</code> — metoda a adresa, pak očekávaný stav, text, který musí stránka obsahovat, a data formuláře. Cookies se přenášejí z kroku do kroku; <code>{secret}</code> je heslo kontroly. Měří čas všech kroků a kolik jich prošlo; upozornění uvede krok, který selhal.</td></tr>
+  <tr><td>SNMP</td><td>Dostupnost a dobu provozu; rozhraní, CPU a úložiště nalezená zjišťováním; libovolný číselný OID.</td></tr>
+</table>
+<p>Hesla a tokeny kontrol se ukládají zašifrovaně a už nikdy se nezobrazí; když kontrolu upravujete, nechte pole prázdné a uložená hodnota zůstane.</p>
+
+<h2 id="snmp">SNMP</h2>
+<ol>
+  <li>Vytvořte profil v <a href="/settings/snmp">Nastavení → SNMP</a>: v2c s komunitou nebo v3 s uživatelem (podporovány jsou SHA-2 a AES).</li>
+  <li>Zvolte profil u zařízení. WatchZit otevře <b>Zjišťování SNMP</b>: označte rozhraní, CPU, paměť a disky, které chcete sledovat (loopbacky a rozhraní bez linky jsou vynechány).</li>
+  <li>Stránka zařízení pak ukazuje <b>porty</b> se stavem linky a živým provozem a grafy všech hodnot.</li>
+</ol>
+<p>Zjišťování najde i to, co hlásí zařízení daného druhu: <b>spotřební materiál tiskáren</b> (toner, inkoust, válce, odpadní nádobky, jako úroveň v procentech; připravený spouštěč <b>Docházející toner nebo inkoust</b> varuje pod 10 %), <b>UPS</b> (UPS-MIB nebo APC PowerNet MIB karet APC: nabití baterie, zbývající doba provozu, zatížení; kontrola nefunguje, když UPS běží na baterii nebo je baterie slabá, a <b>Krátká výdrž UPS</b> varuje pod 10 minut) a <b>senzory stavu MikroTik</b> (teploty, napětí, ventilátory, příkon, každý jako kontrola OID s vlastní jednotkou).</p>
+<div class="callout tip"><p>MikroTik, Cisco, HP, Ubiquiti, tiskárny a UPS umí SNMP. Na Linuxu nainstalujte <code>snmpd</code>; na Windows službu SNMP.</p></div>
+
+<h2 id="vlans">VLAN</h2>
+<p>WatchZit čte VLAN switchů přes SNMP jednou za hodinu (Q-BRIDGE-MIB: HP/Aruba, Cisco small business, Ubiquiti, Netgear, D-Link a většina spravovaných switchů; CISCO-VTP-MIB: porty access a trunk Cisco Catalyst), z agentů (linuxová rozhraní VLAN jako eth0.10, VLAN ID síťových adaptérů Windows) a bridgů MikroTik přes API RouterOS (s kontrolou <b>MikroTik RouterOS (API)</b> zařízení) každých deset minut. Stránka zařízení uvádí každou VLAN s jejími tagovanými a netagovanými porty a každý port s jeho <b>režimem</b>: <b>Access</b> (jedna netagovaná VLAN), <b>Trunk</b> (tagované VLAN; netagovaná je <b>nativní VLAN</b>) nebo <b>Hybridní</b> (několik netagovaných VLAN). Mapy mohou zobrazit vždy jednu VLAN.</p>
+
+<h2 id="ha-role">Role HA</h2>
+<p>Zařízení s VRRP hlásí, zda jsou <b>aktivní</b> (master), nebo <b>záloha</b> (backup): čte se přes SNMP (VRRP-MIB a VRRPv3-MIB, s kontrolou dostupnosti SNMP) a z MikroTik RouterOS přes API (s kontrolou API RouterOS). Stránka zařízení ukazuje roli a od kdy ji má; mapy ukazují AKTIVNÍ nebo ZÁLOHA vedle zařízení.</p>
+
+<h2 id="vxlan">VXLAN</h2>
+<p>Rozhraní VXLAN (VTEP) se čtou z MikroTik RouterOS 7 (s kontrolou API RouterOS, každých deset minut) a z linuxových agentů (pomocí iproute2, každých pět minut): VNI, rozhraní, vlastní adresa, port UDP a vzdálené VTEP, i ty z tabulky přeposílání. Stránka zařízení je uvádí; vzdálený VTEP, který je adresou jiného zařízení, na něj odkazuje. VXLAN bez vzdálených adres používá multicast nebo EVPN. Mapy kreslí tunel mezi dvěma zařízeními mapy, která jsou si navzájem VTEP.</p>
+
+<h2 id="graphs">Grafy</h2>
+<p>Každá hodnota se uchovává: surová po několik dní, pak jako pětiminutové a hodinové minimum, průměr a maximum (Nastavení → Naměřená data). V grafu tažením přiblížíte, dvojklikem se vrátíte; tlačítka časového rozsahu sahají od jedné hodiny po rok.</p>
+<p>Tlačítko ⤢ grafu ho zobrazí přes celé okno (Esc vrátí zpět).</p>
+<p><b>Upravit grafy</b> (operátoři a správci) uspořádá grafy zařízení jako panely nástěnky:</p>
+<ul>
+  <li>✎ změní graf: jeho <b>nadpis</b>, <b>druh</b> (čára, plocha nebo sloupce), <b>sčítat hodnoty</b> (každá nad předchozími), <b>hodnoty</b>, které ukazuje — i z několika kontrol, například CPU a paměť dohromady, a <b>barvu</b> každé — <b>minimum a maximum osy</b> a čáru <b>varování</b> a <b>kritickou čáru</b>.</li>
+  <li>↔ ho roztáhne na šířku stránky, ↕ ho zvýší nebo sníží, ▲ ▼ ho posunou, × ho odebere (jeho hodnoty se nevykreslují, dokud je některý graf znovu nezobrazí).</li>
+  <li>Tažením pravého dolního rohu grafu nastavíte jeho šířku (1–4 sloupce) a výšku; uloží se, jakmile pustíte tlačítko myši.</li>
+  <li><b>Přidat graf</b> vytvoří nový z libovolných hodnot zařízení. Hodnoty nových kontrol dostanou své automatické grafy.</li>
+  <li><b>Automatické grafy</b> uspořádání zruší: opět jeden graf na kontrolu.</li>
+</ul>
+
+<h2 id="config-backup">Zálohy konfigurace</h2>
+<p>Operátoři a správci mohou uchovávat konfiguraci síťových zařízení: v části <b>Zálohy konfigurace</b> zařízení zvolte metodu — <b>MikroTik RouterOS</b> (<code>/export terse show-sensitive</code>), <b>Cisco IOS</b> (<code>show running-config</code>), <b>FortiGate</b> (<code>show full-configuration</code>) nebo vlastní příkaz — a uživatele SSH, port a heslo nebo soukromý klíč. Heslo a klíč se ukládají zašifrovaně. Použijte uživatele, který smí jen číst.</p>
+<ul>
+  <li>Zálohy běží každou noc ve 02:00 (čas serveru) a tlačítkem <b>Zálohovat nyní</b>. Nová verze se uloží jen tehdy, když se konfigurace změnila; uchovává se posledních 50 verzí každého zařízení.</li>
+  <li>Klíč hostitele SSH se uloží při první záloze a poté se kontroluje. Když se změní, záloha selže; pokud to bylo očekávané (nové zařízení nebo firmware), použijte <b>Zapomenout klíč hostitele</b>.</li>
+  <li>Každá verze ukazuje změny oproti předchozí (+ přidané, − odebrané řádky, <b>Celá konfigurace</b> zobrazí vše) a lze ji stáhnout jako textový soubor.</li>
+  <li>Změny a chyby se zapisují do logu zařízení (štítek <code>config-backup</code>), takže na ně může upozornit spouštěč logů.</li>
+  <li>Pozorovatelé nevidí konfigurace ani nastavení záloh.</li>
+</ul>
+
+<h2 id="hypervisor">Hypervizory</h2>
+<p>Přidejte kontrolu <b>Hypervisor (vSphere, Proxmox VE)</b> k zařízení hostitele ESXi, vCenteru nebo uzlu Proxmox VE (libovolný uzel clusteru čte celý cluster). Stačí uživatel, který smí jen číst: role <b>Read-only</b> ve vSphere, <b>PVEAuditor</b> na <code>/</code> v Proxmox VE — nebo API token (<code>user@realm!name</code> jako uživatel a jeho tajný klíč jako heslo). Port nechte prázdný pro 443 (vSphere) nebo 8006 (Proxmox VE); zaškrtněte <b>Přijímat nedůvěryhodné certifikáty</b> pro certifikát podepsaný sám sebou, který mají ve výchozím stavu.</p>
+<ul>
+  <li>Každé spuštění uloží CPU a paměť všech hostitelů, počet běžících a všech strojů, nefunkční hostitele a zaplnění nejplnějšího úložiště dat; spolu s ní přicházejí spouštěče <b>Úložiště dat téměř plné</b> (přes 90 %) a <b>Hostitel hypervizoru nefunguje</b>.</li>
+  <li>Stránka zařízení uvádí hostitele, každý virtuální stroj a kontejner (stav, CPU, paměť, adresa, hostovaný systém) a úložiště dat. Hostované systémy a adresy se čtou každých deset minut (Proxmox VE čte adresy přes hostovaného agenta QEMU).</li>
+  <li><b>Hyper-V</b> a <b>Docker</b> žádnou kontrolu nepotřebují: agent WatchZit na hostiteli Windows (s Hyper-V) nebo na hostiteli Linux (s Dockerem) hlásí své stroje nebo kontejnery každých pět minut.</li>
+  <li>Na mapách může pole hypervizoru tyto stroje zobrazit samo (viz průvodce mapami).</li>
+</ul>

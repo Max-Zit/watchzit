@@ -1,0 +1,83 @@
+<h1>Mapy sieci</h1>
+<p class="lead">Mapa to rysunek twojej sieci, który jednocześnie monitoruje ją na żywo: urządzenia w kolorach ich stanu, kable pokazujące ruch, porty, które można powiększyć.</p>
+
+<h2 id="edit">Rysowanie mapy</h2>
+<ol>
+  <li>W sekcji <a href="/maps">Mapy</a> dodaj mapę i kliknij <b>Edytuj</b>.</li>
+  <li><b>Dodaj urządzenie</b> umieszcza urządzenia na mapie; przeciągnij je na miejsce. <b>Dodaj element</b> dodaje rzeczy, które nie są monitorowane (patch panele, listwy PDU). Podczas edycji <b>Monitorowane urządzenie</b> w panelu elementu zamienia go w urządzenie konsoli: obraz, miejsce, jednostka w szafie i kable pozostają, a element pokazuje stan i metryki urządzenia. <b>Brak (tylko obraz)</b> zamienia urządzenie z powrotem w element.</li>
+  <li><b>Połącz</b>: kliknij dwa urządzenia i wybierz porty na obu końcach (z interfejsów SNMP lub agenta). Kabel pokazuje ruch tego portu.</li>
+  <li><b>Proponowane łącza</b> pokazuje, gdzie urządzenia są podłączone (zobacz <a href="#found">Łącza znalezione na urządzeniach</a>), i proponuje kable z ich portami oraz urządzenia podłączone do mapy, których na niej nie ma; <b>Dodaj wszystko</b> dodaje je wszystkie.</li>
+  <li>Kliknij <b>Zapisz</b> (lub Ctrl+S). Zmiany istnieją tylko na stronie, dopóki ich nie zapiszesz; <b>Anuluj</b> wraca do zapisanej mapy.</li>
+</ol>
+
+<h2 id="design">Obrazy, szafy i kable</h2>
+<ul>
+  <li>Każde urządzenie ma obraz z wbudowanej biblioteki (przełączniki z portami, routery, serwery, zapory, punkty dostępowe, telefony, kamery …) lub przesłany przez ciebie.</li>
+  <li>Biblioteka zawiera też około 3500 prawdziwych modeli ponad 180 producentów: serwery (HPE ProLiant od G6, Dell PowerEdge, Lenovo, Supermicro, Cisco UCS, Fujitsu, Huawei/xFusion, Inspur), NAS (Synology, QNAP, Asustor, TrueNAS i inne), macierze SAN i przełączniki FC (HPE MSA/3PAR/Nimble/Alletra, IBM Storwize/FlashSystem, Dell PowerVault/Unity/PowerStore, NetApp, Pure Storage, Lenovo, Fujitsu ETERNUS, Huawei OceanStor, Hitachi, Brocade, Cisco MDS), przełączniki (Cisco, HPE Aruba, Dell, Juniper, Ubiquiti, Netgear, TP-Link, D-Link, Zyxel, Huawei, Arista, Extreme, Ruckus, Alcatel-Lucent, Ruijie, FS (fs.com: przełączniki kampusowe, PoE, do centrów danych i przemysłowe, Wi-Fi, konwertery mediów, przełącznice światłowodowe), QNAP, TRENDnet, Hikvision, Dahua, Lancom, DrayTek, przemysłowe Moxa, Siemens SCALANCE, Hirschmann i Phoenix Contact oraz inne), zapory (Fortinet, Palo Alto, Sophos, WatchGuard, SonicWall, Check Point, Cisco ASA/Firepower, Netgate i inne), MikroTik, routery domowe i biurowe oraz Wi-Fi mesh (TP-Link, ASUS, FRITZ!Box, Netgear, Linksys, D-Link, terminale ONT Huawei i ZTE oraz inne), punkty dostępowe, zasilacze UPS (wolnostojące i rack), rejestratory wideo i kamery IP, zewnętrzne anteny punkt-punkt, sektorowe i dookólne, drukarki, telefony IP i centrale PBX, obudowy kasetowe (blade), listwy PDU, przełączniki KVM i serwery konsoli, monitory środowiskowe i mini PC, OLT i ONT GPON, routery operatorskie, urządzenia brzegowe SD-WAN, serwery czasu NTP, domofony, wideokonferencje, sterowniki PLC i panele HMI. Obrazy ogólne obejmują też akcesoria do szaf: organizery kabli, panele szczotkowe, półki, panele wentylatorów, szuflady i zaślepki. Obrazy ogólne obejmują również światłowodowe patch panele (LC duplex jednomodowe i wielomodowe, SC/APC i SC/UPC, od 12 do 96 portów) oraz ścienne skrzynki światłowodowe. W panelu obrazu wybierz <b>producenta</b> (lub <b>Wszyscy producenci</b>) i <b>typ</b> (przełącznik, router, zapora, serwer, pamięć masowa / NAS, punkt dostępowy …) albo wyszukaj model (na przykład „DL380 Gen10” lub „CRS326”); typ lub wyszukiwanie z <b>Obrazy ogólne</b> przeszukuje wszystkich producentów; rysunki mają porty i kieszenie dysków danego modelu, więc kable kończą się we właściwym porcie. Dla urządzenia panel otwiera się z jego producentem; gdy urządzenie zostanie dodane do mapy, a jego opis SNMP wskazuje model z biblioteki (na przykład MikroTik), ten obraz zostanie wybrany automatycznie.</li>
+  <li><b>Szafy</b> od 4 do 48 jednostek: upuszczaj w nich urządzenia; przyciągają się do wolnych jednostek. Rzeczy niebudowane do szafy — NAS, mały przełącznik, mini PC na półce — dostają w panelu urządzenia własną <b>Wysokość</b> (1–20U, w przeciwnym razie wysokość obrazu) i <b>Szerokość</b> (cała szerokość, 1/2, 1/3 lub 1/4) z <b>Pozycją</b> od lewej do prawej, dzięki czemu kilka może stać obok siebie w tych samych jednostkach; upuszczone w szafie zajmują najbliższe wolne miejsce.</li>
+  <li>Kable mają <b>rodzaj</b> (miedź, światłowód, DAC, bezprzewodowy, VPN, WAN, szeregowy, zasilanie) i <b>przebieg</b>: prosty, z zagięciami 90° lub 45°, łukowy; przeciągaj punkty, aby je wygiąć; kliknij dwukrotnie punkt, aby go usunąć.</li>
+  <li><b>Obraz tła</b> (plan piętra, teren) z rozmiarem, przezroczystością i położeniem.</li>
+  <li><b>Podmapy</b> prowadzą do innych map i pokazują ich najgorszy stan.</li>
+</ul>
+
+<h2 id="reading">Czytanie mapy</h2>
+<ul>
+  <li>Zielony oznacza działa, bursztynowy częściowo nie działa, czerwony nie działa (miga); szary oznacza nieznany lub wstrzymany.</li>
+  <li>Kable stają się grubsze i zmieniają kolor wraz z wykorzystaniem (powyżej 50 % bursztynowy, powyżej 80 % czerwony); kabel, którego port nie ma łącza, jest czerwony i przerywany.</li>
+  <li>Powiększaj kółkiem myszy lub dwoma palcami; nazwy i etykiety portów pojawiają się, gdy jesteś wystarczająco blisko. Kliknij urządzenie, aby otworzyć jego panel ze sprawdzeniami, portami i narzędziami — operatorzy i administratorzy mają tam też <b>Edytuj urządzenie</b>, a zapisanie przenosi ich z powrotem na mapę; kliknij dwukrotnie, aby je otworzyć.</li>
+  <li>Kliknij kabel, aby otworzyć jego panel: bieżący ruch w obu kierunkach i <b>Historia ruchu</b> z ostatniej godziny, dnia, tygodnia lub miesiąca (ze sprawdzenia interfejsu jednego z końców).</li>
+</ul>
+
+<h2 id="ha">Grupy HA</h2>
+<ul>
+  <li>Urządzenia, które się nawzajem zastępują — para HA zapór, routery VRRP lub HSRP, stos przełączników lub para MLAG/vPC, klaster serwerów lub pamięci masowej — tworzą <b>Grupę HA</b>: podczas edycji wybierz w panelu pierwszego urządzenia <b>Grupa HA → Nowa grupa HA</b>, a potem tę samą grupę w panelach pozostałych. Grupa to przerywana ramka wokół jej członków; członkowie zamontowani w szafie dostają tylko cienki obrys i mały znacznik <b>⇅ HA</b> w miejscu, gdzie jeden styka się z następnym, aby sąsiednie jednostki pozostały czytelne (kliknij znacznik, aby otworzyć grupę); rola VRRP widnieje drobnym napisem obok znacznika przy każdym członku — AKTYWNY na zielono, REZERWA na bursztynowo. Panel grupy ustawia nazwę i rodzaj.</li>
+  <li><b>Ścieżka</b> przechodzi przez każdego członka grupy i pokazuje każdą równorzędną trasę (na przykład 2 trasy przez dwie zapory). Oznacz kabel między członkami (heartbeat, sync, stack, peer link) rodzajem kabla <b>Łącze HA</b>; nie jest on drogą dla ruchu.</li>
+  <li>Ramka (lub znacznik) jest zielona, gdy wszyscy członkowie działają, bursztynowa z napisem <i>utracona redundancja</i>, gdy niektórzy nie działają, i czerwona, gdy nie działa żaden. Wyzwalacz <b>Grupa HA bez redundancji</b> otwiera wtedy problem (zobacz Alerty).</li>
+  <li>Członkowie raportujący VRRP pokazują <b>AKTYWNY</b> lub <b>REZERWA</b>, a panel grupy podaje, od kiedy.</li>
+</ul>
+
+<h2 id="hypervisors">Hiperwizory i maszyny wirtualne</h2>
+<ul>
+  <li><b>Dodaj hiperwizor</b> (podczas edycji) dodaje pole dla hosta wirtualizacji: wybierz <b>hiperwizor</b> (VMware ESXi, Proxmox VE, Hyper-V, XCP-ng, KVM, Nutanix AHV, Docker, Kubernetes i inne) oraz <b>serwer fizyczny</b>, na którym działa (wymagany; dla klastra dodaj pozostałe serwery w sekcji <b>Klaster</b>, a ścieżki mogą przechodzić przez dowolny z nich); stan serwera jest widoczny na polu, jego metryki otwierają się z panelu, a gdy serwer jest na mapie, łączy je przerywana linia. <b>Ścieżka</b> prowadzi od maszyny wirtualnej przez jej hiperwizor i serwer fizyczny dalej wzdłuż kabli.</li>
+  <li>Przeciągnij maszyny wirtualne do pola: urządzenia konsoli (aby widzieć ich stan) lub elementy z obrazem ich systemu (Windows Server, Ubuntu, Debian, Red Hat, MikroTik CHR, pfSense, kontenery i inne, typ <b>Maszyna wirtualna</b> w panelu obrazu). Wewnątrz pola układają się w siatkę; przeciągaj je w jego obrębie, aby zmienić kolejność, a poza nie, aby zdjąć je z hosta. Panel urządzenia ma też <b>Działa na hiperwizorze</b>.</li>
+  <li><b>Pokazuj same maszyny hiperwizora</b> (domyślnie włączone dla nowych pól) wypełnia pole maszynami, które dla jego serwera fizycznego raportuje sprawdzenie hiperwizora, agent (Hyper-V, Docker) lub vCenter: działające na zielono, zatrzymane na szaro, wstrzymane na żółto. Maszyna, której adres lub nazwa należy do urządzenia konsoli, jest pokazywana jako to urządzenie. Te maszyny nie są częścią zapisanej mapy, dopóki nie przesuniesz lub nie podłączysz którejś z nich albo nie naciśniesz <b>Umieść na mapie</b>; <b>Umieść maszyny na mapie</b> umieszcza je wszystkie. Elementy, które sam umieścisz z nazwą maszyny, też otrzymują jej stan.</li>
+  <li>Pole pokazuje najgorszy stan swoich maszyn wirtualnych i serwera fizycznego; warstwa <b>Hiperwizory</b> ukrywa pola.</li>
+</ul>
+
+<h2 id="pictures">Biblioteka obrazów</h2>
+<p><b>Biblioteka obrazów</b> w menu przechowuje twoje własne obrazy urządzeń. <b>Prześlij obraz</b> (PNG, JPEG, GIF, WebP lub SVG; najlepiej sprawdza się widok z przodu) albo weź obraz wbudowany: <b>ołówek</b> zmienia sam obraz wbudowany na każdej mapie, na której jest używany (otwarcie niczego nie zmienia; zmieniona wersja jest zapisywana dopiero po zapisaniu zmiany) (usuń zmieniony obraz, aby wrócić do wbudowanego), a <b>kopiuj</b> tworzy z niego nowy własny obraz dla podobnego modelu. W edytorze ustaw:</p>
+<ul>
+  <li><b>Porty</b>: kliknij na obrazie, aby dodać port, zaczynając od portu 1; przeciągnij port, aby go przesunąć, kliknij go dwukrotnie, aby go usunąć. Dla rzędu wpisz liczbę portów i kliknij pierwszy i ostatni; <b>w dwóch liniach</b> numeruje je jak w przełączniku, 1 nad 2. Ostatnie <b>Porty SFP</b> są rysowane na pomarańczowo i sugerują kabel światłowodowy.</li>
+  <li><b>Jednostki U</b> (0, gdy urządzenie nie jest montowane w szafie), <b>producenta</b>, <b>typ</b> i <b>szerokość na mapie</b>.</li>
+  <li><b>Kopiuj</b> tworzy nowy obraz z jednego z twoich, dla podobnego modelu.</li>
+</ul>
+<p>Obrazy pojawiają się w panelu obrazów map pod swoim producentem i typem, a kable na mapie kończą się w zaznaczonych przez ciebie portach.</p>
+
+<h2 id="layers">Warstwy i ścieżki</h2>
+<ul>
+  <li><b>Warstwy</b> decydują, co pokazuje mapa: urządzenia, szafy, elementy, podmapy, kable, nazwy portów, ruch, etykiety VLAN, tunele VXLAN, nazwy i adresy, tekst oraz tło, w dowolnej kombinacji. Twój wybór jest zapamiętywany w tej przeglądarce.</li>
+  <li><b>Ścieżka</b>: kliknij dwa urządzenia, a mapa pokaże tylko łańcuch kabli między nimi (z patch panelami, przełącznikami i szafami po drodze) i go przybliży. Kliknij ponownie Ścieżka lub naciśnij Esc, aby zobaczyć całą mapę.</li>
+  <li>Nazwy portów na kablach pojawiają się po przybliżeniu, więc zatłoczona mapa pozostaje czytelna. Stoją dokładnie tam, gdzie kończy się kabel: na porcie obrazu lub tam, gdzie kabel opuszcza obraz bez portów; są rysowane nad wszystkimi kablami, więc żaden kabel ich nie zasłania. Portu, którego używa już inny kabel, nie można wybrać ponownie; lista podaje, dokąd prowadzi jego kabel.</li>
+  <li><b>VLAN-y</b>: gdy przełączniki lub routery na mapie raportują VLAN-y, na pasku narzędzi pojawia się lista VLAN-ów. Wybierz VLAN, a mapa pokaże tylko kable, które go przenoszą, oznaczone jako tagowane lub nietagowane; urządzenia bez niego blakną. Panel kabla wymienia VLAN-y jego portów.</li>
+  <li>Kable są opisane trybem VLAN, na przykład <i>Access 20</i> lub <i>Trunk · natywny 1 · 10, 20-25</i> (warstwa <b>Etykiety VLAN</b>). Filtr VLAN może też pokazywać tylko tagowane lub tylko nietagowane VLAN-y. Kabel jest rysowany przerywaną pomarańczową linią, gdy jego końce się nie zgadzają: port access naprzeciw trunku albo inny natywny VLAN na każdym końcu.</li>
+  <li>Podczas edycji <b>Tryb VLAN</b> kabla można ustawić ręcznie: <b>Access</b> z jego VLAN-em lub <b>Trunk</b> z natywnym VLAN-em i dozwolonymi (tagowanymi) VLAN-ami, łącznie z zakresami, takimi jak 20-25; <b>Automatycznie</b> używa tego, co raportują porty. Kabel może też przenosić <b>VXLAN VNI</b>, a rodzaj kabla <b>Tunel VXLAN</b> rysuje tunel ręcznie.</li>
+  <li>Tunele VXLAN raportowane przez urządzenia są rysowane jako przerywane fioletowe łuki z ich VNI (warstwa <b>Tunele VXLAN</b>).</li>
+</ul>
+
+<h2 id="kiosk">Ekrany kiosku</h2>
+<p>W <a href="/settings/kiosks">Ustawienia → Ekrany kiosku</a> utwórz ekran z mapami, które ma pokazywać, i częstotliwością ich przełączania. Otrzymuje on tajny link, który otwiera mapy na pełnym ekranie bez logowania — dla telewizora do monitoringu. Usuń ekran, aby link przestał działać.</p>
+
+<p>Aby zaczynać od mapy zamiast przeglądu, wybierz ją jako <b>Strona startowa</b> w <a href="/account">Moje konto</a>; logowanie i logo otwierają ją wtedy, a <b>Przegląd</b> w menu nadal otwiera przegląd. Stroną startową może być również pulpit.</p>
+
+<h2 id="arrange">Rozmieszczanie mapy</h2>
+<p>Podczas edycji <b>Rozmieść</b> układa całą mapę według jej kabli: urządzenie z największą liczbą połączeń (router lub zapora przed przełącznikiem przy remisie) na górze, to, co jest do niego podłączone, w rzędzie poniżej i tak dalej; szafy i pola hiperwizorów przesuwają się razem z zawartością, rzeczy bez kabla trafiają do siatki pod spodem, a ręcznie narysowane zagięcia są usuwane. Nic nie jest zapisywane, dopóki nie klikniesz <b>Zapisz</b>; <b>Anuluj</b> przywraca wszystko.</p>
+
+<h2 id="found">Łącza znalezione na urządzeniach</h2>
+<p>Co 15 minut WatchZit odczytuje z urządzeń przez SNMP (a z urządzeń MikroTik przez sprawdzenie API RouterOS), co jest gdzie podłączone, w kolejności od najpewniejszych informacji:</p>
+<ul>
+  <li><b>Tablice sąsiadów</b> — LLDP, Cisco CDP i wykrywanie MikroTik: oba końce i ich porty. Między dwoma urządzeniami liczą się tylko rzeczywiste porty (nie interfejsy VLAN, VXLAN, mostów ani VRRP), jeśli takie są.</li>
+  <li><b>Tablice adresów MAC</b> przełączników: port, na którym poznano adres MAC urządzenia — adresy MAC jego własnych interfejsów, karty sieciowe raportowane przez agenta lub adres MAC, który tablica ARP routera ma dla jego adresu (dzięki temu znajdowane są też drukarki, kamery i serwery bez SNMP). Brany jest port dostępowy z najmniejszą liczbą adresów; porty do innych przełączników (z sąsiadem, który jest przełącznikiem, lub z ponad 8 adresami) nie są brane pod uwagę.</li>
+  <li><b>Opisy portów</b> (alias interfejsu lub opis w zapisanej konfiguracji), które wymieniają inne urządzenie, np. „uplink to sw2 ether7” — z tym portem, jeśli opis go wymienia.</li>
+  <li><b>Zapisane konfiguracje</b> (kopie konfiguracji MikroTik, Cisco, FortiGate): dwa urządzenia z adresami w tej samej sieci punkt-punkt (/30 lub /31).</li>
+</ul>
+<p><b>Rysuj samodzielnie</b> (w panelu Proponowane łącza): mapa co 15 minut dodaje łącza znalezione między jej urządzeniami, a z opcją <b>Dodawaj też urządzenia, do których prowadzą</b> sprowadza urządzenia do niej podłączone i umieszcza je obok urządzenia, do którego są podłączone. Łącza i urządzenia usunięte z takiej mapy pozostają usunięte (wyłączenie i ponowne włączenie opcji to zapomina). <b>Odczytaj urządzenia ponownie</b> od razu odczytuje urządzenia mapy.</p>

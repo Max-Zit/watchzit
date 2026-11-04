@@ -1,0 +1,42 @@
+<h1>Agents installeren</h1>
+<p class="lead">De WatchZit-agent is optioneel. Hij rapporteert wat het netwerk van buitenaf niet kan zien: CPU, geheugen, schijven, interfaces en services van Windows- en Linux-computers, elke minuut, via één uitgaande verbinding.</p>
+
+<h2 id="code">Aanmeldcodes</h2>
+<p>Maak onder <a href="/agents">Agents</a> een <b>aanmeldcode</b> aan: een naam, hoeveel dagen hij geldig is, hoeveel computers hem mogen gebruiken en de groep waarin nieuwe apparaten komen. De code wordt één keer getoond; hij bevat het serveradres en de vingerafdruk van het agentcertificaat, zodat de agent alleen uw server vertrouwt.</p>
+
+<h2 id="windows">Windows</h2>
+<p>Download de MSI van de pagina Agents en installeer hem; hij vraagt om de code. Installeer hem voor veel computers stil (GPO, Intune, een script):</p>
+<pre>msiexec /i watchzit-agent-x64.msi ENROLLCODE="WZ1-…" /qn</pre>
+<p>De agent draait als de service <b>WatchZitAgent</b>.</p>
+
+<h2 id="linux">Linux</h2>
+<p>De pagina Agents toont een opdracht die de agent via de agentpoort downloadt, de SHA-256 ervan controleert en hem met de code installeert (systemd-service <code>watchzit-agent</code>):</p>
+<pre>curl -fsSk https://&lt;server&gt;:8444/agent/download/watchzit-agent-linux-amd64 -o /tmp/watchzit-agent &amp;&amp; … sudo /tmp/watchzit-agent install --code "WZ1-…"</pre>
+<p>Of installeer het <b>deb</b>- of <b>rpm</b>-pakket van de release (amd64 en arm64, van GitHub), en meld de agent daarna aan en start hem; updates komen via de pakketbeheerder of via de eigen updates van de agent:</p>
+<pre>sudo apt install ./watchzit-agent_&lt;versie&gt;_amd64.deb      # of: sudo dnf install ./watchzit-agent-&lt;versie&gt;-1.x86_64.rpm
+sudo watchzit-agent enroll --code "WZ1-…"
+sudo systemctl start watchzit-agent</pre>
+
+<h2 id="what">Wat de agent rapporteert</h2>
+<ul>
+  <li><b>CPU</b>-belasting (en load average op Linux), <b>geheugen</b> en swap, elke <b>schijf</b>, elke <b>netwerkinterface</b> met verkeer — ze worden vanzelf controles met grafieken.</li>
+  <li><b>Inventaris</b>: besturingssysteem, CPU-model, geheugen, fabrikant, model, serienummer, adressen, services.</li>
+  <li><b>Hyper-V</b>-machines (Windows) en <b>Docker</b>-containers (Linux), elke vijf minuten, met hun status, CPU, geheugen en adressen; ze verschijnen op de apparaatpagina en in hypervisorvakken op kaarten.</li>
+  <li><b>Bewaakte services</b>: kies ze op de apparaatpagina onder <b>Services bewaken</b>; een service die stopt opent een probleem.</li>
+  <li><b>Bewaakte processen</b>: voer onder <b>Processen bewaken</b> op de apparaatpagina programmanamen in (bijvoorbeeld <code>nginx, sqlservr.exe, java</code>); elk krijgt een controle met hoeveel er draaien, hun CPU en geheugen, en als er geen draait wordt een probleem geopend.</li>
+  <li><b>Foutmeldingen</b> van het systeem — kritieke en foutgebeurtenissen uit de Windows-logboeken <b>System</b> en <b>Application</b>, en berichten met prioriteit <i>err</i> en erger uit het systemd-journal — gaan bij elk rapport naar <a href="/logs?kind=agent">Logboeken</a> (soort <b>Agents</b>); een logtrigger met de bron <b>Agents</b> opent daaruit problemen.</li>
+</ul>
+<p>Als er een apparaat met hetzelfde adres of dezelfde naam bestaat, sluit de agent zich daarbij aan; anders wordt een nieuw apparaat aangemaakt.</p>
+
+<h2 id="updates">Agent-updates</h2>
+<p>Een agent die ouder is dan de server krijgt bij het verbinden (hoogstens één keer per uur) de agent van de serverversie: hij downloadt het installatieprogramma van de server via zijn eigen versleutelde, vastgepinde verbinding, controleert de grootte en de SHA-256 en installeert het. Windows-agents die met de MSI zijn geïnstalleerd voeren de nieuwe MSI uit; Linux-agents (systemd) controleren of het nieuwe programma start, vervangen zichzelf en worden door systemd herstart. De pagina <a href="/agents">Agents</a> markeert oudere agents; beheerders schakelen daar onder <b>Agent-updates</b> de automatische updates uit en werken alle online agents met één klik bij. Agents van vóór 1.2 kennen nog geen updates en worden één keer met de hand bijgewerkt.</p>
+
+<h2 id="collector">Externe collectors</h2>
+<p>Een apparaat in een ander netwerk — een filiaal, een klantlocatie achter NAT, een afgesloten beheer-VLAN — is vaak niet bereikbaar vanaf de console. Installeer de agent op een willekeurige computer daar (Linux of Windows; een kleine VM of een machine van het formaat Raspberry Pi is genoeg) en klik in het deel Agent van de apparaatpagina op <b>Gebruiken als externe collector</b>. Kies hem daarna onder <b>Bewaakt vanaf</b> bij de apparaten van dat netwerk (of voor veel tegelijk in de apparatenlijst onder <b>Selectie wijzigen</b>). De collector krijgt hun controles — ping, TCP, SNMP, webpagina's en scenario's, certificaten, DNS, databases, RouterOS, JSON-API's — met de wachtwoorden en SNMP-instellingen die ze nodig hebben, voert ze uit volgens hun intervallen en stuurt de resultaten via zijn eigen versleutelde verbinding. Hij heeft geen open poort op de locatie nodig en heeft geen eigen webinterface; alles wordt in de console ingesteld.</p>
+<p>Zolang de verbinding met de console weg is, blijft de collector de controles uitvoeren; de resultaten (tot een dag, de nieuwste 200.000) wachten op de collector en komen binnen zodra de verbinding terug is, zodat de grafieken geen gat hebben. De controles van zijn apparaten tonen intussen <b>onbekend</b> in plaats van uitgevallen (de locatie kan in orde zijn), en de agentcontrole van de collector opent een probleem. Bewaarde resultaten overleven een herstart van de collector niet: hij krijgt zijn controles dan opnieuw van de console.</p>
+<p><b>Reservecollector:</b> installeer de agent op een tweede computer op de locatie, maak er ook een collector van en kies hem als <b>Reserve</b> naast <b>Bewaakt vanaf</b> (of voor veel apparaten in de apparatenlijst onder <b>Selectie wijzigen → Reservecollector</b>). Zolang de eerste offline is, voert de reserve hun controles uit; wanneer de eerste terug is, neemt die ze weer over.</p>
+<p><b>Detectie en SNMP:</b> kies onder <a href="/discovery">Apparaten → Detectie</a> de collector naast een nieuw bereik: hij scant dat netwerk van zijn locatie, en de apparaten die u eruit toevoegt worden vanaf hem bewaakt. De SNMP-detectie op de apparaatpagina en het uitlezen van gegevens, interfaces en VLAN's lopen ook via de collector. Hypervisorcontroles blijven bij de console. <b>Stoppen met verzamelen</b> geeft de apparaten terug aan de console.</p>
+
+<h2 id="network">Netwerk</h2>
+<p>Agents verbinden met <b>agentpoort 8444</b>. Stel onder <a href="/settings/network">Instellingen → Netwerk en toegang</a> het <b>openbaar agentadres</b> in wanneer agents de server via een andere naam bereiken (bijvoorbeeld via een firewall), en beperk de netwerken waar agents vandaan mogen komen.</p>
+<div class="callout"><p>Als u de agent op de apparaatpagina verwijdert, wordt zijn sleutel onbekend; om de agent weer te gebruiken, meldt u de computer aan met een nieuwe code.</p></div>

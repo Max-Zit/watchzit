@@ -1,0 +1,35 @@
+<h1>Řešení potíží a časté dotazy</h1>
+
+<h2 id="ping">Ping hlásí „ICMP is not allowed“</h2>
+<p>Server potřebuje oprávnění posílat ICMP. Služba z balíčku ho má (<code>CAP_NET_RAW</code>). Jinde ho udělte příkazem <code>setcap cap_net_raw+ep /usr/bin/watchzit-server</code> nebo povolte neprivilegovaný ping: <code>sysctl net.ipv4.ping_group_range="0 2147483647"</code>.</p>
+
+<h2 id="snmp">SNMP ukazuje „no answer“</h2>
+<ul>
+  <li>Zkontrolujte v profilu komunitu nebo uživatele SNMPv3, protokoly a hesla.</li>
+  <li>Povolte na zařízení adresu serveru WatchZit (mnoho zařízení odpovídá jen uvedeným manažerům) a na firewallech UDP 161.</li>
+  <li>Když je uživatel v3 neznámý nebo je heslo špatné, zpráva to uvede.</li>
+</ul>
+
+<h2 id="agent">Agent se nepřipojí</h2>
+<ul>
+  <li>Počítač musí dosáhnout na port agentů 8444 serveru; zkontrolujte <a href="/settings/network">Nastavení → Síť a přístup</a> (povolené sítě, veřejná adresa pro agenty).</li>
+  <li>Windows: <code>Get-Service WatchZitAgent</code> a log v <code>C:\ProgramData\WatchZit Agent</code>. Linux: <code>journalctl -u watchzit-agent</code>.</li>
+  <li>„the server does not know this agent“: zařízení bylo odebráno; zaregistrujte ho znovu s novým kódem.</li>
+</ul>
+
+<h2 id="notify">Oznámení nepřicházejí</h2>
+<ul>
+  <li>Odešlete test z <a href="/settings/notifications">Nastavení → Oznámení</a>; seznam kanálů ukazuje poslední chybu.</li>
+  <li>Problémy v údržbě nebo za nefunkčním zařízením se neodesílají; zkontrolujte nejnižší závažnost kanálu.</li>
+</ul>
+
+<h2 id="blocked">Zablokoval jsem si přístup</h2>
+<p>Po příliš mnoha neúspěšných přihlášeních se adresa na čas zablokuje. Na serveru: <code>watchzit-server --unblock-ip all</code>. Pokud vás povolené sítě vylučují: <code>watchzit-server --reset-allowlist</code>.</p>
+
+<h2 id="logs">Kde jsou logy?</h2>
+<p><code>journalctl -u watchzit-server</code> a <code>/var/lib/watchzit/logs/server.log</code>; pomocník aktualizací zapisuje <code>/var/log/watchzit-helper/helper.log</code>. <a href="/settings/diagnostics">Nastavení → Diagnostika</a> ukazuje nejnovější řádky a dá ZIP bez tajných údajů k odeslání podpoře.</p>
+
+<h2 id="faq">Časté dotazy</h2>
+<p><b>Potřebují zařízení agenta?</b> Ne. Kontroly pingu, portů, SNMP, webu, DNS, databází a API běží ze serveru; agent přidává to, co ví jen samotný počítač.</p>
+<p><b>Kolik zařízení?</b> Jeden server zvládne tisíce kontrol za minutu; měření se komprimují, takže i rok dat zabere málo místa.</p>
+<p><b>Je to zdarma?</b> Ano, pod licencí AGPL-3.0. MaxZit nabízí placenou podporu.</p>

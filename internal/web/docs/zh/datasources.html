@@ -1,0 +1,58 @@
+<h1>数据源</h1>
+<p class="lead">图表和仪表板也可以显示来自 WatchZit 外部的时间序列：您自己数据库中的表、Prometheus、InfluxDB 或任何返回 JSON 的地址——与代理和检查的数值并列显示。</p>
+
+<h2 id="add">添加数据源</h2>
+<p>管理员在<a href="/settings/datasources">设置 → 数据源</a>中添加数据源：</p>
+<table>
+  <tr><th>类别</th><th>地址</th><th>登录方式</th></tr>
+  <tr><td>PostgreSQL</td><td>host 或 host:port（5432），以及数据库</td><td>用户和密码</td></tr>
+  <tr><td>MySQL / MariaDB</td><td>host 或 host:port（3306），以及数据库</td><td>用户和密码</td></tr>
+  <tr><td>Microsoft SQL Server</td><td>host 或 host:port（1433），以及数据库</td><td>SQL Server 用户和密码</td></tr>
+  <tr><td>Prometheus</td><td>URL，例如 <code>http://prometheus:9090</code>；也支持 Thanos、VictoriaMetrics、Mimir</td><td>无、用户和密码，或 Bearer 令牌</td></tr>
+  <tr><td>InfluxDB</td><td>URL，例如 <code>http://influx:8086</code>，以及数据库（InfluxDB 2/3：bucket）</td><td>InfluxDB 1：用户和密码；2 和 3：仅需令牌</td></tr>
+  <tr><td>JSON over HTTP</td><td>您的服务的基础 URL</td><td>无、用户和密码，或 Bearer 令牌</td></tr>
+</table>
+<p><b>测试连接</b>会在不保存的情况下尝试这些设置。密码或令牌会加密存储，且不会再次显示；将该字段留空即可保留原值。</p>
+<p>对于 SQL 数据库，请选择加密方式：服务器提供时（默认）、始终加密并接受任意证书、始终加密并要求受信任的证书，或从不加密。对于 https:// 地址，可以接受自签名证书。</p>
+<p><b>请为控制台提供一个只能读取</b>所需表的用户。WatchZit 在只读事务中运行 PostgreSQL 和 MySQL 查询；SQL Server 没有这种机制，因此在那里只能依靠用户权限来保护数据。操作员编写查询；查看者只能查看图表。</p>
+
+<h2 id="graphs">图表中的查询</h2>
+<p>在设备页面上点击<b>编辑图表</b>，然后点击图表上的 ✎ 或<b>添加图表</b>。在<b>数据源</b>下点击<b>添加查询</b>，选择数据源并编写查询。<b>试运行</b>会在页面的时间范围内运行查询，并显示其返回的序列（及其数据点数量）或数据库的错误。一个图表最多可以显示 6 个查询，与设备的数值并列显示，每个查询都可设置序列名称、单位和颜色。</p>
+<p>在仪表板上添加小部件<b>数据源图表</b>。</p>
+<p>结果会缓存 20 秒，因此在多个屏幕上显示的仪表板只会查询数据库一次。一次查询最多返回 200,000 行和 50 个序列，最长可运行 20 秒；数值会按图表宽度进行抽稀。</p>
+
+<h2 id="sql">SQL（PostgreSQL、MySQL、SQL Server）</h2>
+<p>查询返回一个<b>时间列</b>（名为 <code>time</code>，或第一个包含时间的列；也可以是 Unix 秒或毫秒），一个或多个<b>数值列</b>（每列一个序列），以及可选的用于命名序列的<b>文本列</b>（<code>metric</code>，或第一个文本列），适用于每个序列每个时间点一行的表。请按时间排序。</p>
+<p>宏会将图表的时间范围代入查询：</p>
+<table>
+  <tr><th>宏</th><th>展开为</th></tr>
+  <tr><td><code>$__timeFilter(col)</code></td><td><code>col</code> 介于范围的开始和结束之间</td></tr>
+  <tr><td><code>$__timeGroup(col)</code></td><td><code>col</code> 向下取整到图表的间隔；<code>$__timeGroup(col, 300)</code> 取整到 5 分钟</td></tr>
+  <tr><td><code>$__timeFrom</code>、<code>$__timeTo</code></td><td>以时间类型表示的开始和结束</td></tr>
+  <tr><td><code>$__unixFrom</code>、<code>$__unixTo</code></td><td>以 Unix 秒表示的开始和结束</td></tr>
+  <tr><td><code>$__interval_s</code></td><td>以秒为单位的图表间隔</td></tr>
+</table>
+<p>示例：</p>
+<pre>-- 每个间隔的订单数（PostgreSQL、MySQL、SQL Server 通用）
+SELECT $__timeGroup(created_at) AS time, count(*) AS orders
+FROM orders WHERE $__timeFilter(created_at)
+GROUP BY 1 ORDER BY 1
+
+-- 每个仓库一个序列
+SELECT $__timeGroup(ts) AS time, warehouse AS metric, avg(temp) AS value
+FROM sensor_readings WHERE $__timeFilter(ts)
+GROUP BY 1, 2 ORDER BY 1</pre>
+
+<h2 id="prometheus">Prometheus</h2>
+<p>编写 PromQL，例如 <code>rate(node_network_receive_bytes_total{device="eth0"}[5m]) * 8</code>。每个序列按 Prometheus 的写法命名（<code>name{label="value"}</code>）；在编辑器中设置的序列名称会替换它。步长随图表宽度而定。</p>
+
+<h2 id="influxdb">InfluxDB</h2>
+<p>使用 <code>$timeFilter</code> 和 <code>$__interval</code> 编写 InfluxQL：</p>
+<pre>SELECT mean("usage_idle") FROM "cpu" WHERE $timeFilter GROUP BY time($__interval), "host"</pre>
+<p>InfluxDB 2 和 3 通过其 1.x API 响应 InfluxQL：如果 bucket 尚未映射到数据库，请在那里进行映射。</p>
+
+<h2 id="json">JSON over HTTP</h2>
+<p>查询是附加到地址上的路径或参数（例如 <code>/api/temps?room=server</code>）；WatchZit 会以 Unix 秒添加 <code>from</code>、<code>to</code> 和 <code>step</code>，并读取以下任一格式的响应（时间以秒或毫秒表示）：</p>
+<pre>[{"target": "temp", "datapoints": [[21.5, 1793268000000], ...]}, ...]
+{"temp": [[1793268000, 21.5], ...], "humidity": [[1793268000, 40], ...]}
+[[1793268000, 21.5], [1793268060, 21.7], ...]</pre>

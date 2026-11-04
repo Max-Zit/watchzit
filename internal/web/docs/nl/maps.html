@@ -1,0 +1,83 @@
+<h1>Netwerkkaarten</h1>
+<p class="lead">Een kaart is een tekening van uw netwerk die tegelijk live monitoring is: apparaten gekleurd naar hun status, kabels die verkeer tonen, poorten waarop u kunt inzoomen.</p>
+
+<h2 id="edit">Een kaart tekenen</h2>
+<ol>
+  <li>Voeg onder <a href="/maps">Kaarten</a> een kaart toe en klik op <b>Bewerken</b>.</li>
+  <li><b>Apparaat toevoegen</b> zet apparaten op de kaart; sleep ze op hun plaats. <b>Item toevoegen</b> voegt dingen toe die niet bewaakt worden (patchpanelen, PDU's). Tijdens het bewerken maakt <b>Bewaakt apparaat</b> in het paneel van een item er een apparaat van de console van: afbeelding, plaats, rackunit en kabels blijven, en het toont de status en meetwaarden van het apparaat. <b>Geen (alleen afbeelding)</b> maakt van een apparaat weer een item.</li>
+  <li><b>Verbinden</b>: klik op twee apparaten en kies de poorten aan beide uiteinden (uit SNMP- of agentinterfaces). De kabel toont het verkeer van die poort.</li>
+  <li><b>Voorgestelde verbindingen</b> toont waar de apparaten zijn aangesloten (zie <a href="#found">Op de apparaten gevonden verbindingen</a>) en biedt de kabels met hun poorten aan, en de apparaten die met de kaart verbonden zijn maar er niet op staan; <b>Alles toevoegen</b> neemt ze allemaal over.</li>
+  <li>Klik op <b>Opslaan</b> (of Ctrl+S). Wijzigingen blijven alleen in de pagina tot u opslaat; <b>Annuleren</b> gaat terug naar de opgeslagen kaart.</li>
+</ol>
+
+<h2 id="design">Afbeeldingen, racks en kabels</h2>
+<ul>
+  <li>Elk apparaat heeft een afbeelding uit de ingebouwde bibliotheek (switches met hun poorten, routers, servers, firewalls, access points, telefoons, camera's …) of een die u uploadt.</li>
+  <li>De bibliotheek bevat ook zo'n 3.500 echte modellen van meer dan 180 fabrikanten: servers (HPE ProLiant vanaf G6, Dell PowerEdge, Lenovo, Supermicro, Cisco UCS, Fujitsu, Huawei/xFusion, Inspur), NAS (Synology, QNAP, Asustor, TrueNAS en andere), SAN-opslag en FC-switches (HPE MSA/3PAR/Nimble/Alletra, IBM Storwize/FlashSystem, Dell PowerVault/Unity/PowerStore, NetApp, Pure Storage, Lenovo, Fujitsu ETERNUS, Huawei OceanStor, Hitachi, Brocade, Cisco MDS), switches (Cisco, HPE Aruba, Dell, Juniper, Ubiquiti, Netgear, TP-Link, D-Link, Zyxel, Huawei, Arista, Extreme, Ruckus, Alcatel-Lucent, Ruijie, FS (fs.com: campus-, PoE-, datacenter- en industriële switches, wifi, mediaconverters, glasvezelbehuizingen), QNAP, TRENDnet, Hikvision, Dahua, Lancom, DrayTek, industriële Moxa, Siemens SCALANCE, Hirschmann en Phoenix Contact, en andere), firewalls (Fortinet, Palo Alto, Sophos, WatchGuard, SonicWall, Check Point, Cisco ASA/Firepower, Netgate en andere), MikroTik, routers voor thuis en kantoor en mesh-wifi (TP-Link, ASUS, FRITZ!Box, Netgear, Linksys, D-Link, ONT's van Huawei en ZTE en andere), access points, UPS'en (tower en rack), videorecorders en IP-camera's, point-to-point-, sector- en omni-antennes voor buiten, printers, IP-telefoons en telefooncentrales, bladechassis, PDU's, KVM- en consoleservers, omgevingsmonitors en mini-pc's, GPON-OLT's en -ONT's, providerrouters, SD-WAN-edges, NTP-tijdservers, intercoms, videoconferentiesystemen, PLC's en HMI's. De algemene afbeeldingen bevatten ook rackaccessoires: kabelmanagers, borstelpanelen, legplanken, ventilatorlades, lades en blindpanelen. De algemene afbeeldingen bevatten ook glasvezelpatchpanelen (LC duplex singlemode en multimode, SC/APC en SC/UPC, 12 tot 96 poorten) en glasvezelwanddozen. Kies in het afbeeldingenpaneel de <b>fabrikant</b> (of <b>Alle fabrikanten</b>) en het <b>type</b> (switch, router, firewall, server, opslag / NAS, access point …), of zoek op het model (bijvoorbeeld "DL380 Gen10" of "CRS326"); een type of een zoekopdracht met <b>Algemene afbeeldingen</b> doorzoekt alle fabrikanten; de tekeningen hebben de poorten en schijfsleuven van het model, zodat kabels in de juiste poort eindigen. Voor een apparaat opent het paneel met zijn fabrikant; wanneer een apparaat aan de kaart wordt toegevoegd en zijn SNMP-beschrijving een model uit de bibliotheek noemt (bijvoorbeeld MikroTik), wordt die afbeelding vanzelf gekozen.</li>
+  <li><b>Racks</b> van 4 tot 48 units: zet er apparaten in; ze klikken vast in vrije units. Dingen die niet voor een rack gemaakt zijn — een NAS, een kleine switch, een mini-pc op een legplank — krijgen in het paneel van het apparaat een eigen <b>Hoogte</b> (1–20U, anders die van de afbeelding) en <b>Breedte</b> (de hele breedte, 1/2, 1/3 of 1/4) met een <b>Positie</b> van links naar rechts, zodat er meerdere naast elkaar in dezelfde units staan; in een rack gezet nemen ze de dichtstbijzijnde vrije plaats in.</li>
+  <li>Kabels hebben een <b>soort</b> (koper, glasvezel, DAC, draadloos, VPN, WAN, serieel, voeding) en een <b>verloop</b>: recht, bochten van 90° of 45°, gebogen; sleep de punten om ze te buigen; dubbelklik op een punt om het te verwijderen.</li>
+  <li>Een <b>achtergrondafbeelding</b> (een plattegrond, een terrein) met grootte, transparantie en positie.</li>
+  <li><b>Subkaarten</b> linken naar andere kaarten en tonen hun slechtste status.</li>
+</ul>
+
+<h2 id="reading">Een kaart lezen</h2>
+<ul>
+  <li>Groen is actief, oranje gedeeltelijk uitgevallen, rood uitgevallen (knipperend); grijs betekent onbekend of gepauzeerd.</li>
+  <li>Kabels worden breder en veranderen van kleur met de bezetting (boven 50 % oranje, boven 80 % rood); een kabel waarvan de poort geen link heeft, is rood en gestreept.</li>
+  <li>Zoom met het scrollwiel of twee vingers; namen en poortlabels verschijnen wanneer u dichtbij genoeg bent. Klik op een apparaat voor zijn paneel met controles, poorten en tools — operators en beheerders krijgen daar ook <b>Apparaat bewerken</b>, en na het opslaan komen ze terug op de kaart; dubbelklik om het te openen.</li>
+  <li>Klik op een kabel voor zijn paneel: het huidige verkeer in beide richtingen en de <b>Verkeersgeschiedenis</b> van het laatste uur, de laatste dag, week of maand (uit de interfacecontrole van een van beide uiteinden).</li>
+</ul>
+
+<h2 id="ha">HA-groepen</h2>
+<ul>
+  <li>Apparaten die elkaar vervangen — een HA-paar firewalls, VRRP- of HSRP-routers, een switchstack of MLAG/vPC-paar, een server- of opslagcluster — vormen een <b>HA-groep</b>: kies tijdens het bewerken in het paneel van het eerste apparaat <b>HA-groep → Nieuwe HA-groep</b>, en daarna dezelfde groep in het paneel van de andere. De groep is een gestreept kader rond zijn leden; leden die in een rack gemonteerd zijn krijgen alleen een dunne omlijning en een klein label <b>⇅ HA</b> waar het ene lid aan het volgende grenst, zodat de units eromheen overzichtelijk blijven (klik op het label om de groep te openen); de VRRP-rol staat klein naast het label bij elk lid — ACTIVE in groen, STANDBY in oranje. In het groepspaneel stelt u de naam en de soort in.</li>
+  <li><b>Pad</b> loopt door elk lid van een groep en toont elke gelijkwaardige route (bijvoorbeeld 2 routes via twee firewalls). Markeer de kabel tussen de leden (heartbeat, sync, stack, peer link) met de kabelsoort <b>HA-verbinding</b>; die is geen weg voor verkeer.</li>
+  <li>Het kader (of label) is groen zolang alle leden actief zijn, oranje met <i>redundantie verloren</i> als sommige uitgevallen zijn en rood als alle uitgevallen zijn. De trigger <b>HA-groep zonder redundantie</b> opent dan een probleem (zie Waarschuwingen).</li>
+  <li>Leden die VRRP rapporteren tonen <b>ACTIVE</b> of <b>STANDBY</b>, en het groepspaneel vermeldt sinds wanneer.</li>
+</ul>
+
+<h2 id="hypervisors">Hypervisors en virtuele machines</h2>
+<ul>
+  <li><b>Hypervisor toevoegen</b> (tijdens het bewerken) voegt een vak toe voor een virtualisatiehost: kies de <b>hypervisor</b> (VMware ESXi, Proxmox VE, Hyper-V, XCP-ng, KVM, Nutanix AHV, Docker, Kubernetes en andere) en de <b>fysieke server</b> waarop hij draait (verplicht; voeg voor een cluster de andere servers toe onder <b>Cluster</b>, en paden kunnen via elk van hen lopen); de status van de server wordt op het vak getoond, zijn meetwaarden openen vanuit het paneel en, als de server op de kaart staat, verbindt een gestreepte lijn ze. <b>Pad</b> gaat van een virtuele machine via zijn hypervisor en de fysieke server verder langs de kabels.</li>
+  <li>Sleep virtuele machines in het vak: apparaten van de console (om hun status te zien) of items met een afbeelding van hun systeem (Windows Server, Ubuntu, Debian, Red Hat, MikroTik CHR, pfSense, containers en meer, type <b>Virtuele machine</b> in het afbeeldingenpaneel). In het vak worden ze in een raster uitgelijnd; sleep ze binnen het vak om de volgorde te wijzigen, eruit om ze van de host te halen. Het paneel van een apparaat heeft ook <b>Draait op hypervisor</b>.</li>
+  <li><b>Machines van de hypervisor vanzelf tonen</b> (standaard aan voor nieuwe vakken) vult het vak met de machines die een hypervisorcontrole, de agent (Hyper-V, Docker) of vCenter voor zijn fysieke server rapporteert: draaiende in groen, gestopte in grijs, onderbroken in geel. Een machine waarvan het adres of de naam een apparaat van de console is, wordt als dat apparaat getoond. Deze machines horen niet bij de opgeslagen kaart tot u er een verplaatst of verbindt, of op <b>Op de kaart zetten</b> drukt; <b>Machines op de kaart zetten</b> zet ze allemaal neer. Items die u zelf neerzet met de naam van een machine krijgen ook de status ervan.</li>
+  <li>Het vak toont de slechtste status van zijn virtuele machines en van de fysieke server; de laag <b>Hypervisors</b> verbergt de vakken.</li>
+</ul>
+
+<h2 id="pictures">Afbeeldingenbibliotheek</h2>
+<p><b>Afbeeldingenbibliotheek</b> in het menu bewaart uw eigen apparaatafbeeldingen. <b>Afbeelding uploaden</b> (PNG, JPEG, GIF, WebP of SVG; een vooraanzicht werkt het best) of neem een ingebouwde afbeelding: het <b>potlood</b> wijzigt de ingebouwde afbeelding zelf, op alle kaarten waar die wordt gebruikt (openen wijzigt niets; een gewijzigde versie wordt pas opgeslagen wanneer u een wijziging opslaat) (verwijder de gewijzigde afbeelding om terug te gaan naar de ingebouwde), en <b>kopiëren</b> maakt er een nieuwe eigen afbeelding van, voor een vergelijkbaar model. Stel in de editor in:</p>
+<ul>
+  <li><b>Poorten</b>: klik op de afbeelding om een poort toe te voegen, poort 1 eerst; sleep een poort om hem te verplaatsen, dubbelklik erop om hem te verwijderen. Voer voor een rij in hoeveel poorten het zijn en klik op de eerste en de laatste; <b>op twee lijnen</b> nummert ze zoals bij een switch, 1 boven 2. De laatste <b>SFP-poorten</b> worden oranje getekend en stellen een glasvezelkabel voor.</li>
+  <li><b>Rackunits</b> (0 als het apparaat niet in een rack wordt gemonteerd), <b>fabrikant</b>, <b>type</b> en de <b>breedte op de kaart</b>.</li>
+  <li><b>Kopiëren</b> maakt een nieuwe afbeelding van een van uw eigen afbeeldingen, voor een vergelijkbaar model.</li>
+</ul>
+<p>De afbeeldingen verschijnen in het afbeeldingenpaneel van de kaarten onder hun fabrikant en type, en kabels op een kaart eindigen in de poorten die u hebt gemarkeerd.</p>
+
+<h2 id="layers">Lagen en paden</h2>
+<ul>
+  <li><b>Lagen</b> bepaalt wat de kaart toont: apparaten, racks, items, subkaarten, kabels, poortnamen, verkeer, VLAN-labels, VXLAN-tunnels, namen en adressen, tekst en de achtergrond, in elke combinatie. Uw keuze wordt in deze browser bewaard.</li>
+  <li><b>Pad</b>: klik op twee apparaten en de kaart toont alleen de keten van kabels ertussen (met patchpanelen, switches en racks onderweg) en zoomt daarop in. Klik opnieuw op Pad of druk op Esc om de hele kaart te zien.</li>
+  <li>Poortnamen op kabels verschijnen wanneer u inzoomt, zodat een volle kaart leesbaar blijft. Ze staan precies waar de kabel eindigt: op de poort van de afbeelding, of waar de kabel een afbeelding zonder poorten verlaat; ze worden boven alle kabels getekend, zodat geen kabel ze verbergt. Een poort die al door een andere kabel wordt gebruikt, kan niet nog eens gekozen worden; de lijst vermeldt waar de kabel ervan heen gaat.</li>
+  <li><b>VLAN's</b>: wanneer switches of routers op de kaart VLAN's rapporteren, verschijnt er een VLAN-lijst in de werkbalk. Kies een VLAN en de kaart toont alleen de kabels die het dragen, gemarkeerd als tagged of untagged; apparaten zonder dat VLAN vervagen. Het kabelpaneel toont de VLAN's van zijn poorten.</li>
+  <li>Kabels krijgen een label met hun VLAN-modus, bijvoorbeeld <i>Access 20</i> of <i>Trunk · native 1 · 10, 20-25</i> (laag <b>VLAN-labels</b>). Het VLAN-filter kan ook alleen tagged of alleen untagged VLAN's tonen. Een kabel wordt oranje gestreept getekend wanneer de uiteinden het niet eens zijn: een access-poort tegenover een trunk, of een ander native VLAN aan elk uiteinde.</li>
+  <li>Tijdens het bewerken kan de <b>VLAN-modus</b> van een kabel met de hand worden ingesteld: <b>Access</b> met zijn VLAN, of <b>Trunk</b> met het native VLAN en de toegestane (tagged) VLAN's, bereiken zoals 20-25 inbegrepen; <b>Automatisch</b> gebruikt wat de poorten rapporteren. Een kabel kan ook een <b>VXLAN-VNI</b> dragen, en de kabelsoort <b>VXLAN-tunnel</b> tekent met de hand een tunnel.</li>
+  <li>VXLAN-tunnels die de apparaten rapporteren, worden getekend als gestreepte paarse bogen met hun VNI (laag <b>VXLAN-tunnels</b>).</li>
+</ul>
+
+<h2 id="kiosk">Kioskschermen</h2>
+<p>Maak onder <a href="/settings/kiosks">Instellingen → Kioskschermen</a> een scherm aan met de kaarten die het toont en hoe vaak het daartussen wisselt. Het krijgt een geheime link die de kaarten op volledig scherm opent zonder aanmelden — voor een monitoring-tv. Verwijder het scherm om de link niet meer te laten werken.</p>
+
+<p>Om op een kaart te beginnen in plaats van op het overzicht, kiest u die als <b>Startpagina</b> op <a href="/account">Mijn account</a>; na het aanmelden en via het logo opent dan die kaart, en <b>Overzicht</b> in het menu opent nog steeds het overzicht. Ook een dashboard kan de startpagina zijn.</p>
+
+<h2 id="arrange">Een kaart schikken</h2>
+<p>Tijdens het bewerken deelt <b>Schikken</b> de hele kaart in volgens de kabels: het apparaat met de meeste verbindingen (bij gelijke stand een router of firewall vóór een switch) bovenaan, wat eraan hangt in de rij eronder, enzovoort; racks en hypervisorvakken verhuizen mee met hun inhoud, dingen zonder kabel komen in een raster eronder, en met de hand getekende bochten vervallen. Er wordt niets opgeslagen tot u op <b>Opslaan</b> klikt; <b>Annuleren</b> zet alles terug.</p>
+
+<h2 id="found">Op de apparaten gevonden verbindingen</h2>
+<p>Elke 15 minuten leest WatchZit via SNMP van de apparaten (en van MikroTik-apparaten met de RouterOS-API-controle) waar dingen zijn aangesloten, in volgorde van hoe zeker het is:</p>
+<ul>
+  <li><b>Buurtabellen</b> — LLDP, Cisco CDP en MikroTik discovery: beide uiteinden en hun poorten. Tussen twee apparaten tellen alleen de echte poorten (geen VLAN-, VXLAN-, bridge- of VRRP-interfaces) als die er zijn.</li>
+  <li><b>MAC-adrestabellen</b> van switches: de poort waarop het MAC-adres van een apparaat is geleerd — de MAC-adressen van zijn eigen interfaces, de netwerkkaarten die een agent rapporteert, of het MAC-adres dat de ARP-tabel van een router voor zijn adres heeft (zodat ook printers, camera's en servers zonder SNMP worden gevonden). De access-poort met de minste adressen wordt genomen; poorten naar andere switches (met een buur die een switch is, of meer dan 8 adressen) niet.</li>
+  <li><b>Poortbeschrijvingen</b> (de interface-alias, of de beschrijving in een opgeslagen configuratie) die een ander apparaat noemen, bijv. "uplink to sw2 ether7" — met die poort als de beschrijving hem noemt.</li>
+  <li><b>Opgeslagen configuraties</b> (configuratieback-ups van MikroTik, Cisco, FortiGate): twee apparaten met adressen in hetzelfde point-to-pointnetwerk (/30 of /31).</li>
+</ul>
+<p><b>Zelf tekenen</b> (in het paneel Voorgestelde verbindingen): de kaart voegt elke 15 minuten de gevonden verbindingen tussen zijn apparaten toe, en met <b>Ook de apparaten toevoegen waarnaar ze leiden</b> haalt hij de apparaten erbij die ermee verbonden zijn, geplaatst naast het apparaat waarop ze zijn aangesloten. Verbindingen en apparaten die u van zo'n kaart verwijdert, blijven verwijderd (de optie uit- en weer inschakelen vergeet dat). <b>Apparaten opnieuw lezen</b> leest de apparaten van de kaart nu uit.</p>

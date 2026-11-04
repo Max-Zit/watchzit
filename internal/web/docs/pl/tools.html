@@ -1,0 +1,32 @@
+<h1>Otwieranie urządzeń</h1>
+<p class="lead">Ze strony urządzenia lub z panelu bocznego mapy otwierasz urządzenie właściwym programem: jego interfejsem WWW, SSH, Pulpitem zdalnym, WinBoxem, VNC lub własnymi narzędziami.</p>
+
+<h2 id="launcher">MaxZit Launcher</h2>
+<p>Przeglądarka nie może uruchamiać programów, więc robi to mały program dla Windows: <b>MaxZit Launcher</b>. Zainstaluj go raz na każdym komputerze ze strony <a href="/launcher">Launcher</a> — <b>instalator</b> (MSI) z krótkim kreatorem umieszcza go w Aplikacjach z jego ikoną, skąd można go ponownie usunąć — instaluje się dla twojego użytkownika Windows, bez uprawnień administratora — i kliknij <b>Sparuj ten komputer</b>. Launcher pokazuje odcisk serwera; musi on zgadzać się z tym na stronie.</p>
+<p>Od tej chwili działają przyciski <b>Otwórz w</b>. Gdy konsola przeniesie się pod inny adres (lub zostanie przywrócona z kopii zapasowej gdzie indziej), ponownie kliknij <b>Sparuj ten komputer</b>: launcher rozpozna ją po kluczu i zapyta, czy użyć nowego adresu. Za pierwszym razem przeglądarka zapyta, czy może otworzyć launcher; zezwól na to.</p>
+<p>Ten sam launcher obsługuje <b>PassZit</b>: w menu rozszerzenia PassZit kliknij <b>Pair with the MaxZit Launcher</b> i potwierdź w oknie launchera. PassZit otwiera wtedy Pulpit zdalny, SSH, WinSCP, WinBox, VNC i Telnet z danymi logowania z sejfu — Pulpit zdalny przez poświadczenie Windows, które istnieje tylko przez kilka sekund, hasło lub klucz SSH przez plik, który możesz odczytać tylko ty i który jest usuwany zaraz po uruchomieniu. Launcher zastępuje starszy WatchZit Launcher i passzit-helper: instalacja przejmuje ich ustawienia i parowania. Gdy PassZit jest sparowany, a adres konsoli należy do jego zaufanych konsol MaxZit, przyciski <b>Otwórz w</b> w WatchZit otwierają połączenie zalogowane pasującymi danymi z sejfu; bez PassZit lub bez danych logowania dla danego urządzenia otwierają się jak dotąd. Konsola przekazuje PassZit tylko narzędzie, adres, port, nazwę użytkownika i nazwę urządzenia — nigdy hasła. Obok przycisków <b>Otwórz w</b> mała plakietka <b>PassZit</b> pokazuje, że PassZit jest odblokowany i zaloguje; <b>PassZit zablokowany</b> oznacza, że trzeba go najpierw odblokować. Bez PassZit na tej konsoli mała podpowiedź wyjaśnia, jak go dopuścić; <b>Nie pokazuj ponownie</b> ukrywa ją w tej przeglądarce.</p>
+
+<h2 id="safety">Jak zapewnione jest bezpieczeństwo</h2>
+<ul>
+  <li>Każde kliknięcie daje link <b>podpisany</b> przez twój serwer, ważny przez minutę i działający jeden raz; launcher przyjmuje linki tylko od sparowanych serwerów.</li>
+  <li>Adresy i nazwy użytkowników są sprawdzane względem ścisłych zestawów znaków; programy uruchamiają się z listą argumentów, nigdy przez powłokę.</li>
+  <li>Hasła nigdy nie są zapisywane ani wysyłane: program sam o nie pyta.</li>
+  <li>Zanim program dodany przez administratora uruchomi się po raz pierwszy, launcher cię zapyta.</li>
+</ul>
+
+<h2 id="tools">Wbudowane narzędzia</h2>
+<table>
+  <tr><th>Narzędzie</th><th>Program na twoim komputerze</th></tr>
+  <tr><td>SSH</td><td>PuTTY, jeśli jest zainstalowany, w przeciwnym razie klient SSH systemu Windows</td></tr>
+  <tr><td>Pulpit zdalny</td><td>klient Pulpitu zdalnego systemu Windows</td></tr>
+  <tr><td>WinBox</td><td>winbox64.exe z Program Files, Pobranych lub Pulpitu</td></tr>
+  <tr><td>VNC</td><td>przeglądarka TightVNC, TigerVNC lub RealVNC</td></tr>
+  <tr><td>Telnet</td><td>PuTTY</td></tr>
+</table>
+<p>Programy w innych miejscach: wpisz ich ścieżki do <code>%APPDATA%\MaxZit Launcher\launcher.json</code>. Bez launchera Pulpit zdalny nadal działa: przycisk <b>.rdp</b> pobiera plik, który otwiera Windows.</p>
+
+<h2 id="own-tools">Własne narzędzia</h2>
+<p>W <a href="/settings/tools">Ustawienia → Narzędzia</a> administratorzy wyłączają wbudowane narzędzia, ograniczają je do typów urządzeń i dodają własne: ścieżkę programu (na przykład <code>%ProgramFiles%\Mozilla Firefox\firefox.exe</code>) i argumenty z <code>{host}</code>, <code>{port}</code>, <code>{user}</code> i <code>{name}</code>. Nazwę użytkownika i porty dla każdego urządzenia ustawia się w jego sekcji <b>Dostęp zdalny</b>, gdzie można też odznaczyć narzędzia, których urządzenie nie ma — serwer Proxmox lub Linux nie ma Pulpitu zdalnego — albo zaznaczyć takie, którego jego typ domyślnie nie dostaje; przyciski na stronie urządzenia i na mapach pokazują wtedy tylko zaznaczone narzędzia.</p>
+
+<h2 id="device-links">Linki na każdym urządzeniu</h2>
+<p>Również w <a href="/settings/tools#links">Ustawienia → Narzędzia</a> opcja <b>Linki na każdym urządzeniu</b> dodaje do każdej strony urządzenia przyciski, które otwierają urządzenie w innym programie w przeglądarce, na przykład w RMMZit lub BackupZit. Podaj nazwę i adres; <code>{name}</code>, <code>{address}</code> i <code>{id}</code> są zastępowane nazwą, adresem i numerem urządzenia, np. <code>https://rmm.example.com:8443/devices?q={name}</code>. Akceptowane są tylko adresy http:// i https://.</p>

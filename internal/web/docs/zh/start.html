@@ -1,0 +1,31 @@
+<h1>快速入门</h1>
+<p class="lead">WatchZit 是一款自托管的网络与设备监控系统。实时网络地图展示哪些设备彼此相连以及它们的运行状况；其背后是检查、图表、告警、仪表板和报告——全部运行在您自己的服务器上，采用 AGPL-3.0 许可证。</p>
+
+<h2 id="what">WatchZit 能做什么</h2>
+<table>
+  <tr><th>领域</th><th>功能</th></tr>
+  <tr><td>网络地图</td><td>使用真实的设备图片、机柜和端口到端口的线缆绘制网络；地图显示实时状态和流量。<a href="/docs/maps">网络地图</a></td></tr>
+  <tr><td>检查</td><td>Ping、TCP 端口、网页、TLS 证书、DNS、PostgreSQL 和 MySQL、SNMP（v1/v2c/v3：接口、CPU、内存、磁盘、任意 OID）、MikroTik RouterOS API，以及任意 JSON API 中的数值。<a href="/docs/devices">设备与检查</a></td></tr>
+  <tr><td>代理</td><td>适用于 Windows 和 Linux 的小型可选代理，上报 CPU、内存、磁盘、接口和所选服务。<a href="/docs/agents">代理</a></td></tr>
+  <tr><td>告警</td><td>触发器产生问题；依赖、维护窗口和确认机制减少干扰；可通过电子邮件、Webhook、Slack 和 Teams 发送通知。<a href="/docs/alerts">问题与告警</a></td></tr>
+  <tr><td>图表、仪表板、报告</td><td>每个数值的图表，时间范围从一小时到一年；适合墙面大屏的仪表板；可用性报告。<a href="/docs/dashboards">仪表板与报告</a></td></tr>
+  <tr><td>打开设备</td><td>一键打开设备的网页、SSH、远程桌面、WinBox 或您自己的工具。<a href="/docs/tools">打开设备</a></td></tr>
+</table>
+
+<h2 id="how">工作原理</h2>
+<ul>
+  <li><b>服务器</b>运行在 Linux 上，使用 PostgreSQL。它有两个端口：<b>控制台</b>（Web 界面和 REST API，TCP 8443）和<b>代理接入点</b>（TCP 8444）。</li>
+  <li>服务器自行<b>轮询</b>设备（Ping、TCP、SNMP、HTTP、数据库、API）。设备无需为此安装任何软件。</li>
+  <li><b>代理</b>是可选的。代理以<i>出站</i>方式连接到代理端口，每分钟上报一次；计算机无需开放任何端口。</li>
+  <li>控制台中的每项更改都会写入防篡改的<a href="/audit">审计日志</a>。</li>
+</ul>
+
+<h2 id="first-steps">第一步</h2>
+<ol>
+  <li><b>安装服务器</b>——请参阅<a href="/docs/install">安装服务器</a>。</li>
+  <li>使用安装程序显示的设置令牌<b>创建第一个管理员</b>，并使用身份验证器应用设置双因素登录。</li>
+  <li>在<a href="/devices">设备</a>中<b>添加设备</b>：只需名称和地址即可，系统会自动添加 Ping。添加 SNMP 配置文件即可读取接口和流量。</li>
+  <li>在<a href="/maps">地图</a>中<b>绘制地图</b>，并按端口连接设备。</li>
+  <li>在<a href="/settings/notifications">设置 → 通知</a>中<b>设置通知</b>；内置触发器已经在监视宕机的设备、已满的磁盘和即将过期的证书。</li>
+</ol>
+<div class="callout tip"><p>默认情况下，控制台只能从私有网络访问。请保持此设置，只在代理需要的地方开放代理端口（8444）。</p></div>

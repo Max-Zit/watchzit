@@ -1,0 +1,25 @@
+<h1>Dashboards und Berichte</h1>
+<p class="lead">Dashboards bringen die Werte, die Ihnen wichtig sind, auf einen Bildschirm; Berichte zeigen, wie verfügbar Ihre Geräte über einen Zeitraum waren.</p>
+
+<h2 id="dashboards">Dashboards</h2>
+<p>Fügen Sie unter <a href="/dashboards">Dashboards</a> ein Dashboard hinzu und klicken Sie auf <b>Bearbeiten</b>. Widgets:</p>
+<table>
+  <tr><th>Widget</th><th>Zeigt</th></tr>
+  <tr><td>Graph</td><td>das Diagramm einer Prüfung, mit dem Zeitbereich des Dashboards</td></tr>
+  <tr><td>Aktueller Wert</td><td>einen Wert in großen Ziffern, eingefärbt nach dem Zustand seiner Prüfung</td></tr>
+  <tr><td>Gerätezustände</td><td>die Geräte einer Gruppe (oder alle) als farbige Kacheln</td></tr>
+  <tr><td>Offene Probleme</td><td>die offenen Probleme einer Gruppe oder aller Geräte</td></tr>
+  <tr><td>Karte</td><td>eine Kachel mit dem schlechtesten Zustand der Karte, die sie öffnet</td></tr>
+  <tr><td>Diagramm aus einer Datenquelle</td><td>eine Abfrage einer <a href="/docs/datasources">Datenquelle</a> (eine Datenbank, Prometheus, InfluxDB, JSON)</td></tr>
+</table>
+<p>Widgets sind klein, mittel oder groß und sitzen in einem Raster; verschieben Sie sie nach oben und unten. Das Dashboard lädt sich jede Minute neu, sodass es dauerhaft auf einem Wandbildschirm offen bleiben kann.</p>
+
+<h2 id="reports">Verfügbarkeitsberichte</h2>
+<p><a href="/reports">Berichte</a> zeigt für jedes Gerät, für die letzten 7, 30 oder 90 Tage, diesen Monat oder den letzten Monat:</p>
+<ul>
+  <li><b>Verfügbarkeit</b> — der Anteil der Zeit, in der das Gerät nicht ausgefallen war. Zeit, in der es hinter einem ausgefallenen Gerät nicht erreichbar war, zählt als ausgefallen; Zeit in der <b>Wartung</b> wird gesondert ausgewiesen und zählt nicht.</li>
+  <li><b>Ausfallzeit</b>, die Anzahl der <b>Probleme</b> und die durchschnittliche <b>Ping</b>-Zeit.</li>
+</ul>
+<p>Laden Sie ihn als <b>CSV</b> für eine Tabellenkalkulation herunter oder <b>drucken Sie ihn bzw. speichern Sie ihn als PDF</b>.</p>
+<p><b>SLA:</b> Geben Sie einer Gruppe unter <a href="/groups">Gruppen</a> ein <b>SLA-Ziel</b> (z. B. 99,9 %). Der Bericht zeigt dann <b>SLA nach Gruppe</b> — die Verfügbarkeit aller ihrer Geräte zusammen (nach Zeit gewichtet) im Vergleich zum Ziel, <b>erfüllt</b> oder <b>verfehlt</b> — und färbt jedes Gerät nach dem Ziel seiner Gruppe ein.</p>
+<p><b>Per E-Mail:</b> Administratoren legen unter <b>Per E-Mail senden</b> fest, ob der Bericht jeden Montag (die letzten 7 Tage) oder an jedem 1. des Monats (den letzten Monat) verschickt wird, für alle Geräte oder eine Gruppe, und an welche Adressen. Er wird um 07:00 Uhr Serverzeit mit der CSV-Datei im Anhang gesendet; <b>Jetzt senden</b> verschickt ihn sofort.</p>

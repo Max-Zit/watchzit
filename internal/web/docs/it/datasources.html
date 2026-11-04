@@ -1,0 +1,58 @@
+<h1>Origini dati</h1>
+<p class="lead">Grafici e dashboard possono mostrare anche serie temporali esterne a WatchZit: tabelle dei tuoi database, Prometheus, InfluxDB o qualsiasi indirizzo che risponda in JSON, accanto ai valori di agenti e controlli.</p>
+
+<h2 id="add">Aggiungere un'origine dati</h2>
+<p>Gli amministratori aggiungono le origini dati in <a href="/settings/datasources">Impostazioni → Origini dati</a>:</p>
+<table>
+  <tr><th>Genere</th><th>Indirizzo</th><th>Accesso</th></tr>
+  <tr><td>PostgreSQL</td><td>host o host:porta (5432), e il database</td><td>utente e password</td></tr>
+  <tr><td>MySQL / MariaDB</td><td>host o host:porta (3306), e il database</td><td>utente e password</td></tr>
+  <tr><td>Microsoft SQL Server</td><td>host o host:porta (1433), e il database</td><td>utente e password di SQL Server</td></tr>
+  <tr><td>Prometheus</td><td>l'URL, ad esempio <code>http://prometheus:9090</code>; anche Thanos, VictoriaMetrics, Mimir</td><td>nessuno, utente e password, o un bearer token</td></tr>
+  <tr><td>InfluxDB</td><td>l'URL, ad esempio <code>http://influx:8086</code>, e il database (InfluxDB 2/3: il bucket)</td><td>InfluxDB 1: utente e password; 2 e 3: solo il token</td></tr>
+  <tr><td>JSON su HTTP</td><td>l'URL di base del tuo servizio</td><td>nessuno, utente e password, o un bearer token</td></tr>
+</table>
+<p><b>Prova connessione</b> prova le impostazioni senza salvarle. La password o il token vengono salvati cifrati e non vengono mai più mostrati; lascia il campo vuoto per mantenerli.</p>
+<p>Per i database SQL scegli la cifratura: quando il server la offre (predefinito), sempre con qualsiasi certificato, sempre con un certificato attendibile, oppure mai. Per gli indirizzi https:// si può accettare un certificato autofirmato.</p>
+<p><b>Assegna alla console un utente che possa solo leggere</b> le tabelle di cui ha bisogno. WatchZit esegue le query PostgreSQL e MySQL in una transazione di sola lettura; SQL Server non ha nulla di simile, quindi lì solo i permessi dell'utente proteggono i dati. Gli operatori scrivono le query; gli osservatori vedono solo i grafici.</p>
+
+<h2 id="graphs">Query nei grafici</h2>
+<p>Sulla pagina di un dispositivo fai clic su <b>Modifica grafici</b>, poi su ✎ su un grafico o su <b>Aggiungi grafico</b>. In <b>Origini dati</b> fai clic su <b>Aggiungi query</b>, scegli l'origine dati e scrivi la query. <b>Prova</b> la esegue sul periodo della pagina e indica le serie che restituisce (con il loro numero di punti) o l'errore del database. Un grafico può mostrare fino a 6 query accanto ai valori del dispositivo, ognuna con un nome di serie, un'unità e un colore.</p>
+<p>Nelle dashboard aggiungi il widget <b>Grafico da un'origine dati</b>.</p>
+<p>Le risposte vengono conservate per 20 secondi, così una dashboard su più schermi interroga il database una sola volta. Una query restituisce al massimo 200.000 righe e 50 serie e può durare 20 secondi; i valori vengono sfoltiti in base alla larghezza del grafico.</p>
+
+<h2 id="sql">SQL (PostgreSQL, MySQL, SQL Server)</h2>
+<p>La query restituisce una <b>colonna temporale</b> (chiamata <code>time</code>, oppure la prima colonna che contiene orari; vanno bene anche secondi o millisecondi Unix), una o più <b>colonne numeriche</b> (una serie ciascuna) e, facoltativamente, una <b>colonna di testo</b> che dà il nome alla serie (<code>metric</code>, oppure la prima colonna di testo) per le tabelle con una riga per serie e orario. Ordina per tempo.</p>
+<p>Le macro inseriscono nella query il periodo del grafico:</p>
+<table>
+  <tr><th>Macro</th><th>Diventa</th></tr>
+  <tr><td><code>$__timeFilter(col)</code></td><td><code>col</code> tra l'inizio e la fine del periodo</td></tr>
+  <tr><td><code>$__timeGroup(col)</code></td><td><code>col</code> arrotondato per difetto all'intervallo del grafico; <code>$__timeGroup(col, 300)</code> a 5 minuti</td></tr>
+  <tr><td><code>$__timeFrom</code>, <code>$__timeTo</code></td><td>l'inizio e la fine come orario</td></tr>
+  <tr><td><code>$__unixFrom</code>, <code>$__unixTo</code></td><td>l'inizio e la fine in secondi Unix</td></tr>
+  <tr><td><code>$__interval_s</code></td><td>l'intervallo del grafico in secondi</td></tr>
+</table>
+<p>Esempi:</p>
+<pre>-- orders per interval (PostgreSQL, MySQL, SQL Server alike)
+SELECT $__timeGroup(created_at) AS time, count(*) AS orders
+FROM orders WHERE $__timeFilter(created_at)
+GROUP BY 1 ORDER BY 1
+
+-- one series per warehouse
+SELECT $__timeGroup(ts) AS time, warehouse AS metric, avg(temp) AS value
+FROM sensor_readings WHERE $__timeFilter(ts)
+GROUP BY 1, 2 ORDER BY 1</pre>
+
+<h2 id="prometheus">Prometheus</h2>
+<p>Scrivi PromQL, ad esempio <code>rate(node_network_receive_bytes_total{device="eth0"}[5m]) * 8</code>. Ogni serie prende il nome così come lo scrive Prometheus (<code>name{label="value"}</code>); un nome di serie nell'editor lo sostituisce. Il passo segue la larghezza del grafico.</p>
+
+<h2 id="influxdb">InfluxDB</h2>
+<p>Scrivi InfluxQL con <code>$timeFilter</code> e <code>$__interval</code>:</p>
+<pre>SELECT mean("usage_idle") FROM "cpu" WHERE $timeFilter GROUP BY time($__interval), "host"</pre>
+<p>InfluxDB 2 e 3 rispondono a InfluxQL tramite la loro API 1.x: lì associa il bucket a un database, se non è ancora associato.</p>
+
+<h2 id="json">JSON su HTTP</h2>
+<p>La query è un percorso o dei parametri aggiunti all'indirizzo (ad esempio <code>/api/temps?room=server</code>); WatchZit aggiunge <code>from</code>, <code>to</code> e <code>step</code> in secondi Unix e legge una qualsiasi di queste risposte (orari in secondi o millisecondi):</p>
+<pre>[{"target": "temp", "datapoints": [[21.5, 1793268000000], ...]}, ...]
+{"temp": [[1793268000, 21.5], ...], "humidity": [[1793268000, 40], ...]}
+[[1793268000, 21.5], [1793268060, 21.7], ...]</pre>

@@ -1,0 +1,25 @@
+<h1>Nástěnky a zprávy</h1>
+<p class="lead">Nástěnky dávají hodnoty, na kterých vám záleží, na jednu obrazovku; zprávy ukazují, jak dostupná byla vaše zařízení za určité období.</p>
+
+<h2 id="dashboards">Nástěnky</h2>
+<p>V části <a href="/dashboards">Nástěnky</a> přidejte nástěnku a klikněte na <b>Upravit</b>. Widgety:</p>
+<table>
+  <tr><th>Widget</th><th>Ukazuje</th></tr>
+  <tr><td>Graf</td><td>graf kontroly v časovém rozsahu nástěnky</td></tr>
+  <tr><td>Aktuální hodnota</td><td>jednu hodnotu velkými číslicemi, obarvenou podle stavu její kontroly</td></tr>
+  <tr><td>Stavy zařízení</td><td>zařízení skupiny (nebo všechna) jako barevné dlaždice</td></tr>
+  <tr><td>Otevřené problémy</td><td>otevřené problémy skupiny nebo všechny</td></tr>
+  <tr><td>Mapa</td><td>dlaždici s nejhorším stavem mapy, která mapu otevře</td></tr>
+  <tr><td>Graf ze zdroje dat</td><td>dotaz na <a href="/docs/datasources">zdroj dat</a> (databáze, Prometheus, InfluxDB, JSON)</td></tr>
+</table>
+<p>Widgety jsou malé, střední nebo velké a řadí se do mřížky; posouvejte je nahoru a dolů. Nástěnka se každou minutu obnoví, takže může zůstat otevřená na nástěnné obrazovce.</p>
+
+<h2 id="reports">Zprávy o dostupnosti</h2>
+<p><a href="/reports">Zprávy</a> ukazují pro každé zařízení za posledních 7, 30 nebo 90 dní, tento nebo minulý měsíc:</p>
+<ul>
+  <li><b>Dostupnost</b> — podíl času, kdy zařízení nebylo nefunkční. Čas, kdy bylo nedostupné za nefunkčním zařízením, se počítá jako výpadek; čas <b>údržby</b> se ukazuje zvlášť a nepočítá se.</li>
+  <li><b>Doba výpadku</b>, počet <b>problémů</b> a průměrná doba <b>pingu</b>.</li>
+</ul>
+<p>Stáhněte ji jako <b>CSV</b> pro tabulkový procesor nebo ji <b>vytiskněte či uložte jako PDF</b>.</p>
+<p><b>SLA:</b> zadejte skupině <b>cíl SLA</b> (např. 99,9 %) v části <a href="/groups">Skupiny</a>. Zpráva pak ukazuje <b>SLA podle skupin</b> — dostupnost všech jejích zařízení dohromady (vážená časem) oproti cíli, <b>splněno</b> nebo <b>nesplněno</b> — a obarví každé zařízení podle cíle jeho skupiny.</p>
+<p><b>E-mailem:</b> správci v části <b>Poslat e-mailem</b> nastaví, zda zpráva chodí každé pondělí (posledních 7 dní) nebo každého 1. v měsíci (minulý měsíc), pro všechna zařízení nebo skupinu, a na které adresy. Odesílá se v 07:00 času serveru s přiloženým CSV; <b>Poslat nyní</b> ji odešle hned.</p>

@@ -1,0 +1,58 @@
+<h1>Datenquellen</h1>
+<p class="lead">Diagramme und Dashboards können auch Zeitreihen von außerhalb von WatchZit zeigen: Tabellen Ihrer eigenen Datenbanken, Prometheus, InfluxDB oder jede Adresse, die JSON liefert — neben den Werten von Agenten und Prüfungen.</p>
+
+<h2 id="add">Datenquelle hinzufügen</h2>
+<p>Administratoren fügen Datenquellen unter <a href="/settings/datasources">Einstellungen → Datenquellen</a> hinzu:</p>
+<table>
+  <tr><th>Art</th><th>Adresse</th><th>Anmeldung</th></tr>
+  <tr><td>PostgreSQL</td><td>Host oder Host:Port (5432) und die Datenbank</td><td>Benutzer und Passwort</td></tr>
+  <tr><td>MySQL / MariaDB</td><td>Host oder Host:Port (3306) und die Datenbank</td><td>Benutzer und Passwort</td></tr>
+  <tr><td>Microsoft SQL Server</td><td>Host oder Host:Port (1433) und die Datenbank</td><td>SQL-Server-Benutzer und Passwort</td></tr>
+  <tr><td>Prometheus</td><td>die URL, zum Beispiel <code>http://prometheus:9090</code>; auch Thanos, VictoriaMetrics, Mimir</td><td>keine, Benutzer und Passwort oder ein Bearer-Token</td></tr>
+  <tr><td>InfluxDB</td><td>die URL, zum Beispiel <code>http://influx:8086</code>, und die Datenbank (InfluxDB 2/3: der Bucket)</td><td>InfluxDB 1: Benutzer und Passwort; 2 und 3: nur das Token</td></tr>
+  <tr><td>JSON über HTTP</td><td>die Basis-URL Ihres Dienstes</td><td>keine, Benutzer und Passwort oder ein Bearer-Token</td></tr>
+</table>
+<p><b>Verbindung testen</b> probiert die Einstellungen aus, ohne sie zu speichern. Passwort oder Token werden verschlüsselt gespeichert und nie wieder angezeigt; lassen Sie das Feld leer, um sie zu behalten.</p>
+<p>Wählen Sie für SQL-Datenbanken die Verschlüsselung: wenn der Server sie anbietet (Standard), immer mit beliebigem Zertifikat, immer mit vertrauenswürdigem Zertifikat oder nie. Für Adressen mit https:// kann ein selbstsigniertes Zertifikat akzeptiert werden.</p>
+<p><b>Geben Sie der Konsole einen Benutzer, der nur lesen darf</b> — und zwar nur die Tabellen, die sie braucht. WatchZit führt PostgreSQL- und MySQL-Abfragen in einer Nur-Lese-Transaktion aus; SQL Server kennt so etwas nicht, dort schützen also nur die Rechte des Benutzers die Daten. Operatoren schreiben Abfragen; Betrachter sehen nur die Diagramme.</p>
+
+<h2 id="graphs">Abfragen in Diagrammen</h2>
+<p>Klicken Sie auf einer Geräteseite auf <b>Diagramme bearbeiten</b>, dann auf ✎ bei einem Diagramm oder auf <b>Diagramm hinzufügen</b>. Klicken Sie unter <b>Datenquellen</b> auf <b>Abfrage hinzufügen</b>, wählen Sie die Datenquelle und schreiben Sie die Abfrage. <b>Ausprobieren</b> führt sie über den Zeitbereich der Seite aus und nennt die Reihen, die sie liefert (mit ihrer Anzahl an Punkten), oder den Fehler der Datenbank. Ein Diagramm kann bis zu 6 Abfragen neben den Werten des Geräts zeigen, jede mit einem Reihennamen, einer Einheit und einer Farbe.</p>
+<p>Fügen Sie auf Dashboards das Widget <b>Diagramm aus einer Datenquelle</b> hinzu.</p>
+<p>Die Antworten werden 20 Sekunden lang zwischengespeichert, sodass ein Dashboard auf mehreren Bildschirmen die Datenbank nur einmal abfragt. Eine Abfrage liefert höchstens 200.000 Zeilen und 50 Reihen und darf 20 Sekunden dauern; die Werte werden auf die Breite des Diagramms ausgedünnt.</p>
+
+<h2 id="sql">SQL (PostgreSQL, MySQL, SQL Server)</h2>
+<p>Die Abfrage liefert eine <b>Zeitspalte</b> (namens <code>time</code> oder die erste Spalte mit Zeitangaben; Unix-Sekunden oder -Millisekunden funktionieren auch), eine oder mehrere <b>numerische Spalten</b> (je eine Reihe) und optional eine <b>Textspalte</b>, die die Reihe benennt (<code>metric</code> oder die erste Textspalte), für Tabellen mit einer Zeile pro Reihe und Zeitpunkt. Sortieren Sie nach der Zeit.</p>
+<p>Makros setzen den Zeitbereich des Diagramms in die Abfrage ein:</p>
+<table>
+  <tr><th>Makro</th><th>Wird zu</th></tr>
+  <tr><td><code>$__timeFilter(col)</code></td><td><code>col</code> zwischen Anfang und Ende des Bereichs</td></tr>
+  <tr><td><code>$__timeGroup(col)</code></td><td><code>col</code> abgerundet auf das Intervall des Diagramms; <code>$__timeGroup(col, 300)</code> auf 5 Minuten</td></tr>
+  <tr><td><code>$__timeFrom</code>, <code>$__timeTo</code></td><td>Anfang und Ende als Zeitpunkt</td></tr>
+  <tr><td><code>$__unixFrom</code>, <code>$__unixTo</code></td><td>Anfang und Ende in Unix-Sekunden</td></tr>
+  <tr><td><code>$__interval_s</code></td><td>das Intervall des Diagramms in Sekunden</td></tr>
+</table>
+<p>Beispiele:</p>
+<pre>-- Bestellungen pro Intervall (PostgreSQL, MySQL, SQL Server gleichermaßen)
+SELECT $__timeGroup(created_at) AS time, count(*) AS orders
+FROM orders WHERE $__timeFilter(created_at)
+GROUP BY 1 ORDER BY 1
+
+-- eine Reihe pro Lager
+SELECT $__timeGroup(ts) AS time, warehouse AS metric, avg(temp) AS value
+FROM sensor_readings WHERE $__timeFilter(ts)
+GROUP BY 1, 2 ORDER BY 1</pre>
+
+<h2 id="prometheus">Prometheus</h2>
+<p>Schreiben Sie PromQL, zum Beispiel <code>rate(node_network_receive_bytes_total{device="eth0"}[5m]) * 8</code>. Jede Reihe wird so benannt, wie Prometheus sie schreibt (<code>name{label="value"}</code>); ein Reihenname im Editor ersetzt ihn. Die Schrittweite richtet sich nach der Breite des Diagramms.</p>
+
+<h2 id="influxdb">InfluxDB</h2>
+<p>Schreiben Sie InfluxQL mit <code>$timeFilter</code> und <code>$__interval</code>:</p>
+<pre>SELECT mean("usage_idle") FROM "cpu" WHERE $timeFilter GROUP BY time($__interval), "host"</pre>
+<p>InfluxDB 2 und 3 beantworten InfluxQL über ihre 1.x-API: Ordnen Sie den Bucket dort einer Datenbank zu, falls das noch nicht geschehen ist.</p>
+
+<h2 id="json">JSON über HTTP</h2>
+<p>Die Abfrage ist ein Pfad oder Parameter, die an die Adresse angehängt werden (zum Beispiel <code>/api/temps?room=server</code>); WatchZit fügt <code>from</code>, <code>to</code> und <code>step</code> in Unix-Sekunden hinzu und liest jede dieser Antworten (Zeiten in Sekunden oder Millisekunden):</p>
+<pre>[{"target": "temp", "datapoints": [[21.5, 1793268000000], ...]}, ...]
+{"temp": [[1793268000, 21.5], ...], "humidity": [[1793268000, 40], ...]}
+[[1793268000, 21.5], [1793268060, 21.7], ...]</pre>

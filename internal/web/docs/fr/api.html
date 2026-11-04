@@ -1,0 +1,21 @@
+<h1>API REST</h1>
+<p class="lead">Les scripts et autres systèmes lisent les appareils, les contrôles, les graphiques et les problèmes, prennent en charge des problèmes et planifient des maintenances via une API JSON.</p>
+
+<h2 id="tokens">Jetons</h2>
+<p>Créez un jeton dans <a href="/account#api">Mon compte → Jetons d'API</a> : un nom et sa durée de validité en jours. Il n'est affiché qu'une fois. Un jeton agit en votre nom, avec votre rôle (le jeton d'un lecteur ne peut que lire) ; révoquez-le lorsqu'il n'est plus nécessaire. Les jetons refusés comptent comme des connexions échouées et bloquent l'adresse pendant un moment.</p>
+<p>Envoyez-le dans un en-tête ; l'API n'accepte jamais le cookie de session de la console :</p>
+<pre>curl -H "Authorization: Bearer wzat_…" https://monitor.example.com:8443/api/v1/status</pre>
+
+<h2 id="endpoints">Points d'accès</h2>
+<table>
+  <tr><th>Requête</th><th>Réponse</th></tr>
+  <tr><td><code>GET /api/v1/status</code></td><td>version, appareils par état, problèmes ouverts par gravité</td></tr>
+  <tr><td><code>GET /api/v1/devices</code></td><td>appareils ; filtres <code>q</code>, <code>status</code>, <code>group</code></td></tr>
+  <tr><td><code>GET /api/v1/devices/{id}</code></td><td>un appareil avec ses contrôles et les identifiants de leurs séries</td></tr>
+  <tr><td><code>GET /api/v1/series/{id}?range=24h</code></td><td>les points d'une série : temps, minimum, moyenne, maximum</td></tr>
+  <tr><td><code>GET /api/v1/problems</code></td><td>problèmes ouverts ; <code>view=history</code>, <code>severity</code>, <code>device</code></td></tr>
+  <tr><td><code>POST /api/v1/problems/{id}/ack</code></td><td>prendre en charge : <code>{"note": "…"}</code></td></tr>
+  <tr><td><code>GET /api/v1/maintenance</code></td><td>fenêtres de maintenance</td></tr>
+  <tr><td><code>POST /api/v1/maintenance</code></td><td>en planifier une : <code>{"name", "starts_at", "ends_at", "device_ids", "group_ids"}</code></td></tr>
+</table>
+<p>Les dates sont au format RFC 3339 (<code>2026-11-01T22:00:00+01:00</code>). Les erreurs prennent la forme <code>{"error": "…"}</code> avec un statut HTTP correspondant. Les modifications sont inscrites dans le journal d’audit avec le nom du jeton.</p>

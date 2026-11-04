@@ -1,0 +1,42 @@
+<h1>Instalar agentes</h1>
+<p class="lead">El agente de WatchZit es opcional. Informa de lo que la red no puede ver desde fuera: CPU, memoria, discos, interfaces y servicios de equipos Windows y Linux, cada minuto, a través de una única conexión saliente.</p>
+
+<h2 id="code">Códigos de inscripción</h2>
+<p>En <a href="/agents">Agentes</a> cree un <b>código de inscripción</b>: un nombre, cuántos días es válido, cuántos equipos pueden usarlo y el grupo al que van los dispositivos nuevos. El código se muestra una sola vez; contiene la dirección del servidor y la huella del certificado de agentes, de modo que el agente solo confía en su servidor.</p>
+
+<h2 id="windows">Windows</h2>
+<p>Descargue el MSI desde la página Agentes e instálelo; le pedirá el código. Para muchos equipos, instálelo de forma silenciosa (GPO, Intune, un script):</p>
+<pre>msiexec /i watchzit-agent-x64.msi ENROLLCODE="WZ1-…" /qn</pre>
+<p>El agente se ejecuta como el servicio <b>WatchZitAgent</b>.</p>
+
+<h2 id="linux">Linux</h2>
+<p>La página Agentes muestra un comando que descarga el agente desde el puerto de agentes, comprueba su SHA-256 y lo instala con el código (servicio de systemd <code>watchzit-agent</code>):</p>
+<pre>curl -fsSk https://&lt;servidor&gt;:8444/agent/download/watchzit-agent-linux-amd64 -o /tmp/watchzit-agent &amp;&amp; … sudo /tmp/watchzit-agent install --code "WZ1-…"</pre>
+<p>O instale el paquete <b>deb</b> o <b>rpm</b> de la versión (amd64 y arm64, desde GitHub) y después inscríbalo e inícielo; las actualizaciones llegan a través del gestor de paquetes o de las actualizaciones propias del agente:</p>
+<pre>sudo apt install ./watchzit-agent_&lt;versión&gt;_amd64.deb      # or: sudo dnf install ./watchzit-agent-&lt;versión&gt;-1.x86_64.rpm
+sudo watchzit-agent enroll --code "WZ1-…"
+sudo systemctl start watchzit-agent</pre>
+
+<h2 id="what">Qué informa el agente</h2>
+<ul>
+  <li>Carga de <b>CPU</b> (y carga media en Linux), <b>Memoria</b> y swap, cada <b>Disco</b>, cada <b>interfaz de red</b> con su tráfico: se convierten por sí solos en comprobaciones con gráficos.</li>
+  <li><b>Inventario</b>: sistema operativo, modelo de CPU, memoria, fabricante, modelo, número de serie, direcciones, servicios.</li>
+  <li>Máquinas <b>Hyper-V</b> (Windows) y contenedores <b>Docker</b> (Linux), cada cinco minutos, con su estado, CPU, memoria y direcciones; aparecen en la página del dispositivo y en los cuadros de hipervisor de los mapas.</li>
+  <li><b>Servicios vigilados</b>: elíjalos en la página del dispositivo, en <b>Vigilar servicios</b>; un servicio que se detiene abre un problema.</li>
+  <li><b>Procesos vigilados</b>: en <b>Vigilar procesos</b> de la página del dispositivo, introduzca nombres de programas (por ejemplo <code>nginx, sqlservr.exe, java</code>); cada uno recibe una comprobación con cuántos se ejecutan, su CPU y su memoria, y si no se ejecuta ninguno se abre un problema.</li>
+  <li><b>Mensajes de error</b> del sistema (eventos críticos y de error de los registros <b>Sistema</b> y <b>Aplicación</b> de Windows, y mensajes de prioridad <i>err</i> o peor del journal de systemd) van a <a href="/logs?kind=agent">Registros</a> (tipo <b>Agentes</b>) con cada informe; un disparador de registros con el origen <b>Agentes</b> abre problemas a partir de ellos.</li>
+</ul>
+<p>Si existe un dispositivo con la misma dirección o el mismo nombre, el agente se une a él; si no, se crea un dispositivo nuevo.</p>
+
+<h2 id="updates">Actualizaciones de agentes</h2>
+<p>Un agente más antiguo que el servidor recibe el agente de la versión del servidor al conectarse (como máximo una vez por hora): descarga el instalador desde el servidor por su propia conexión cifrada y anclada, comprueba su tamaño y su SHA-256 y lo instala. Los agentes de Windows instalados con el MSI ejecutan el nuevo MSI; los agentes de Linux (systemd) comprueban que el nuevo programa arranca, se reemplazan a sí mismos y systemd los reinicia. La página <a href="/agents">Agentes</a> marca los agentes antiguos; allí, en <b>Actualizaciones de agentes</b>, los administradores desactivan las actualizaciones automáticas y actualizan todos los agentes conectados con un clic. Los agentes anteriores a la 1.2 aún no conocen las actualizaciones y se actualizan una vez a mano.</p>
+
+<h2 id="collector">Colectores remotos</h2>
+<p>A menudo no se puede llegar desde la consola a un dispositivo de otra red: una sucursal, la sede de un cliente detrás de NAT, una VLAN de gestión cerrada. Instale el agente en cualquier equipo de allí (Linux o Windows; basta con una VM pequeña o una máquina tipo Raspberry Pi) y haga clic en <b>Usar como colector remoto</b> en el cuadro Agente de la página de su dispositivo. Después elíjalo en <b>Supervisado desde</b> en los dispositivos de esa red (o para muchos a la vez en la lista de dispositivos, en <b>Cambiar seleccionados</b>). El colector recibe sus comprobaciones (ping, TCP, SNMP, páginas y escenarios web, certificados, DNS, bases de datos, RouterOS, API JSON) con las contraseñas y los ajustes SNMP que necesitan, las ejecuta en sus intervalos y envía los resultados por su propia conexión cifrada. No necesita ningún puerto abierto en la sede ni tiene interfaz web propia; todo se configura en la consola.</p>
+<p>Mientras la conexión con la consola está caída, el colector sigue ejecutando las comprobaciones; los resultados (hasta un día, los 200.000 más recientes) esperan en él y llegan cuando vuelve la conexión, así que los gráficos no tienen huecos. Mientras tanto, las comprobaciones de sus dispositivos muestran <b>Desconocido</b> en lugar de caído (puede que la sede esté bien), y la comprobación de agente del colector abre un problema. Los resultados retenidos no sobreviven a un reinicio del colector: vuelve a recibir sus comprobaciones de la consola.</p>
+<p><b>Colector de respaldo:</b> instale el agente en un segundo equipo de la sede, conviértalo también en colector y elíjalo como <b>Respaldo</b> junto a <b>Supervisado desde</b> (o para muchos dispositivos en la lista de dispositivos, en <b>Cambiar seleccionados → Colector de respaldo</b>). Mientras el primero está desconectado, el de respaldo ejecuta sus comprobaciones; cuando el primero vuelve, las retoma.</p>
+<p><b>Descubrimiento y SNMP:</b> en <a href="/discovery">Dispositivos → Descubrimiento</a> elija el colector junto a un rango nuevo: analiza esa red de su sede, y los dispositivos que añada desde ella se supervisan desde él. El descubrimiento SNMP de la página del dispositivo y la lectura de datos, interfaces y VLAN también pasan por el colector. Las comprobaciones de hipervisor se quedan en la consola. <b>Dejar de recopilar</b> devuelve los dispositivos a la consola.</p>
+
+<h2 id="network">Red</h2>
+<p>Los agentes se conectan al <b>puerto de agentes 8444</b>. En <a href="/settings/network">Configuración → Red y acceso</a> defina la <b>Dirección pública para agentes</b> cuando los agentes lleguen al servidor con otro nombre (por ejemplo, a través de un cortafuegos) y limite las redes desde las que pueden venir los agentes.</p>
+<div class="callout"><p>Al quitar el agente en la página del dispositivo, su clave pasa a ser desconocida; para volver a usar el agente, inscriba el equipo con un código nuevo.</p></div>

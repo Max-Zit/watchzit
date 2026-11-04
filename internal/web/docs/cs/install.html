@@ -1,0 +1,39 @@
+<h1>Instalace serveru</h1>
+<p class="lead">WatchZit běží na 64bitovém linuxovém serveru (stačí malý virtuální stroj) s PostgreSQL. Instalační skript nastaví vše potřebné; k dispozici jsou i balíčky a hotový obraz appliance.</p>
+
+<h2 id="requirements">Požadavky</h2>
+<ul>
+  <li>Debian 12+, Ubuntu 22.04+, AlmaLinux nebo Rocky Linux 9+, x86-64.</li>
+  <li>2 jádra CPU a 2 GB paměti pro několik set zařízení; 10 GB disku (měření se ukládají úsporně: hodina časů pingu zabere asi 100 bajtů).</li>
+  <li>Porty: <b>8443</b> pro konzoli (vaše správcovské sítě), <b>8444</b> pro agenty (jen tam, kde agenti jsou).</li>
+</ul>
+
+<h2 id="script">Instalační skript</h2>
+<p>Jako root na serveru:</p>
+<pre>curl -fsSL https://github.com/Max-Zit/watchzit/releases/latest/download/install.sh | sudo sh</pre>
+<p>Skript nainstaluje PostgreSQL, stáhne nejnovější vydání, <b>ověří jeho podpis</b> klíčem vydání WatchZit, nainstaluje balíček, vytvoří databázi s náhodným heslem, otevře porty ve firewalld nebo ufw a spustí službu. Na konci vypíše adresu konzole a <b>instalační token</b>.</p>
+<p>Volby: <code>--version X</code> (určité vydání), <code>--db postgres://…</code> (existující databáze místo místního PostgreSQL), <code>--no-auto-updates</code> (nezapínat bezpečnostní aktualizace systému), <code>--source URL</code> (zrcadlo nebo místní složka se soubory vydání). Opětovné spuštění skriptu WatchZit aktualizuje a data zachová.</p>
+
+<h2 id="packages">Balíčky</h2>
+<p>Každé vydání obsahuje balíček serveru <code>.deb</code> a <code>.rpm</code>. Nainstalují program, služby systemd a instalátory agenta; nastavte <code>WATCHZIT_DB</code> v <code>/etc/watchzit/server.env</code> a spusťte <code>watchzit-server</code>.</p>
+
+<h2 id="appliance">Appliance</h2>
+<p>Appliance je hotový obraz (Debian s WatchZit, PostgreSQL a automatickými bezpečnostními aktualizacemi). Importujte ho do VMware, Proxmoxu nebo Hyper-V, spusťte ho a postupujte podle nabídky na jeho obrazovce: ukáže adresu konzole a instalační token a nastaví síť.</p>
+<p>Obrazy: <b>OVA</b> (VMware ESXi, Workstation, VirtualBox), <b>qcow2</b> (Proxmox, KVM), <b>VHDX</b> (Hyper-V generace 1) a <b>ISO</b>, které nainstaluje appliance na nový virtuální stroj nebo fyzický server (vymaže první disk). Přidělte mu 2 CPU, 2 GB paměti a disk o velikosti alespoň 16 GB; větší disk se využije automaticky. Na jeho obrazovce se přihlaste jako <code>wzadmin</code> s prvním heslem <code>watchzit</code>; hned musíte zvolit nové. Nabídka nastavuje síť (DHCP nebo pevnou adresu), název serveru, časové pásmo a SSH (zapnuto nebo vypnuto, port) a nastaví nové heslo uživateli konzole, například admin (a zruší všechna blokování přihlášení). Síť, SSH, aktualizace operačního systému a důvěryhodný certifikát lze nastavit i v konzoli (viz Uživatelé, nastavení a aktualizace). SSH nepovoluje přihlášení jako root.</p>
+
+<h2 id="first-sign-in">První přihlášení</h2>
+<ol>
+  <li>Otevřete <code>https://&lt;server&gt;:8443</code>. Prohlížeč jednou upozorní na certifikát podepsaný sám sebou; přijměte ho.</li>
+  <li>Zadejte instalační token a vytvořte prvního správce.</li>
+  <li>Naskenujte QR kód ověřovací aplikací (dvoufázové přihlášení je povinné) a uschovejte si záložní kódy.</li>
+</ol>
+
+<h2 id="files">Soubory a služby</h2>
+<table>
+  <tr><th>Cesta</th><th>Co</th></tr>
+  <tr><td><code>/etc/watchzit/server.env</code></td><td>Adresa databáze a zdroj aktualizací.</td></tr>
+  <tr><td><code>/var/lib/watchzit</code></td><td>Certifikáty, tajný klíč (zálohujte ho spolu s databází), stažené soubory, logy.</td></tr>
+  <tr><td><code>watchzit-server.service</code></td><td>Server. <code>journalctl -u watchzit-server</code> zobrazí jeho log.</td></tr>
+  <tr><td><code>watchzit-helper.path</code></td><td>Pomocník s právy roota pro aktualizace, časové pásmo a restarty z konzole.</td></tr>
+</table>
+<div class="callout warn"><p>Zálohujte databázi <b>a</b> soubor <code>/var/lib/watchzit/secret.key</code>: uložená hesla (SNMP, databáze, kanály) jsou jím zašifrována.</p></div>

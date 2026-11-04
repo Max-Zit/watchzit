@@ -1,0 +1,90 @@
+<h1>Dispositivi, controlli e SNMP</h1>
+<p class="lead">Un dispositivo è qualsiasi cosa abbia un indirizzo: un router, uno switch, un server, una stampante, una telecamera o un sito web. I controlli lo misurano; i loro risultati colorano il dispositivo, la mappa e i grafici.</p>
+
+<h2 id="add">Aggiungere un dispositivo</h2>
+<p>In <a href="/devices">Dispositivi → Aggiungi un dispositivo</a> inserisci un nome e un indirizzo IP o un nome host, scegli il tipo e il gruppo e lascia attivo <b>Ping</b>. Facoltativi:</p>
+<ul>
+  <li><b>SNMP</b>: un profilo con la community o l'utente SNMPv3; WatchZit legge allora interfacce, traffico, CPU, memoria e dischi.</li>
+  <li><b>Dipende da</b>: il router o lo switch attraverso cui si raggiunge il dispositivo. Finché quello non è attivo, i problemi di questo dispositivo sono solo "irraggiungibile" e non vengono inviati.</li>
+  <li><b>Accesso remoto</b>: il nome utente e le porte usati dagli <a href="/docs/tools">strumenti</a>.</li>
+  <li><b>Porte TCP</b>: ognuna diventa un controllo che si connette ogni minuto.</li>
+</ul>
+<p>Lo stato del dispositivo deriva dai suoi controlli: <b>attivo</b> quando tutti sono attivi, <b>parzialmente non funzionante</b> quando alcuni non lo sono, <b>non attivo</b> quando nessuno lo è.</p>
+
+
+<h2 id="discovery">Rilevamento</h2>
+<p><a href="/discovery">Dispositivi → Rilevamento</a> trova gli host di una rete: aggiungi un intervallo (ad es. <code>192.168.1.0/24</code>, fino a /22, o un singolo indirizzo) e scansionalo subito, ogni giorno o ogni settimana. WatchZit esegue il ping di ogni indirizzo, prova le porte comuni (SSH, Telnet, web, RDP, WinBox, SMB, stampanti, VNC), chiede via SNMP con i tuoi profili SNMP il nome, la descrizione e il produttore, e cerca il nome DNS. Gli host che non sono ancora dispositivi vengono elencati con il nome, un tipo stimato e ciò che ha risposto; spuntali e fai clic su <b>Aggiungi come dispositivi</b> (facoltativamente in un gruppo): ognuno riceve un controllo ping (o un controllo TCP se il ping è bloccato) e il profilo SNMP che ha risposto. <b>Nascondi</b> tiene un host fuori dall'elenco; gli host nascosti si possono mostrare di nuovo. Con una pianificazione, i nuovi host che compaiono nella rete appaiono qui da soli. Con i <a href="/docs/agents#collector">collettori remoti</a>, scegli quale scansiona un intervallo: scansiona la rete della propria sede.</p>
+<h2 id="links">Link web</h2>
+<p>In <b>Link web</b> di un dispositivo, l'indirizzo dell'<b>Interfaccia web</b> si apre con il pulsante sulla pagina del dispositivo e sulle mappe; se vuoi, dai al pulsante un altro <b>Nome</b>. Aggiungi altri link per un server con più indirizzi, il suo iDRAC o iLO o la pagina di un servizio; ognuno diventa un pulsante a sé.</p>
+
+<h2 id="fields">Campi personalizzati</h2>
+<p>Gli amministratori aggiungono campi propri per i dispositivi in <a href="/settings/fields">Impostazioni → Campi personalizzati</a>: testo, un numero o una data (un numero di inventario, la fine della garanzia, il rack, un contratto). Gli operatori li compilano sulla pagina del dispositivo in <b>Campi personalizzati</b>; i valori compaiono con i dettagli del dispositivo e la ricerca nell'elenco dei dispositivi li trova. Rimuovendo un campo si rimuovono i suoi valori.</p>
+<h2 id="templates">Modelli</h2>
+<p>Un modello è un insieme di controlli per un tipo di dispositivo: un server Linux, un router MikroTik, una stampante. Creane uno in <a href="/templates">Modelli</a>, scegli i tipi di dispositivo a cui è destinato e aggiungi i suoi controlli (ping, TCP, pagina web, certificato TLS, DNS e SNMP; i controlli con password si aggiungono per singolo dispositivo). <b>Applica a</b> aggiunge i controlli a tutti i dispositivi dei suoi tipi, a un gruppo, oppure di nuovo ai dispositivi che lo hanno già; sulla pagina di un dispositivo, <b>Applica modello</b> lo fa per quel dispositivo. L'applicazione aggiunge solo i controlli che il dispositivo non ha ancora: quelli che ha già restano come sono, quindi applicare due volte non fa danni. Con <b>Applica automaticamente ai nuovi dispositivi di questi tipi</b>, ogni dispositivo aggiunto in seguito (a mano o dal rilevamento) riceve subito i controlli. Rimuovendo un modello, i controlli restano sui dispositivi.</p>
+<h2 id="bulk">Modificare più dispositivi insieme</h2>
+<p>Spunta i dispositivi nell'<a href="/devices">elenco dei dispositivi</a> (la casella nell'intestazione spunta tutti quelli mostrati) e scegli in <b>Modifica selezionati</b>: il gruppo, il profilo SNMP, il dispositivo da cui dipendono, il tipo, sospendere o riprendere il monitoraggio, applicare un modello oppure, per gli amministratori, eliminarli con i loro controlli e dati. Filtra prima l'elenco per spuntare, ad esempio, tutte le stampanti di una sede.</p>
+<h2 id="checks">Tipi di controllo</h2>
+<table>
+  <tr><th>Controllo</th><th>Misura</th></tr>
+  <tr><td>Ping (ICMP)</td><td>Tempo di risposta e perdita di pacchetti.</td></tr>
+  <tr><td>Porta TCP</td><td>Se la porta accetta connessioni, e con quale rapidità.</td></tr>
+  <tr><td>Pagina web (HTTP)</td><td>Codice di stato, tempo di risposta, un testo che deve comparire nella pagina, giorni alla scadenza del certificato.</td></tr>
+  <tr><td>Certificato TLS</td><td>Giorni alla scadenza e se è attendibile (qualsiasi porta TLS, con un nome server per SNI).</td></tr>
+  <tr><td>DNS</td><td>Il dispositivo è un server DNS: deve rispondere a un nome con un tipo di record (A, AAAA, MX …) e, facoltativamente, con un valore atteso.</td></tr>
+  <tr><td>PostgreSQL, MySQL / MariaDB</td><td>Accesso con un utente di monitoraggio, versione, numero di connessioni, tempo di risposta.</td></tr>
+  <tr><td>MikroTik RouterOS (API)</td><td>CPU, memoria, uptime e temperatura tramite l'API REST di RouterOS 7.</td></tr>
+  <tr><td>Valore da API JSON</td><td>Un numero da qualsiasi API JSON (FortiGate, vCenter, i tuoi servizi): un indirizzo, un percorso come <code>results.cpu.0.current</code> e, facoltativamente, accesso Bearer o basic.</td></tr>
+  <tr><td>Hypervisor (vSphere, Proxmox VE)</td><td>Host, macchine virtuali e container, datastore di VMware ESXi o vCenter (API dei servizi web) o di Proxmox VE (API REST): CPU e memoria degli host, macchine in esecuzione, host non attivi, il datastore più pieno. Vedi <a href="#hypervisor">Hypervisor</a>.</td></tr>
+  <tr><td>Scenario web</td><td>Più passi attraverso un'applicazione web, come farebbe un utente: accedere, aprire una pagina protetta dall'accesso, verificare il testo. Un passo per riga, ad esempio <code>GET /login | 200 | Sign in</code>, <code>POST /login | 302 | | user=monitor&amp;password={secret}</code>, <code>GET /dashboard | | Welcome</code>: il metodo e l'indirizzo, poi lo stato atteso, il testo che la pagina deve contenere e i dati del modulo. I cookie vengono mantenuti da un passo all'altro; <code>{secret}</code> è la password del controllo. Misura il tempo di tutti i passi e quanti sono riusciti; l'avviso indica il passo fallito.</td></tr>
+  <tr><td>SNMP</td><td>Disponibilità e uptime; interfacce, CPU e storage trovati dal rilevamento; qualsiasi OID numerico.</td></tr>
+</table>
+<p>Password e token dei controlli sono salvati cifrati e non vengono mai più mostrati; quando modifichi un controllo, lascia il campo vuoto per mantenere quello salvato.</p>
+
+<h2 id="snmp">SNMP</h2>
+<ol>
+  <li>Crea un profilo in <a href="/settings/snmp">Impostazioni → SNMP</a>: v2c con una community, oppure v3 con un utente (SHA-2 e AES sono supportati).</li>
+  <li>Scegli il profilo sul dispositivo. WatchZit apre il <b>Rilevamento SNMP</b>: spunta le interfacce, la CPU, la memoria e i dischi da sorvegliare (le interfacce di loopback e quelle senza link vengono escluse).</li>
+  <li>La pagina del dispositivo mostra allora le <b>porte</b> con lo stato del link e il traffico in tempo reale, e i grafici di ogni valore.</li>
+</ol>
+<p>Il rilevamento trova anche ciò che riporta ciascun tipo di dispositivo: i <b>materiali di consumo delle stampanti</b> (toner, inchiostro, tamburi, contenitori di scarto, come livello in percentuale; il trigger predefinito <b>Toner o inchiostro in esaurimento</b> avvisa sotto il 10 %), gli <b>UPS</b> (UPS-MIB, o la APC PowerNet MIB delle schede APC: carica della batteria, autonomia residua, carico; il controllo non è attivo mentre l'UPS funziona a batteria o la batteria è scarica, e <b>Autonomia UPS breve</b> avvisa sotto i 10 minuti) e i <b>sensori di stato di MikroTik</b> (temperature, tensioni, ventole, potenza, ognuno come controllo OID con la sua unità).</p>
+<div class="callout tip"><p>MikroTik, Cisco, HP, Ubiquiti, le stampanti e gli UPS parlano SNMP. Su Linux installa <code>snmpd</code>; su Windows il servizio SNMP.</p></div>
+
+<h2 id="vlans">VLAN</h2>
+<p>WatchZit legge le VLAN degli switch via SNMP una volta all'ora (Q-BRIDGE-MIB: HP/Aruba, Cisco Small Business, Ubiquiti, Netgear, D-Link e la maggior parte degli switch gestiti; CISCO-VTP-MIB: porte access e trunk di Cisco Catalyst), dagli agenti (interfacce VLAN di Linux come eth0.10, l'ID VLAN delle schede di rete di Windows) e dai bridge MikroTik tramite l'API di RouterOS (con il controllo <b>MikroTik RouterOS (API)</b> del dispositivo) ogni dieci minuti. La pagina del dispositivo elenca ogni VLAN con le sue porte tagged e untagged, e ogni porta con la sua <b>Modalità</b>: <b>Access</b> (una VLAN untagged), <b>Trunk</b> (VLAN tagged; quella untagged è la <b>VLAN nativa</b>) o <b>Ibrida</b> (più VLAN untagged). Le mappe possono mostrare una VLAN alla volta.</p>
+
+<h2 id="ha-role">Ruolo HA</h2>
+<p>I dispositivi che eseguono VRRP indicano se sono <b>attivo</b> (master) o in <b>standby</b> (backup): il dato viene letto via SNMP (VRRP-MIB e VRRPv3-MIB, con il controllo di disponibilità SNMP) e da MikroTik RouterOS tramite l'API (con il controllo API di RouterOS). La pagina del dispositivo mostra il ruolo e da quando; le mappe mostrano ATTIVO o STANDBY accanto al dispositivo.</p>
+
+<h2 id="vxlan">VXLAN</h2>
+<p>Le interfacce VXLAN (VTEP) vengono lette da MikroTik RouterOS 7 (con il controllo API di RouterOS, ogni dieci minuti) e dagli agenti Linux (con iproute2, ogni cinque minuti): VNI, interfaccia, indirizzo proprio, porta UDP e VTEP remoti, anche quelli nella tabella di inoltro. La pagina del dispositivo li elenca; un VTEP remoto che corrisponde all'indirizzo di un altro dispositivo rimanda a quest'ultimo. Una VXLAN senza indirizzi remoti usa il multicast o EVPN. Le mappe disegnano un tunnel tra due dispositivi della mappa che sono l'uno il VTEP dell'altro.</p>
+
+<h2 id="graphs">Grafici</h2>
+<p>Ogni valore viene conservato: grezzo per alcuni giorni, poi come minimo, media e massimo a 5 minuti e orari (Impostazioni → Dati di misura). Su un grafico trascina per ingrandire e fai doppio clic per tornare indietro; i pulsanti del periodo vanno da un'ora a un anno.</p>
+<p>Il pulsante ⤢ di un grafico lo mostra a tutta finestra (Esc torna indietro).</p>
+<p><b>Modifica grafici</b> (operatori e amministratori) dispone i grafici di un dispositivo come i widget di una dashboard:</p>
+<ul>
+  <li>✎ modifica un grafico: il <b>Titolo</b>, il <b>Genere</b> (linee, area o barre), <b>Impila i valori</b> (ognuno sopra i precedenti), i <b>Valori</b> che mostra (anche da più controlli, ad esempio CPU e memoria insieme) e il <b>Colore</b> di ciascuno, il <b>minimo e massimo dell'asse</b>, e una <b>linea di avviso</b> e una <b>linea critica</b>.</li>
+  <li>↔ lo rende largo quanto la pagina, ↕ più alto o più basso, ▲ ▼ lo spostano, × lo rimuove (i suoi valori non compaiono in grafico finché un grafico non li mostra di nuovo).</li>
+  <li>Trascina l'angolo in basso a destra di un grafico per impostarne la larghezza (1–4 colonne) e l'altezza; viene salvato quando rilasci.</li>
+  <li><b>Aggiungi grafico</b> ne crea uno nuovo con qualsiasi valore del dispositivo. I valori dei nuovi controlli ricevono i loro grafici automatici.</li>
+  <li><b>Grafici automatici</b> elimina la disposizione: di nuovo un grafico per controllo.</li>
+</ul>
+
+<h2 id="config-backup">Backup della configurazione</h2>
+<p>Operatori e amministratori possono conservare la configurazione dei dispositivi di rete: nella sezione <b>Backup della configurazione</b> di un dispositivo scegli il metodo (<b>MikroTik RouterOS</b> (<code>/export terse show-sensitive</code>), <b>Cisco IOS</b> (<code>show running-config</code>), <b>FortiGate</b> (<code>show full-configuration</code>) o un comando personalizzato) e l'utente SSH, la porta e la password o la chiave privata. Password e chiave sono conservate cifrate. Usa un utente con permessi di sola lettura.</p>
+<ul>
+  <li>I backup vengono eseguiti ogni notte alle 02:00 (ora del server) e con <b>Backup ora</b>. Una nuova versione viene conservata solo quando la configurazione è cambiata; si conservano le ultime 50 versioni di ogni dispositivo.</li>
+  <li>La chiave host SSH viene salvata al primo backup e verificata da quel momento in poi. Se cambia, il backup fallisce; se era previsto (nuovo dispositivo o firmware), usa <b>Dimentica la chiave host</b>.</li>
+  <li>Ogni versione mostra le modifiche rispetto alla precedente (+ righe aggiunte, − rimosse, con <b>Configurazione completa</b> per vedere tutto) e si può scaricare come file di testo.</li>
+  <li>Modifiche e errori vengono scritti nel log del dispositivo (tag <code>config-backup</code>), così un trigger sui log può inviare una notifica.</li>
+  <li>Gli osservatori non vedono né le configurazioni né le impostazioni dei backup.</li>
+</ul>
+
+<h2 id="hypervisor">Hypervisor</h2>
+<p>Aggiungi il controllo <b>Hypervisor (vSphere, Proxmox VE)</b> al dispositivo di un host ESXi, di un vCenter o di un nodo Proxmox VE (qualsiasi nodo di un cluster legge l'intero cluster). Basta un utente con permessi di sola lettura: il ruolo <b>Read-only</b> in vSphere, <b>PVEAuditor</b> su <code>/</code> in Proxmox VE, oppure un token API (<code>user@realm!name</code> come utente e il suo segreto come password). Lascia vuota la porta per usare 443 (vSphere) o 8006 (Proxmox VE); spunta <b>Accetta certificati non attendibili</b> per il certificato autofirmato che questi sistemi hanno di serie.</p>
+<ul>
+  <li>Ogni esecuzione salva CPU e memoria di tutti gli host, le macchine in esecuzione e il loro totale, gli host non attivi e quanto è pieno il datastore più pieno; insieme arrivano i trigger <b>Datastore quasi pieno</b> (oltre il 90 %) e <b>Host hypervisor non attivo</b>.</li>
+  <li>La pagina del dispositivo elenca gli host, ogni macchina virtuale e container (stato, CPU, memoria, indirizzo, sistema guest) e i datastore. Sistemi guest e indirizzi vengono letti ogni dieci minuti (Proxmox VE legge gli indirizzi tramite il QEMU guest agent).</li>
+  <li><b>Hyper-V</b> e <b>Docker</b> non richiedono alcun controllo: l'agente WatchZit sull'host Windows (con Hyper-V) o sull'host Linux (con Docker) riporta le sue macchine o i suoi container ogni cinque minuti.</li>
+  <li>Sulle mappe un riquadro hypervisor può mostrare queste macchine da solo (vedi la guida alle mappe).</li>
+</ul>

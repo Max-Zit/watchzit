@@ -1,0 +1,32 @@
+<h1>Aprire i dispositivi</h1>
+<p class="lead">Dalla pagina di un dispositivo o dal pannello laterale della mappa apri un dispositivo con il programma giusto: la sua interfaccia web, SSH, Desktop remoto, WinBox, VNC o i tuoi strumenti.</p>
+
+<h2 id="launcher">Il MaxZit Launcher</h2>
+<p>Un browser non può avviare programmi, quindi se ne occupa un piccolo programma per Windows: il <b>MaxZit Launcher</b>. Installalo una volta per computer dalla pagina <a href="/launcher">Launcher</a> (l'<b>installer</b> (MSI), con una breve procedura guidata, lo mette tra le App con la sua icona, da dove si può anche rimuovere; si installa per il tuo utente Windows, senza diritti di amministratore) e fai clic su <b>Associa questo computer</b>. Il launcher mostra l'impronta del server, che deve coincidere con quella della pagina.</p>
+<p>Da quel momento funzionano i pulsanti <b>Apri con</b>. Quando una console passa a un altro indirizzo (o viene ripristinata da un backup altrove), fai di nuovo clic su <b>Associa questo computer</b>: il launcher la riconosce dalla sua chiave e chiede se usare il nuovo indirizzo. La prima volta il browser chiede se può aprire il launcher; consentilo.</p>
+<p>Lo stesso launcher serve anche <b>PassZit</b>: nel menu dell'estensione PassZit fai clic su <b>Associa al MaxZit Launcher</b> e conferma nella finestra del launcher. PassZit apre allora Desktop remoto, SSH, WinSCP, WinBox, VNC e Telnet con le credenziali della cassaforte: Desktop remoto tramite una credenziale Windows che esiste solo per pochi secondi, una password o chiave SSH tramite un file leggibile solo da te che viene rimosso subito dopo l'avvio. Il launcher sostituisce il precedente WatchZit Launcher e passzit-helper: installandolo ne riprende impostazioni e associazioni. Quando PassZit è associato e l'indirizzo della console è una delle sue console MaxZit attendibili, i pulsanti <b>Apri con</b> di WatchZit aprono la sessione già autenticata con le credenziali corrispondenti della cassaforte; senza PassZit, o senza credenziali per quel dispositivo, si aprono come prima. La console comunica a PassZit solo lo strumento, l'indirizzo, la porta, il nome utente e il nome del dispositivo, mai una password. Accanto ai pulsanti <b>Apri con</b> un piccolo badge <b>PassZit</b> indica che PassZit è sbloccato ed eseguirà l'accesso; <b>PassZit bloccato</b> significa che va prima sbloccato. Se PassZit non è abilitato su questa console, un piccolo suggerimento spiega come consentirlo; <b>Non mostrare più</b> lo nasconde in questo browser.</p>
+
+<h2 id="safety">Come resta sicuro</h2>
+<ul>
+  <li>Ogni clic genera un link <b>firmato</b> dal tuo server, valido per un minuto e utilizzabile una sola volta; il launcher accetta link solo dai server che hai associato.</li>
+  <li>Indirizzi e nomi utente vengono verificati con set di caratteri rigorosi; i programmi si avviano con un elenco di argomenti, mai tramite una shell.</li>
+  <li>Le password non vengono mai salvate né inviate: è il programma a chiederle.</li>
+  <li>Prima che un programma aggiunto dal tuo amministratore venga eseguito per la prima volta, il launcher te lo chiede.</li>
+</ul>
+
+<h2 id="tools">Strumenti integrati</h2>
+<table>
+  <tr><th>Strumento</th><th>Programma sul tuo computer</th></tr>
+  <tr><td>SSH</td><td>PuTTY se installato, altrimenti il client SSH di Windows</td></tr>
+  <tr><td>Desktop remoto</td><td>il client Desktop remoto di Windows</td></tr>
+  <tr><td>WinBox</td><td>winbox64.exe da Programmi, Download o dal Desktop</td></tr>
+  <tr><td>VNC</td><td>il visualizzatore TightVNC, TigerVNC o RealVNC</td></tr>
+  <tr><td>Telnet</td><td>PuTTY</td></tr>
+</table>
+<p>Programmi in altre posizioni: scrivi i loro percorsi in <code>%APPDATA%\MaxZit Launcher\launcher.json</code>. Senza il launcher, Desktop remoto funziona comunque: il pulsante <b>.rdp</b> scarica un file che Windows apre.</p>
+
+<h2 id="own-tools">I tuoi strumenti</h2>
+<p>In <a href="/settings/tools">Impostazioni → Strumenti</a> gli amministratori disattivano gli strumenti integrati, li limitano a determinati tipi di dispositivo e aggiungono i propri: il percorso di un programma (ad esempio <code>%ProgramFiles%\Mozilla Firefox\firefox.exe</code>) e argomenti con <code>{host}</code>, <code>{port}</code>, <code>{user}</code> e <code>{name}</code>. Il nome utente e le porte di ogni dispositivo si impostano nel suo <b>Accesso remoto</b>, dove togli anche la spunta agli strumenti che un dispositivo non ha (un server Proxmox o Linux non ha Desktop remoto) o la metti a uno che il suo tipo non riceve di default; i pulsanti sulla pagina del dispositivo e sulle mappe mostrano allora solo gli strumenti spuntati.</p>
+
+<h2 id="device-links">Collegamenti su ogni dispositivo</h2>
+<p>Sempre in <a href="/settings/tools#links">Impostazioni → Strumenti</a>, <b>Collegamenti su ogni dispositivo</b> aggiunge a ogni pagina di dispositivo pulsanti che aprono il dispositivo in un altro programma nel browser, ad esempio RMMZit o BackupZit. Indica un nome e un indirizzo; <code>{name}</code>, <code>{address}</code> e <code>{id}</code> vengono sostituiti con il nome, l'indirizzo e il numero del dispositivo, ad es. <code>https://rmm.example.com:8443/devices?q={name}</code>. Sono accettati solo indirizzi http:// e https://.</p>

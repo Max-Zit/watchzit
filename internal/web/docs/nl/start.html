@@ -1,0 +1,31 @@
+<h1>Aan de slag</h1>
+<p class="lead">WatchZit is een zelfgehost systeem voor het monitoren van netwerken en apparaten. Een live netwerkkaart laat zien wat met wat verbonden is en hoe het ervoor staat; daarachter zitten controles, grafieken, waarschuwingen, dashboards en rapporten — op uw eigen server, onder de AGPL-3.0-licentie.</p>
+
+<h2 id="what">Wat WatchZit doet</h2>
+<table>
+  <tr><th>Onderdeel</th><th>Wat u krijgt</th></tr>
+  <tr><td>Netwerkkaarten</td><td>Teken uw netwerk met echte apparaatafbeeldingen, racks en kabels van poort tot poort; de kaart toont de actuele status en het verkeer. <a href="/docs/maps">Netwerkkaarten</a></td></tr>
+  <tr><td>Controles</td><td>Ping, TCP-poorten, webpagina's, TLS-certificaten, DNS, PostgreSQL en MySQL, SNMP (v1/v2c/v3: interfaces, CPU, geheugen, schijven, elke OID), de MikroTik RouterOS-API en waarden uit elke JSON-API. <a href="/docs/devices">Apparaten en controles</a></td></tr>
+  <tr><td>Agent</td><td>Een kleine optionele agent voor Windows en Linux rapporteert CPU, geheugen, schijven, interfaces en gekozen services. <a href="/docs/agents">Agents</a></td></tr>
+  <tr><td>Waarschuwingen</td><td>Triggers openen problemen; afhankelijkheden, onderhoudsvensters en bevestigingen beperken de ruis; meldingen via e-mail, webhook, Slack en Teams. <a href="/docs/alerts">Problemen en waarschuwingen</a></td></tr>
+  <tr><td>Grafieken, dashboards, rapporten</td><td>Grafieken van elke waarde, van één uur tot een jaar, dashboards voor een wandscherm, beschikbaarheidsrapporten. <a href="/docs/dashboards">Dashboards en rapporten</a></td></tr>
+  <tr><td>Apparaten openen</td><td>Open de webpagina van een apparaat, SSH, Extern bureaublad, WinBox of uw eigen tools met één klik. <a href="/docs/tools">Apparaten openen</a></td></tr>
+</table>
+
+<h2 id="how">Hoe het werkt</h2>
+<ul>
+  <li><b>De server</b> draait op Linux met PostgreSQL. Hij heeft twee poorten: de <b>console</b> (webinterface en REST-API, TCP 8443) en het <b>agent-eindpunt</b> (TCP 8444).</li>
+  <li>De server <b>pollt</b> apparaten zelf (ping, TCP, SNMP, HTTP, databases, API's). Daarvoor hoeft op de apparaten niets geïnstalleerd te worden.</li>
+  <li><b>Agents</b> zijn optioneel. Ze maken een <i>uitgaande</i> verbinding met de agentpoort en rapporteren elke minuut; op de computers hoeven geen poorten open te staan.</li>
+  <li>Elke wijziging in de console wordt vastgelegd in het fraudebestendige <a href="/audit">auditlogboek</a>.</li>
+</ul>
+
+<h2 id="first-steps">Eerste stappen</h2>
+<ol>
+  <li><b>Installeer de server</b> — zie <a href="/docs/install">De server installeren</a>.</li>
+  <li><b>Maak de eerste beheerder aan</b> met het installatietoken dat het installatieprogramma toont, en stel aanmelden in twee stappen in met een authenticator-app.</li>
+  <li><b>Voeg apparaten toe</b> onder <a href="/devices">Apparaten</a>: een naam en een adres zijn genoeg; ping wordt automatisch toegevoegd. Voeg een SNMP-profiel toe om interfaces en verkeer uit te lezen.</li>
+  <li><b>Teken een kaart</b> onder <a href="/maps">Kaarten</a> en verbind de apparaten poort aan poort.</li>
+  <li><b>Stel meldingen in</b> onder <a href="/settings/notifications">Instellingen → Meldingen</a>; de ingebouwde triggers letten al op uitgevallen apparaten, volle schijven en verlopende certificaten.</li>
+</ol>
+<div class="callout tip"><p>Standaard is de console alleen bereikbaar vanuit privénetwerken. Houd dat zo en open alleen de agentpoort (8444) waar agents die nodig hebben.</p></div>

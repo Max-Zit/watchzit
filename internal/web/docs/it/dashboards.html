@@ -1,0 +1,25 @@
+<h1>Dashboard e rapporti</h1>
+<p class="lead">Le dashboard riuniscono in una schermata i valori che ti interessano; i rapporti mostrano quanto sono stati disponibili i tuoi dispositivi in un periodo.</p>
+
+<h2 id="dashboards">Dashboard</h2>
+<p>In <a href="/dashboards">Dashboard</a> aggiungi una dashboard e fai clic su <b>Modifica</b>. Widget:</p>
+<table>
+  <tr><th>Widget</th><th>Mostra</th></tr>
+  <tr><td>Grafico</td><td>il grafico di un controllo, con il periodo della dashboard</td></tr>
+  <tr><td>Valore attuale</td><td>un valore in cifre grandi, colorato secondo lo stato del suo controllo</td></tr>
+  <tr><td>Stati dei dispositivi</td><td>i dispositivi di un gruppo (o tutti) come riquadri colorati</td></tr>
+  <tr><td>Problemi aperti</td><td>i problemi aperti, di un gruppo o tutti</td></tr>
+  <tr><td>Mappa</td><td>un riquadro con lo stato peggiore della mappa, che la apre</td></tr>
+  <tr><td>Grafico da un'origine dati</td><td>una query su un'<a href="/docs/datasources">origine dati</a> (un database, Prometheus, InfluxDB, JSON)</td></tr>
+</table>
+<p>I widget sono piccoli, medi o grandi e stanno in una griglia; spostali in alto e in basso. La dashboard si ricarica ogni minuto, quindi può restare aperta su uno schermo a parete.</p>
+
+<h2 id="reports">Rapporti di disponibilità</h2>
+<p><a href="/reports">Rapporti</a> mostra per ogni dispositivo, negli ultimi 7, 30 o 90 giorni, nel mese corrente o in quello precedente:</p>
+<ul>
+  <li><b>Disponibilità</b>: la quota di tempo in cui il dispositivo non era fuori servizio. Il tempo in cui era irraggiungibile dietro un dispositivo non attivo conta come non attivo; il tempo in <b>manutenzione</b> è mostrato a parte e non conta.</li>
+  <li><b>Tempo di fermo</b>, il numero di <b>problemi</b> e il tempo medio di <b>ping</b>.</li>
+</ul>
+<p>Scaricalo come <b>CSV</b> per un foglio di calcolo oppure <b>stampalo o salvalo come PDF</b>.</p>
+<p><b>SLA:</b> assegna a un gruppo un <b>obiettivo SLA</b> (ad es. 99,9 %) in <a href="/groups">Gruppi</a>. Il rapporto mostra allora lo <b>SLA per gruppo</b> (la disponibilità di tutti i suoi dispositivi insieme, ponderata sul tempo, rispetto all'obiettivo: <b>rispettato</b> o <b>mancato</b>) e colora ogni dispositivo in base all'obiettivo del suo gruppo.</p>
+<p><b>Via email:</b> gli amministratori impostano in <b>Invia per email</b> se il rapporto parte ogni lunedì (gli ultimi 7 giorni) o ogni 1° del mese (il mese precedente), per tutti i dispositivi o per un gruppo, e a quali indirizzi. Viene inviato alle 07:00 ora del server con il CSV allegato; <b>Invia ora</b> lo invia subito.</p>

@@ -1,0 +1,32 @@
+<h1>Cihazları açma</h1>
+<p class="lead">Bir cihaz sayfasından veya haritanın yan panelinden bir cihazı doğru programla açarsınız: web arayüzü, SSH, Uzak Masaüstü, WinBox, VNC veya kendi araçlarınız.</p>
+
+<h2 id="launcher">MaxZit Launcher</h2>
+<p>Bir tarayıcı program başlatamaz, bu yüzden bunu küçük bir Windows programı yapar: <b>MaxZit Launcher</b>. Onu her bilgisayara bir kez <a href="/launcher">Launcher</a> sayfasından kurun — kısa bir kurulum sihirbazına sahip <b>yükleyici</b> (MSI) onu simgesiyle birlikte Uygulamalar'a yerleştirir ve oradan yeniden kaldırılabilir — Windows kullanıcınız için, yönetici hakları olmadan kurulur — ve <b>Bu bilgisayarı eşleştir</b> düğmesine tıklayın. Launcher sunucunun parmak izini gösterir; bu, sayfadakiyle aynı olmalıdır.</p>
+<p>Ardından <b>Şununla aç</b> düğmeleri çalışır. Bir konsol başka bir adrese taşındığında (veya başka bir yerde bir yedekten geri yüklendiğinde) <b>Bu bilgisayarı eşleştir</b> düğmesine yeniden tıklayın: launcher konsolu anahtarından tanır ve yeni adresi kullanmak için onay ister. İlk seferde tarayıcı launcher'ı açıp açamayacağını sorar; izin verin.</p>
+<p>Aynı launcher <b>PassZit</b>'e de hizmet eder: PassZit uzantısının menüsünde <b>Pair with the MaxZit Launcher</b> seçeneğine tıklayın ve launcher'ın kendi penceresinde onaylayın. PassZit bu durumda Uzak Masaüstü, SSH, WinSCP, WinBox, VNC ve Telnet'i kasadaki oturum bilgileriyle açar — Uzak Masaüstü'nü yalnızca birkaç saniye var olan bir Windows kimlik bilgisi üzerinden, SSH parolasını veya anahtarını yalnızca sizin okuyabildiğiniz ve başlatmanın hemen ardından silinen bir dosya üzerinden. Launcher eski WatchZit Launcher'ın ve passzit-helper'ın yerini alır: kurulumu onların ayarlarını ve eşleştirmelerini devralır. PassZit eşleştirildiğinde ve konsolun adresi güvendiği MaxZit konsollarından biri olduğunda, WatchZit'in <b>Şununla aç</b> düğmeleri kasadaki eşleşen oturum bilgileriyle oturum açılmış olarak açılır; PassZit olmadan veya o cihaz için oturum bilgisi olmadan eskisi gibi açılırlar. Konsol PassZit'e yalnızca aracı, adresi, portu, kullanıcı adını ve cihaz adını bildirir — asla bir parolayı değil. <b>Şununla aç</b> düğmelerinin yanındaki küçük bir <b>PassZit</b> rozeti, PassZit'in kilidinin açık olduğunu ve oturum açacağını gösterir; <b>PassZit kilitli</b>, önce kilidinin açılması gerektiği anlamına gelir. Bu konsolda PassZit yoksa küçük bir ipucu buna nasıl izin verileceğini açıklar; <b>Bir daha gösterme</b> onu bu tarayıcıda gizler.</p>
+
+<h2 id="safety">Nasıl güvende kalır</h2>
+<ul>
+  <li>Her tıklama, sunucunuz tarafından <b>imzalanmış</b>, bir dakika geçerli ve tek kullanımlık bir bağlantı üretir; launcher yalnızca eşleştirdiğiniz sunuculardan gelen bağlantıları kabul eder.</li>
+  <li>Adresler ve kullanıcı adları katı karakter kümelerine göre denetlenir; programlar hiçbir zaman kabuk üzerinden değil, bir argüman listesiyle başlatılır.</li>
+  <li>Parolalar asla saklanmaz veya gönderilmez: program onları sizden ister.</li>
+  <li>Yöneticinizin eklediği bir program ilk kez çalışmadan önce launcher size sorar.</li>
+</ul>
+
+<h2 id="tools">Yerleşik araçlar</h2>
+<table>
+  <tr><th>Araç</th><th>Bilgisayarınızdaki program</th></tr>
+  <tr><td>SSH</td><td>kuruluysa PuTTY, değilse Windows'un SSH istemcisi</td></tr>
+  <tr><td>Uzak Masaüstü</td><td>Windows Uzak Masaüstü istemcisi</td></tr>
+  <tr><td>WinBox</td><td>Program Files, Downloads veya Masaüstü'ndeki winbox64.exe</td></tr>
+  <tr><td>VNC</td><td>TightVNC, TigerVNC veya RealVNC viewer</td></tr>
+  <tr><td>Telnet</td><td>PuTTY</td></tr>
+</table>
+<p>Başka yerlerdeki programlar: yollarını <code>%APPDATA%\MaxZit Launcher\launcher.json</code> dosyasına yazın. Launcher olmadan da Uzak Masaüstü çalışır: <b>.rdp</b> düğmesi Windows'un açtığı bir dosya indirir.</p>
+
+<h2 id="own-tools">Kendi araçlarınız</h2>
+<p><a href="/settings/tools">Ayarlar → Araçlar</a> altında yöneticiler yerleşik araçları kapatır, onları cihaz türleriyle sınırlar ve kendi araçlarını ekler: bir program yolu (örneğin <code>%ProgramFiles%\Mozilla Firefox\firefox.exe</code>) ve <code>{host}</code>, <code>{port}</code>, <code>{user}</code> ve <code>{name}</code> içeren argümanlar. Cihaz başına kullanıcı adı ve portlar, cihazın <b>Uzaktan erişim</b> bölümünde ayarlanır; burada bir cihazda olmayan araçların işaretini de kaldırırsınız — bir Proxmox veya Linux sunucusunda Uzak Masaüstü yoktur — ya da türünün varsayılan olarak almadığı bir aracı işaretlersiniz; cihaz sayfasındaki ve haritalardaki düğmeler bu durumda yalnızca işaretli araçları gösterir.</p>
+
+<h2 id="device-links">Her cihazdaki bağlantılar</h2>
+<p>Yine <a href="/settings/tools#links">Ayarlar → Araçlar</a> altında, <b>Her cihazdaki bağlantılar</b> her cihaz sayfasına, cihazı tarayıcıda başka bir programda açan düğmeler ekler; örneğin RMMZit veya BackupZit. Bir ad ve bir adres verin; <code>{name}</code>, <code>{address}</code> ve <code>{id}</code> cihazın adı, adresi ve numarasıyla değiştirilir, ör. <code>https://rmm.example.com:8443/devices?q={name}</code>. Yalnızca http:// ve https:// adresleri kabul edilir.</p>

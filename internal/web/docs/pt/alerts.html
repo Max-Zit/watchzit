@@ -1,0 +1,65 @@
+<h1>Problemas, alertas e notificações</h1>
+<p class="lead">Os gatilhos vigiam os resultados das verificações e abrem <b>Problemas</b>. Um problema fecha-se sozinho quando a condição termina; enquanto está aberto pode ser reconhecido, e é enviado para os seus canais de notificação.</p>
+
+<h2 id="triggers">Gatilhos</h2>
+<p>Em <a href="/alerts/triggers">Problemas → Gatilhos</a>. O WatchZit começa com estes:</p>
+<table>
+  <tr><th>Gatilho</th><th>Quando</th><th>Gravidade</th></tr>
+  <tr><td>Dispositivo caído</td><td>todas as verificações de um dispositivo estão em baixo durante 1 minuto</td><td>crítico</td></tr>
+  <tr><td>Verificação caída</td><td>uma verificação está em baixo durante 1 minuto</td><td>aviso</td></tr>
+  <tr><td>Carga de CPU alta, Memória quase cheia</td><td>acima de 90 % durante 5 minutos</td><td>aviso</td></tr>
+  <tr><td>Disco quase cheio / Disco cheio</td><td>acima de 90 % / 97 %</td><td>aviso / crítico</td></tr>
+  <tr><td>Disco cheio dentro de duas semanas</td><td>a tendência da última semana de um disco de agente atinge 98 % dentro de 14 dias</td><td>aviso</td></tr>
+  <tr><td>Perda de pacotes</td><td>acima de 20 % durante 5 minutos</td><td>aviso</td></tr>
+  <tr><td>Certificado expira em breve / Certificado expira</td><td>menos de 21 / 7 dias</td><td>aviso / crítico</td></tr>
+  <tr><td>Temperatura alta</td><td>RouterOS acima de 70 °C durante 5 minutos</td><td>aviso</td></tr>
+  <tr><td>Grupo HA sem redundância</td><td>um grupo HA de um mapa tem membros em baixo, mas não todos, durante 1 minuto (o problema pertence ao membro que está em baixo)</td><td>aviso</td></tr>
+</table>
+<p>Adicione os seus próprios: um <b>Valor</b> (carga da CPU, tempo de resposta, tráfego, ligações …), <b>acima de</b> ou <b>abaixo de</b> um limite, <b>por pelo menos</b> alguns minutos (uma quebra curta não abre um problema), uma gravidade, e se se aplica a todos os dispositivos, a um grupo ou a um só dispositivo.</p>
+<p><b>Sem dados novos</b> abre um problema quando uma verificação não recebeu nenhum valor novo durante os minutos que definir — um agente que deixou de comunicar, um dispositivo que já não responde a SNMP, uma fonte de dados que parou; se quiser, limite-o a tipos de verificação.</p>
+<p><b>O valor vai atingir um limite (previsão)</b> olha para a frente: traça uma reta pela última semana do valor (pelo menos seis horas de histórico) e abre um problema quando essa reta atinge o limite <b>dentro do</b> número de dias que definir — um disco que ficará cheio daqui a dez dias, um pool que se está a encher, uma temperatura que não para de subir. O problema indica o valor atual, a rapidez com que muda por dia e a data em que lá chega; fecha-se quando a tendência já não chega lá a tempo.</p>
+
+<p><b>Uma só verificação.</b> O botão do sino junto a uma verificação na página do dispositivo adiciona um gatilho só para essa verificação — necessário para valores de OID SNMP (uma temperatura em °C, uma tensão em V), uma vez que cada um tem a sua unidade, e prático para um disco ou uma porta importante. Um gatilho destes lista o dispositivo e a verificação em Vale para; é removido juntamente com a sua verificação.</p>
+
+<h2 id="problems">Problemas</h2>
+<p><a href="/problems">Problemas</a> lista o que está aberto, do mais grave para o menos grave; o número no menu conta os problemas que foram enviados (vermelho quando algum é crítico). <b>Reconhecer</b> um problema com uma nota permite que os outros saibam que alguém está a tratar dele. Os problemas resolvidos ficam no histórico durante um ano.</p>
+
+<h2 id="dependencies">Dependências</h2>
+<p>Defina <b>Depende de</b> num dispositivo (por exemplo, o router de uma filial). Quando esse router está em baixo, os dispositivos atrás dele ficam apenas <b>inacessíveis</b>: os seus problemas são registados mas não enviados — recebe uma mensagem pelo router, não cinquenta. Nos mapas, esses dispositivos aparecem a cinzento com um contorno tracejado em vez de vermelho, e o seu painel indica que o problema está acima deles.</p>
+
+<p>Para os definir para uma rede inteira de uma vez, abra um mapa e clique em <b>Dependências</b>: seguindo os cabos a partir do dispositivo do qual a rede depende (por predefinição o router ou a firewall com mais cabos; escolha outro se quiser), é proposto a cada dispositivo o que está antes dele — o switch depende do router, os pontos de acesso do switch, as máquinas virtuais do seu servidor. Os cabos de energia, HA e VXLAN não contam. Os dispositivos sem dependência ficam marcados; os que já dependem de outro dispositivo são mostrados, mas não marcados. Clique em <b>Definir as dependências marcadas</b>.</p>
+
+<h2 id="maintenance">Manutenção</h2>
+<p>Em <a href="/alerts/maintenance">Problemas → Manutenção</a> planeie uma janela para dispositivos ou grupos. Durante a janela, os dispositivos continuam a ser monitorizados e os problemas registados, mas nada é enviado; os problemas ainda abertos quando ela termina são enviados nesse momento. Os relatórios de disponibilidade mostram o tempo de manutenção à parte. <b>Repetição</b> faz a janela voltar todos os dias, semanas ou meses (uma cópia de segurança noturna, o dia mensal de patches), opcionalmente até um último dia; a lista mostra a próxima janela, e <b>Remover</b> termina a série inteira.</p>
+
+<h2 id="notifications">Notificações</h2>
+<p>Em <a href="/settings/notifications">Configurações → Notificações</a> (administradores):</p>
+<ul>
+  <li><b>Servidor de e-mail</b> — SMTP com STARTTLS, TLS ou nenhum; a palavra-passe é guardada cifrada. Envie um email de teste.</li>
+  <li><b>Canais</b> — destinatários de email, um <b>webhook</b> (JSON, assinado com HMAC-SHA256 em <code>X-WatchZit-Signature</code> quando define uma chave), <b>Slack</b>, <b>Microsoft Teams</b>, <b>Discord</b>, <b>Telegram</b> (um token de bot do @BotFather e o ID do chat), <b>ntfy</b> (push para telemóveis através do ntfy.sh ou do seu próprio servidor ntfy), <b>PagerDuty</b> (uma chave de integração Events API v2; os problemas abrem e resolvem incidentes), <b>SMS (Twilio)</b> (account SID, auth token, remetente, números de telefone) ou <b>SMS (gateway próprio)</b> (qualquer endereço HTTP com <code>{text}</code> no lugar da mensagem). Cada canal tem uma gravidade mínima e pode também comunicar quando os problemas são resolvidos.</li>
+  <li><b>Idioma</b> das notificações e o <b>endereço da consola</b> usado nas ligações que contêm.</li>
+</ul>
+
+<h2 id="escalation">Escalonamento e prevenção</h2>
+<p>Em <b>Escalonamento e horas de serviço</b> de um canal:</p>
+<ul>
+  <li><b>Avisar após (minutos)</b> — o canal só é avisado dos problemas ainda abertos após esse tempo, por exemplo o chefe de equipa após 15 minutos quando a primeira linha não reagiu. <b>Repetir a cada</b> volta a avisá-lo enquanto o problema continua aberto.</li>
+  <li>Os problemas reconhecidos não são escalonados nem repetidos, a não ser que <b>Também problemas confirmados</b> esteja ligado.</li>
+  <li><b>Só em alguns dias e horas</b> faz do canal um serviço de prevenção: por exemplo, SMS para o turno da noite de segunda a sexta das 18 às 08 e todo o fim de semana. Os problemas que começam fora do seu horário chegam-lhe quando o serviço começa, se ainda estiverem abertos. Para uma rotação, adicione um canal por pessoa ou equipa com os seus próprios dias e horas.</li>
+  <li>Um canal que foi avisado de um problema é também avisado quando este é resolvido; os outros não.</li>
+</ul>
+
+<h2 id="logs">Syslog e traps SNMP</h2>
+<p>Os dispositivos podem enviar as suas mensagens de log e traps SNMP para o WatchZit. Ative isto em <a href="/settings/logs">Configurações → Syslog e traps</a>: syslog em UDP 514 e traps (SNMP v1 e v2c; os informs são respondidos) em UDP 162 por predefinição, opcionalmente só traps com determinadas communities, guardados durante 30 dias. Abra estas portas na firewall do servidor e defina o WatchZit como destino nos dispositivos, por exemplo no MikroTik <code>/system logging action set remote remote=&lt;servidor&gt;</code> e uma regra de logging com a ação <code>remote</code>, no FortiGate <code>config log syslogd setting</code>, no Linux uma linha rsyslog <code>*.* @&lt;servidor&gt;:514</code>.</p>
+<ul>
+  <li><a href="/logs">Registos</a> lista as mensagens, das mais recentes para as mais antigas, com pesquisa, dispositivo, origem (syslog ou traps) e o nível menos importante (0 emergency … 7 debug). Uma mensagem de um endereço que não é um dispositivo aparece com o seu endereço. Cada página de dispositivo tem um botão <b>Registos</b>.</li>
+  <li>Um gatilho do tipo <b>Mensagem syslog ou trap</b> abre um problema quando uma mensagem contém um texto (ou corresponde a uma expressão regular entre barras, por exemplo <code>/link (down|failure)/</code>) com um nível pelo menos tão importante como o escolhido. O problema fica aberto enquanto essas mensagens continuarem a chegar e fecha-se quando não chegou nenhuma durante o tempo do gatilho. Estes problemas não contam como tempo de inatividade nos relatórios.</li>
+</ul>
+
+<h2 id="flows">Fluxos de tráfego (NetFlow, IPFIX, sFlow)</h2>
+<p>Routers, switches e firewalls podem indicar que tráfego passa por eles. Ative o coletor em <a href="/settings/flows">Configurações → Fluxos de tráfego</a>: NetFlow v5, NetFlow v9 e IPFIX em UDP 2055 e sFlow v5 em UDP 6343 por predefinição, guardados durante 7 dias (1–90). Abra estas portas na firewall do servidor e defina o WatchZit como coletor, por exemplo no MikroTik <code>/ip traffic-flow set enabled=yes</code> e <code>/ip traffic-flow target add dst-address=&lt;servidor&gt; port=2055 version=ipfix</code>, no FortiGate <code>config system netflow</code>, em switches com sFlow o agente sFlow com este servidor como coletor.</p>
+<ul>
+  <li>O WatchZit soma os fluxos por minuto e por exportador, agrupados por conversa (origem, destino, protocolo e a porta de serviço — a menor das duas portas). Cada minuto guarda as 1000 maiores conversas de cada exportador; o resto fica numa linha sem endereços, para que os totais continuem certos. Os fluxos amostrados (sFlow, ou NetFlow com uma taxa de amostragem) são multiplicados pela taxa.</li>
+  <li><a href="/flows">Fluxos de tráfego</a> mostra o tráfego ao longo do tempo e as principais origens, destinos, serviços, exportadores e conversas da última hora, 6 horas, dia ou semana, de um exportador ou de todos. Os endereços de dispositivos da consola aparecem como o dispositivo. Os exportadores têm um botão <b>Fluxos de tráfego</b> na página do dispositivo.</li>
+  <li>Os fluxos de endereços que não são dispositivos ficam de fora, a não ser que <b>Também de endereços que não são dispositivos</b> esteja ligado.</li>
+</ul>

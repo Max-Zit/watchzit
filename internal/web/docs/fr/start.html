@@ -1,0 +1,31 @@
+<h1>Premiers pas</h1>
+<p class="lead">WatchZit est un système de surveillance des réseaux et des appareils que vous hébergez vous-même. Une carte réseau en direct montre ce qui est relié à quoi et dans quel état ; derrière elle se trouvent des contrôles, des graphiques, des alertes, des tableaux de bord et des rapports — sur votre propre serveur, sous licence AGPL-3.0.</p>
+
+<h2 id="what">Ce que fait WatchZit</h2>
+<table>
+  <tr><th>Domaine</th><th>Ce que vous obtenez</th></tr>
+  <tr><td>Cartes réseau</td><td>Dessinez votre réseau avec de vraies images d'appareils, des baies et des câbles de port à port ; la carte affiche l'état et le trafic en direct. <a href="/docs/maps">Cartes réseau</a></td></tr>
+  <tr><td>Contrôles</td><td>Ping, ports TCP, pages web, certificats TLS, DNS, PostgreSQL et MySQL, SNMP (v1/v2c/v3 : interfaces, CPU, mémoire, disques, n'importe quel OID), l'API MikroTik RouterOS et des valeurs issues de n'importe quelle API JSON. <a href="/docs/devices">Appareils et contrôles</a></td></tr>
+  <tr><td>Agent</td><td>Un petit agent facultatif pour Windows et Linux remonte le CPU, la mémoire, les disques, les interfaces et les services choisis. <a href="/docs/agents">Agents</a></td></tr>
+  <tr><td>Alertes</td><td>Les déclencheurs ouvrent des problèmes ; les dépendances, les fenêtres de maintenance et les prises en charge limitent le bruit ; notifications par e-mail, webhook, Slack et Teams. <a href="/docs/alerts">Problèmes et alertes</a></td></tr>
+  <tr><td>Graphiques, tableaux de bord, rapports</td><td>Des graphiques de chaque valeur, d'une heure à un an, des tableaux de bord pour un écran mural, des rapports de disponibilité. <a href="/docs/dashboards">Tableaux de bord et rapports</a></td></tr>
+  <tr><td>Ouvrir les appareils</td><td>Ouvrez la page web d'un appareil, SSH, le Bureau à distance, WinBox ou vos propres outils en un clic. <a href="/docs/tools">Ouvrir les appareils</a></td></tr>
+</table>
+
+<h2 id="how">Fonctionnement</h2>
+<ul>
+  <li><b>Le serveur</b> fonctionne sous Linux avec PostgreSQL. Il possède deux ports : la <b>console</b> (interface web et API REST, TCP 8443) et le <b>point d'accès des agents</b> (TCP 8444).</li>
+  <li>Le serveur <b>interroge</b> lui-même les appareils (ping, TCP, SNMP, HTTP, bases de données, API). Rien n'a besoin d'être installé sur les appareils pour cela.</li>
+  <li>Les <b>agents</b> sont facultatifs. Ils se connectent <i>en sortie</i> au port des agents et envoient leurs données chaque minute ; les ordinateurs n'ont besoin d'aucun port ouvert.</li>
+  <li>Chaque modification faite dans la console est inscrite dans le <a href="/audit">journal d’audit</a> infalsifiable.</li>
+</ul>
+
+<h2 id="first-steps">Premières étapes</h2>
+<ol>
+  <li><b>Installez le serveur</b> — voir <a href="/docs/install">Installer le serveur</a>.</li>
+  <li><b>Créez le premier administrateur</b> avec le jeton de configuration affiché par l'installateur, puis configurez la connexion à deux facteurs avec une application d'authentification.</li>
+  <li><b>Ajoutez des appareils</b> dans <a href="/devices">Appareils</a> : un nom et une adresse suffisent ; le ping est ajouté pour vous. Ajoutez un profil SNMP pour lire les interfaces et le trafic.</li>
+  <li><b>Dessinez une carte</b> dans <a href="/maps">Cartes</a> et reliez les appareils de port à port.</li>
+  <li><b>Configurez les notifications</b> dans <a href="/settings/notifications">Paramètres → Notifications</a> ; les déclencheurs intégrés surveillent déjà les appareils en panne, les disques pleins et les certificats qui expirent.</li>
+</ol>
+<div class="callout tip"><p>Par défaut, la console n'est accessible que depuis des réseaux privés. Gardez ce réglage et n'ouvrez que le port des agents (8444), là où les agents en ont besoin.</p></div>

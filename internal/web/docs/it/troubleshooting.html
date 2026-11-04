@@ -1,0 +1,35 @@
+<h1>Risoluzione dei problemi e FAQ</h1>
+
+<h2 id="ping">Il ping indica "ICMP is not allowed"</h2>
+<p>Il server deve avere il permesso di inviare ICMP. Il servizio pacchettizzato ce l'ha (<code>CAP_NET_RAW</code>). Altrove, concediglielo con <code>setcap cap_net_raw+ep /usr/bin/watchzit-server</code> oppure consenti il ping non privilegiato: <code>sysctl net.ipv4.ping_group_range="0 2147483647"</code>.</p>
+
+<h2 id="snmp">SNMP indica "nessuna risposta"</h2>
+<ul>
+  <li>Controlla nel profilo la community o l'utente SNMPv3, i protocolli e le password.</li>
+  <li>Consenti sul dispositivo l'indirizzo del server WatchZit (molti dispositivi rispondono solo ai manager elencati) e UDP 161 sui firewall.</li>
+  <li>Il messaggio lo segnala quando un utente v3 è sconosciuto o la password è errata.</li>
+</ul>
+
+<h2 id="agent">Un agente non si collega</h2>
+<ul>
+  <li>Il computer deve raggiungere la porta degli agenti 8444 del server; controlla <a href="/settings/network">Impostazioni → Rete e accesso</a> (reti consentite, indirizzo pubblico per gli agenti).</li>
+  <li>Windows: <code>Get-Service WatchZitAgent</code> e il log in <code>C:\ProgramData\WatchZit Agent</code>. Linux: <code>journalctl -u watchzit-agent</code>.</li>
+  <li>"the server does not know this agent": il dispositivo è stato rimosso; registralo di nuovo con un nuovo codice.</li>
+</ul>
+
+<h2 id="notify">Le notifiche non arrivano</h2>
+<ul>
+  <li>Invia una prova da <a href="/settings/notifications">Impostazioni → Notifiche</a>; l'elenco dei canali mostra l'ultimo errore.</li>
+  <li>I problemi in manutenzione o dietro un dispositivo non attivo non vengono inviati; controlla la gravità minima del canale.</li>
+</ul>
+
+<h2 id="blocked">Mi sono chiuso fuori</h2>
+<p>Dopo troppi accessi falliti l'indirizzo viene bloccato per un po'. Sul server: <code>watchzit-server --unblock-ip all</code>. Se le reti consentite ti escludono: <code>watchzit-server --reset-allowlist</code>.</p>
+
+<h2 id="logs">Dove sono i log?</h2>
+<p><code>journalctl -u watchzit-server</code> e <code>/var/lib/watchzit/logs/server.log</code>; l'helper degli aggiornamenti scrive <code>/var/log/watchzit-helper/helper.log</code>. <a href="/settings/diagnostics">Impostazioni → Diagnostica</a> mostra le righe più recenti e fornisce uno ZIP senza segreti da inviare all'assistenza.</p>
+
+<h2 id="faq">FAQ</h2>
+<p><b>I dispositivi hanno bisogno di un agente?</b> No. I controlli di ping, porte, SNMP, web, DNS, database e API partono dal server; l'agente aggiunge ciò che solo il computer stesso conosce.</p>
+<p><b>Quanti dispositivi?</b> Un server esegue migliaia di controlli al minuto; le misure sono compresse, quindi un anno di dati occupa poco spazio.</p>
+<p><b>È gratuito?</b> Sì, con licenza AGPL-3.0. MaxZit offre assistenza a pagamento.</p>

@@ -1,0 +1,65 @@
+<h1>Problemen, waarschuwingen en meldingen</h1>
+<p class="lead">Triggers bewaken de resultaten van controles en openen <b>problemen</b>. Een probleem sluit vanzelf wanneer de toestand voorbij is; zolang het open is, kan het worden bevestigd, en het wordt naar uw meldingskanalen gestuurd.</p>
+
+<h2 id="triggers">Triggers</h2>
+<p>Onder <a href="/alerts/triggers">Problemen → Triggers</a>. WatchZit begint met deze:</p>
+<table>
+  <tr><th>Trigger</th><th>Wanneer</th><th>Ernst</th></tr>
+  <tr><td>Apparaat uitgevallen</td><td>alle controles van een apparaat zijn 1 minuut uitgevallen</td><td>kritiek</td></tr>
+  <tr><td>Controle uitgevallen</td><td>één controle is 1 minuut uitgevallen</td><td>waarschuwing</td></tr>
+  <tr><td>Hoge CPU-belasting, Geheugen bijna vol</td><td>boven 90 % gedurende 5 minuten</td><td>waarschuwing</td></tr>
+  <tr><td>Schijf bijna vol / Schijf vol</td><td>boven 90 % / 97 %</td><td>waarschuwing / kritiek</td></tr>
+  <tr><td>Schijf binnen twee weken vol</td><td>de trend van de afgelopen week van een agentschijf bereikt binnen 14 dagen 98 %</td><td>waarschuwing</td></tr>
+  <tr><td>Pakketverlies</td><td>boven 20 % gedurende 5 minuten</td><td>waarschuwing</td></tr>
+  <tr><td>Certificaat verloopt binnenkort / verloopt</td><td>minder dan 21 / 7 dagen</td><td>waarschuwing / kritiek</td></tr>
+  <tr><td>Hoge temperatuur</td><td>RouterOS boven 70 °C gedurende 5 minuten</td><td>waarschuwing</td></tr>
+  <tr><td>HA-groep zonder redundantie</td><td>van een HA-groep op een kaart zijn 1 minuut lang leden uitgevallen, maar niet alle (het probleem hoort bij het uitgevallen lid)</td><td>waarschuwing</td></tr>
+</table>
+<p>Voeg uw eigen triggers toe: een <b>waarde</b> (CPU-belasting, responstijd, verkeer, verbindingen …), <b>boven</b> of <b>onder</b> een drempel, <b>minstens</b> een aantal minuten (een korte dip opent geen probleem), een ernst, en of hij geldt voor alle apparaten, een groep of één apparaat.</p>
+<p><b>Geen nieuwe gegevens</b> opent een probleem wanneer een controle gedurende het ingestelde aantal minuten geen nieuwe waarde kreeg — een agent die niet meer rapporteert, een apparaat dat niet meer op SNMP antwoordt, een gegevensbron die gestopt is; beperk hem desgewenst tot bepaalde soorten controles.</p>
+<p><b>Waarde zal een drempel bereiken (voorspelling)</b> kijkt juist vooruit: hij trekt een rechte lijn door de afgelopen week van de waarde (minstens zes uur geschiedenis) en opent een probleem wanneer die lijn de drempel <b>binnen</b> het ingestelde aantal dagen bereikt — een schijf die over tien dagen vol is, een pool die volloopt, een temperatuur die blijft stijgen. Het probleem vermeldt de huidige waarde, hoe snel die per dag verandert en de datum waarop de drempel wordt bereikt; het sluit wanneer de trend er niet meer op tijd komt.</p>
+
+<p><b>Eén controle.</b> De belknop naast een controle op de apparaatpagina voegt een trigger toe voor alleen die controle — nodig voor SNMP-OID-waarden (een temperatuur in °C, een spanning in V), omdat elk een eigen eenheid heeft, en handig voor één belangrijke schijf of poort. Zo'n trigger toont het apparaat en de controle onder Geldt voor; hij wordt samen met zijn controle verwijderd.</p>
+
+<h2 id="problems">Problemen</h2>
+<p><a href="/problems">Problemen</a> toont wat open is, het ernstigste eerst; het getal in het menu telt de problemen die verstuurd zijn (rood als er één kritiek is). <b>Bevestig</b> een probleem met een notitie, zodat anderen weten dat iemand ermee bezig is. Opgeloste problemen blijven een jaar in de geschiedenis.</p>
+
+<h2 id="dependencies">Afhankelijkheden</h2>
+<p>Stel <b>Afhankelijk van</b> in bij een apparaat (bijvoorbeeld de router van een filiaal). Wanneer die router uitgevallen is, zijn de apparaten erachter alleen <b>onbereikbaar</b>: hun problemen worden vastgelegd maar niet verstuurd — u krijgt één bericht voor de router, geen vijftig. Op kaarten zijn zulke apparaten grijs met een gestreepte rand in plaats van rood, en hun paneel meldt dat het probleem hoger ligt.</p>
+
+<p>Om ze in één keer voor een heel netwerk in te stellen, opent u een kaart en klikt u op <b>Afhankelijkheden</b>: de kabels volgend vanaf het apparaat waar het netwerk aan hangt (standaard de router of firewall met de meeste kabels; kies desgewenst een ander), krijgt elk apparaat het apparaat ervoor aangeboden — de switch hangt af van de router, de access points van de switch, virtuele machines van hun server. Voedings-, HA- en VXLAN-kabels tellen niet mee. Apparaten zonder afhankelijkheid zijn aangevinkt; apparaten die al van een ander apparaat afhangen worden getoond maar niet aangevinkt. Klik op <b>Aangevinkte afhankelijkheden instellen</b>.</p>
+
+<h2 id="maintenance">Onderhoud</h2>
+<p>Plan onder <a href="/alerts/maintenance">Problemen → Onderhoud</a> een venster voor apparaten of groepen. Tijdens dat venster worden de apparaten nog steeds bewaakt en problemen vastgelegd, maar er wordt niets verstuurd; problemen die aan het einde nog open zijn, worden dan verstuurd. Beschikbaarheidsrapporten tonen onderhoudstijd apart. <b>Herhaling</b> laat het venster elke dag, week of maand terugkomen (een nachtelijke back-up, de maandelijkse patchdag), eventueel tot een laatste dag; de lijst toont het volgende venster, en <b>Verwijderen</b> beëindigt de hele reeks.</p>
+
+<h2 id="notifications">Meldingen</h2>
+<p>Onder <a href="/settings/notifications">Instellingen → Meldingen</a> (beheerders):</p>
+<ul>
+  <li><b>E-mailserver</b> — SMTP met STARTTLS, TLS of zonder; het wachtwoord wordt versleuteld opgeslagen. Verstuur een test-e-mail.</li>
+  <li><b>Kanalen</b> — e-mailontvangers, een <b>webhook</b> (JSON, ondertekend met HMAC-SHA256 in <code>X-WatchZit-Signature</code> als u een sleutel instelt), <b>Slack</b>, <b>Microsoft Teams</b>, <b>Discord</b>, <b>Telegram</b> (een bottoken van @BotFather en de chat-ID), <b>ntfy</b> (pushberichten naar telefoons via ntfy.sh of uw eigen ntfy-server), <b>PagerDuty</b> (een integratiesleutel voor Events API v2; problemen openen en sluiten incidenten), <b>Sms (Twilio)</b> (account-SID, auth-token, afzender, telefoonnummers) of <b>Sms (eigen gateway)</b> (elk HTTP-adres met <code>{text}</code> op de plek van het bericht). Elk kanaal heeft een laagste ernst en kan ook melden wanneer problemen zijn opgelost.</li>
+  <li><b>Taal</b> van de meldingen en het <b>consoleadres</b> dat voor links erin wordt gebruikt.</li>
+</ul>
+
+<h2 id="escalation">Escalatie en bereikbaarheidsdienst</h2>
+<p>Onder <b>Escalatie en diensttijden</b> van een kanaal:</p>
+<ul>
+  <li><b>Melden na (minuten)</b> — het kanaal hoort alleen van problemen die na die tijd nog open zijn, bijv. de teamleider na 15 minuten als de eerste lijn niet heeft gereageerd. <b>Herhalen elke</b> meldt het opnieuw zolang het probleem open blijft.</li>
+  <li>Bevestigde problemen worden niet geëscaleerd of herhaald, tenzij <b>Ook bevestigde problemen</b> aan staat.</li>
+  <li><b>Alleen op sommige dagen en uren</b> maakt van het kanaal een bereikbaarheidsdienst: bijv. sms naar de nachtdienst van maandag tot vrijdag van 18 tot 08 uur en het hele weekend. Problemen die buiten de diensttijden beginnen, bereiken het kanaal wanneer de dienst begint, als ze dan nog open zijn. Voeg voor een rooster één kanaal per persoon of team toe, met eigen dagen en uren.</li>
+  <li>Een kanaal dat over een probleem is ingelicht, hoort ook wanneer het is opgelost; de andere niet.</li>
+</ul>
+
+<h2 id="logs">Syslog en SNMP-traps</h2>
+<p>Apparaten kunnen hun logberichten en SNMP-traps naar WatchZit sturen. Schakel dat in onder <a href="/settings/logs">Instellingen → Syslog en traps</a>: standaard syslog op UDP 514 en traps (SNMP v1 en v2c, informs worden beantwoord) op UDP 162, eventueel alleen traps met bepaalde communities, 30 dagen bewaard. Open deze poorten in de firewall van de server en stel WatchZit in als bestemming op de apparaten, bijv. op MikroTik <code>/system logging action set remote remote=&lt;server&gt;</code> en een logregel met actie <code>remote</code>, op FortiGate <code>config log syslogd setting</code>, op Linux een rsyslog-regel <code>*.* @&lt;server&gt;:514</code>.</p>
+<ul>
+  <li><a href="/logs">Logboeken</a> toont de berichten, de nieuwste eerst, met een zoekveld, een apparaat, de bron (syslog of traps) en het minst belangrijke niveau (0 emergency … 7 debug). Een bericht van een adres dat geen apparaat is, wordt met zijn adres getoond. Elke apparaatpagina heeft een knop <b>Logboeken</b>.</li>
+  <li>Een trigger van de soort <b>Syslog-bericht of trap</b> opent een probleem wanneer een bericht een tekst bevat (of overeenkomt met een reguliere expressie tussen slashes, bijv. <code>/link (down|failure)/</code>) op een niveau dat minstens zo belangrijk is als gekozen. Het probleem blijft open zolang zulke berichten blijven komen en sluit wanneer er gedurende de tijd van de trigger geen meer kwamen. Deze problemen tellen in rapporten niet als uitvaltijd.</li>
+</ul>
+
+<h2 id="flows">Verkeersflows (NetFlow, IPFIX, sFlow)</h2>
+<p>Routers, switches en firewalls kunnen vertellen welk verkeer er door hen heen gaat. Schakel de collector in onder <a href="/settings/flows">Instellingen → Verkeersflows</a>: standaard NetFlow v5, NetFlow v9 en IPFIX op UDP 2055 en sFlow v5 op UDP 6343, 7 dagen bewaard (1–90). Open deze poorten in de firewall van de server en stel WatchZit in als collector, bijv. op MikroTik <code>/ip traffic-flow set enabled=yes</code> en <code>/ip traffic-flow target add dst-address=&lt;server&gt; port=2055 version=ipfix</code>, op FortiGate <code>config system netflow</code>, op switches met sFlow de sFlow-agent met deze server als collector.</p>
+<ul>
+  <li>WatchZit telt de flows per minuut en per exporter op per gesprek (bron, bestemming, protocol en de servicepoort — de laagste van de twee poorten). Elke minuut bewaart de 1.000 grootste gesprekken van elke exporter; de rest wordt één rij zonder adressen, zodat de totalen kloppen. Gesamplede flows (sFlow, of NetFlow met een samplingfrequentie) worden met de frequentie vermenigvuldigd.</li>
+  <li><a href="/flows">Verkeersflows</a> toont het verkeer in de tijd en de grootste bronnen, bestemmingen, services, exporters en gesprekken van het laatste uur, 6 uur, de laatste dag of week, van één exporter of alle. Adressen van apparaten in de console worden als het apparaat getoond. Exporters hebben een knop <b>Verkeersflows</b> op hun apparaatpagina.</li>
+  <li>Flows van adressen die geen apparaat zijn, worden weggelaten, tenzij <b>Ook van adressen die geen apparaat zijn</b> aan staat.</li>
+</ul>
