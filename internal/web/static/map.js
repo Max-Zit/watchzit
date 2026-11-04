@@ -697,8 +697,9 @@
         p.appendChild(list);
       }
       if (!kioskBase) {
-        // Metrics, a line, the ways to connect, a line, and Edit device at the foot
-        var acts = h("div", { "class": "row mt" });
+        // a line, Metrics, a line, the ways to connect, a line, and Edit device at the foot
+        p.appendChild(h("hr", { "class": "panel-sep" }));
+        var acts = h("div", { "class": "row" });
         acts.appendChild(btn(T("Metrics"), "/devices/" + n.device + fromMap(), "primary"));
         p.appendChild(acts);
         var conn = h("div", { "class": "row" });
