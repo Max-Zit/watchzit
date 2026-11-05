@@ -30,6 +30,36 @@ jobs:
           GOARCH: arm64
         run: go build -o /dev/null ./cmd/watchzit-agent
 
+  race:
+    name: Race detector (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Tests with -race
+        run: go test -race -count=1 -timeout 40m ./...
+
+  fuzz:
+    name: Fuzz parsers of untrusted input (short)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Fuzz each target for 20 s
+        run: |
+          set -e
+          for t in launch:FuzzParse agent:FuzzParseEnrollCode datasource:FuzzParseJSONSeries netacl:FuzzParse \
+                   web:FuzzParseState web:FuzzParseIDPMetadata web:FuzzFormLists store:FuzzParseSteps \
+                   flow:FuzzDecode snmp:FuzzDecode snmp:FuzzParseTrap logrecv:FuzzParseSyslog tsdb:FuzzDecode; do
+            go test "./internal/${t%%:*}" -run '^$' -fuzz "^${t##*:}\$" -fuzztime 20s
+          done
+
   windows:
     name: Build (Windows)
     runs-on: ubuntu-latest
