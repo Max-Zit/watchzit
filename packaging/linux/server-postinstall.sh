@@ -36,6 +36,9 @@ if [ -f /var/lib/watchzit/.appliance ]; then
     install -m 0440 $a/sudoers-watchzit-setup /etc/sudoers.d/watchzit-setup
     install -m 0644 $a/watchzit-icmp.service /etc/systemd/system/watchzit-icmp.service
     install -m 0644 $a/sysctl-watchzit.conf /etc/sysctl.d/60-watchzit.conf
+    install -m 0644 $a/modprobe-watchzit.conf /etc/modprobe.d/60-watchzit.conf
+    # PostgreSQL settings are not for everyone to read (Lynis DBS-1828).
+    chmod o-rwx /etc/postgresql/*/main/*.conf 2>/dev/null || true
     sysctl -q -p /etc/sysctl.d/60-watchzit.conf 2>/dev/null || true
     systemctl daemon-reload 2>/dev/null || true
     systemctl enable watchzit-appliance-boot.service >/dev/null 2>&1 || true

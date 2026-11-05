@@ -61,6 +61,8 @@ contents:
     dst: /usr/share/watchzit/appliance/watchzit-icmp.service
   - src: ./packaging/appliance/sysctl-watchzit.conf
     dst: /usr/share/watchzit/appliance/sysctl-watchzit.conf
+  - src: ./packaging/appliance/modprobe-watchzit.conf
+    dst: /usr/share/watchzit/appliance/modprobe-watchzit.conf
   - src: ./packaging/linux/server.env
     dst: /etc/watchzit/server.env
     type: config|noreplace
