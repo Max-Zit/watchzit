@@ -185,7 +185,10 @@ func (s *Server) handleAgentConnect(w http.ResponseWriter, r *http.Request) {
 		cancel()
 		if s.hub.remove(c) {
 			s.agentOffline(a.DeviceID)
-			if c.coll.hash != "" {
+			c.coll.mu.Lock()
+			wasCollector := c.coll.hash != ""
+			c.coll.mu.Unlock()
+			if wasCollector {
 				octx, ocancel := context.WithTimeout(context.Background(), 30*time.Second)
 				s.collectorOffline(octx, a.DeviceID)
 				ocancel()
