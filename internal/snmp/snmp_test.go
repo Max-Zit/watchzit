@@ -107,7 +107,9 @@ type agent struct {
 	requests  int
 }
 
-func newAgent(t *testing.T) *agent {
+// newAgent starts a fake SNMP agent; a v3 user is set before it serves
+// (setting it later would race with the serving goroutine).
+func newAgent(t *testing.T, user ...V3) *agent {
 	c, err := net.ListenUDP("udp", net.UDPAddrFromAddrPort(netip.MustParseAddrPort("127.0.0.1:0")))
 	if err != nil {
 		t.Fatal(err)
@@ -124,6 +126,9 @@ func newAgent(t *testing.T) *agent {
 	a.mib = append(a.mib, Variable{OID: MustOID("1.3.6.1.2.1.31.1.1.1.6.1"), Kind: KindCounter64, Uint: 1 << 40})
 	slices.SortFunc(a.mib, func(x, y Variable) int { return x.OID.Compare(y.OID) })
 	t.Cleanup(func() { _ = c.Close() })
+	if len(user) > 0 {
+		a.user = user[0]
+	}
 	go a.serve()
 	return a
 }
@@ -329,8 +334,7 @@ func TestV3(t *testing.T) {
 	ctx := context.Background()
 	for _, u := range cases {
 		t.Run(u.User, func(t *testing.T) {
-			a := newAgent(t)
-			a.user = u
+			a := newAgent(t, u)
 			c, err := Dial(a.addr(), Config{Version: 3, V3: u, Timeout: time.Second})
 			if err != nil {
 				t.Fatal(err)
@@ -348,8 +352,7 @@ func TestV3(t *testing.T) {
 	}
 
 	t.Run("errors", func(t *testing.T) {
-		a := newAgent(t)
-		a.user = cases[3]
+		a := newAgent(t, cases[3])
 		for _, tc := range []struct {
 			u    V3
 			want string
