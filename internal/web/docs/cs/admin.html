@@ -43,7 +43,7 @@
 
 <h2 id="os">Operační systém a SSH</h2>
 <p>Stejná stránka ukazuje <b>aktualizace operačního systému</b> serveru (Debian, Ubuntu, AlmaLinux, Rocky Linux): kolik jich čeká a kolik z nich jsou bezpečnostní aktualizace, zda jsou zapnuté automatické bezpečnostní aktualizace a kdy naposledy proběhly. <b>Nainstalovat všechny aktualizace</b> je nainstaluje hned; když vyžadují restart, stránka to oznámí a <b>Restartovat server</b> ho restartuje. Seznam se sám obnovuje dvakrát denně, nebo tlačítkem <b>Zkontrolovat nyní</b>.</p>
-<p>Na appliance WatchZit stránka nastavuje také jeho <b>síť</b> (DHCP nebo pevná adresa, brána, DNS, název — nastavení, která appliance odříznou, se po 30 sekundách vrátí) a <b>SSH</b>: zapnuto nebo vypnuto a jeho port; port, který server SSH odmítne, ponechá staré nastavení. Na jiných serverech to patří operačnímu systému.</p>
+<p>Na appliance WatchZit stránka nastavuje také jeho <b>síť</b> (DHCP nebo pevná adresa, brána, DNS, název — nastavení, která appliance odříznou, se po 30 sekundách vrátí) a <b>SSH</b>: zapnuto nebo vypnuto a jeho port; port, který server SSH odmítne, ponechá staré nastavení. Na jiných serverech to patří operačnímu systému. SSH na appliance nepovoluje přihlášení jako root ani přesměrování (SSH tunely přes něj).</p>
 
 <h2 id="certificate">Certifikát</h2>
 <p>Po instalaci konzole používá vlastní certifikát, na který prohlížeče upozorňují. V <a href="/settings/certificate">Nastavení → Certifikát</a>:</p>

@@ -43,7 +43,7 @@
 
 <h2 id="os">Operating system and SSH</h2>
 <p>The same page shows the <b>operating system updates</b> of the server (Debian, Ubuntu, AlmaLinux, Rocky Linux): how many wait and how many are security updates, whether automatic security updates are on and when they last ran. <b>Install all updates</b> installs them now; when they need a restart, the page says so and <b>Restart the server</b> restarts it. The list is refreshed by itself twice a day, or with <b>Check now</b>.</p>
-<p>On the WatchZit appliance the page also sets its <b>network</b> (DHCP or a fixed address, gateway, DNS, name — settings that cut the appliance off are undone after 30 seconds) and <b>SSH</b>: on or off and its port; a port the SSH server refuses leaves the old setting. On other servers these belong to the operating system.</p>
+<p>On the WatchZit appliance the page also sets its <b>network</b> (DHCP or a fixed address, gateway, DNS, name — settings that cut the appliance off are undone after 30 seconds) and <b>SSH</b>: on or off and its port; a port the SSH server refuses leaves the old setting. On other servers these belong to the operating system. The appliance's SSH allows no root sign-in and no forwarding (no SSH tunnels through it).</p>
 
 <h2 id="certificate">Certificate</h2>
 <p>Out of the box the console uses its own certificate, which browsers warn about. Under <a href="/settings/certificate">Settings → Certificate</a>:</p>

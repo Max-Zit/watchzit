@@ -43,7 +43,7 @@
 
 <h2 id="os">Operativni sistem i SSH</h2>
 <p>Ista stranica prikazuje <b>ažuriranja operativnog sistema</b> servera (Debian, Ubuntu, AlmaLinux, Rocky Linux): koliko ih čeka i koliko su bezbednosna, da li su automatska bezbednosna ažuriranja uključena i kada su poslednji put radila. <b>Instaliraj sva ažuriranja</b> ih instalira odmah; kada traže restart, stranica to kaže, a <b>Restartuj server</b> ga restartuje. Spisak se sam osvežava dva puta dnevno, ili sa <b>Proveri sada</b>.</p>
-<p>Na WatchZit appliance-u stranica podešava i njegovu <b>mrežu</b> (DHCP ili fiksna adresa, gateway, DNS, ime — podešavanja koja odseku appliance se poništavaju posle 30 sekundi) i <b>SSH</b>: uključen ili isključen i port; port koji SSH server odbije ostavlja staro podešavanje. Na drugim serverima to pripada operativnom sistemu.</p>
+<p>Na WatchZit appliance-u stranica podešava i njegovu <b>mrežu</b> (DHCP ili fiksna adresa, gateway, DNS, ime — podešavanja koja odseku appliance se poništavaju posle 30 sekundi) i <b>SSH</b>: uključen ili isključen i port; port koji SSH server odbije ostavlja staro podešavanje. Na drugim serverima to pripada operativnom sistemu. SSH na appliance-u ne dozvoljava prijavu kao root niti prosleđivanje (SSH tunele kroz njega).</p>
 
 <h2 id="certificate">Sertifikat</h2>
 <p>Konzola na početku koristi sopstveni sertifikat, na koji pregledači upozoravaju. Pod <a href="/settings/certificate">Podešavanja → Sertifikat</a>:</p>

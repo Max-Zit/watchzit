@@ -43,7 +43,7 @@
 
 <h2 id="os">Besturingssysteem en SSH</h2>
 <p>Dezelfde pagina toont de <b>besturingssysteemupdates</b> van de server (Debian, Ubuntu, AlmaLinux, Rocky Linux): hoeveel er wachten en hoeveel daarvan beveiligingsupdates zijn, of automatische beveiligingsupdates aan staan en wanneer ze voor het laatst zijn uitgevoerd. <b>Alle updates installeren</b> installeert ze nu; als ze een herstart vereisen, meldt de pagina dat en herstart <b>Server herstarten</b> de server. De lijst wordt twee keer per dag vanzelf vernieuwd, of met <b>Nu controleren</b>.</p>
-<p>Op de WatchZit-appliance stelt de pagina ook het <b>netwerk</b> in (DHCP of een vast adres, gateway, DNS, naam — instellingen die de appliance onbereikbaar maken, worden na 30 seconden teruggedraaid) en <b>SSH</b>: aan of uit en de poort; een poort die de SSH-server weigert, laat de oude instelling staan. Op andere servers horen deze bij het besturingssysteem.</p>
+<p>Op de WatchZit-appliance stelt de pagina ook het <b>netwerk</b> in (DHCP of een vast adres, gateway, DNS, naam — instellingen die de appliance onbereikbaar maken, worden na 30 seconden teruggedraaid) en <b>SSH</b>: aan of uit en de poort; een poort die de SSH-server weigert, laat de oude instelling staan. Op andere servers horen deze bij het besturingssysteem. SSH op de appliance staat geen aanmelding als root en geen doorsturen toe (geen SSH-tunnels erdoorheen).</p>
 
 <h2 id="certificate">Certificaat</h2>
 <p>Standaard gebruikt de console een eigen certificaat, waarvoor browsers waarschuwen. Onder <a href="/settings/certificate">Instellingen → Certificaat</a>:</p>

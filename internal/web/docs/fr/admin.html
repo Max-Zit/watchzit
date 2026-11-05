@@ -43,7 +43,7 @@
 
 <h2 id="os">Système d'exploitation et SSH</h2>
 <p>La même page affiche les <b>mises à jour du système d'exploitation</b> du serveur (Debian, Ubuntu, AlmaLinux, Rocky Linux) : combien sont en attente et combien sont des mises à jour de sécurité, si les mises à jour de sécurité automatiques sont activées et quand elles ont été exécutées pour la dernière fois. <b>Installer toutes les mises à jour</b> les installe immédiatement ; si elles nécessitent un redémarrage, la page l'indique et <b>Redémarrer le serveur</b> le redémarre. La liste s'actualise d'elle-même deux fois par jour, ou avec <b>Vérifier maintenant</b>.</p>
-<p>Sur l'appliance WatchZit, la page règle aussi son <b>réseau</b> (DHCP ou une adresse fixe, passerelle, DNS, nom — les réglages qui couperaient l'accès à l'appliance sont annulés au bout de 30 secondes) et <b>SSH</b> : activé ou non, et son port ; un port refusé par le serveur SSH laisse l'ancien réglage en place. Sur les autres serveurs, ces réglages relèvent du système d'exploitation.</p>
+<p>Sur l'appliance WatchZit, la page règle aussi son <b>réseau</b> (DHCP ou une adresse fixe, passerelle, DNS, nom — les réglages qui couperaient l'accès à l'appliance sont annulés au bout de 30 secondes) et <b>SSH</b> : activé ou non, et son port ; un port refusé par le serveur SSH laisse l'ancien réglage en place. Sur les autres serveurs, ces réglages relèvent du système d'exploitation. Sur l'appliance, SSH n'autorise ni la connexion en root ni le transfert (pas de tunnels SSH à travers elle).</p>
 
 <h2 id="certificate">Certificat</h2>
 <p>Par défaut, la console utilise son propre certificat, au sujet duquel les navigateurs affichent un avertissement. Dans <a href="/settings/certificate">Paramètres → Certificat</a> :</p>

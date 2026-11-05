@@ -43,7 +43,7 @@
 
 <h2 id="os">Betriebssystem und SSH</h2>
 <p>Dieselbe Seite zeigt die <b>Betriebssystem-Updates</b> des Servers (Debian, Ubuntu, AlmaLinux, Rocky Linux): wie viele anstehen und wie viele davon Sicherheitsupdates sind, ob automatische Sicherheitsupdates eingeschaltet sind und wann sie zuletzt liefen. <b>Alle Updates installieren</b> installiert sie sofort; brauchen sie einen Neustart, sagt die Seite das, und <b>Server neu starten</b> startet ihn neu. Die Liste aktualisiert sich zweimal täglich von selbst oder mit <b>Jetzt prüfen</b>.</p>
-<p>Auf der WatchZit-Appliance stellt die Seite außerdem ihr <b>Netzwerk</b> ein (DHCP oder eine feste Adresse, Gateway, DNS, Name — Einstellungen, die die Appliance abschneiden, werden nach 30 Sekunden rückgängig gemacht) sowie <b>SSH</b>: ein oder aus und den Port; ein Port, den der SSH-Server ablehnt, lässt die alte Einstellung bestehen. Auf anderen Servern gehören diese Dinge zum Betriebssystem.</p>
+<p>Auf der WatchZit-Appliance stellt die Seite außerdem ihr <b>Netzwerk</b> ein (DHCP oder eine feste Adresse, Gateway, DNS, Name — Einstellungen, die die Appliance abschneiden, werden nach 30 Sekunden rückgängig gemacht) sowie <b>SSH</b>: ein oder aus und den Port; ein Port, den der SSH-Server ablehnt, lässt die alte Einstellung bestehen. Auf anderen Servern gehören diese Dinge zum Betriebssystem. SSH auf der Appliance erlaubt keine Anmeldung als root und keine Weiterleitung (keine SSH-Tunnel durch die Appliance).</p>
 
 <h2 id="certificate">Zertifikat</h2>
 <p>Ab Werk verwendet die Konsole ihr eigenes Zertifikat, vor dem Browser warnen. Unter <a href="/settings/certificate">Einstellungen → Zertifikat</a>:</p>

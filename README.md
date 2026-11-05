@@ -189,7 +189,7 @@ Most of it is also in the web console, for administrators:
 - **Settings → Certificate:** the console's own certificate, a certificate you **upload** (PEM, also for an IP address), or one from **Let's Encrypt**, renewed by itself — checked over port 80 or with a DNS record through Cloudflare when the console is not reachable from the internet. Port 80 can also send browsers to HTTPS. Agents keep their own pinned certificate on port 8444.
 - **Settings → Network and access:** the console and agent ports and the networks allowed to reach them.
 
-The appliance is Debian with WatchZit, PostgreSQL, automatic security updates, the guest tools of VMware, Proxmox/KVM and Hyper-V, SSH without root sign-in, and no answers to ICMP timestamp requests. The source code of its Debian packages is listed in `/usr/share/doc/watchzit/SOURCE-CODE.txt`.
+The appliance is Debian with WatchZit, PostgreSQL, automatic security updates, the guest tools of VMware, Proxmox/KVM and Hyper-V, hardened SSH (no root sign-in, no forwarding, strong ciphers), hardened kernel settings, and no answers to ICMP timestamp requests; each release image is checked with Trivy, Lynis, testssl.sh and Nuclei (see [SECURITY.md](SECURITY.md)). The source code of its Debian packages is listed in `/usr/share/doc/watchzit/SOURCE-CODE.txt`.
 
 ## Agents
 

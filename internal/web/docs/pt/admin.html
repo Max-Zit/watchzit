@@ -43,7 +43,7 @@
 
 <h2 id="os">Sistema operativo e SSH</h2>
 <p>A mesma página mostra as <b>Atualizações do sistema operativo</b> do servidor (Debian, Ubuntu, AlmaLinux, Rocky Linux): quantas estão pendentes e quantas são de segurança, se as atualizações de segurança automáticas estão ligadas e quando correram pela última vez. <b>Instalar todas as atualizações</b> instala-as agora; quando precisam de um reinício, a página indica-o e <b>Reiniciar o servidor</b> reinicia-o. A lista é atualizada sozinha duas vezes por dia, ou com <b>Verificar agora</b>.</p>
-<p>Na appliance WatchZit, a página define também a sua <b>rede</b> (DHCP ou um endereço fixo, gateway, DNS, nome — as definições que isolam a appliance são desfeitas após 30 segundos) e o <b>SSH</b>: ligado ou desligado e a sua porta; uma porta que o servidor SSH recusa mantém a definição antiga. Noutros servidores, isto pertence ao sistema operativo.</p>
+<p>Na appliance WatchZit, a página define também a sua <b>rede</b> (DHCP ou um endereço fixo, gateway, DNS, nome — as definições que isolam a appliance são desfeitas após 30 segundos) e o <b>SSH</b>: ligado ou desligado e a sua porta; uma porta que o servidor SSH recusa mantém a definição antiga. Noutros servidores, isto pertence ao sistema operativo. O SSH do appliance não permite início de sessão como root nem reencaminhamento (túneis SSH através dele).</p>
 
 <h2 id="certificate">Certificado</h2>
 <p>De origem, a consola usa o seu próprio certificado, sobre o qual os navegadores avisam. Em <a href="/settings/certificate">Configurações → Certificado</a>:</p>
