@@ -39,21 +39,24 @@ WatchZit is made by [MaxZit](https://maxzit.com), like [BackupZit](https://githu
 
 ## Features
 
-- **Network maps:** devices on maps with live state and traffic on the cables, real pictures of some 3,500 device models (ports and drive bays drawn where they are), racks, hypervisors with their virtual machines, HA groups, VLANs and VXLAN, submaps, the path between two devices, kiosk displays for a monitoring TV.
+- **Network maps:** devices on maps with live state and traffic on the cables, real pictures of some 3,500 device models (ports and drive bays drawn where they are), racks, hypervisors with their virtual machines, HA groups, VLANs and VXLAN, submaps, the path between two devices, kiosk displays for a monitoring TV; maps can draw their devices and links by themselves from LLDP/CDP neighbours and the MAC addresses switch ports learnt.
 - **Discovery:** ping sweeps, SNMP, LLDP/CDP and ARP neighbours; suggested links between devices.
-- **Checks:** ping, TCP, HTTP(S) with text and certificate expiry, web scenarios (sign in and go through a web application step by step), DNS, SNMP v1/v2c/v3 (interfaces, CPU, memory, disks, temperatures, UPS, printers), MikroTik RouterOS, FortiGate, PostgreSQL, MySQL/MariaDB, SQL Server, JSON APIs, VRRP roles.
+- **Checks:** ping, TCP, HTTP(S) with text and certificate expiry, web scenarios (sign in and go through a web application step by step), DNS, SNMP v1/v2c/v3 (interfaces, CPU, memory, disks, temperatures, UPS, printers), MikroTik RouterOS, PostgreSQL, MySQL/MariaDB, JSON APIs (FortiGate and other REST APIs). The VRRP role of a device (master or backup) is read over SNMP and the RouterOS API and shown on its HA group.
+- **Configuration backups:** MikroTik RouterOS, Cisco IOS, FortiGate or any command over SSH, every night and on demand; each changed version is kept and compared with the one before, so you see what changed (lines that change on every read, like time stamps, are ignored).
+- **Watched processes:** for each process name, how many run and their CPU and memory, with alerts when one stops.
 - **Hypervisors:** VMware ESXi and vCenter, Proxmox VE, Hyper-V and Docker — hosts, virtual machines and containers, datastores; hypervisor boxes on maps fill with their machines by themselves.
-- **Agent** for Windows and Linux: CPU, memory, disks, interfaces, services, Hyper-V machines, Docker containers — one outbound connection, enrolled with a one-time code.
+- **Agent** for Windows and Linux: CPU, memory, disks, interfaces, services, watched processes, Hyper-V machines, Docker containers, errors from the Windows event logs and the systemd journal — one outbound connection, enrolled with a one-time code, updates itself from the console. MSI for Windows; deb and rpm packages for Linux on amd64 and arm64.
 - **Remote collectors:** an agent at a branch office or behind NAT runs the checks of its site, discovers its network and keeps measuring when the internet connection to the console is down; a second collector can take over.
 - **Templates and bulk changes:** sets of checks per kind of device, applied to a device, a group or all devices of a kind; change group, SNMP profile, dependency or template of many devices at once.
 - **Graphs and dashboards:** years of history (raw, 5-minute and hourly), zoom, graphs you arrange, resize and colour like dashboard panels, and **data sources** — PostgreSQL, MySQL, SQL Server, Prometheus, InfluxDB and JSON — next to WatchZit's own measurements.
-- **Syslog and SNMP traps:** received from devices, searchable under Logs, with triggers that open problems from them.
+- **Syslog and SNMP traps:** received from devices, searchable under Logs together with the event log and journal errors the agents send, with triggers that open problems from them.
 - **Traffic flows:** NetFlow v5/v9, IPFIX and sFlow — top talkers, destinations, services and conversations per exporter, with a traffic graph.
 - **Sign-in:** local accounts with two-factor sign-in, Active Directory / LDAP, and single sign-on with OpenID Connect (Entra ID, Google, Okta, Keycloak) or SAML 2.0 (ADFS); roles follow directory groups.
 - **Console backup:** daily, encrypted if you like, copied to an SFTP folder; restore from the setup menu or the command line.
-- **Alerts:** thresholds, dependencies (a router down hides the alarms behind it), maintenance windows, email, Slack, Microsoft Teams, Discord, Telegram, ntfy, PagerDuty, SMS and webhooks; availability reports.
-- **Open a device** from the map: its web interface, SSH/PuTTY, RDP, WinBox, VNC or your own tools.
-- **Secure by default:** HTTPS, two-factor sign-in, roles, allowed networks, brute-force blocking, audit log, encrypted secrets, signed updates, 14 console languages, REST API.
+- **Alerts:** thresholds, forecasts (a disk that will be full within days, before it is), dependencies (a router down hides the alarms behind it), maintenance windows, email, Slack, Microsoft Teams, Discord, Telegram, ntfy, PagerDuty, SMS and webhooks; availability reports.
+- **Open a device** from the map: its web interface, SSH/PuTTY, RDP, WinBox, VNC, Telnet or your own tools, started on your PC from signed links by the small **MaxZit Launcher** (Windows). The launcher also opens RDP, SSH, WinSCP, WinBox, VNC and Telnet for the [PassZit](https://github.com/Max-Zit/passzit) browser extension, with passwords from the vault.
+- **Devices your way:** custom fields on devices, and links from a device to the same machine in RMMZit, BackupZit or any other web tool.
+- **Secure by default:** HTTPS, two-factor sign-in, roles, allowed networks, brute-force blocking, audit log, encrypted secrets, signed updates, 14 console languages, REST API; a diagnostics zip for support, with passwords and tokens removed.
 
 ## Installation
 

@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-WatchZit is in development; security fixes will be released for the newest version once releases start.
+Security fixes are released for the newest release only. Please update to it (the console can update itself) before reporting a problem; older releases do not get fixes.
 
 ## Reporting a vulnerability
 
