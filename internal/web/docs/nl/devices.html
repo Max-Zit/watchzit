@@ -28,6 +28,7 @@
   <tr><th>Controle</th><th>Meet</th></tr>
   <tr><td>Ping (ICMP)</td><td>Responstijd en pakketverlies.</td></tr>
   <tr><td>TCP-poort</td><td>Of de poort verbindingen accepteert, en hoe snel.</td></tr>
+  <tr><td>Netwerkpad (traceroute)</td><td>Elke router op de weg naar het apparaat met zijn verlies en latentie, zoals MTR, 30 dagen bewaard, en wanneer het pad veranderde. Zie <a href="#path">Netwerkpad</a>.</td></tr>
   <tr><td>Webpagina (HTTP)</td><td>Statuscode, responstijd, een tekst die op de pagina moet staan, dagen tot het certificaat verloopt.</td></tr>
   <tr><td>TLS-certificaat</td><td>Dagen tot het verloopt en of het vertrouwd wordt (elke TLS-poort, met een servernaam voor SNI).</td></tr>
   <tr><td>DNS</td><td>Het apparaat is een DNS-server: het moet een naam beantwoorden met een recordtype (A, AAAA, MX …) en, optioneel, een verwachte waarde.</td></tr>
@@ -97,4 +98,13 @@
   <li><b>Windows via WinRM</b>: zet WinRM aan met <code>winrm quickconfig</code> (Windows Server heeft het aan). Via HTTP (poort 5985) meldt WatchZit zich aan met NTLMv2 en versleutelt elk bericht met de aanmeldsleutel, zoals Windows vereist; via HTTPS (5986, vereist een HTTPS-listener) beschermt TLS ze en is de aanmelding aan het certificaat gebonden. De gebruiker is <code>naam</code>, <code>DOMEIN\naam</code> of <code>naam@domein</code>: een beheerder of lid van <b>Remote Management Users</b> met WMI-rechten op <code>root\cimv2</code>.</li>
   <li>Een uitvoering duurt enkele seconden (de processor wordt over één seconde gemeten), daarom is de time-out minstens 15 seconden; een interval van een minuut of meer is genoeg.</li>
   <li>Via een externe collector moet de hostsleutel in de controle worden ingevoerd: de collector kan hem niet opslaan en toont daarom de sleutel die hij zag.</li>
+</ul>
+
+<h2 id="path">Netwerkpad</h2>
+<p>De controle <b>Netwerkpad (traceroute)</b> traceert elke vijf minuten de weg naar het apparaat: meerdere probes per hop (standaard 3, tot 30 hops) en voor elke router onderweg zijn adres, zijn verlies en de beste, gemiddelde en slechtste tijd. Routers die apparaten in WatchZit zijn, worden genoemd en gekoppeld. Ze is bedoeld voor de lijn naar een filiaal, een datacenter of een provider: u ziet waar het verlies of de vertraging begint en wanneer de route veranderde.</p>
+<ul>
+  <li>De apparaatpagina toont het pad van de laatste uitvoering, elke hop over de laatste 24 uur en de laatste tien wijzigingen met de hops ervoor en erna. Elke uitvoering wordt 30 dagen bewaard.</li>
+  <li>Een router die alleen de antwoorden over zichzelf laat vallen (veel beperken ze), terwijl de hops erna niets verliezen, verliest geen verkeer; de controle noemt de hop waar verlies begint dat doorgaat tot de bestemming.</li>
+  <li>Waarden: tijd en verlies tot de bestemming, het aantal hops en <code>path_changed</code> (1 als een hop die beide keren antwoordde een ander adres heeft of de bestemming een ander aantal hops ver is). De trigger <b>Loss on the network path</b> (meer dan 20 % gedurende 10 minuten) komt mee; voeg een metriektrigger op <code>path_changed</code> toe om van routewijzigingen te horen.</li>
+  <li>Een externe collector traceert vanaf zijn eigen locatie: zet de controle op een apparaat dat de collector uitvoert om het pad vanuit het filiaal te zien.</li>
 </ul>

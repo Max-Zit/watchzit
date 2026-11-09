@@ -28,6 +28,7 @@
   <tr><th>Controllo</th><th>Misura</th></tr>
   <tr><td>Ping (ICMP)</td><td>Tempo di risposta e perdita di pacchetti.</td></tr>
   <tr><td>Porta TCP</td><td>Se la porta accetta connessioni, e con quale rapidità.</td></tr>
+  <tr><td>Percorso di rete (traceroute)</td><td>Ogni router lungo il percorso verso il dispositivo con perdita e latenza, come MTR, conservato 30 giorni, e quando il percorso è cambiato. Vedi <a href="#path">Percorso di rete</a>.</td></tr>
   <tr><td>Pagina web (HTTP)</td><td>Codice di stato, tempo di risposta, un testo che deve comparire nella pagina, giorni alla scadenza del certificato.</td></tr>
   <tr><td>Certificato TLS</td><td>Giorni alla scadenza e se è attendibile (qualsiasi porta TLS, con un nome server per SNI).</td></tr>
   <tr><td>DNS</td><td>Il dispositivo è un server DNS: deve rispondere a un nome con un tipo di record (A, AAAA, MX …) e, facoltativamente, con un valore atteso.</td></tr>
@@ -97,4 +98,13 @@
   <li><b>Windows tramite WinRM</b>: attiva WinRM con <code>winrm quickconfig</code> (Windows Server lo ha già attivo). Su HTTP (porta 5985) WatchZit accede con NTLMv2 e cifra ogni messaggio con la chiave dell'accesso, come richiede Windows; su HTTPS (5986, serve un listener HTTPS) li protegge TLS e l'accesso è legato al certificato. L'utente è <code>nome</code>, <code>DOMINIO\nome</code> o <code>nome@dominio</code>: un amministratore o un membro di <b>Remote Management Users</b> con diritti WMI su <code>root\cimv2</code>.</li>
   <li>Un'esecuzione richiede alcuni secondi (il processore viene misurato per un secondo), quindi il timeout è di almeno 15 secondi; basta un intervallo di un minuto o più.</li>
   <li>Tramite un collector remoto la chiave host va inserita nel controllo: il collector non può salvarla, quindi mostra la chiave che ha visto.</li>
+</ul>
+
+<h2 id="path">Percorso di rete</h2>
+<p>Il controllo <b>Percorso di rete (traceroute)</b> traccia ogni cinque minuti il percorso verso il dispositivo: più sonde per hop (3 di default, fino a 30 hop) e per ogni router lungo il percorso il suo indirizzo, la sua perdita e il tempo migliore, medio e peggiore. I router che sono dispositivi in WatchZit vengono nominati e collegati. È pensato per la linea verso una filiale, un data center o un provider: vedi dove inizia la perdita o il ritardo e quando la rotta è cambiata.</p>
+<ul>
+  <li>La pagina del dispositivo mostra il percorso dell'ultima esecuzione, ogni hop nelle ultime 24 ore e le ultime dieci modifiche con gli hop prima e dopo. Ogni esecuzione è conservata 30 giorni.</li>
+  <li>Un router che scarta solo le risposte su se stesso (molti le limitano), mentre gli hop dopo di lui non perdono nulla, non perde traffico; il controllo indica l'hop da cui inizia una perdita che continua fino alla destinazione.</li>
+  <li>Valori: tempo e perdita fino alla destinazione, numero di hop e <code>path_changed</code> (1 quando un hop che ha risposto entrambe le volte ha un altro indirizzo o la destinazione è a un numero diverso di hop). Viene fornito il trigger <b>Loss on the network path</b> (oltre il 20 % per 10 minuti); aggiungi un trigger di metrica su <code>path_changed</code> per sapere dei cambi di rotta.</li>
+  <li>Un collector remoto traccia dal proprio sito: metti il controllo su un dispositivo eseguito dal collector per vedere il percorso dalla filiale.</li>
 </ul>

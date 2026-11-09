@@ -28,6 +28,7 @@
   <tr><th>Contrôle</th><th>Mesure</th></tr>
   <tr><td>Ping (ICMP)</td><td>Temps de réponse et perte de paquets.</td></tr>
   <tr><td>Port TCP</td><td>Si le port accepte les connexions, et à quelle vitesse.</td></tr>
+  <tr><td>Chemin réseau (traceroute)</td><td>Chaque routeur sur le chemin vers l'appareil avec sa perte et sa latence, comme MTR, conservé 30 jours, et quand le chemin a changé. Voir <a href="#path">Chemin réseau</a>.</td></tr>
   <tr><td>Page web (HTTP)</td><td>Code d'état, temps de réponse, un texte qui doit figurer sur la page, jours restants avant l'expiration du certificat.</td></tr>
   <tr><td>Certificat TLS</td><td>Jours restants avant l'expiration et s'il est de confiance (n'importe quel port TLS, avec un nom de serveur pour SNI).</td></tr>
   <tr><td>DNS</td><td>L'appareil est un serveur DNS : il doit répondre à un nom avec un type d'enregistrement (A, AAAA, MX …) et, éventuellement, une valeur attendue.</td></tr>
@@ -97,4 +98,13 @@
   <li><b>Windows par WinRM</b> : activez WinRM avec <code>winrm quickconfig</code> (Windows Server l'a déjà). En HTTP (port 5985), WatchZit se connecte avec NTLMv2 et chiffre chaque message avec la clé de connexion, comme Windows l'exige ; en HTTPS (5986, nécessite un écouteur HTTPS), TLS les protège et la connexion est liée au certificat. L'utilisateur est <code>nom</code>, <code>DOMAINE\nom</code> ou <code>nom@domaine</code> : un administrateur ou un membre de <b>Remote Management Users</b> avec des droits WMI sur <code>root\cimv2</code>.</li>
   <li>Une exécution prend quelques secondes (le processeur est mesuré sur une seconde), donc le délai est d'au moins 15 secondes ; un intervalle d'une minute ou plus suffit.</li>
   <li>Via un collecteur distant, la clé d'hôte doit être saisie dans la vérification : le collecteur ne peut pas l'enregistrer et affiche donc la clé qu'il a vue.</li>
+</ul>
+
+<h2 id="path">Chemin réseau</h2>
+<p>La vérification <b>Chemin réseau (traceroute)</b> trace le chemin vers l'appareil toutes les cinq minutes : plusieurs sondes par saut (3 par défaut, jusqu'à 30 sauts), et pour chaque routeur sur le chemin son adresse, sa perte et le meilleur, le moyen et le pire temps. Les routeurs qui sont des appareils dans WatchZit sont nommés et liés. Elle est faite pour la ligne vers une agence, un centre de données ou un fournisseur : vous voyez où commence la perte ou le retard et quand la route a changé.</p>
+<ul>
+  <li>La page de l'appareil montre le chemin de la dernière exécution, chaque saut sur les dernières 24 heures et les dix derniers changements avec les sauts avant et après. Chaque exécution est conservée 30 jours.</li>
+  <li>Un routeur qui ne rejette que les réponses le concernant (beaucoup les limitent), alors que les sauts suivants ne perdent rien, ne perd pas de trafic ; la vérification indique le saut où commence une perte qui continue jusqu'à la destination.</li>
+  <li>Valeurs : temps et perte jusqu'à la destination, nombre de sauts et <code>path_changed</code> (1 quand un saut qui a répondu les deux fois a une autre adresse ou que la destination est à un autre nombre de sauts). Le déclencheur <b>Loss on the network path</b> (plus de 20 % pendant 10 minutes) est fourni ; ajoutez un déclencheur de métrique sur <code>path_changed</code> pour être averti des changements de route.</li>
+  <li>Un collecteur distant trace depuis son propre site : placez la vérification sur un appareil que le collecteur exécute pour voir le chemin depuis l'agence.</li>
 </ul>

@@ -391,10 +391,11 @@ const (
 	CheckHypervisor   = "hypervisor"    // VMware vSphere or Proxmox VE: hosts, machines, datastores
 	CheckSSH          = "ssh_host"      // Linux over SSH, no agent: CPU, memory, swap, load, disk, uptime
 	CheckWinRM        = "winrm"         // Windows over WinRM (WMI), no agent: CPU, memory, page file, disk, uptime
+	CheckTrace        = "trace"         // the network path (traceroute, MTR-like): every hop with loss and latency
 )
 
 // CheckTypes are the types a user can add by hand.
-var CheckTypes = []string{CheckICMP, CheckTCP, CheckHTTP, CheckScenario, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON, CheckHypervisor, CheckSSH, CheckWinRM, CheckSNMP, CheckSNMPOID}
+var CheckTypes = []string{CheckICMP, CheckTCP, CheckTrace, CheckHTTP, CheckScenario, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON, CheckHypervisor, CheckSSH, CheckWinRM, CheckSNMP, CheckSNMPOID}
 
 // IsSNMP tells whether a check type polls SNMP.
 func IsSNMP(typ string) bool { return strings.HasPrefix(typ, "snmp") }
@@ -435,6 +436,7 @@ type CheckParams struct {
 	TLS      bool      `json:"tls,omitempty"`      // RouterOS: HTTPS (else HTTP)
 	HV       string    `json:"hv,omitempty"`       // hypervisor platform: vsphere or proxmox
 	HostKey  string    `json:"host_key,omitempty"` // SSH: SHA256 fingerprint of the host key
+	MaxHops  int       `json:"max_hops,omitempty"` // traceroute: the TTL limit
 }
 
 // Check is one thing polled on a device.
@@ -557,6 +559,8 @@ func metricsOf(typ string, p CheckParams) []Series {
 		return []Series{{Metric: "rtt_ms", Unit: "ms"}, {Metric: "loss_pct", Unit: "%"}}
 	case CheckTCP:
 		return []Series{{Metric: "connect_ms", Unit: "ms"}}
+	case CheckTrace:
+		return []Series{{Metric: "rtt_ms", Unit: "ms"}, {Metric: "loss_pct", Unit: "%"}, {Metric: "hops", Unit: ""}, {Metric: "path_changed", Unit: ""}}
 	case CheckSNMP:
 		return []Series{{Metric: "response_ms", Unit: "ms"}, {Metric: "uptime_s", Unit: "s"}}
 	case CheckSNMPIf:
@@ -618,6 +622,9 @@ func (in *CheckInput) clean() error {
 	if metricsOf(in.Type, in.Params) == nil {
 		return errors.New("unknown check type")
 	}
+	if in.IntervalS == 0 && in.Type == CheckTrace {
+		in.IntervalS = 300 // a path changes seldom; every run is kept for 30 days
+	}
 	if in.IntervalS == 0 {
 		in.IntervalS = 60
 	}
@@ -642,6 +649,29 @@ func (in *CheckInput) clean() error {
 		p.Port = 0
 		if strings.TrimSpace(in.Name) == "" {
 			in.Name = "Ping"
+		}
+	case CheckTrace:
+		if p.Count == 0 {
+			p.Count = 3
+		}
+		if p.MaxHops == 0 {
+			p.MaxHops = 30
+		}
+		if p.Count < 1 || p.Count > 10 {
+			return errors.New("the probes per hop must be 1–10")
+		}
+		if p.MaxHops < 1 || p.MaxHops > 64 {
+			return errors.New("the hops must be 1–64")
+		}
+		if in.IntervalS < 60 {
+			return errors.New("a network path is traced at most once a minute")
+		}
+		if p.Count*p.TimeoutMS > in.IntervalS*1000/2 {
+			return errors.New("the probes per hop times the timeout must fit in half the interval")
+		}
+		*p = CheckParams{TimeoutMS: p.TimeoutMS, Count: p.Count, MaxHops: p.MaxHops}
+		if strings.TrimSpace(in.Name) == "" {
+			in.Name = "Network path"
 		}
 	case CheckTCP:
 		if p.Port < 1 || p.Port > 65535 {
@@ -802,6 +832,7 @@ type CheckResult struct {
 	Status  string             // up or down
 	Text    string             // short human summary ("1.2 ms, 0% loss", "connection refused")
 	Values  map[string]float64 // latest value per metric
+	Path    []PathHop          `json:",omitempty"` // a traceroute: its hops, kept as path history
 }
 
 // SaveResults stores the outcome of runs and refreshes the affected
@@ -833,6 +864,11 @@ func (s *Store) SaveResults(ctx context.Context, rs []CheckResult) ([]StatusChan
 		}
 		if err != nil {
 			return nil, err
+		}
+		if r.Path != nil {
+			if err := savePath(ctx, tx, r); err != nil {
+				return nil, err
+			}
 		}
 		devs[dev] = true
 		if old != r.Status {

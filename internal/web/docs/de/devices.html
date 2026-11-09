@@ -28,6 +28,7 @@
   <tr><th>Prüfung</th><th>Misst</th></tr>
   <tr><td>Ping (ICMP)</td><td>Antwortzeit und Paketverlust.</td></tr>
   <tr><td>TCP-Port</td><td>Ob der Port Verbindungen annimmt und wie schnell.</td></tr>
+  <tr><td>Netzwerkpfad (Traceroute)</td><td>Jeder Router auf dem Weg zum Gerät mit Verlust und Latenz, wie MTR, 30 Tage aufbewahrt, und wann sich der Pfad änderte. Siehe <a href="#path">Netzwerkpfad</a>.</td></tr>
   <tr><td>Webseite (HTTP)</td><td>Statuscode, Antwortzeit, ein Text, der auf der Seite stehen muss, Tage bis zum Ablauf des Zertifikats.</td></tr>
   <tr><td>TLS-Zertifikat</td><td>Tage bis zum Ablauf und ob es vertrauenswürdig ist (beliebiger TLS-Port, mit einem Servernamen für SNI).</td></tr>
   <tr><td>DNS</td><td>Das Gerät ist ein DNS-Server: Es muss einen Namen mit einem Eintragstyp (A, AAAA, MX …) und optional einem erwarteten Wert beantworten.</td></tr>
@@ -97,4 +98,13 @@
   <li><b>Windows über WinRM</b>: WinRM mit <code>winrm quickconfig</code> einschalten (bei Windows Server ist es an). Über HTTP (Port 5985) meldet sich WatchZit mit NTLMv2 an und verschlüsselt jede Nachricht mit dem Anmeldeschlüssel, wie Windows es verlangt; über HTTPS (5986, braucht einen HTTPS-Listener) schützt TLS sie und die Anmeldung ist an das Zertifikat gebunden. Der Benutzer ist <code>name</code>, <code>DOMÄNE\name</code> oder <code>name@domäne</code>: ein Administrator oder Mitglied von <b>Remote Management Users</b> mit WMI-Rechten auf <code>root\cimv2</code>.</li>
   <li>Ein Lauf dauert einige Sekunden (der Prozessor wird über eine Sekunde gemessen), daher beträgt das Zeitlimit mindestens 15 Sekunden; ein Intervall von einer Minute oder mehr genügt.</li>
   <li>Über einen entfernten Kollektor muss der Hostschlüssel in der Prüfung eingetragen werden: Der Kollektor kann ihn nicht speichern und zeigt daher den Schlüssel, den er gesehen hat.</li>
+</ul>
+
+<h2 id="path">Netzwerkpfad</h2>
+<p>Die Prüfung <b>Netzwerkpfad (Traceroute)</b> verfolgt alle fünf Minuten den Weg zum Gerät: mehrere Proben pro Hop (standardmäßig 3, bis zu 30 Hops) und für jeden Router auf dem Weg seine Adresse, seinen Verlust und die beste, mittlere und schlechteste Zeit. Router, die Geräte in WatchZit sind, werden benannt und verlinkt. Gedacht ist sie für die Leitung zu einer Filiale, einem Rechenzentrum oder einem Provider: Sie sehen, wo Verlust oder Verzögerung beginnt und wann sich die Route änderte.</p>
+<ul>
+  <li>Die Geräteseite zeigt den Pfad des letzten Laufs, jeden Hop der letzten 24 Stunden und die letzten zehn Änderungen mit den Hops vorher und nachher. Jeder Lauf wird 30 Tage aufbewahrt.</li>
+  <li>Ein Router, der nur die Antworten über sich selbst verwirft (viele begrenzen sie), während die Hops danach nichts verlieren, verliert keinen Verkehr; die Prüfung nennt den Hop, ab dem ein Verlust beginnt, der bis zum Ziel anhält.</li>
+  <li>Werte: Zeit und Verlust bis zum Ziel, die Zahl der Hops und <code>path_changed</code> (1, wenn ein Hop, der beide Male antwortete, eine andere Adresse hat oder das Ziel eine andere Zahl von Hops entfernt ist). Der Trigger <b>Loss on the network path</b> (über 20 % für 10 Minuten) kommt mit; fügen Sie einen Metrik-Trigger auf <code>path_changed</code> hinzu, um von Routenänderungen zu erfahren.</li>
+  <li>Ein entfernter Kollektor verfolgt den Pfad von seinem Standort aus: Legen Sie die Prüfung auf ein Gerät, das der Kollektor ausführt, um den Pfad aus der Filiale zu sehen.</li>
 </ul>

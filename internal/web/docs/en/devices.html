@@ -28,6 +28,7 @@
   <tr><th>Check</th><th>Measures</th></tr>
   <tr><td>Ping (ICMP)</td><td>Response time and packet loss.</td></tr>
   <tr><td>TCP port</td><td>Whether the port accepts connections, and how fast.</td></tr>
+  <tr><td>Network path (traceroute)</td><td>Every router on the way to the device with its loss and latency, like MTR, kept for 30 days, and when the path changed. See <a href="#path">Network path</a>.</td></tr>
   <tr><td>Web page (HTTP)</td><td>Status code, response time, a text that must be on the page, days until the certificate expires.</td></tr>
   <tr><td>TLS certificate</td><td>Days until it expires and whether it is trusted (any TLS port, with a server name for SNI).</td></tr>
   <tr><td>DNS</td><td>The device is a DNS server: it must answer a name with a record type (A, AAAA, MX …) and, optionally, an expected value.</td></tr>
@@ -97,4 +98,13 @@
   <li><b>Windows over WinRM</b>: turn WinRM on with <code>winrm quickconfig</code> (Windows Server has it on). Over HTTP (port 5985) WatchZit signs in with NTLMv2 and encrypts every message with the sign-in key, as Windows requires; over HTTPS (5986, needs an HTTPS listener) TLS protects them and the sign-in is bound to the certificate. The user is <code>name</code>, <code>DOMAIN\name</code> or <code>name@domain</code>: an administrator, or a member of <b>Remote Management Users</b> with WMI rights on <code>root\cimv2</code>.</li>
   <li>A run takes a few seconds (the processor is measured over one second), so the timeout is at least 15 seconds; an interval of a minute or more is enough.</li>
   <li>Through a remote collector the host key must be entered in the check: the collector cannot save it, so it shows the key it saw.</li>
+</ul>
+
+<h2 id="path">Network path</h2>
+<p>The check <b>Network path (traceroute)</b> traces the way to the device every five minutes: several probes per hop (3 by default, up to 30 hops), and for each router on the way its address, its loss and the best, average and worst time. Routers that are devices in WatchZit are named and linked. It is made for the line to a branch office, a data centre or a provider: you see where the loss or the delay starts and when the route changed.</p>
+<ul>
+  <li>The device page shows the path of the last run, each hop over the last 24 hours, and the last ten changes with the hops before and after. Every run is kept for 30 days.</li>
+  <li>A router that drops only the answers about itself (many limit them), while the hops after it lose nothing, is not losing traffic; the check names the hop where loss that goes on to the destination starts.</li>
+  <li>Values: time and loss to the destination, the number of hops and <code>path_changed</code> (1 when a hop that answered both times has another address or the destination is a different number of hops away). The trigger <b>Loss on the network path</b> (over 20 % for 10 minutes) comes with it; add a metric trigger on <code>path_changed</code> to hear about route changes.</li>
+  <li>A remote collector traces from its own site: put the check on a device the collector runs to see the path from the branch office.</li>
 </ul>

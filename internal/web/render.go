@@ -551,7 +551,7 @@ var metricNames = map[string]string{"rtt_ms": "Response time", "loss_pct": "Pack
 	"ds_used_pct": "Fullest datastore", "vms_running": "Machines running", "vms_total": "Machines", "hosts_down": "Hosts down", "steps_ok": "Steps passed", "level_pct": "Supply level", "charge_pct": "Battery charge", "runtime_min": "Runtime left", "on_battery": "On battery", "load_pct": "Load", "count": "Running instances", "mem_b": "Memory"}
 
 // checkKinds name the check types.
-var checkKinds = map[string]string{"icmp": "Ping (ICMP)", "tcp": "TCP port", "snmp": "SNMP availability", "snmp_if": "Interface traffic",
+var checkKinds = map[string]string{"icmp": "Ping (ICMP)", "tcp": "TCP port", "trace": "Network path (traceroute)", "snmp": "SNMP availability", "snmp_if": "Interface traffic",
 	"snmp_cpu": "CPU load", "snmp_storage": "Memory or disk", "snmp_oid": "SNMP value (OID)", "snmp_supply": "Printer supply", "snmp_ups": "UPS",
 	"agent": "Agent", "agent_cpu": "CPU load", "agent_mem": "Memory", "agent_disk": "Disk", "agent_net": "Interface traffic", "agent_service": "Service", "agent_process": "Process",
 	"http": "Web page (HTTP)", "web_scenario": "Web scenario (several steps)", "tls": "TLS certificate", "dns": "DNS", "pgsql": "PostgreSQL", "mysql": "MySQL / MariaDB", "routeros": "MikroTik RouterOS (API)", "jsonapi": "JSON API value", "hypervisor": "Hypervisor (vSphere, Proxmox VE)", "ssh_host": "Linux over SSH (no agent)", "winrm": "Windows over WinRM (no agent)"}

@@ -119,6 +119,7 @@ type deviceData struct {
 	HA         *store.HARole
 	VXLANs     []store.VXLANInfo
 	HV         *store.HVInventory   // what the hypervisor of the device runs
+	Paths      []pathView           // network path checks: now, the last day per hop, changes
 	Flows      bool                 // the device sent traffic flows lately
 	Traffic    map[int]*store.Check // interface checks by ifIndex
 	Agent      *store.AgentInfo
@@ -306,6 +307,10 @@ func (s *Server) showDevice(w http.ResponseWriter, r *http.Request, status int, 
 		return
 	}
 	if data.HV, err = s.store.HVInventoryOf(r.Context(), d.ID); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	if data.Paths, err = s.pathViews(r.Context(), data.Checks); err != nil {
 		s.serverError(w, r, err)
 		return
 	}
@@ -564,7 +569,7 @@ func (s *Server) handleDeviceDelete(w http.ResponseWriter, r *http.Request) {
 
 func checkInput(r *http.Request) store.CheckInput {
 	in := store.CheckInput{Type: r.FormValue("type"), Name: r.FormValue("name"), IntervalS: formInt(r, "interval"), Paused: r.FormValue("paused") == "1",
-		Params: store.CheckParams{Count: formInt(r, "count"), TimeoutMS: formInt(r, "timeout_ms"), Port: formInt(r, "port"),
+		Params: store.CheckParams{Count: formInt(r, "count"), TimeoutMS: formInt(r, "timeout_ms"), Port: formInt(r, "port"), MaxHops: formInt(r, "max_hops"),
 			OID: r.FormValue("oid"), Rate: r.FormValue("rate") == "1", Unit: r.FormValue("unit"), Scale: formFloat(r, "scale"),
 			URL: r.FormValue("url"), Expect: formInt(r, "expect"), Contains: r.FormValue("contains"), Insecure: r.FormValue("insecure") == "1",
 			Query: r.FormValue("query"), RType: r.FormValue("rtype"), User: r.FormValue("user"), Secret: r.FormValue("secret"),

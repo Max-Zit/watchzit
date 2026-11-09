@@ -45,6 +45,7 @@ type Poller struct {
 	profiles map[int64]*store.SNMPProfile
 	counters map[int64]*counterState // last raw counters per check
 	vlanSync map[int64]time.Time     // last read of a router's VLANs per device
+	lastPath map[int64][]string      // the hop addresses of the last trace per check
 	hvSync   map[int64]time.Time     // last full read of a hypervisor per device
 	haLast   map[int64][2]string     // HA role and its source last stored per device
 
@@ -67,7 +68,7 @@ type entry struct {
 
 // New creates a poller.
 func New(st *store.Store, db *tsdb.DB, log *slog.Logger) *Poller {
-	return &Poller{store: st, db: db, log: log, now: time.Now, Workers: 64, entries: map[int64]*entry{}, reload: make(chan struct{}, 1), profiles: map[int64]*store.SNMPProfile{}, counters: map[int64]*counterState{}, vlanSync: map[int64]time.Time{}, hvSync: map[int64]time.Time{}, haLast: map[int64][2]string{}}
+	return &Poller{store: st, db: db, log: log, now: time.Now, Workers: 64, entries: map[int64]*entry{}, reload: make(chan struct{}, 1), profiles: map[int64]*store.SNMPProfile{}, counters: map[int64]*counterState{}, vlanSync: map[int64]time.Time{}, hvSync: map[int64]time.Time{}, lastPath: map[int64][]string{}, haLast: map[int64][2]string{}}
 }
 
 // Reload makes the poller read the checks again (after a change).
@@ -343,6 +344,8 @@ func (p *Poller) runCheck(ctx context.Context, c *store.Check) outcome {
 		} else {
 			o.res.Text = "no answer (100% loss)"
 		}
+	case store.CheckTrace:
+		p.runTrace(ctx, c, addr, timeout, &o, sample)
 	case store.CheckTCP:
 		rtt, err := probe.TCPConnect(ctx, addr, c.Params.Port, timeout)
 		if err != nil {

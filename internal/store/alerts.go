@@ -108,7 +108,7 @@ func TriggerMetrics() map[string][]string {
 	return out
 }
 
-var allCheckTypes = []string{CheckICMP, CheckTCP, CheckSNMP, CheckSNMPIf, CheckSNMPCPU, CheckSNMPStor, CheckSNMPOID, CheckSNMPSupply, CheckSNMPUPS,
+var allCheckTypes = []string{CheckICMP, CheckTCP, CheckTrace, CheckSNMP, CheckSNMPIf, CheckSNMPCPU, CheckSNMPStor, CheckSNMPOID, CheckSNMPSupply, CheckSNMPUPS,
 	CheckAgent, CheckAgentCPU, CheckAgentMem, CheckAgentDisk, CheckAgentNet, CheckAgentService, CheckAgentProcess,
 	CheckHTTP, CheckScenario, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON, CheckHypervisor, CheckSSH, CheckWinRM}
 

@@ -28,6 +28,7 @@
   <tr><th>Provera</th><th>Meri</th></tr>
   <tr><td>Ping (ICMP)</td><td>Vreme odziva i gubitak paketa.</td></tr>
   <tr><td>TCP port</td><td>Da li port prima veze i koliko brzo.</td></tr>
+  <tr><td>Mrežna putanja (traceroute)</td><td>Svaki ruter na putu do uređaja sa gubitkom i kašnjenjem, kao MTR, čuva se 30 dana, i kada se putanja promenila. Pogledajte <a href="#path">Mrežna putanja</a>.</td></tr>
   <tr><td>Web stranica (HTTP)</td><td>Statusni kod, vreme odziva, tekst koji mora biti na stranici, dani do isteka sertifikata.</td></tr>
   <tr><td>TLS sertifikat</td><td>Dani do isteka i da li mu se veruje (bilo koji TLS port, sa imenom servera za SNI).</td></tr>
   <tr><td>DNS</td><td>Uređaj je DNS server: mora da odgovori na ime sa vrstom zapisa (A, AAAA, MX …) i, po želji, očekivanom vrednošću.</td></tr>
@@ -97,4 +98,13 @@
   <li><b>Windows preko WinRM-a</b>: uključite WinRM sa <code>winrm quickconfig</code> (Windows Server ga ima uključenog). Preko HTTP-a (port 5985) WatchZit se prijavljuje sa NTLMv2 i šifruje svaku poruku ključem prijave, kako Windows zahteva; preko HTTPS-a (5986, potreban je HTTPS listener) štiti ih TLS, a prijava je vezana za sertifikat. Korisnik je <code>ime</code>, <code>DOMEN\ime</code> ili <code>ime@domen</code>: administrator ili član grupe <b>Remote Management Users</b> sa WMI pravima na <code>root\cimv2</code>.</li>
   <li>Jedno pokretanje traje nekoliko sekundi (procesor se meri tokom jedne sekunde), pa je vremensko ograničenje najmanje 15 sekundi; dovoljan je interval od minut ili više.</li>
   <li>Preko udaljenog kolektora ključ hosta mora da se unese u proveru: kolektor ne može da ga sačuva, pa prikazuje ključ koji je video.</li>
+</ul>
+
+<h2 id="path">Mrežna putanja</h2>
+<p>Provera <b>Mrežna putanja (traceroute)</b> prati put do uređaja na svakih pet minuta: nekoliko proba po hopu (podrazumevano 3, do 30 hopova), i za svaki ruter na putu njegovu adresu, gubitak i najbolje, prosečno i najgore vreme. Ruteri koji su uređaji u WatchZit-u se imenuju i povezuju. Namenjena je vezi ka filijali, data centru ili provajderu: vidite gde počinje gubitak ili kašnjenje i kada se ruta promenila.</p>
+<ul>
+  <li>Stranica uređaja prikazuje putanju poslednjeg pokretanja, svaki hop u poslednja 24 sata i poslednjih deset promena sa hopovima pre i posle. Svako pokretanje se čuva 30 dana.</li>
+  <li>Ruter koji odbacuje samo odgovore o sebi (mnogi ih ograničavaju), dok hopovi posle njega ništa ne gube, ne gubi saobraćaj; provera navodi hop od kojeg počinje gubitak koji se nastavlja do odredišta.</li>
+  <li>Vrednosti: vreme i gubitak do odredišta, broj hopova i <code>path_changed</code> (1 kada hop koji je odgovorio oba puta ima drugu adresu ili je odredište na drugom broju hopova). Uz nju dolazi okidač <b>Loss on the network path</b> (preko 20 % tokom 10 minuta); dodajte metrički okidač na <code>path_changed</code> da biste saznali za promene rute.</li>
+  <li>Udaljeni kolektor prati putanju sa svoje lokacije: stavite proveru na uređaj koji kolektor pokreće da vidite putanju iz filijale.</li>
 </ul>

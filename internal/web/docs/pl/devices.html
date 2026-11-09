@@ -28,6 +28,7 @@
   <tr><th>Test</th><th>Mierzy</th></tr>
   <tr><td>Ping (ICMP)</td><td>Czas odpowiedzi i utratę pakietów.</td></tr>
   <tr><td>Port TCP</td><td>Czy port przyjmuje połączenia i jak szybko.</td></tr>
+  <tr><td>Ścieżka sieciowa (traceroute)</td><td>Każdy router na drodze do urządzenia z jego stratami i opóźnieniem, jak MTR, przechowywane 30 dni, oraz kiedy ścieżka się zmieniła. Zobacz <a href="#path">Ścieżka sieciowa</a>.</td></tr>
   <tr><td>Strona WWW (HTTP)</td><td>Kod statusu, czas odpowiedzi, tekst, który musi być na stronie, dni do wygaśnięcia certyfikatu.</td></tr>
   <tr><td>Certyfikat TLS</td><td>Dni do wygaśnięcia i czy jest zaufany (dowolny port TLS, z nazwą serwera dla SNI).</td></tr>
   <tr><td>DNS</td><td>Urządzenie jest serwerem DNS: musi odpowiedzieć na nazwę z typem rekordu (A, AAAA, MX …) i opcjonalnie oczekiwaną wartością.</td></tr>
@@ -97,4 +98,13 @@
   <li><b>Windows przez WinRM</b>: włącz WinRM poleceniem <code>winrm quickconfig</code> (Windows Server ma go włączonego). Przez HTTP (port 5985) WatchZit loguje się za pomocą NTLMv2 i szyfruje każdą wiadomość kluczem logowania, tak jak wymaga Windows; przez HTTPS (5986, wymaga odbiornika HTTPS) chroni je TLS, a logowanie jest powiązane z certyfikatem. Użytkownik to <code>nazwa</code>, <code>DOMENA\nazwa</code> lub <code>nazwa@domena</code>: administrator albo członek <b>Remote Management Users</b> z prawami WMI do <code>root\cimv2</code>.</li>
   <li>Jedno uruchomienie trwa kilka sekund (procesor jest mierzony przez sekundę), dlatego limit czasu wynosi co najmniej 15 sekund; wystarczy interwał minuty lub dłuższy.</li>
   <li>Przez zdalny kolektor klucz hosta trzeba wpisać w sprawdzeniu: kolektor nie może go zapisać, więc pokazuje klucz, który zobaczył.</li>
+</ul>
+
+<h2 id="path">Ścieżka sieciowa</h2>
+<p>Sprawdzenie <b>Ścieżka sieciowa (traceroute)</b> co pięć minut śledzi drogę do urządzenia: kilka sond na przeskok (domyślnie 3, do 30 przeskoków), a dla każdego routera po drodze jego adres, straty oraz najlepszy, średni i najgorszy czas. Routery, które są urządzeniami w WatchZit, są nazwane i podlinkowane. Jest przeznaczone dla łącza do oddziału, centrum danych lub dostawcy: widać, gdzie zaczynają się straty lub opóźnienie i kiedy zmieniła się trasa.</p>
+<ul>
+  <li>Strona urządzenia pokazuje ścieżkę z ostatniego uruchomienia, każdy przeskok z ostatnich 24 godzin oraz dziesięć ostatnich zmian z przeskokami przed i po. Każde uruchomienie jest przechowywane 30 dni.</li>
+  <li>Router, który odrzuca tylko odpowiedzi o sobie (wiele je ogranicza), podczas gdy kolejne przeskoki nic nie tracą, nie gubi ruchu; sprawdzenie podaje przeskok, od którego zaczynają się straty trwające aż do celu.</li>
+  <li>Wartości: czas i straty do celu, liczba przeskoków oraz <code>path_changed</code> (1, gdy przeskok, który odpowiedział za oba razy, ma inny adres lub cel jest w innej liczbie przeskoków). Dołączony jest wyzwalacz <b>Loss on the network path</b> (ponad 20 % przez 10 minut); dodaj wyzwalacz metryki na <code>path_changed</code>, aby dowiadywać się o zmianach trasy.</li>
+  <li>Zdalny kolektor śledzi ścieżkę ze swojej lokalizacji: umieść sprawdzenie na urządzeniu obsługiwanym przez kolektor, aby zobaczyć ścieżkę z oddziału.</li>
 </ul>

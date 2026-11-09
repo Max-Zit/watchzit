@@ -28,6 +28,7 @@
   <tr><th>Kontrol</th><th>Ölçtüğü</th></tr>
   <tr><td>Ping (ICMP)</td><td>Yanıt süresi ve paket kaybı.</td></tr>
   <tr><td>TCP portu</td><td>Portun bağlantı kabul edip etmediği ve ne kadar hızlı.</td></tr>
+  <tr><td>Ağ yolu (traceroute)</td><td>Cihaza giden yoldaki her yönlendirici kaybı ve gecikmesiyle, MTR gibi, 30 gün saklanır, ve yolun ne zaman değiştiği. Bkz. <a href="#path">Ağ yolu</a>.</td></tr>
   <tr><td>Web sayfası (HTTP)</td><td>Durum kodu, yanıt süresi, sayfada bulunması gereken bir metin, sertifikanın süresinin dolmasına kalan gün.</td></tr>
   <tr><td>TLS sertifikası</td><td>Süresinin dolmasına kalan gün ve güvenilir olup olmadığı (herhangi bir TLS portu, SNI için sunucu adıyla).</td></tr>
   <tr><td>DNS</td><td>Cihaz bir DNS sunucusudur: bir adı bir kayıt türüyle (A, AAAA, MX …) ve isteğe bağlı olarak beklenen bir değerle yanıtlamalıdır.</td></tr>
@@ -97,4 +98,13 @@
   <li><b>WinRM üzerinden Windows</b>: WinRM'i <code>winrm quickconfig</code> ile açın (Windows Server'da açıktır). HTTP üzerinden (bağlantı noktası 5985) WatchZit NTLMv2 ile oturum açar ve Windows'un istediği gibi her iletiyi oturum açma anahtarıyla şifreler; HTTPS üzerinden (5986, bir HTTPS dinleyicisi gerekir) onları TLS korur ve oturum açma sertifikaya bağlanır. Kullanıcı <code>ad</code>, <code>ETKİALANI\ad</code> veya <code>ad@etkialanı</code> biçimindedir: bir yönetici veya <code>root\cimv2</code> üzerinde WMI haklarına sahip bir <b>Remote Management Users</b> üyesi.</li>
   <li>Bir çalıştırma birkaç saniye sürer (işlemci bir saniye boyunca ölçülür), bu yüzden zaman aşımı en az 15 saniyedir; bir dakika veya daha uzun bir aralık yeterlidir.</li>
   <li>Uzak bir toplayıcı üzerinden ana bilgisayar anahtarı denetime girilmelidir: toplayıcı onu kaydedemez, bu yüzden gördüğü anahtarı gösterir.</li>
+</ul>
+
+<h2 id="path">Ağ yolu</h2>
+<p><b>Ağ yolu (traceroute)</b> denetimi cihaza giden yolu beş dakikada bir izler: atlama başına birkaç yoklama (varsayılan 3, en fazla 30 atlama) ve yoldaki her yönlendirici için adresi, kaybı ve en iyi, ortalama ve en kötü süre. WatchZit'te cihaz olan yönlendiriciler adlandırılır ve bağlantılanır. Bir şubeye, veri merkezine veya sağlayıcıya giden hat için tasarlanmıştır: kaybın veya gecikmenin nerede başladığını ve rotanın ne zaman değiştiğini görürsünüz.</p>
+<ul>
+  <li>Cihaz sayfası son çalıştırmanın yolunu, son 24 saatteki her atlamayı ve önceki ve sonraki atlamalarla son on değişikliği gösterir. Her çalıştırma 30 gün saklanır.</li>
+  <li>Yalnızca kendisiyle ilgili yanıtları düşüren (çoğu bunları sınırlar) ve sonraki atlamaları hiçbir şey kaybetmeyen bir yönlendirici trafik kaybetmez; denetim, hedefe kadar süren kaybın başladığı atlamayı belirtir.</li>
+  <li>Değerler: hedefe kadar süre ve kayıp, atlama sayısı ve <code>path_changed</code> (her iki seferde yanıt veren bir atlamanın adresi farklıysa veya hedef farklı sayıda atlama uzaklıktaysa 1). <b>Loss on the network path</b> tetikleyicisi (10 dakika boyunca %20'nin üzerinde) birlikte gelir; rota değişikliklerinden haberdar olmak için <code>path_changed</code> üzerine bir metrik tetikleyici ekleyin.</li>
+  <li>Uzak bir toplayıcı kendi konumundan izler: şubeden yolu görmek için denetimi toplayıcının çalıştırdığı bir cihaza koyun.</li>
 </ul>

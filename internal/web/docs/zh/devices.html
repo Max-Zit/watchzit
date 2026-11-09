@@ -28,6 +28,7 @@
   <tr><th>检查</th><th>测量内容</th></tr>
   <tr><td>Ping (ICMP)</td><td>响应时间和丢包率。</td></tr>
   <tr><td>TCP 端口</td><td>端口是否接受连接，以及连接速度。</td></tr>
+  <tr><td>网络路径（traceroute）</td><td>像 MTR 一样显示到设备路径上的每个路由器及其丢包和延迟，保留 30 天，并记录路径何时变化。参见<a href="#path">网络路径</a>。</td></tr>
   <tr><td>网页（HTTP）</td><td>状态码、响应时间、页面上必须包含的文本、证书到期前的天数。</td></tr>
   <tr><td>TLS 证书</td><td>到期前的天数以及是否受信任（任意 TLS 端口，可指定用于 SNI 的服务器名称）。</td></tr>
   <tr><td>DNS</td><td>设备是 DNS 服务器：它必须以指定的记录类型（A、AAAA、MX …）应答某个名称，并可选择匹配预期值。</td></tr>
@@ -97,4 +98,13 @@
   <li><b>通过 WinRM 的 Windows</b>：用 <code>winrm quickconfig</code> 启用 WinRM（Windows Server 默认已启用）。通过 HTTP（端口 5985）时，WatchZit 用 NTLMv2 登录，并按 Windows 的要求用登录密钥加密每条消息；通过 HTTPS（5986，需要 HTTPS 侦听器）时由 TLS 保护，登录与证书绑定。用户为 <code>name</code>、<code>DOMAIN\name</code> 或 <code>name@domain</code>：管理员，或在 <code>root\cimv2</code> 上具有 WMI 权限的 <b>Remote Management Users</b> 成员。</li>
   <li>一次运行需要几秒钟（处理器会测量一秒钟），因此超时至少为 15 秒；间隔一分钟或更长即可。</li>
   <li>通过远程采集器时必须在检查中填写主机密钥：采集器无法保存它，因此会显示它看到的密钥。</li>
+</ul>
+
+<h2 id="path">网络路径</h2>
+<p>检查 <b>网络路径（traceroute）</b> 每五分钟跟踪一次到设备的路径：每跳多个探测（默认 3 个，最多 30 跳），并为路径上的每个路由器记录地址、丢包以及最佳、平均和最差时间。在 WatchZit 中作为设备存在的路由器会显示名称并带链接。它适用于到分支机构、数据中心或运营商的线路：可以看到丢包或延迟从哪里开始，以及路由何时变化。</p>
+<ul>
+  <li>设备页面显示最近一次运行的路径、最近 24 小时内的每一跳，以及最近十次变化及其前后的各跳。每次运行保留 30 天。</li>
+  <li>如果某个路由器只丢弃关于自身的应答（很多路由器会限速），而其后的各跳没有丢包，它并没有丢失流量；检查会指出一直持续到目标的丢包从哪一跳开始。</li>
+  <li>数值：到目标的时间和丢包、跳数以及 <code>path_changed</code>（当两次都应答的某一跳地址不同，或目标的跳数不同时为 1）。附带触发器 <b>Loss on the network path</b>（10 分钟内超过 20 %）；如需获知路由变化，请在 <code>path_changed</code> 上添加指标触发器。</li>
+  <li>远程采集器从自己的站点跟踪：把检查放在由该采集器运行的设备上，即可看到从分支机构出发的路径。</li>
 </ul>

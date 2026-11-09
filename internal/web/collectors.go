@@ -213,6 +213,9 @@ func (s *Server) collectorResults(ctx context.Context, c *agentConn, rr *poller.
 		if len(r.Result.Values) > 32 {
 			continue // no check has that many values
 		}
+		if r.Result.Path != nil {
+			r.Result.Path = store.CleanPath(r.Result.Path)
+		}
 		res = append(res, r.Result)
 		for _, x := range r.Samples {
 			if series[x.Series] {

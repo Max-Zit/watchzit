@@ -169,6 +169,34 @@
 </section>
 {{end}}
 
+{{range .Data.Paths}}{{$pv := .}}
+<section class="panel" id="path-{{.Check.ID}}">
+  <div class="titlebar"><h2>{{.Check.Name}}</h2><span class="muted small">{{$.T "Network path (traceroute)"}}{{with .Now}} · {{$.Ago .At}}{{end}}</span></div>
+  {{with .Now}}
+  <div class="table-wrap"><table class="list">
+    <thead><tr><th class="num">{{$.T "Hop"}}</th><th>{{$.T "Address"}}</th><th class="num">{{$.T "Loss"}}</th><th class="num">{{$.T "Best"}}</th><th class="num">{{$.T "Average"}}</th><th class="num">{{$.T "Worst"}}</th></tr></thead>
+    <tbody>{{range .Hops}}<tr><td class="num">{{.TTL}}</td>
+      <td>{{if .Addr}}<span class="mono">{{.Addr}}</span>{{with index $pv.Devices .Addr}} <a href="/devices/{{.ID}}">{{.Name}}</a>{{end}}{{if .Other}} <span class="muted small">{{$.T "and other paths"}}</span>{{end}}{{if .Final}} <span class="badge ok">{{$.T "destination"}}</span>{{end}}{{else}}<span class="muted">{{$.T "no answer"}}</span>{{end}}</td>
+      <td class="num">{{if .Addr}}{{if gt .Loss 0.0}}<span class="badge {{if ge .Loss 50.0}}bad{{else}}warn{{end}}">{{printf "%.0f" .Loss}} %</span>{{else}}0 %{{end}}{{end}}</td>
+      <td class="num">{{if .Recv}}{{printf "%.1f" .Best}}{{end}}</td><td class="num">{{if .Recv}}{{printf "%.1f" .Avg}}{{end}}</td><td class="num">{{if .Recv}}{{printf "%.1f" .Worst}}{{end}}</td></tr>{{end}}</tbody>
+  </table></div>
+  <p class="small muted">{{$.T "Milliseconds. A router that loses answers only about itself, while the hops after it lose nothing, only limits its answers; loss that goes on to the destination is real."}}</p>
+  {{else}}<p class="muted">{{$.T "Not traced yet."}}</p>{{end}}
+  {{if .Day}}<h3 class="mt">{{$.T "Last 24 hours per hop"}}</h3>
+  <div class="table-wrap"><table class="list">
+    <thead><tr><th class="num">{{$.T "Hop"}}</th><th>{{$.T "Address"}}</th><th class="num">{{$.T "Runs"}}</th><th class="num">{{$.T "Loss"}}</th><th class="num">{{$.T "Average"}}</th><th class="num">{{$.T "Worst"}}</th></tr></thead>
+    <tbody>{{range .Day}}<tr><td class="num">{{.TTL}}</td><td>{{if .Addr}}<span class="mono">{{.Addr}}</span>{{with index $pv.Devices .Addr}} <a href="/devices/{{.ID}}">{{.Name}}</a>{{end}}{{else}}<span class="muted">{{$.T "no answer"}}</span>{{end}}</td>
+      <td class="num">{{.Runs}}</td><td class="num">{{if .Addr}}{{printf "%.1f" .Loss}} %{{end}}</td><td class="num">{{if .Addr}}{{printf "%.1f" .Avg}}{{end}}</td><td class="num">{{if .Addr}}{{printf "%.1f" .Worst}}{{end}}</td></tr>{{end}}</tbody>
+  </table></div>{{end}}
+  <h3 class="mt">{{$.T "Path changes"}}</h3>
+  {{range .Changes}}{{$now := index . 0}}{{$before := index . 1}}
+  <details><summary>{{$.Ago $now.At}} <span class="muted small">{{len $before.Hops}} → {{len $now.Hops}} {{$.T "hops"}}</span></summary>
+    <div class="table-wrap"><table class="list"><thead><tr><th class="num">{{$.T "Hop"}}</th><th>{{$.T "Before"}}</th><th>{{$.T "After"}}</th></tr></thead>
+    <tbody>{{range $i, $h := $now.Hops}}{{$b := ""}}{{if lt $i (len $before.Hops)}}{{$b = (index $before.Hops $i).Addr}}{{end}}<tr><td class="num">{{$h.TTL}}</td><td class="mono small">{{or $b "—"}}</td><td class="mono small">{{if and $b $h.Addr (ne $b $h.Addr)}}<b>{{$h.Addr}}</b>{{else}}{{or $h.Addr "—"}}{{end}}</td></tr>{{end}}</tbody></table></div>
+  </details>{{else}}<p class="muted small">{{$.T "No changes in the last 30 days."}}</p>{{end}}
+</section>
+{{end}}
+
 {{if .Data.VXLANs}}
 <section class="panel">
   <h2>VXLAN</h2>
@@ -222,6 +250,7 @@
               <label>{{$.T "Name"}}<input name="name" value="{{.Name}}" maxlength="100" required></label>
               {{if eq .Type "tcp"}}<label>{{$.T "Port"}}<input type="number" name="port" value="{{.Params.Port}}" min="1" max="65535" required></label>{{end}}
               {{if eq .Type "icmp"}}<label>{{$.T "Pings per run"}}<input type="number" name="count" value="{{.Params.Count}}" min="1" max="20" required></label>{{end}}
+              {{if eq .Type "trace"}}<div class="cols"><label>{{$.T "Probes per hop"}}<input type="number" name="count" value="{{.Params.Count}}" min="1" max="10" required></label><label>{{$.T "Hops at most"}}<input type="number" name="max_hops" value="{{.Params.MaxHops}}" min="1" max="64" required></label></div>{{end}}
               {{if eq .Type "snmp_oid"}}<label>OID<input name="oid" value="{{.Params.OID}}" class="mono" required></label>
               <div class="cols"><label>{{$.T "Unit"}}<input name="unit" value="{{.Params.Unit}}" maxlength="16"></label><label>{{$.T "Multiplier"}}<input name="scale" value="{{if .Params.Scale}}{{.Params.Scale}}{{else}}1{{end}}" inputmode="decimal"></label></div>
               <label class="check"><input type="checkbox" name="rate" value="1" {{if .Params.Rate}}checked{{end}}>{{$.T "Counter: store the change per second"}}</label>{{end}}
@@ -275,6 +304,13 @@
       </div>
       <div class="cols" data-show="checktype" data-when="icmp">
         <label>{{.T "Pings per run"}}<input type="number" name="count" min="1" max="20" value="3"></label>
+      </div>
+      <div class="stack" data-show="checktype" data-when="trace">
+        <p class="small muted">{{.T "Traces the way to the device like MTR: every router on the way with its loss and latency, kept for 30 days, with the times the path changed. Runs every five minutes unless you set another interval (at least a minute)."}}</p>
+        <div class="cols">
+          <label>{{.T "Probes per hop"}}<input type="number" name="count" min="1" max="10" placeholder="3"></label>
+          <label>{{.T "Hops at most"}}<input type="number" name="max_hops" min="1" max="64" placeholder="30"></label>
+        </div>
       </div>
       <div class="stack" data-show="checktype" data-when="http">
         <label>{{.T "Address (URL)"}} <small>{{.T "optional"}}</small><input name="url" type="url" maxlength="2000" class="mono" spellcheck="false" placeholder="https://{{$d.Address}}/"><small>{{.T "Empty: the device's address over HTTPS."}}</small></label>
@@ -389,7 +425,7 @@
         <label class="check"><input type="checkbox" name="rate" value="1">{{.T "Counter: store the change per second"}}</label>
       </div>
       <div class="cols">
-        <label>{{.T "Interval (seconds)"}}<input type="number" name="interval" min="10" max="3600" value="60"></label>
+        <label>{{.T "Interval (seconds)"}}<input type="number" name="interval" min="10" max="3600" placeholder="60"></label>
         <label>{{.T "Timeout (ms)"}}<input type="number" name="timeout_ms" min="100" max="30000" value="2000"></label>
       </div>
       <div><button class="primary">{{.T "Add check"}}</button></div>

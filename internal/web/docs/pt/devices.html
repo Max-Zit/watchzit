@@ -28,6 +28,7 @@
   <tr><th>Verificação</th><th>Mede</th></tr>
   <tr><td>Ping (ICMP)</td><td>Tempo de resposta e perda de pacotes.</td></tr>
   <tr><td>Porta TCP</td><td>Se a porta aceita ligações, e com que rapidez.</td></tr>
+  <tr><td>Caminho de rede (traceroute)</td><td>Cada router no caminho até ao dispositivo com a sua perda e latência, como o MTR, guardado 30 dias, e quando o caminho mudou. Veja <a href="#path">Caminho de rede</a>.</td></tr>
   <tr><td>Página web (HTTP)</td><td>Código de estado, tempo de resposta, um texto que tem de estar na página, dias até o certificado expirar.</td></tr>
   <tr><td>Certificado TLS</td><td>Dias até expirar e se é confiável (qualquer porta TLS, com um nome de servidor para SNI).</td></tr>
   <tr><td>DNS</td><td>O dispositivo é um servidor DNS: tem de responder a um nome com um tipo de registo (A, AAAA, MX …) e, opcionalmente, com um valor esperado.</td></tr>
@@ -97,4 +98,13 @@
   <li><b>Windows por WinRM</b>: ative o WinRM com <code>winrm quickconfig</code> (o Windows Server já o tem ativo). Por HTTP (porta 5985) o WatchZit inicia sessão com NTLMv2 e cifra cada mensagem com a chave do início de sessão, como o Windows exige; por HTTPS (5986, precisa de um listener HTTPS) o TLS protege-as e o início de sessão fica ligado ao certificado. O utilizador é <code>nome</code>, <code>DOMÍNIO\nome</code> ou <code>nome@domínio</code>: um administrador ou membro de <b>Remote Management Users</b> com direitos WMI em <code>root\cimv2</code>.</li>
   <li>Uma execução demora alguns segundos (o processador é medido durante um segundo), por isso o tempo limite é de pelo menos 15 segundos; basta um intervalo de um minuto ou mais.</li>
   <li>Através de um coletor remoto, a chave de anfitrião tem de ser introduzida na verificação: o coletor não a pode guardar, por isso mostra a chave que viu.</li>
+</ul>
+
+<h2 id="path">Caminho de rede</h2>
+<p>A verificação <b>Caminho de rede (traceroute)</b> traça o caminho até ao dispositivo a cada cinco minutos: várias sondas por salto (3 por omissão, até 30 saltos) e, para cada router no caminho, o seu endereço, a sua perda e o melhor, o médio e o pior tempo. Os routers que são dispositivos no WatchZit são nomeados e ligados. Destina-se à linha para uma filial, um centro de dados ou um fornecedor: vê onde começa a perda ou o atraso e quando a rota mudou.</p>
+<ul>
+  <li>A página do dispositivo mostra o caminho da última execução, cada salto nas últimas 24 horas e as últimas dez alterações com os saltos antes e depois. Cada execução é guardada 30 dias.</li>
+  <li>Um router que só descarta as respostas sobre si próprio (muitos limitam-nas), enquanto os saltos seguintes não perdem nada, não perde tráfego; a verificação indica o salto onde começa uma perda que continua até ao destino.</li>
+  <li>Valores: tempo e perda até ao destino, número de saltos e <code>path_changed</code> (1 quando um salto que respondeu das duas vezes tem outro endereço ou o destino está a outro número de saltos). Inclui o acionador <b>Loss on the network path</b> (mais de 20 % durante 10 minutos); adicione um acionador de métrica sobre <code>path_changed</code> para saber das alterações de rota.</li>
+  <li>Um coletor remoto traça a partir do seu próprio local: coloque a verificação num dispositivo que o coletor executa para ver o caminho a partir da filial.</li>
 </ul>

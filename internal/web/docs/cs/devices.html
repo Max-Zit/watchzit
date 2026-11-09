@@ -28,6 +28,7 @@
   <tr><th>Kontrola</th><th>Měří</th></tr>
   <tr><td>Ping (ICMP)</td><td>Dobu odezvy a ztrátu paketů.</td></tr>
   <tr><td>Port TCP</td><td>Zda port přijímá spojení a jak rychle.</td></tr>
+  <tr><td>Síťová cesta (traceroute)</td><td>Každý směrovač na cestě k zařízení s jeho ztrátou a zpožděním, jako MTR, uchováno 30 dní, a kdy se cesta změnila. Viz <a href="#path">Síťová cesta</a>.</td></tr>
   <tr><td>Webová stránka (HTTP)</td><td>Stavový kód, dobu odezvy, text, který musí být na stránce, dny do vypršení certifikátu.</td></tr>
   <tr><td>Certifikát TLS</td><td>Dny do vypršení a zda je důvěryhodný (libovolný port TLS, s názvem serveru pro SNI).</td></tr>
   <tr><td>DNS</td><td>Zařízení je server DNS: musí odpovědět na název s typem záznamu (A, AAAA, MX …) a volitelně s očekávanou hodnotou.</td></tr>
@@ -97,4 +98,13 @@
   <li><b>Windows přes WinRM</b>: zapněte WinRM příkazem <code>winrm quickconfig</code> (Windows Server ho má zapnutý). Přes HTTP (port 5985) se WatchZit přihlásí pomocí NTLMv2 a každou zprávu šifruje klíčem přihlášení, jak Windows vyžaduje; přes HTTPS (5986, potřebuje naslouchací proces HTTPS) je chrání TLS a přihlášení je vázáno na certifikát. Uživatel je <code>jméno</code>, <code>DOMÉNA\jméno</code> nebo <code>jméno@doména</code>: správce nebo člen <b>Remote Management Users</b> s právy WMI na <code>root\cimv2</code>.</li>
   <li>Jeden běh trvá několik sekund (procesor se měří po dobu jedné sekundy), proto je časový limit nejméně 15 sekund; stačí interval minuta nebo delší.</li>
   <li>Přes vzdálený kolektor je nutné klíč hostitele zadat do kontroly: kolektor ho nemůže uložit, proto ukáže klíč, který viděl.</li>
+</ul>
+
+<h2 id="path">Síťová cesta</h2>
+<p>Kontrola <b>Síťová cesta (traceroute)</b> každých pět minut sleduje cestu k zařízení: několik sond na skok (výchozí 3, až 30 skoků) a pro každý směrovač na cestě jeho adresu, ztrátu a nejlepší, průměrný a nejhorší čas. Směrovače, které jsou zařízeními ve WatchZit, jsou pojmenovány a propojeny. Je určena pro linku k pobočce, datovému centru nebo poskytovateli: vidíte, kde začíná ztráta nebo zpoždění a kdy se trasa změnila.</p>
+<ul>
+  <li>Stránka zařízení ukazuje cestu posledního běhu, každý skok za posledních 24 hodin a posledních deset změn se skoky před a po. Každý běh se uchovává 30 dní.</li>
+  <li>Směrovač, který zahazuje jen odpovědi o sobě (mnohé je omezují), zatímco skoky po něm nic neztrácejí, neztrácí provoz; kontrola uvede skok, od kterého začíná ztráta pokračující až do cíle.</li>
+  <li>Hodnoty: čas a ztráta do cíle, počet skoků a <code>path_changed</code> (1, když skok, který odpověděl v obou bězích, má jinou adresu nebo je cíl v jiném počtu skoků). Je k ní spouštěč <b>Loss on the network path</b> (přes 20 % po 10 minut); přidejte metrický spouštěč na <code>path_changed</code>, abyste se dozvěděli o změnách trasy.</li>
+  <li>Vzdálený kolektor sleduje cestu ze svého místa: dejte kontrolu na zařízení, které kolektor spouští, abyste viděli cestu z pobočky.</li>
 </ul>
