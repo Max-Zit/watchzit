@@ -38,7 +38,7 @@ jobs:
       - name: govulncheck
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
-          govulncheck ./...
+          govulncheck -format json ./... | go run ./tools/vulngate .govulncheck-accepted
       - name: gitleaks (secrets in the history)
         run: |
           go install github.com/zricethezav/gitleaks/v8@v8.30.1

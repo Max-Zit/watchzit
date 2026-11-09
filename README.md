@@ -223,13 +223,14 @@ WatchZit checks for new releases itself and shows them under **Settings → Upda
 | TCP 80 | browsers, Let's Encrypt → server | optional: redirect to HTTPS and the Let's Encrypt check |
 | ICMP, UDP 161, TCP … | server → devices | the checks you set up (ping, SNMP, HTTP, databases …) |
 | UDP 514, UDP 162 | devices → server | optional: syslog messages and SNMP traps |
+| UDP 2055, UDP 6343 | routers, switches → server | optional: NetFlow v5/v9 and IPFIX (2055), sFlow (6343) |
 | TCP 22 | admins → appliance | optional SSH |
 
 ## Documentation, support, license
 
 - The **user guide** is built into the console (*User guide* in the menu) with a search; the console and the guide are in 14 languages.
 - Questions and ideas: [Discussions](https://github.com/Max-Zit/watchzit/discussions). Bugs: [Issues](https://github.com/Max-Zit/watchzit/issues). Security reports: see [SECURITY.md](SECURITY.md).
-- Paid support is offered by [MaxZit](https://maxzit.com).
+- [MaxZit](https://maxzit.com) offers optional [commercial support](https://watchzit.com/support/).
 
 GNU Affero General Public License v3.0 — see [LICENSE](LICENSE). Third-party components and their licenses: [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
 

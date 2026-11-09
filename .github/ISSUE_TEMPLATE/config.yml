@@ -7,5 +7,5 @@ contact_links:
     url: https://github.com/Max-Zit/watchzit/security/advisories/new
     about: Please report security problems privately.
   - name: Commercial support
-    url: https://github.com/Max-Zit
-    about: MaxZit will offer paid support for WatchZit.
+    url: https://watchzit.com/support/
+    about: MaxZit offers paid support for WatchZit.
