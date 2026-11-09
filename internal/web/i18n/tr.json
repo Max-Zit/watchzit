@@ -190,7 +190,7 @@
   "Applying adds the template's checks a device does not have yet; checks it has stay as they are.": "Uygulama, cihazda henüz olmayan şablon kontrollerini ekler; mevcut kontroller olduğu gibi kalır.",
   "Area": "Alan",
   "Arguments": "Argümanlar",
-  "Arrange": "Düzenle",
+  "Arrange": "Yerleştir",
   "Asset number, warranty, rack": "Demirbaş numarası, garanti, kabin",
   "At (server time)": "Saat (sunucu saati)",
   "At 07:00 server time, with the CSV attached; email is set up under Settings → Notifications.": "Sunucu saatiyle 07:00'de, CSV ekiyle; e-posta Ayarlar → Bildirimler altında ayarlanır.",
