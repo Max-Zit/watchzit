@@ -35,6 +35,7 @@
   <tr><td>MikroTik RouterOS（API）</td><td>RouterOS 7 の REST API による CPU、メモリー、稼働時間、温度。</td></tr>
   <tr><td>JSON API の値</td><td>任意の JSON API（FortiGate、vCenter、独自のサービス）から取得する 1 つの数値：アドレス、<code>results.cpu.0.current</code> のようなパス、オプションで Bearer または Basic 認証。</td></tr>
   <tr><td>ハイパーバイザー (vSphere、Proxmox VE)</td><td>VMware ESXi または vCenter（Web サービス API）、Proxmox VE（REST API）のホスト、仮想マシンとコンテナー、データストア：ホストの CPU とメモリー、稼働中のマシン、ダウンしたホスト、最も使用率の高いデータストア。<a href="#hypervisor">ハイパーバイザー</a>を参照してください。</td></tr>
+  <tr><td>SSH 経由の Linux、WinRM 経由の Windows（エージェントなし）</td><td>何もインストールされていないマシンの CPU、メモリ、スワップまたはページファイル、最も使用率の高いディスク、稼働時間（Linux では負荷も）。<a href="#agentless">エージェントなしのマシン</a>を参照してください。</td></tr>
   <tr><td>Web シナリオ</td><td>ユーザーと同じように Web アプリケーションの複数の手順をたどります：サインインし、サインインが必要なページを開き、テキストを確認します。1 行に 1 ステップで、たとえば <code>GET /login | 200 | Sign in</code>、<code>POST /login | 302 | | user=monitor&amp;password={secret}</code>、<code>GET /dashboard | | Welcome</code> のように記述します。メソッドとアドレス、続いて期待されるステータス、ページに含まれるべきテキスト、フォームデータです。Cookie はステップ間で引き継がれ、<code>{secret}</code> はチェックのパスワードです。全ステップの所要時間と成功したステップ数を測定し、アラートには失敗したステップが示されます。</td></tr>
   <tr><td>SNMP</td><td>可用性と稼働時間。検出で見つかったインターフェース、CPU、ストレージ。任意の数値 OID。</td></tr>
 </table>
@@ -87,4 +88,13 @@
   <li>デバイスページには、ホスト、すべての仮想マシンとコンテナー（状態、CPU、メモリー、アドレス、ゲスト OS）、データストアが一覧表示されます。ゲスト OS とアドレスは 10 分ごとに読み取られます（Proxmox VE は QEMU ゲストエージェントを通じてアドレスを読み取ります）。</li>
   <li><b>Hyper-V</b> と <b>Docker</b> にはチェックは不要です。Windows ホスト（Hyper-V あり）または Linux ホスト（Docker あり）上の WatchZit エージェントが、5 分ごとにマシンやコンテナーを報告します。</li>
   <li>マップ上のハイパーバイザーボックスでは、これらのマシンを自動的に表示できます（マップのガイドを参照）。</li>
+</ul>
+
+<h2 id="agentless">エージェントなしのマシン</h2>
+<p>エージェントをインストールできない場所では、WatchZit はマシンにすでにある仕組みを通じて読み取ります。値の名前はエージェントと同じなので、トリガー <b>High CPU load</b>、<b>Memory almost full</b>、<b>Disk almost full</b>、<b>Disk full</b> はこれらのチェックも監視します。エージェントのほうが引き続き多くを表示します（すべてのドライブ、インターフェース、サービス、プロセス、ログ）。</p>
+<ul>
+  <li><b>SSH 経由の Linux</b>: サインインできる任意のユーザーで、パスワードまたはパスフレーズのない秘密鍵を使います。WatchZit は <code>/proc</code>、<code>df</code>、<code>uname</code> だけを読む固定のコマンドを 1 つ実行し、何も書き込みません。ホスト鍵は初回に受け入れ、以後の実行ごとに照合します。変わった場合はチェックがダウンし、新しい鍵を示します（再インストールしたマシンでは<b>保存したホスト鍵を破棄</b>にチェック）。鍵を自分で入力することもできます: <code>ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub</code>。</li>
+  <li><b>WinRM 経由の Windows</b>: <code>winrm quickconfig</code> で WinRM を有効にします（Windows Server では有効です）。HTTP（ポート 5985）では WatchZit は NTLMv2 でサインインし、Windows の要求どおりすべてのメッセージをサインインの鍵で暗号化します。HTTPS（5986、HTTPS リスナーが必要）では TLS が保護し、サインインは証明書に結び付けられます。ユーザーは <code>name</code>、<code>DOMAIN\name</code>、<code>name@domain</code> の形式で、管理者か、<code>root\cimv2</code> に WMI 権限を持つ <b>Remote Management Users</b> のメンバーです。</li>
+  <li>1 回の実行には数秒かかります（プロセッサーを 1 秒間測定するため）。そのためタイムアウトは最低 15 秒で、間隔は 1 分以上で十分です。</li>
+  <li>リモートコレクター経由では、ホスト鍵をチェックに入力する必要があります。コレクターは鍵を保存できないため、見えた鍵を表示します。</li>
 </ul>

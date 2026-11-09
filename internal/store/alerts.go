@@ -110,7 +110,7 @@ func TriggerMetrics() map[string][]string {
 
 var allCheckTypes = []string{CheckICMP, CheckTCP, CheckSNMP, CheckSNMPIf, CheckSNMPCPU, CheckSNMPStor, CheckSNMPOID, CheckSNMPSupply, CheckSNMPUPS,
 	CheckAgent, CheckAgentCPU, CheckAgentMem, CheckAgentDisk, CheckAgentNet, CheckAgentService, CheckAgentProcess,
-	CheckHTTP, CheckScenario, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON, CheckHypervisor}
+	CheckHTTP, CheckScenario, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON, CheckHypervisor, CheckSSH, CheckWinRM}
 
 // MetricUnit is the unit of a metric of a check type ("" when unknown).
 func MetricUnit(typ, metric string, p CheckParams) string {

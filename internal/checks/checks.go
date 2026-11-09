@@ -1,6 +1,7 @@
 // Package checks runs the service checks: web pages, TLS certificates,
-// DNS, PostgreSQL, MySQL/MariaDB, the MikroTik RouterOS REST API and numbers
-// from any JSON API. Each returns a Result for the poller.
+// DNS, PostgreSQL, MySQL/MariaDB, the MikroTik RouterOS REST API, numbers
+// from any JSON API, and Linux (SSH) and Windows (WinRM) machines without
+// an agent. Each returns a Result for the poller.
 package checks
 
 import (
@@ -30,9 +31,10 @@ import (
 
 // Result is the outcome of one run.
 type Result struct {
-	Up     bool
-	Text   string
-	Values map[string]float64
+	Up      bool
+	Text    string
+	Values  map[string]float64
+	HostKey string // SSH: the fingerprint accepted on first use, to save
 }
 
 func fail(format string, a ...any) Result { return Result{Text: fmt.Sprintf(format, a...)} }
@@ -43,6 +45,9 @@ type Target struct {
 	Host   string
 	Addr   netip.Addr
 	Secret string
+	// TrustNewKey accepts an SSH host key when the check has none saved
+	// (the console saves it; a collector cannot, so it asks for it).
+	TrustNewKey bool
 }
 
 func msSince(t time.Time) float64 {
@@ -53,6 +58,9 @@ func hostPort(host string, port int) string { return net.JoinHostPort(host, strc
 
 // Run runs a service check.
 func Run(ctx context.Context, typ string, p store.CheckParams, t Target, timeout time.Duration) Result {
+	if typ == store.CheckSSH || typ == store.CheckWinRM {
+		timeout = max(timeout, 15*time.Second) // sign-in and a second of processor time
+	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	switch typ {
@@ -72,6 +80,10 @@ func Run(ctx context.Context, typ string, p store.CheckParams, t Target, timeout
 		return RouterOS(ctx, p, t)
 	case store.CheckJSON:
 		return JSONValue(ctx, p, t)
+	case store.CheckSSH:
+		return SSHHost(ctx, p, t)
+	case store.CheckWinRM:
+		return WinRM(ctx, p, t)
 	}
 	return fail("unknown check type")
 }

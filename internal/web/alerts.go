@@ -187,7 +187,7 @@ func (s *Server) showTriggers(w http.ResponseWriter, r *http.Request, status int
 	}
 	d.Types = []string{store.CheckICMP, store.CheckTCP, store.CheckSNMP, store.CheckSNMPIf, store.CheckSNMPCPU, store.CheckSNMPStor, store.CheckSNMPOID, store.CheckSNMPSupply, store.CheckSNMPUPS,
 		store.CheckAgent, store.CheckAgentCPU, store.CheckAgentMem, store.CheckAgentDisk, store.CheckAgentNet, store.CheckAgentService,
-		store.CheckHTTP, store.CheckScenario, store.CheckTLS, store.CheckDNS, store.CheckPostgres, store.CheckMySQL, store.CheckRouterOS, store.CheckJSON, store.CheckHypervisor}
+		store.CheckHTTP, store.CheckScenario, store.CheckTLS, store.CheckDNS, store.CheckPostgres, store.CheckMySQL, store.CheckRouterOS, store.CheckJSON, store.CheckHypervisor, store.CheckSSH, store.CheckWinRM}
 	p := &Page{Title: "Triggers", Nav: "problems", Data: d}
 	if errMsg != "" {
 		p.Error = translate(s.lang(r, userFrom(r)), errMsg)

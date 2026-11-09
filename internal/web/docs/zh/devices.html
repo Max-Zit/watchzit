@@ -35,6 +35,7 @@
   <tr><td>MikroTik RouterOS（API）</td><td>通过 RouterOS 7 的 REST API 获取 CPU、内存、运行时间和温度。</td></tr>
   <tr><td>JSON API 值</td><td>来自任意 JSON API（FortiGate、vCenter、您自己的服务）的一个数值：地址、类似 <code>results.cpu.0.current</code> 的路径，以及可选的 Bearer 或 Basic 认证。</td></tr>
   <tr><td>虚拟化平台（vSphere、Proxmox VE）</td><td>VMware ESXi 或 vCenter（Web 服务 API）或 Proxmox VE（REST API）的主机、虚拟机和容器、数据存储：主机的 CPU 和内存、运行中的虚拟机、宕机的主机、最满的数据存储。请参阅<a href="#hypervisor">虚拟化平台</a>。</td></tr>
+  <tr><td>通过 SSH 的 Linux、通过 WinRM 的 Windows（无代理）</td><td>未安装任何软件的机器的 CPU、内存、交换空间或页面文件、最满的磁盘和运行时间（Linux 还有负载）。参见<a href="#agentless">无代理的机器</a>。</td></tr>
   <tr><td>Web 场景</td><td>像用户一样在 Web 应用中执行多个步骤：登录、打开需要登录的页面、检查文本。每行一个步骤，例如 <code>GET /login | 200 | Sign in</code>、<code>POST /login | 302 | | user=monitor&amp;password={secret}</code>、<code>GET /dashboard | | Welcome</code>——依次为方法和地址、预期状态、页面必须包含的文本以及表单数据。Cookie 会在步骤之间保留；<code>{secret}</code> 为该检查的密码。测量所有步骤的耗时以及通过的步骤数；告警会指出失败的步骤。</td></tr>
   <tr><td>SNMP</td><td>可用性和运行时间；通过发现找到的接口、CPU 和存储；任意数值型 OID。</td></tr>
 </table>
@@ -87,4 +88,13 @@
   <li>设备页面会列出主机、每台虚拟机和容器（状态、CPU、内存、地址、客户机系统）以及数据存储。客户机系统和地址每十分钟读取一次（Proxmox VE 通过 QEMU 客户机代理读取地址）。</li>
   <li><b>Hyper-V</b> 和 <b>Docker</b> 无需检查：Windows 主机（带 Hyper-V）或 Linux 主机（带 Docker）上的 WatchZit 代理每五分钟上报其虚拟机或容器。</li>
   <li>在地图上，虚拟化主机框可以自动显示这些虚拟机（请参阅地图指南）。</li>
+</ul>
+
+<h2 id="agentless">无代理的机器</h2>
+<p>在无法安装代理的地方，WatchZit 通过机器已有的服务读取它。这些值与代理的名称相同，因此触发器 <b>High CPU load</b>、<b>Memory almost full</b>、<b>Disk almost full</b> 和 <b>Disk full</b> 也会监视这些检查。代理仍能显示更多内容：每个驱动器、接口、服务、进程和日志。</p>
+<ul>
+  <li><b>通过 SSH 的 Linux</b>：任何可以登录的用户，使用密码或不带密码短语的私钥。WatchZit 只运行一条固定命令，仅读取 <code>/proc</code>、<code>df</code> 和 <code>uname</code>，不写入任何内容。主机密钥在第一次时被接受，之后每次运行都会校验；如果密钥变化，检查会变为故障并给出新密钥（重新安装的机器请勾选<b>忘记已保存的主机密钥</b>）。也可以自己填写密钥：<code>ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub</code>。</li>
+  <li><b>通过 WinRM 的 Windows</b>：用 <code>winrm quickconfig</code> 启用 WinRM（Windows Server 默认已启用）。通过 HTTP（端口 5985）时，WatchZit 用 NTLMv2 登录，并按 Windows 的要求用登录密钥加密每条消息；通过 HTTPS（5986，需要 HTTPS 侦听器）时由 TLS 保护，登录与证书绑定。用户为 <code>name</code>、<code>DOMAIN\name</code> 或 <code>name@domain</code>：管理员，或在 <code>root\cimv2</code> 上具有 WMI 权限的 <b>Remote Management Users</b> 成员。</li>
+  <li>一次运行需要几秒钟（处理器会测量一秒钟），因此超时至少为 15 秒；间隔一分钟或更长即可。</li>
+  <li>通过远程采集器时必须在检查中填写主机密钥：采集器无法保存它，因此会显示它看到的密钥。</li>
 </ul>

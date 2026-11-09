@@ -35,6 +35,7 @@
   <tr><td>MikroTik RouterOS (API)</td><td>CPU, paměť, dobu provozu a teplotu přes REST API RouterOS 7.</td></tr>
   <tr><td>Hodnota z JSON API</td><td>Jedno číslo z libovolného JSON API (FortiGate, vCenter, vaše vlastní služby): adresa, cesta jako <code>results.cpu.0.current</code> a volitelné přihlášení Bearer nebo basic.</td></tr>
   <tr><td>Hypervisor (vSphere, Proxmox VE)</td><td>Hostitele, virtuální stroje a kontejnery, úložiště dat VMware ESXi nebo vCenter (API webových služeb) nebo Proxmox VE (REST API): CPU a paměť hostitelů, běžící stroje, nefunkční hostitele, nejplnější úložiště dat. Viz <a href="#hypervisor">Hypervizory</a>.</td></tr>
+  <tr><td>Linux přes SSH, Windows přes WinRM (bez agenta)</td><td>Procesor, paměť, swap nebo stránkovací soubor, nejplnější disk a doba běhu stroje, na kterém nic není nainstalováno (u Linuxu i zátěž). Viz <a href="#agentless">Stroje bez agenta</a>.</td></tr>
   <tr><td>Webový scénář</td><td>Několik kroků webovou aplikací tak, jak je projde uživatel: přihlášení, otevření stránky za přihlášením, kontrola textu. Jeden krok na řádek, například <code>GET /login | 200 | Sign in</code>, <code>POST /login | 302 | | user=monitor&amp;password={secret}</code>, <code>GET /dashboard | | Welcome</code> — metoda a adresa, pak očekávaný stav, text, který musí stránka obsahovat, a data formuláře. Cookies se přenášejí z kroku do kroku; <code>{secret}</code> je heslo kontroly. Měří čas všech kroků a kolik jich prošlo; upozornění uvede krok, který selhal.</td></tr>
   <tr><td>SNMP</td><td>Dostupnost a dobu provozu; rozhraní, CPU a úložiště nalezená zjišťováním; libovolný číselný OID.</td></tr>
 </table>
@@ -87,4 +88,13 @@
   <li>Stránka zařízení uvádí hostitele, každý virtuální stroj a kontejner (stav, CPU, paměť, adresa, hostovaný systém) a úložiště dat. Hostované systémy a adresy se čtou každých deset minut (Proxmox VE čte adresy přes hostovaného agenta QEMU).</li>
   <li><b>Hyper-V</b> a <b>Docker</b> žádnou kontrolu nepotřebují: agent WatchZit na hostiteli Windows (s Hyper-V) nebo na hostiteli Linux (s Dockerem) hlásí své stroje nebo kontejnery každých pět minut.</li>
   <li>Na mapách může pole hypervizoru tyto stroje zobrazit samo (viz průvodce mapami).</li>
+</ul>
+
+<h2 id="agentless">Stroje bez agenta</h2>
+<p>Tam, kde agenta nelze nainstalovat, čte WatchZit stroj přes to, co už má. Hodnoty mají názvy jako u agenta, takže spouštěče <b>High CPU load</b>, <b>Memory almost full</b>, <b>Disk almost full</b> a <b>Disk full</b> hlídají i tyto kontroly. Agent stále ukazuje víc: každý disk, rozhraní, služby, procesy a protokoly.</p>
+<ul>
+  <li><b>Linux přes SSH</b>: jakýkoli uživatel, který se smí přihlásit, s heslem nebo soukromým klíčem bez hesla klíče. WatchZit spouští jeden pevný příkaz, který jen čte <code>/proc</code>, <code>df</code> a <code>uname</code>; nic se nezapisuje. Klíč hostitele se přijme poprvé a kontroluje se při každém dalším běhu; když se změní, kontrola spadne a uvede nový klíč (u přeinstalovaného stroje zaškrtněte <b>Zapomenout uložený klíč hostitele</b>). Klíč můžete zadat i sami: <code>ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub</code>.</li>
+  <li><b>Windows přes WinRM</b>: zapněte WinRM příkazem <code>winrm quickconfig</code> (Windows Server ho má zapnutý). Přes HTTP (port 5985) se WatchZit přihlásí pomocí NTLMv2 a každou zprávu šifruje klíčem přihlášení, jak Windows vyžaduje; přes HTTPS (5986, potřebuje naslouchací proces HTTPS) je chrání TLS a přihlášení je vázáno na certifikát. Uživatel je <code>jméno</code>, <code>DOMÉNA\jméno</code> nebo <code>jméno@doména</code>: správce nebo člen <b>Remote Management Users</b> s právy WMI na <code>root\cimv2</code>.</li>
+  <li>Jeden běh trvá několik sekund (procesor se měří po dobu jedné sekundy), proto je časový limit nejméně 15 sekund; stačí interval minuta nebo delší.</li>
+  <li>Přes vzdálený kolektor je nutné klíč hostitele zadat do kontroly: kolektor ho nemůže uložit, proto ukáže klíč, který viděl.</li>
 </ul>

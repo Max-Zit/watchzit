@@ -96,6 +96,7 @@ jobs:
           set -e
           for t in launch:FuzzParse agent:FuzzParseEnrollCode datasource:FuzzParseJSONSeries netacl:FuzzParse \
                    web:FuzzParseState web:FuzzParseIDPMetadata web:FuzzFormLists web:FuzzCheckSAMLResponse store:FuzzParseSteps \
+                   checks:FuzzNTLMChallenge checks:FuzzWSItems checks:FuzzParseLinux \
                    flow:FuzzDecode snmp:FuzzDecode snmp:FuzzParseTrap logrecv:FuzzParseSyslog tsdb:FuzzDecode; do
             go test "./internal/${t%%:*}" -run '^$' -fuzz "^${t##*:}\$" -fuzztime 20s
           done

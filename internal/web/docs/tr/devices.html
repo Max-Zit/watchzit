@@ -35,6 +35,7 @@
   <tr><td>MikroTik RouterOS (API)</td><td>RouterOS 7'nin REST API'si üzerinden CPU, bellek, çalışma süresi ve sıcaklık.</td></tr>
   <tr><td>JSON API değeri</td><td>Herhangi bir JSON API'sinden (FortiGate, vCenter, kendi hizmetleriniz) tek bir sayı: bir adres, <code>results.cpu.0.current</code> gibi bir yol ve isteğe bağlı Bearer veya temel oturum açma.</td></tr>
   <tr><td>Hipervizör (vSphere, Proxmox VE)</td><td>VMware ESXi veya vCenter (web services API) ya da Proxmox VE (REST API) ana bilgisayarları, sanal makineleri ve konteynerleri, veri depoları: ana bilgisayarların CPU'su ve belleği, çalışan makineler, çalışmayan ana bilgisayarlar, en dolu veri deposu. Bkz. <a href="#hypervisor">Hipervizörler</a>.</td></tr>
+  <tr><td>SSH üzerinden Linux, WinRM üzerinden Windows (ajansız)</td><td>Hiçbir şey kurulu olmayan bir makinenin CPU, bellek, takas veya sayfa dosyası, en dolu diski ve çalışma süresi (Linux'ta ayrıca yük). Bkz. <a href="#agentless">Ajansız makineler</a>.</td></tr>
   <tr><td>Web senaryosu</td><td>Bir web uygulamasında kullanıcı gibi birkaç adım: oturum açma, giriş arkasındaki bir sayfayı açma, metni denetleme. Satır başına bir adım, örneğin <code>GET /login | 200 | Sign in</code>, <code>POST /login | 302 | | user=monitor&amp;password={secret}</code>, <code>GET /dashboard | | Welcome</code> — yöntem ve adres, ardından beklenen durum, sayfanın içermesi gereken metin ve form verileri. Çerezler adımdan adıma korunur; <code>{secret}</code> kontrolün parolasıdır. Tüm adımların süresini ve kaçının geçtiğini ölçer; uyarı başarısız olan adımı belirtir.</td></tr>
   <tr><td>SNMP</td><td>Erişilebilirlik ve çalışma süresi; keşifle bulunan arayüzler, CPU ve depolama; herhangi bir sayısal OID.</td></tr>
 </table>
@@ -87,4 +88,13 @@
   <li>Cihaz sayfası ana bilgisayarları, her sanal makineyi ve konteyneri (durum, CPU, bellek, adres, konuk sistem) ve veri depolarını listeler. Konuk sistemler ve adresler on dakikada bir okunur (Proxmox VE adresleri QEMU guest agent üzerinden okur).</li>
   <li><b>Hyper-V</b> ve <b>Docker</b> kontrol gerektirmez: Windows ana bilgisayarındaki (Hyper-V ile) veya Linux ana bilgisayarındaki (Docker ile) WatchZit ajanı makinelerini veya konteynerlerini beş dakikada bir bildirir.</li>
   <li>Haritalarda bir hipervizör kutusu bu makineleri kendiliğinden gösterebilir (bkz. harita kılavuzu).</li>
+</ul>
+
+<h2 id="agentless">Ajansız makineler</h2>
+<p>Ajanın kurulamadığı yerlerde WatchZit makineyi zaten sahip olduğu şeyler üzerinden okur. Değerler ajandaki adları taşır, bu yüzden <b>High CPU load</b>, <b>Memory almost full</b>, <b>Disk almost full</b> ve <b>Disk full</b> tetikleyicileri bu denetimleri de izler. Ajan yine daha fazlasını gösterir: her sürücü, arabirimler, hizmetler, işlemler ve günlükler.</p>
+<ul>
+  <li><b>SSH üzerinden Linux</b>: oturum açabilen herhangi bir kullanıcı, parola veya parolasız bir özel anahtarla. WatchZit yalnızca <code>/proc</code>, <code>df</code> ve <code>uname</code> okuyan sabit bir komut çalıştırır; hiçbir şey yazılmaz. Ana bilgisayar anahtarı ilk seferde kabul edilir ve sonraki her çalıştırmada denetlenir; değişirse denetim düşer ve yeni anahtarı belirtir (yeniden kurulan bir makine için <b>Kayıtlı ana bilgisayar anahtarını unut</b> seçeneğini işaretleyin). Anahtarı kendiniz de girebilirsiniz: <code>ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub</code>.</li>
+  <li><b>WinRM üzerinden Windows</b>: WinRM'i <code>winrm quickconfig</code> ile açın (Windows Server'da açıktır). HTTP üzerinden (bağlantı noktası 5985) WatchZit NTLMv2 ile oturum açar ve Windows'un istediği gibi her iletiyi oturum açma anahtarıyla şifreler; HTTPS üzerinden (5986, bir HTTPS dinleyicisi gerekir) onları TLS korur ve oturum açma sertifikaya bağlanır. Kullanıcı <code>ad</code>, <code>ETKİALANI\ad</code> veya <code>ad@etkialanı</code> biçimindedir: bir yönetici veya <code>root\cimv2</code> üzerinde WMI haklarına sahip bir <b>Remote Management Users</b> üyesi.</li>
+  <li>Bir çalıştırma birkaç saniye sürer (işlemci bir saniye boyunca ölçülür), bu yüzden zaman aşımı en az 15 saniyedir; bir dakika veya daha uzun bir aralık yeterlidir.</li>
+  <li>Uzak bir toplayıcı üzerinden ana bilgisayar anahtarı denetime girilmelidir: toplayıcı onu kaydedemez, bu yüzden gördüğü anahtarı gösterir.</li>
 </ul>

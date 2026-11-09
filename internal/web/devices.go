@@ -568,7 +568,11 @@ func checkInput(r *http.Request) store.CheckInput {
 			OID: r.FormValue("oid"), Rate: r.FormValue("rate") == "1", Unit: r.FormValue("unit"), Scale: formFloat(r, "scale"),
 			URL: r.FormValue("url"), Expect: formInt(r, "expect"), Contains: r.FormValue("contains"), Insecure: r.FormValue("insecure") == "1",
 			Query: r.FormValue("query"), RType: r.FormValue("rtype"), User: r.FormValue("user"), Secret: r.FormValue("secret"),
-			Database: r.FormValue("database"), Path: r.FormValue("path"), Auth: r.FormValue("auth"), TLS: r.FormValue("tls") == "1", HV: r.FormValue("hv")}}
+			Database: r.FormValue("database"), Path: r.FormValue("path"), Auth: r.FormValue("auth"), TLS: r.FormValue("tls") == "1", HV: r.FormValue("hv"), HostKey: r.FormValue("host_key")},
+		NewKey: r.FormValue("new_key") == "1"}
+	if k := strings.TrimSpace(r.FormValue("secret_key")); k != "" { // only the SSH form has it
+		in.Params.Secret = strings.ReplaceAll(k, "\r\n", "\n") + "\n" // a private key instead of the password
+	}
 	if in.Type == store.CheckScenario {
 		in.Params.Steps, in.FormErr = store.ParseSteps(r.FormValue("steps"))
 	}

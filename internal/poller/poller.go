@@ -579,7 +579,7 @@ func (p *Poller) SaveDeviceRead(ctx context.Context, d *store.Device, rd *Device
 }
 
 // runService runs a check of a service (web page, certificate, DNS,
-// database, RouterOS, JSON API).
+// database, RouterOS, JSON API, a machine over SSH or WinRM).
 func (p *Poller) runService(ctx context.Context, c *store.Check, o *outcome, sample func(string, float64)) {
 	t := checks.Target{Host: c.Address}
 	if c.Type != store.CheckHTTP && c.Type != store.CheckJSON && c.Type != store.CheckRouterOS && c.Type != store.CheckHypervisor {
@@ -596,6 +596,7 @@ func (p *Poller) runService(ctx context.Context, c *store.Check, o *outcome, sam
 		return
 	}
 	t.Secret = secret
+	t.TrustNewKey = p.store != nil
 	if c.Type == store.CheckHypervisor && p.store == nil {
 		o.res.Text = "hypervisors are read by the console"
 		return
@@ -605,6 +606,16 @@ func (p *Poller) runService(ctx context.Context, c *store.Check, o *outcome, sam
 		return
 	}
 	r := checks.Run(ctx, c.Type, c.Params, t, time.Duration(c.Params.TimeoutMS)*time.Millisecond)
+	if r.HostKey != "" && p.store != nil && c.Params.HostKey == "" {
+		params := c.Params
+		params.HostKey = r.HostKey
+		if err := p.store.UpdateCheckParams(ctx, c.ID, params); err != nil {
+			p.log.Warn("poller: host key not saved", "check", c.ID, "err", err)
+		} else {
+			p.log.Info("poller: SSH host key accepted on first use", "check", c.ID, "device", c.Device, "key", r.HostKey)
+			p.Reload() // the next run checks the saved key
+		}
+	}
 	for k, v := range r.Values {
 		sample(k, round2(v))
 	}

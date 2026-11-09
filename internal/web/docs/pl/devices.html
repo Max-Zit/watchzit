@@ -35,6 +35,7 @@
   <tr><td>MikroTik RouterOS (API)</td><td>CPU, pamięć, czas pracy i temperaturę przez REST API RouterOS 7.</td></tr>
   <tr><td>Wartość z API JSON</td><td>Jedną liczbę z dowolnego API JSON (FortiGate, vCenter, twoje własne usługi): adres, ścieżka w rodzaju <code>results.cpu.0.current</code> i opcjonalne logowanie Bearer lub basic.</td></tr>
   <tr><td>Hiperwizor (vSphere, Proxmox VE)</td><td>Hosty, maszyny wirtualne i kontenery, magazyny danych VMware ESXi lub vCenter (API usług sieciowych) albo Proxmox VE (REST API): CPU i pamięć hostów, działające maszyny, niedziałające hosty, najbardziej zapełniony magazyn danych. Zobacz <a href="#hypervisor">Hiperwizory</a>.</td></tr>
+  <tr><td>Linux przez SSH, Windows przez WinRM (bez agenta)</td><td>Procesor, pamięć, swap lub plik stronicowania, najbardziej zapełniony dysk i czas pracy maszyny, na której nic nie jest zainstalowane (w Linuksie także obciążenie). Zobacz <a href="#agentless">Maszyny bez agenta</a>.</td></tr>
   <tr><td>Scenariusz WWW</td><td>Kilka kroków przez aplikację webową, tak jak robi to użytkownik: zalogowanie, otwarcie strony za logowaniem, sprawdzenie tekstu. Jeden krok w wierszu, na przykład <code>GET /login | 200 | Sign in</code>, <code>POST /login | 302 | | user=monitor&amp;password={secret}</code>, <code>GET /dashboard | | Welcome</code> — metoda i adres, następnie oczekiwany status, tekst, który strona musi zawierać, i dane formularza. Pliki cookie są przenoszone z kroku do kroku; <code>{secret}</code> to hasło sprawdzenia. Mierzy czas wszystkich kroków i liczbę udanych; alert wskazuje krok, który się nie powiódł.</td></tr>
   <tr><td>SNMP</td><td>Dostępność i czas pracy; interfejsy, CPU i pamięć masową znalezione przez wykrywanie; dowolny liczbowy OID.</td></tr>
 </table>
@@ -87,4 +88,13 @@
   <li>Strona urządzenia wymienia hosty, każdą maszynę wirtualną i kontener (stan, CPU, pamięć, adres, system gościa) oraz magazyny danych. Systemy gości i adresy są odczytywane co dziesięć minut (Proxmox VE odczytuje adresy przez agenta gościa QEMU).</li>
   <li><b>Hyper-V</b> i <b>Docker</b> nie potrzebują sprawdzenia: agent WatchZit na hoście Windows (z Hyper-V) lub hoście Linux (z Dockerem) raportuje swoje maszyny lub kontenery co pięć minut.</li>
   <li>Na mapach pole hiperwizora może samo pokazywać te maszyny (zobacz przewodnik po mapach).</li>
+</ul>
+
+<h2 id="agentless">Maszyny bez agenta</h2>
+<p>Tam, gdzie nie można zainstalować agenta, WatchZit odczytuje maszynę przez to, co już ma. Wartości mają nazwy jak u agenta, więc wyzwalacze <b>High CPU load</b>, <b>Memory almost full</b>, <b>Disk almost full</b> i <b>Disk full</b> pilnują także tych sprawdzeń. Agent nadal pokazuje więcej: każdy dysk, interfejsy, usługi, procesy i logi.</p>
+<ul>
+  <li><b>Linux przez SSH</b>: dowolny użytkownik, który może się zalogować, z hasłem lub kluczem prywatnym bez hasła klucza. WatchZit uruchamia jedno stałe polecenie, które tylko czyta <code>/proc</code>, <code>df</code> i <code>uname</code>; nic nie jest zapisywane. Klucz hosta jest akceptowany za pierwszym razem i sprawdzany przy każdym kolejnym uruchomieniu; gdy się zmieni, sprawdzenie przechodzi w stan awarii i podaje nowy klucz (dla przeinstalowanej maszyny zaznacz <b>Zapomnij zapisany klucz hosta</b>). Klucz można też wpisać samodzielnie: <code>ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub</code>.</li>
+  <li><b>Windows przez WinRM</b>: włącz WinRM poleceniem <code>winrm quickconfig</code> (Windows Server ma go włączonego). Przez HTTP (port 5985) WatchZit loguje się za pomocą NTLMv2 i szyfruje każdą wiadomość kluczem logowania, tak jak wymaga Windows; przez HTTPS (5986, wymaga odbiornika HTTPS) chroni je TLS, a logowanie jest powiązane z certyfikatem. Użytkownik to <code>nazwa</code>, <code>DOMENA\nazwa</code> lub <code>nazwa@domena</code>: administrator albo członek <b>Remote Management Users</b> z prawami WMI do <code>root\cimv2</code>.</li>
+  <li>Jedno uruchomienie trwa kilka sekund (procesor jest mierzony przez sekundę), dlatego limit czasu wynosi co najmniej 15 sekund; wystarczy interwał minuty lub dłuższy.</li>
+  <li>Przez zdalny kolektor klucz hosta trzeba wpisać w sprawdzeniu: kolektor nie może go zapisać, więc pokazuje klucz, który zobaczył.</li>
 </ul>

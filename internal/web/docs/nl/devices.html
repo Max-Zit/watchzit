@@ -35,6 +35,7 @@
   <tr><td>MikroTik RouterOS (API)</td><td>CPU, geheugen, uptime en temperatuur via de REST-API van RouterOS 7.</td></tr>
   <tr><td>Waarde uit JSON-API</td><td>Eén getal uit een willekeurige JSON-API (FortiGate, vCenter, uw eigen services): een adres, een pad zoals <code>results.cpu.0.current</code>, en optioneel Bearer- of basic-aanmelding.</td></tr>
   <tr><td>Hypervisor (vSphere, Proxmox VE)</td><td>Hosts, virtuele machines en containers, datastores van VMware ESXi of vCenter (webservices-API) of Proxmox VE (REST-API): CPU en geheugen van de hosts, draaiende machines, uitgevallen hosts, de volste datastore. Zie <a href="#hypervisor">Hypervisors</a>.</td></tr>
+  <tr><td>Linux via SSH, Windows via WinRM (zonder agent)</td><td>CPU, geheugen, swap of wisselbestand, de volste schijf en de uptime van een machine waarop niets is geïnstalleerd (bij Linux ook de belasting). Zie <a href="#agentless">Machines zonder agent</a>.</td></tr>
   <tr><td>Webscenario</td><td>Meerdere stappen door een webapplicatie, zoals een gebruiker: aanmelden, een pagina achter de aanmelding openen, de tekst controleren. Eén stap per regel, bijvoorbeeld <code>GET /login | 200 | Sign in</code>, <code>POST /login | 302 | | user=monitor&amp;password={secret}</code>, <code>GET /dashboard | | Welcome</code> — de methode en het adres, daarna de verwachte status, de tekst die de pagina moet bevatten en de formuliergegevens. Cookies blijven van stap tot stap bewaard; <code>{secret}</code> is het wachtwoord van de controle. Meet de tijd van alle stappen en hoeveel er geslaagd zijn; de waarschuwing noemt de stap die mislukte.</td></tr>
   <tr><td>SNMP</td><td>Beschikbaarheid en uptime; interfaces, CPU en opslag die bij de detectie gevonden zijn; elke numerieke OID.</td></tr>
 </table>
@@ -87,4 +88,13 @@
   <li>De apparaatpagina toont de hosts, elke virtuele machine en container (status, CPU, geheugen, adres, gastsysteem) en de datastores. Gastsystemen en adressen worden elke tien minuten uitgelezen (Proxmox VE leest adressen via de QEMU guest agent).</li>
   <li><b>Hyper-V</b> en <b>Docker</b> hebben geen controle nodig: de WatchZit-agent op de Windows-host (met Hyper-V) of de Linux-host (met Docker) rapporteert elke vijf minuten zijn machines of containers.</li>
   <li>Op kaarten kan een hypervisorvak deze machines vanzelf tonen (zie de handleiding voor kaarten).</li>
+</ul>
+
+<h2 id="agentless">Machines zonder agent</h2>
+<p>Waar de agent niet geïnstalleerd kan worden, leest WatchZit een machine via wat die al heeft. De waarden hebben de namen van de agent, dus de triggers <b>High CPU load</b>, <b>Memory almost full</b>, <b>Disk almost full</b> en <b>Disk full</b> bewaken ook deze controles. De agent toont nog steeds meer: elke schijf, interfaces, services, processen en logboeken.</p>
+<ul>
+  <li><b>Linux via SSH</b>: elke gebruiker die mag aanmelden, met een wachtwoord of een privésleutel zonder wachtwoordzin. WatchZit voert één vaste opdracht uit die alleen <code>/proc</code>, <code>df</code> en <code>uname</code> leest; er wordt niets geschreven. De hostsleutel wordt de eerste keer geaccepteerd en daarna bij elke uitvoering gecontroleerd; verandert hij, dan valt de controle uit en noemt de nieuwe sleutel (vink bij een opnieuw geïnstalleerde machine <b>Opgeslagen hostsleutel vergeten</b> aan). U kunt de sleutel ook zelf invoeren: <code>ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub</code>.</li>
+  <li><b>Windows via WinRM</b>: zet WinRM aan met <code>winrm quickconfig</code> (Windows Server heeft het aan). Via HTTP (poort 5985) meldt WatchZit zich aan met NTLMv2 en versleutelt elk bericht met de aanmeldsleutel, zoals Windows vereist; via HTTPS (5986, vereist een HTTPS-listener) beschermt TLS ze en is de aanmelding aan het certificaat gebonden. De gebruiker is <code>naam</code>, <code>DOMEIN\naam</code> of <code>naam@domein</code>: een beheerder of lid van <b>Remote Management Users</b> met WMI-rechten op <code>root\cimv2</code>.</li>
+  <li>Een uitvoering duurt enkele seconden (de processor wordt over één seconde gemeten), daarom is de time-out minstens 15 seconden; een interval van een minuut of meer is genoeg.</li>
+  <li>Via een externe collector moet de hostsleutel in de controle worden ingevoerd: de collector kan hem niet opslaan en toont daarom de sleutel die hij zag.</li>
 </ul>

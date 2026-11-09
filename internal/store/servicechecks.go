@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-// Checks of services: web pages, certificates, DNS, databases, RouterOS and
-// JSON APIs (run by internal/checks). Their password or token is sealed
+// Checks of services: web pages, certificates, DNS, databases, RouterOS,
+// JSON APIs, machines without an agent (SSH, WinRM) (run by internal/checks). Their password or token is sealed
 // with the server key when the check is saved and never shown again.
 
 // DNSTypes are the record types a DNS check can ask for.
@@ -21,6 +21,7 @@ var (
 	jsonPathRE = regexp.MustCompile(`^[A-Za-z0-9_$@-]+(\.[A-Za-z0-9_$@-]+)*$`)
 	dbNameRE   = regexp.MustCompile(`^[A-Za-z0-9_$.-]{1,63}$`)
 	apiUserRE  = regexp.MustCompile(`^[^\s:]{1,64}$`)
+	hostKeyRE  = regexp.MustCompile(`^SHA256:[A-Za-z0-9+/]{43}$`)
 )
 
 func checkURL(raw string) error {
@@ -32,13 +33,16 @@ func checkURL(raw string) error {
 }
 
 func (p *CheckParams) cleanService(typ string) error {
+	if typ != CheckSSH {
+		p.HostKey = ""
+	}
 	p.Count, p.IfIndex, p.IfName, p.Index, p.Descr, p.OID, p.Rate = 0, 0, "", 0, "", "", false
 	p.URL, p.Contains, p.Query, p.User, p.Database, p.Path = strings.TrimSpace(p.URL), strings.TrimSpace(p.Contains),
 		strings.TrimSpace(p.Query), strings.TrimSpace(p.User), strings.TrimSpace(p.Database), strings.TrimSpace(p.Path)
 	if len(p.Contains) > 200 {
 		return errors.New("the text to look for is too long (200 characters at most)")
 	}
-	if len(p.Secret) > 1000 {
+	if len(p.Secret) > 1000 && (typ != CheckSSH || len(p.Secret) > 16000) { // an SSH private key is longer
 		return errors.New("the password or token is too long")
 	}
 	keep := func(port int) error {
@@ -101,6 +105,26 @@ func (p *CheckParams) cleanService(typ string) error {
 			return keep(443)
 		}
 		return keep(80)
+	case CheckSSH:
+		p.URL, p.Expect, p.Contains, p.Query, p.RType, p.Database, p.Path, p.Auth, p.TLS, p.Unit, p.Scale, p.Insecure, p.HV = "", 0, "", "", "", "", "", "", false, "", 0, false, ""
+		if p.User == "" || !apiUserRE.MatchString(p.User) {
+			return errors.New("enter the user (any user that may sign in; no administrator rights are needed)")
+		}
+		p.HostKey = strings.TrimSpace(p.HostKey)
+		if p.HostKey != "" && !hostKeyRE.MatchString(p.HostKey) {
+			return errors.New("the host key must be a SHA256 fingerprint like SHA256:abc… (empty: accept the first one)")
+		}
+		return keep(22)
+	case CheckWinRM:
+		p.URL, p.Expect, p.Contains, p.Query, p.RType, p.Database, p.Path, p.Auth, p.Unit, p.Scale, p.HV, p.HostKey = "", 0, "", "", "", "", "", "", "", 0, "", ""
+		if p.User == "" || len(p.User) > 128 || strings.ContainsAny(p.User, " \t\r\n") || strings.Count(p.User, `\`) > 1 {
+			return errors.New("enter the user: a local name, a domain user (DOMAIN and the name) or name@domain")
+		}
+		if !p.TLS {
+			p.Insecure = false
+			return keep(5985)
+		}
+		return keep(5986)
 	case CheckHypervisor:
 		p.URL, p.Expect, p.Contains, p.Query, p.RType, p.Database, p.Path, p.Auth, p.TLS, p.Unit, p.Scale = "", 0, "", "", "", "", "", "", false, "", 0
 		if p.HV != "vsphere" && p.HV != "proxmox" {
@@ -174,6 +198,10 @@ func (p *CheckParams) defaultName(typ string) string {
 		return "API " + p.Path
 	case CheckScenario:
 		return "Web scenario"
+	case CheckSSH:
+		return "Linux (SSH)"
+	case CheckWinRM:
+		return "Windows (WinRM)"
 	case CheckHypervisor:
 		if p.HV == "proxmox" {
 			return "Proxmox VE"
@@ -185,7 +213,7 @@ func (p *CheckParams) defaultName(typ string) string {
 
 // HasSecret reports whether a check type takes a password or token.
 func HasSecret(typ string) bool {
-	return typ == CheckPostgres || typ == CheckMySQL || typ == CheckRouterOS || typ == CheckJSON || typ == CheckHypervisor || typ == CheckScenario
+	return typ == CheckPostgres || typ == CheckMySQL || typ == CheckRouterOS || typ == CheckJSON || typ == CheckHypervisor || typ == CheckScenario || typ == CheckSSH || typ == CheckWinRM
 }
 
 const checkSecretPurpose = "check.secret"
@@ -210,7 +238,7 @@ func (s *Store) CheckSecret(c *Check) (string, error) {
 // IsService tells whether a check type is a service check (internal/checks).
 func IsService(typ string) bool {
 	switch typ {
-	case CheckHTTP, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON, CheckHypervisor, CheckScenario:
+	case CheckHTTP, CheckTLS, CheckDNS, CheckPostgres, CheckMySQL, CheckRouterOS, CheckJSON, CheckHypervisor, CheckScenario, CheckSSH, CheckWinRM:
 		return true
 	}
 	return false

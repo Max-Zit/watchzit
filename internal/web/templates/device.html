@@ -242,7 +242,14 @@
               <div class="cols"><label>{{$.T "Where the number is"}}<input name="path" value="{{.Params.Path}}" class="mono" required></label><label>{{$.T "Sign-in"}}<select name="auth">{{$a := .Params.Auth}}<option value="" {{if eq $a ""}}selected{{end}}>{{$.T "None"}}</option><option value="bearer" {{if eq $a "bearer"}}selected{{end}}>{{$.T "Token (Bearer)"}}</option><option value="basic" {{if eq $a "basic"}}selected{{end}}>{{$.T "User and password"}}</option></select></label></div>
               <div class="cols"><label>{{$.T "User name"}}<input name="user" value="{{.Params.User}}" maxlength="64" autocomplete="off"></label><label>{{$.T "Password or token"}} <small>{{$.T "saved; empty keeps it"}}</small><input name="secret" type="password" autocomplete="new-password"></label></div>
               <div class="cols"><label>{{$.T "Unit"}}<input name="unit" value="{{.Params.Unit}}" maxlength="16"></label><label>{{$.T "Multiplier"}}<input name="scale" value="{{if .Params.Scale}}{{.Params.Scale}}{{else}}1{{end}}" inputmode="decimal"></label></div>{{end}}
-              {{if or (eq .Type "http") (eq .Type "web_scenario") (eq .Type "tls") (eq .Type "routeros") (eq .Type "jsonapi") (eq .Type "hypervisor")}}<label class="check"><input type="checkbox" name="insecure" value="1" {{if .Params.Insecure}}checked{{end}}>{{$.T "Accept certificates that are not trusted (self-signed)"}}</label>{{end}}
+              {{if eq .Type "ssh_host"}}<div class="cols"><label>{{$.T "User name"}}<input name="user" value="{{.Params.User}}" maxlength="64" autocomplete="off"></label><label>{{$.T "Password"}} <small>{{$.T "saved; empty keeps it"}}</small><input name="secret" type="password" autocomplete="new-password"></label></div>
+              <label>{{$.T "Private key"}} <small>{{$.T "saved; empty keeps it"}}</small><textarea name="secret_key" rows="3" class="mono" spellcheck="false" autocomplete="off"></textarea></label>
+              <div class="cols"><label>{{$.T "Port"}}<input type="number" name="port" value="{{.Params.Port}}" min="1" max="65535"></label><label>{{$.T "Host key"}}<input name="host_key" value="{{.Params.HostKey}}" maxlength="60" class="mono" spellcheck="false"></label></div>
+              <label class="check"><input type="checkbox" name="new_key" value="1">{{$.T "Forget the saved host key and accept the next one"}}</label>{{end}}
+              {{if eq .Type "winrm"}}<div class="cols"><label>{{$.T "User name"}}<input name="user" value="{{.Params.User}}" maxlength="128" autocomplete="off"></label><label>{{$.T "Password"}} <small>{{$.T "saved; empty keeps it"}}</small><input name="secret" type="password" autocomplete="new-password"></label></div>
+              <div class="cols"><label>{{$.T "Port"}}<input type="number" name="port" value="{{.Params.Port}}" min="1" max="65535"></label></div>
+              <label class="check"><input type="checkbox" name="tls" value="1" {{if .Params.TLS}}checked{{end}}>{{$.T "HTTPS (port 5986)"}}</label>{{end}}
+              {{if or (eq .Type "http") (eq .Type "web_scenario") (eq .Type "tls") (eq .Type "routeros") (eq .Type "jsonapi") (eq .Type "hypervisor") (eq .Type "winrm")}}<label class="check"><input type="checkbox" name="insecure" value="1" {{if .Params.Insecure}}checked{{end}}>{{$.T "Accept certificates that are not trusted (self-signed)"}}</label>{{end}}
               <label>{{$.T "Interval (seconds)"}}<input type="number" name="interval" value="{{.IntervalS}}" min="10" max="3600" required></label>
               <label>{{$.T "Timeout (ms)"}}<input type="number" name="timeout_ms" value="{{.Params.TimeoutMS}}" min="100" max="30000" required></label>
               <label class="check"><input type="checkbox" name="paused" value="1" {{if .Paused}}checked{{end}}>{{$.T "Paused"}}</label>
@@ -330,6 +337,30 @@
           <label>{{.T "User name"}}<input name="user" maxlength="128" autocomplete="off" spellcheck="false" placeholder="monitor@vsphere.local"></label>
           <label>{{.T "Password or token"}}<input name="secret" type="password" maxlength="1000" autocomplete="new-password"></label>
         </div>
+        <label class="check"><input type="checkbox" name="insecure" value="1">{{.T "Accept certificates that are not trusted (self-signed)"}}</label>
+      </div>
+      <div class="stack" data-show="checktype" data-when="ssh_host">
+        <p class="small muted">{{.T "Linux without an agent: WatchZit signs in over SSH and only reads /proc, df and uname. Any user that may sign in is enough; the password or key is stored encrypted. The host key is accepted the first time and checked from then on."}}</p>
+        <div class="cols">
+          <label>{{.T "User name"}}<input name="user" maxlength="64" autocomplete="off" spellcheck="false" placeholder="monitor"></label>
+          <label>{{.T "Password"}} <small>{{.T "or a key below"}}</small><input name="secret" type="password" maxlength="1000" autocomplete="new-password"></label>
+        </div>
+        <label>{{.T "Private key"}} <small>{{.T "optional, without a passphrase"}}</small><textarea name="secret_key" rows="3" class="mono" spellcheck="false" autocomplete="off" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"></textarea></label>
+        <div class="cols">
+          <label>{{.T "Port"}} <small>{{.T "optional"}}</small><input type="number" name="port" min="1" max="65535" placeholder="22"></label>
+          <label>{{.T "Host key"}} <small>{{.T "optional"}}</small><input name="host_key" maxlength="60" class="mono" spellcheck="false" placeholder="SHA256:…"><small>{{.T "Empty: the first key is accepted. ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub shows it."}}</small></label>
+        </div>
+      </div>
+      <div class="stack" data-show="checktype" data-when="winrm">
+        <p class="small muted">{{.T "Windows without an agent: WatchZit reads WMI over WinRM (enable it with winrm quickconfig). Over HTTP the messages are encrypted with the sign-in key; HTTPS needs a WinRM HTTPS listener. The user must be an administrator or in Remote Management Users with WMI rights; the password is stored encrypted."}}</p>
+        <div class="cols">
+          <label>{{.T "User name"}}<input name="user" maxlength="128" autocomplete="off" spellcheck="false" placeholder="DOMAIN\monitor"></label>
+          <label>{{.T "Password"}}<input name="secret" type="password" maxlength="1000" autocomplete="new-password"></label>
+        </div>
+        <div class="cols">
+          <label>{{.T "Port"}} <small>{{.T "optional"}}</small><input type="number" name="port" min="1" max="65535" placeholder="5985 / 5986"></label>
+        </div>
+        <label class="check"><input type="checkbox" name="tls" value="1">{{.T "HTTPS (port 5986)"}}</label>
         <label class="check"><input type="checkbox" name="insecure" value="1">{{.T "Accept certificates that are not trusted (self-signed)"}}</label>
       </div>
       <div class="stack" data-show="checktype" data-when="jsonapi">

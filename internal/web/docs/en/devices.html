@@ -35,6 +35,7 @@
   <tr><td>MikroTik RouterOS (API)</td><td>CPU, memory, uptime and temperature over the REST API of RouterOS 7.</td></tr>
   <tr><td>JSON API value</td><td>One number from any JSON API (FortiGate, vCenter, your own services): an address, a path like <code>results.cpu.0.current</code>, and optional Bearer or basic sign-in.</td></tr>
   <tr><td>Hypervisor (vSphere, Proxmox VE)</td><td>Hosts, virtual machines and containers, datastores of VMware ESXi or vCenter (web services API) or Proxmox VE (REST API): CPU and memory of the hosts, machines running, hosts down, the fullest datastore. See <a href="#hypervisor">Hypervisors</a>.</td></tr>
+  <tr><td>Linux over SSH, Windows over WinRM (no agent)</td><td>CPU, memory, swap or page file, the fullest disk and the uptime of a machine where nothing is installed (Linux also the load). See <a href="#agentless">Machines without an agent</a>.</td></tr>
   <tr><td>Web scenario</td><td>Several steps through a web application like a user: sign in, open a page behind the sign-in, check the text. One step per line, for example <code>GET /login | 200 | Sign in</code>, <code>POST /login | 302 | | user=monitor&amp;password={secret}</code>, <code>GET /dashboard | | Welcome</code> — the method and address, then the expected status, the text the page must contain and the form data. Cookies are kept from step to step; <code>{secret}</code> is the check's password. Measures the time of all steps and how many passed; the alert names the step that failed.</td></tr>
   <tr><td>SNMP</td><td>Availability and uptime; interfaces, CPU and storage found by discovery; any numeric OID.</td></tr>
 </table>
@@ -87,4 +88,13 @@
   <li>The device page lists the hosts, every virtual machine and container (state, CPU, memory, address, guest system) and the datastores. Guest systems and addresses are read every ten minutes (Proxmox VE reads addresses through the QEMU guest agent).</li>
   <li><b>Hyper-V</b> and <b>Docker</b> need no check: the WatchZit agent on the Windows host (with Hyper-V) or the Linux host (with Docker) reports its machines or containers every five minutes.</li>
   <li>On maps a hypervisor box can show these machines by itself (see the map guide).</li>
+</ul>
+
+<h2 id="agentless">Machines without an agent</h2>
+<p>Where the agent cannot be installed, WatchZit reads a machine over what it already has. The values have the agent's names, so the triggers <b>High CPU load</b>, <b>Memory almost full</b>, <b>Disk almost full</b> and <b>Disk full</b> watch these checks too. The agent still shows more: every drive, interfaces, services, processes and logs.</p>
+<ul>
+  <li><b>Linux over SSH</b>: any user that may sign in, with a password or a private key without a passphrase. WatchZit runs one fixed command that only reads <code>/proc</code>, <code>df</code> and <code>uname</code>; nothing is written. The host key is accepted the first time and checked on every run after; when it changes the check goes down and names the new key (for a reinstalled machine tick <b>Forget the saved host key</b>). You can also enter the key yourself: <code>ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub</code>.</li>
+  <li><b>Windows over WinRM</b>: turn WinRM on with <code>winrm quickconfig</code> (Windows Server has it on). Over HTTP (port 5985) WatchZit signs in with NTLMv2 and encrypts every message with the sign-in key, as Windows requires; over HTTPS (5986, needs an HTTPS listener) TLS protects them and the sign-in is bound to the certificate. The user is <code>name</code>, <code>DOMAIN\name</code> or <code>name@domain</code>: an administrator, or a member of <b>Remote Management Users</b> with WMI rights on <code>root\cimv2</code>.</li>
+  <li>A run takes a few seconds (the processor is measured over one second), so the timeout is at least 15 seconds; an interval of a minute or more is enough.</li>
+  <li>Through a remote collector the host key must be entered in the check: the collector cannot save it, so it shows the key it saw.</li>
 </ul>

@@ -554,7 +554,7 @@ var metricNames = map[string]string{"rtt_ms": "Response time", "loss_pct": "Pack
 var checkKinds = map[string]string{"icmp": "Ping (ICMP)", "tcp": "TCP port", "snmp": "SNMP availability", "snmp_if": "Interface traffic",
 	"snmp_cpu": "CPU load", "snmp_storage": "Memory or disk", "snmp_oid": "SNMP value (OID)", "snmp_supply": "Printer supply", "snmp_ups": "UPS",
 	"agent": "Agent", "agent_cpu": "CPU load", "agent_mem": "Memory", "agent_disk": "Disk", "agent_net": "Interface traffic", "agent_service": "Service", "agent_process": "Process",
-	"http": "Web page (HTTP)", "web_scenario": "Web scenario (several steps)", "tls": "TLS certificate", "dns": "DNS", "pgsql": "PostgreSQL", "mysql": "MySQL / MariaDB", "routeros": "MikroTik RouterOS (API)", "jsonapi": "JSON API value", "hypervisor": "Hypervisor (vSphere, Proxmox VE)"}
+	"http": "Web page (HTTP)", "web_scenario": "Web scenario (several steps)", "tls": "TLS certificate", "dns": "DNS", "pgsql": "PostgreSQL", "mysql": "MySQL / MariaDB", "routeros": "MikroTik RouterOS (API)", "jsonapi": "JSON API value", "hypervisor": "Hypervisor (vSphere, Proxmox VE)", "ssh_host": "Linux over SSH (no agent)", "winrm": "Windows over WinRM (no agent)"}
 
 // groupNames name the kinds of items discovery finds.
 var groupNames = map[string]string{"system": "System", "interface": "Interface", "memory": "Memory", "disk": "Disk", "printer": "Printer", "ups": "UPS", "health": "Health"}
