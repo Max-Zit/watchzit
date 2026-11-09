@@ -8,7 +8,7 @@
     <thead><tr><th>{{.T "Name"}}</th><th>{{.T "Condition"}}</th><th class="hide-sm">{{.T "Applies to"}}</th><th>{{.T "Severity"}}</th>{{if .User.CanWrite}}<th></th>{{end}}</tr></thead>
     <tbody>{{range .Data.Triggers}}<tr class="{{if not .Enabled}}trig-off{{end}}">
       <td><b>{{$.T .Name}}</b>{{if not .Enabled}} <span class="badge muted">{{$.T "Off"}}</span>{{end}}</td>
-      <td class="small">{{$.T (triggerKind .Kind)}}{{if eq .Kind "log"}}: “{{.Metric}}”{{end}}{{if or (eq .Kind "metric") (eq .Kind "forecast")}}: {{$.T (metricName .Metric)}} {{if eq .Op ">"}}{{$.T "above"}}{{else}}{{$.T "below"}}{{end}} <b>{{.Threshold}}</b>{{end}}
+      <td class="small">{{$.T (triggerKind .Kind)}}{{if eq .Kind "log"}}: “{{.Metric}}”{{end}}{{if or (eq .Kind "metric") (eq .Kind "forecast")}}: {{$.T (metricName .Metric)}} {{if eq .Op ">"}}{{$.T "above"}}{{else}}{{$.T "below"}}{{end}} <b>{{.Threshold}}</b>{{end}}{{if eq .Kind "anomaly"}}: {{$.T (metricName .Metric)}} {{if eq .Op ">"}}{{$.T "higher than usual"}}{{else if eq .Op "<"}}{{$.T "lower than usual"}}{{else}}{{$.T "higher or lower than usual"}}{{end}}{{end}}
         {{if eq .Kind "forecast"}} · {{$.T "within %d days" (days .ForS)}}{{else if .ForS}} · {{$.T "for %s min" (minutes .ForS)}}{{end}}
         {{if .CheckTypes}}<br><span class="muted">{{range $i, $t := .CheckTypes}}{{if $i}}, {{end}}{{$.T (checkKind $t)}}{{end}}</span>{{end}}</td>
       <td class="hide-sm small">{{if .Device}}{{.Device}}{{with .Check}} · {{.}}{{end}}{{else if .Group}}{{$.T "Group"}} {{.Group}}{{else}}<span class="muted">{{$.T "All devices"}}</span>{{end}}</td>
@@ -25,13 +25,15 @@
   <form method="post" action="{{if $e}}/alerts/triggers/{{$e.ID}}{{else}}/alerts/triggers{{end}}" class="stack">
     <div class="cols">
       <label>{{.T "Name"}}<input name="name" value="{{$in.Name}}" required maxlength="100" placeholder="{{.T "Name, for example Disk almost full"}}"></label>
-      <label>{{.T "Kind"}}<select name="kind" data-switch="tkind">{{range $k := (list "device_down" "check_down" "metric" "forecast" "nodata" "ha_degraded" "log")}}<option value="{{$k}}" {{if eq $k $in.Kind}}selected{{end}}>{{$.T (triggerKind $k)}}</option>{{end}}</select></label>
+      <label>{{.T "Kind"}}<select name="kind" data-switch="tkind">{{range $k := (list "device_down" "check_down" "metric" "forecast" "anomaly" "nodata" "ha_degraded" "log")}}<option value="{{$k}}" {{if eq $k $in.Kind}}selected{{end}}>{{$.T (triggerKind $k)}}</option>{{end}}</select></label>
     </div>
     {{with .Data.Check}}<label class="check"><input type="checkbox" name="check" value="{{.ID}}" checked>{{$.T "Only the check %s on %s" .Name $.Data.CheckDev}}</label>{{end}}
-    <div class="cols" data-show="tkind" data-when="metric forecast">
+    <div class="cols" data-show="tkind" data-when="metric forecast anomaly">
       <label>{{.T "Value"}}<select name="metric">{{range .Data.Metrics}}<option value="{{.Metric}}" {{if eq .Metric $in.Metric}}selected{{end}}>{{$.T .Name}}{{with .Unit}} ({{.}}){{end}}</option>{{end}}</select></label>
-      <label>{{.T "Condition"}}<select name="op"><option value=">" {{if eq $in.Op ">"}}selected{{end}}>{{.T "above"}}</option><option value="<" {{if eq $in.Op "<"}}selected{{end}}>{{.T "below"}}</option></select></label>
-      <label>{{.T "Threshold"}}<input name="threshold" value="{{$in.Threshold}}" inputmode="decimal" required><small>{{.T "In the unit of the value: % for loads, ms for times, bit/s for traffic."}}</small></label>
+      <label data-show="tkind" data-when="metric forecast">{{.T "Condition"}}<select name="op"><option value=">" {{if eq $in.Op ">"}}selected{{end}}>{{.T "above"}}</option><option value="<" {{if eq $in.Op "<"}}selected{{end}}>{{.T "below"}}</option></select></label>
+      <label data-show="tkind" data-when="metric forecast">{{.T "Threshold"}}<input name="threshold" value="{{$in.Threshold}}" inputmode="decimal" required><small>{{.T "In the unit of the value: % for loads, ms for times, bit/s for traffic."}}</small></label>
+      <label data-show="tkind" data-when="anomaly">{{.T "Unusual"}}<select name="aop"><option value=">" {{if eq $in.Op ">"}}selected{{end}}>{{.T "higher than usual"}}</option><option value="<" {{if eq $in.Op "<"}}selected{{end}}>{{.T "lower than usual"}}</option><option value="<>" {{if eq $in.Op "<>"}}selected{{end}}>{{.T "higher or lower than usual"}}</option></select></label>
+      <label data-show="tkind" data-when="anomaly">{{.T "Sensitivity"}}<select name="sensitivity">{{$s := printf "%.1f" $in.Threshold}}<option value="2.5" {{if eq $s "2.5"}}selected{{end}}>{{.T "High (more problems)"}}</option><option value="3.5" {{if or (eq $s "3.5") (ne $in.Kind "anomaly")}}selected{{end}}>{{.T "Medium"}}</option><option value="5.0" {{if eq $s "5.0"}}selected{{end}}>{{.T "Low (only big changes)"}}</option></select><small>{{.T "WatchZit learns what is usual for each hour of the week from the last four weeks; after one week of history it starts to compare."}}</small></label>
     </div>
     <div class="stack" data-show="tkind" data-when="log">
       <label>{{.T "Text in the message"}}<input name="pattern" value="{{if eq $in.Kind "log"}}{{$in.Metric}}{{end}}" maxlength="200" placeholder="login failure" required><small>{{.T "Upper and lower case do not matter. Between slashes it is a regular expression, e.g. /link (down|failure)/."}}</small></label>
@@ -46,14 +48,14 @@
       <p class="small muted">{{.T "The problem stays open while such messages keep coming and closes when none came for the time below (at least a minute)."}}</p>
     </div>
     <div class="cols">
-      <label data-show="tkind" data-when="device_down check_down metric nodata ha_degraded log">{{.T "For at least (minutes)"}}<input type="number" name="for" value="{{.Data.ForMin}}" min="0" max="1440" step="0.5"><small>{{.T "0 = at once. A short dip does not open a problem."}}</small></label>
+      <label data-show="tkind" data-when="device_down check_down metric anomaly nodata ha_degraded log">{{.T "For at least (minutes)"}}<input type="number" name="for" value="{{.Data.ForMin}}" min="0" max="1440" step="0.5"><small>{{.T "0 = at once. A short dip does not open a problem."}}</small></label>
       <label data-show="tkind" data-when="forecast">{{.T "Within (days)"}}<input type="number" name="days" value="{{.Data.Days}}" min="1" max="365" step="1"><small>{{.T "A problem opens when the trend of the last week reaches the threshold within this time, for example a disk that will be full in two weeks."}}</small></label>
       <label>{{.T "Severity"}}<select name="severity">{{range severities}}<option value="{{.}}" {{if eq . $in.Severity}}selected{{end}}>{{$.T (severityName .)}}</option>{{end}}</select></label>
       {{if not .Data.Check}}<label>{{.T "Applies to"}}<select name="scope"><option value="">{{.T "All devices"}}</option>
         <optgroup label="{{.T "Groups"}}">{{range .Data.Groups}}<option value="g{{.ID}}" {{if eq .ID $in.GroupID}}selected{{end}}>{{.Name}}</option>{{end}}</optgroup>
         <optgroup label="{{.T "Devices"}}">{{range .Data.Devices}}<option value="d{{.ID}}" {{if eq .ID $in.DeviceID}}selected{{end}}>{{.Name}}</option>{{end}}</optgroup></select></label>{{end}}
     </div>
-    {{if not .Data.Check}}<fieldset class="box" data-show="tkind" data-when="check_down metric forecast nodata"><legend>{{.T "Only checks of these types"}} <small class="muted">{{.T "none ticked = all that have the value"}}</small></legend>
+    {{if not .Data.Check}}<fieldset class="box" data-show="tkind" data-when="check_down metric forecast anomaly nodata"><legend>{{.T "Only checks of these types"}} <small class="muted">{{.T "none ticked = all that have the value"}}</small></legend>
       <div class="pickers">{{range .Data.Types}}<label class="check"><input type="checkbox" name="type" value="{{.}}" {{if inStrings $in.CheckTypes .}}checked{{end}}>{{$.T (checkKind .)}} <small class="muted mono">{{.}}</small></label>{{end}}</div>
     </fieldset>{{end}}
     <label class="check"><input type="checkbox" name="enabled" value="1" {{if $in.Enabled}}checked{{end}}>{{.T "Enabled"}}</label>

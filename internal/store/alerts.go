@@ -34,6 +34,7 @@ const (
 	TriggerHADegraded = "ha_degraded" // a HA group of a map runs on fewer members than it has
 	TriggerForecast   = "forecast"    // a value's trend reaches a threshold within for_s seconds
 	TriggerNoData     = "nodata"      // a check got no new value for for_s seconds
+	TriggerAnomaly    = "anomaly"     // a value far from what is usual for that hour of the week
 )
 
 // checkParent refuses a parent that is the device itself or depends on it.
@@ -187,6 +188,24 @@ func (in *TriggerInput) clean() error {
 			in.ForS = 900
 		}
 		return nil
+	case TriggerAnomaly:
+		// op: above, below or either (<>); threshold: how many typical
+		// deviations from the usual value count as unusual
+		types, ok := TriggerMetrics()[in.Metric]
+		if !ok {
+			return errors.New("choose the value to watch")
+		}
+		if in.Op != ">" && in.Op != "<" && in.Op != "<>" {
+			return errors.New("the condition must be above, below or either")
+		}
+		if math.IsNaN(in.Threshold) || in.Threshold < 1.5 || in.Threshold > 10 {
+			return errors.New("the sensitivity must be 1.5–10 deviations")
+		}
+		for _, t := range in.CheckTypes {
+			if !slices.Contains(types, t) {
+				return fmt.Errorf("checks of type %s have no such value", t)
+			}
+		}
 	case TriggerMetric, TriggerForecast:
 		if in.Kind == TriggerForecast && (in.ForS < 3600 || in.ForS > 365*86400) {
 			return errors.New("the forecast must look 1–365 days ahead")
@@ -930,7 +949,7 @@ func (s *Store) triggerCheck(ctx context.Context, in *TriggerInput) error {
 		return errors.New("the check does not exist")
 	}
 	in.DeviceID, in.CheckTypes = c.DeviceID, []string{c.Type}
-	if in.Kind == TriggerMetric || in.Kind == TriggerForecast {
+	if in.Kind == TriggerMetric || in.Kind == TriggerForecast || in.Kind == TriggerAnomaly {
 		if !slices.ContainsFunc(metricsOf(c.Type, c.Params), func(m Series) bool { return m.Metric == in.Metric }) {
 			return errors.New("the check has no such value")
 		}

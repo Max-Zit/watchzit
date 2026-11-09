@@ -43,16 +43,20 @@ type Engine struct {
 	// History reads the stored values of a check's metric (forecast
 	// triggers; nil: they never fire).
 	History func(ctx context.Context, checkID int64, metric string, from, to time.Time) ([]Point, error)
+	// HourlyHistory reads hourly averages of a check's metric (anomaly
+	// triggers learn the usual value per hour of the week from them).
+	HourlyHistory func(ctx context.Context, checkID int64, metric string, from, to time.Time) ([]Point, error)
 
-	mu      sync.Mutex // one evaluation at a time
-	pending map[string]time.Time
-	trends  map[string]trend
-	kick    chan struct{}
+	mu        sync.Mutex // one evaluation at a time
+	pending   map[string]time.Time
+	trends    map[string]trend
+	baselines map[string]*baseline
+	kick      chan struct{}
 }
 
 // New creates an engine.
 func New(st *store.Store, log *slog.Logger) *Engine {
-	return &Engine{st: st, log: log, now: time.Now, Every: 15 * time.Second, pending: map[string]time.Time{}, trends: map[string]trend{}, kick: make(chan struct{}, 1)}
+	return &Engine{st: st, log: log, now: time.Now, Every: 15 * time.Second, pending: map[string]time.Time{}, trends: map[string]trend{}, baselines: map[string]*baseline{}, kick: make(chan struct{}, 1)}
 }
 
 // SetClock replaces the clock (tests).
@@ -189,6 +193,18 @@ func (e *Engine) Evaluate(ctx context.Context) error {
 					continue
 				}
 				for _, c := range e.matchForecast(ctx, t, d, checksOf[d.ID], now, openByKey) {
+					active[c.key()] = c
+				}
+			}
+			continue
+		}
+		if t.Kind == store.TriggerAnomaly {
+			for i := range devs {
+				d := &devs[i]
+				if d.Paused || (t.DeviceID != 0 && t.DeviceID != d.ID) || (t.GroupID != 0 && t.GroupID != d.GroupID) {
+					continue
+				}
+				for _, c := range e.matchAnomaly(ctx, t, d, checksOf[d.ID], now, openByKey, seenPending) {
 					active[c.key()] = c
 				}
 			}

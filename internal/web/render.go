@@ -570,7 +570,7 @@ func init() {
 }
 
 // triggerKinds and channelKinds name the kinds (translated in templates).
-var triggerKinds = map[string]string{store.TriggerDeviceDown: "Device down", store.TriggerCheckDown: "Check down", store.TriggerMetric: "Value out of range", store.TriggerHADegraded: "HA group without redundancy", store.TriggerLog: "Syslog message or trap", store.TriggerForecast: "Value will reach a threshold (forecast)", store.TriggerNoData: "No new data"}
+var triggerKinds = map[string]string{store.TriggerDeviceDown: "Device down", store.TriggerCheckDown: "Check down", store.TriggerMetric: "Value out of range", store.TriggerHADegraded: "HA group without redundancy", store.TriggerLog: "Syslog message or trap", store.TriggerForecast: "Value will reach a threshold (forecast)", store.TriggerNoData: "No new data", store.TriggerAnomaly: "Value unusual for the time (learned)"}
 var channelKinds = map[string]string{store.ChannelEmail: "Email", store.ChannelWebhook: "Webhook (JSON)", store.ChannelSlack: "Slack", store.ChannelTeams: "Microsoft Teams",
 	store.ChannelDiscord: "Discord", store.ChannelTelegram: "Telegram", store.ChannelNtfy: "ntfy (push to phones)", store.ChannelPagerDuty: "PagerDuty",
 	store.ChannelTwilio: "SMS (Twilio)", store.ChannelSMSGateway: "SMS (own gateway)"}

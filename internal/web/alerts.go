@@ -220,6 +220,10 @@ func triggerInput(r *http.Request) (store.TriggerInput, string) {
 		}
 		in.ForS = int(days * 86400)
 	}
+	if in.Kind == store.TriggerAnomaly {
+		in.Op = r.FormValue("aop")
+		in.Threshold, _ = strconv.ParseFloat(r.FormValue("sensitivity"), 64)
+	}
 	if in.Kind == store.TriggerLog {
 		in.Metric = r.FormValue("pattern")
 		in.Threshold, _ = strconv.ParseFloat(r.FormValue("level"), 64)

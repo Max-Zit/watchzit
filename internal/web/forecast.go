@@ -31,3 +31,30 @@ func (s *Server) MetricHistory(ctx context.Context, checkID int64, metric string
 	}
 	return out, nil
 }
+
+// MetricHourly is like MetricHistory with one average per hour (anomaly
+// triggers learn the usual value per hour of the week from it).
+func (s *Server) MetricHourly(ctx context.Context, checkID int64, metric string, from, to time.Time) ([]alert.Point, error) {
+	id, err := s.store.SeriesID(ctx, checkID, metric)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	n := int(to.Sub(from) / time.Hour)
+	if n < 1 {
+		n = 1
+	}
+	res, err := s.tsdb.Query(ctx, id, from, to, min(n, 2000))
+	if err != nil {
+		return nil, err
+	}
+	out := make([]alert.Point, 0, len(res.Points))
+	for _, p := range res.Points {
+		if p.N > 0 {
+			out = append(out, alert.Point{T: time.Unix(p.T, 0), V: p.Avg})
+		}
+	}
+	return out, nil
+}
