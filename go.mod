@@ -2,7 +2,7 @@ module github.com/max-zit/watchzit
 
 go 1.27.0
 
-toolchain go1.27.3
+toolchain go1.27.4
 
 require (
 	github.com/beevik/etree v1.7.0
