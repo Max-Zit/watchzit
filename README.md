@@ -207,7 +207,7 @@ The code holds the server's address and the fingerprint of its agent certificate
 
 ## Updates
 
-WatchZit checks for new releases itself and shows them under **Settings → Updates and server**. Only releases signed with the WatchZit release key are installed. Before installing, the server backs up its database and program; if the new version does not start, it goes back to the old one by itself.
+WatchZit checks for new releases itself and shows them under **Settings → Updates and server**. Administrators also see a notice at the top of every console page while a newer version is available (× hides it for 5 days). Only releases signed with the WatchZit release key are installed. Before installing, the server backs up its database and program; if the new version does not start, it goes back to the old one by itself.
 
 ## Requirements and ports
 

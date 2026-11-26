@@ -39,6 +39,7 @@
 </ol>
 <p>The <b>update channel</b> chooses what the console installs: <b>official releases</b>, or <b>testing</b> — release candidates that come before an official release, for a test console. Keep production consoles on official releases.</p>
 <p>Updates can be installed by a click or automatically in a chosen hour. A mirror or a local folder can be the source (<code>WATCHZIT_UPDATE_SOURCE</code> in <code>/etc/watchzit/server.env</code>). The same page sets the server's time zone and restarts the service.</p>
+<p id="update-notice"><b>Notice of a new version:</b> when a newer release is available, administrators see a notice at the top of every console page, “WatchZit 1.5.1 is available (installed: 1.5.0).” <b>Install</b> opens this page — the confirmation stays here — and <b>Release notes</b> opens the notes of the release. <b>×</b> hides the notice for you for 5 days, in every browser; a still newer version shows it again at once. Other roles never see it. <b>Install</b> asks the update source again before it installs: if the source offers another version by now (a newer candidate), that version is shown with its notes instead.</p>
 <p><b>Without internet access:</b> under <b>Install from files</b> upload <code>manifest.json</code>, <code>manifest.json.sig</code> and the server package (.deb or .rpm) of a release, downloaded on another computer. They are checked like a download and installed the same way.</p>
 
 <h2 id="os">Operating system and SSH</h2>

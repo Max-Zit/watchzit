@@ -349,11 +349,25 @@ func (s *Server) handleVersionCheck(w http.ResponseWriter, r *http.Request) {
 	s.redirect(w, r, "/settings/version", "Checked.")
 }
 
+// handleVersionInstall installs the version whose notes the page showed. It
+// asks the update source again first: a channel keeps only its newest
+// release, so the files of a version seen hours ago may be gone. When the
+// source offers another version by now, the page shows that one with its
+// notes instead of installing anything.
 func (s *Server) handleVersionInstall(w http.ResponseWriter, r *http.Request) {
-	s.upd.mu.Lock()
-	latest := s.upd.latest
-	s.upd.mu.Unlock()
 	v := r.FormValue("version")
+	s.CheckUpdate(r.Context())
+	s.upd.mu.Lock()
+	latest, checkErr := s.upd.latest, s.upd.err
+	s.upd.mu.Unlock()
+	if checkErr != "" {
+		s.redirectErr(w, r, "/settings/version", translate(s.lang(r, userFrom(r)), "The check for a new version failed: %s", checkErr))
+		return
+	}
+	if latest != nil && latest.Version != v && update.Newer(latest.Version, s.Version) {
+		s.redirect(w, r, "/settings/version", translate(s.lang(r, userFrom(r)), "The update source now offers WatchZit %s. Read its notes and install it from here.", latest.Version))
+		return
+	}
 	if latest == nil || latest.Version != v || !update.Newer(v, s.Version) {
 		s.redirectErr(w, r, "/settings/version", "There is no newer version to install.")
 		return

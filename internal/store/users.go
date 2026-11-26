@@ -370,3 +370,19 @@ func (s *Store) UserSource(ctx context.Context, username string) string {
 	_ = s.db.QueryRow(ctx, `SELECT source FROM users WHERE lower(username)=lower($1)`, strings.TrimSpace(username)).Scan(&src)
 	return src
 }
+
+// UpdateNoticeHidden returns the version whose update notice the user hid
+// and until when (nil when never hidden).
+func (s *Store) UpdateNoticeHidden(ctx context.Context, userID int64) (string, *time.Time, error) {
+	var v string
+	var until *time.Time
+	err := s.db.QueryRow(ctx, `SELECT update_hidden_version, update_hidden_until FROM users WHERE id=$1`, userID).Scan(&v, &until)
+	return v, until, err
+}
+
+// HideUpdateNotice hides the update notice of version for a user until the
+// given time.
+func (s *Store) HideUpdateNotice(ctx context.Context, userID int64, version string, until time.Time) error {
+	_, err := s.db.Exec(ctx, `UPDATE users SET update_hidden_version=$2, update_hidden_until=$3 WHERE id=$1`, userID, version, until)
+	return err
+}

@@ -100,7 +100,9 @@ type Page struct {
 	// ProblemsCritical is set when one of them is critical.
 	Problems         int
 	ProblemsCritical bool
-	Data             any
+	// Update is the notice of a newer WatchZit version (administrators).
+	Update *updateNotice
+	Data   any
 }
 
 // T translates a text for the page language.
@@ -309,6 +311,7 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, status int, name
 			}
 			p.ProblemsCritical = c[store.SeverityCritical] > 0
 		}
+		p.Update = s.updateNoticeFor(r.Context(), p.User, r.URL.Path)
 	}
 	if f := s.takeFlash(w, r); f != "" && p.Flash == "" {
 		// An error message (redirectErr) starts with "!".
