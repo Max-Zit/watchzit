@@ -2,6 +2,18 @@
 
 Each run of the WatchZit routine starts from this file: decisions, status, next steps, open questions. Keep it current.
 
+## Waiting for the next release — license audit 2026-11-27
+
+From the license audit of 2026-11-27 (report `C:\Users\Mili\Ai\qa-lab\license-audit-2026-11-27-watchzit.md`). Result: CLEAN — no incompatible license, no copied foreign code or data; these are missing or stale notices. Stefan 2026-11-27: "da stavi u plan" — do them with the next release, never a release of their own. Most are fixed by bringing tools/licenses up to RMMZit's newer version.
+
+- [ ] **FIRST — stale notices in the MSIs:** tools/release/build.sh builds both MSIs (line 14) before it regenerates THIRD_PARTY_LICENSES.md (line 27), so the released 1.5.0 agent and launcher MSIs (also inside the server deb/rpm downloads) carry the 1.4.x file. Regenerate first and stop the build when the committed file changed (as rmm/tools/release/build.sh:30).
+- [ ] **WiX 5.0.2 parts (MS-RL) in the MSIs not listed:** agent MSI (Wix4UtilCA_X64 and the standard dialogs), launcher MSI (dialogs and icons). Add RMMZit's WiX line (rmm/tools/licenses/main.go:171) and the MS-RL text. PassZit bundles the launcher MSI in its deb/rpm, so one line there too.
+- [ ] **Apache NOTICE of coreos/go-oidc (server) not shipped:** copy extraNotices from rmm/tools/licenses/main.go:76-93.
+- [ ] **Licenses inside linked modules:** the Swisscom MIT license in go-mssqldb internal/.../mssql-always-encrypted/LICENSE.txt (server and agent), the BSD-2 header of lib/pq/scram/scram.go (Gustavo Niemeyer, server), go-jose json/LICENSE (cosmetic).
+- [ ] **Icons after Lucide (ISC):** "users" and "bell" in internal/web/templates/_layout.html:88 follow Lucide; credit both like RMMZit (rmm/tools/licenses/notices/lucide.txt).
+- [ ] **License gate:** reject Commons Clause/BUSL riders (first-phrase matching today); run the licenses check in CI.
+- [ ] Optional: embed the notices in the programs (RMMZit does; /licenses is empty on a standalone Windows server); /licenses could link the release tag; SOURCE-CODE.txt:14 mentions fonts (none shipped); README.md:239 calls MPL "permissive".
+
 ## Product (Stefan's request, 2026-10-27)
 
 A self-hosted web application for monitoring networks and devices: a mix of **MikroTik's The Dude** (network map, discovery, device status, open a device from the map), **Zabbix** (metrics, triggers, alerts, templates) and **Grafana** (graphs, dashboards).
